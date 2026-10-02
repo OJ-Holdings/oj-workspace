@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 02:15 UTC -- Claude Code, for Oscar (OJ Solutions: Clients and Calls from GoHighLevel)
+**Summary:** The two Solutions tabs now read the real sub-account. Clients: clients and prospects, open and won deal value, the pipeline by stage, every deal, every contact. Calls: calls in the last 30 days, incoming count, average length, recent calls. Every business tab is now real; no "being built" placeholders remain in VentureView.
+**How it works:** src/lib/ghl-server.ts (server only, GET requests only, five-minute cache) reads contacts, pipelines, opportunities and the 50 most recent conversations, then each conversation's messages to find calls. loadGhl requires owner or member (the tab lists people by name).
+**Files:** src/lib/ghl.ts, src/lib/ghl-server.ts, src/app/workspace/ghl-actions.ts, src/components/app/GhlView.tsx, VentureView.tsx, Settings text in Pages.tsx, tests/ghl.test.ts.
+**Verified:** 84 tests pass; typecheck clean. Real read from Oscar's PC: 5 contacts (2 clients), 4 deals, 2 open, 1 won, stages resolved by name, 5 conversations.
+**Not verified:** the tabs on screen with a signed-in member. **The call fields are unproven:** the account has zero call messages, so reading length and result from `meta.call.duration` / `meta.call.status` follows GoHighLevel's documented shape but has never met a real call. Check the Calls tab against GoHighLevel once the first call lands.
+**Notes:** "Won" is deal value, not money received. Caps: 100 contacts, 100 deals, 50 conversations, each stated on screen when exceeded. Not yet in Home or Finance figures (same for Shopify and Exterior Care): that is the next piece of work.
+
 ## 2026-10-03 01:30 UTC -- Claude Code, for Oscar (Exterior Care: Outreach leads, Conversations, Bookings, Door knocking)
 **Summary:** Oscar ran the read-access update; it is now in supabase/applied/ (do not run again). Exterior Care gained four tabs reading the existing records: Outreach leads (counts, revenue recorded, status filter, full list), Conversations (a thread per lead), Bookings (upcoming and past, joined to the lead), Door knocking (totals, answer rate, value per door, every session). Read only: to change a record, use the old system.
 **Verified against the live project (read-only checks):** the five `oj_member_read` SELECT policies exist, `authenticated` has SELECT only on those five tables and nothing on `settings`, `anon` has nothing, row-level security is on everywhere, the ownership table holds exactly one workspace. GoHighLevel token also checked: location, contacts, pipelines, opportunities and conversations all answer 200; the sub-account has no calendars.
