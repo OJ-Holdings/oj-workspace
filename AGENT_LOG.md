@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 01:30 UTC -- Claude Code, for Oscar (Exterior Care: Outreach leads, Conversations, Bookings, Door knocking)
+**Summary:** Oscar ran the read-access update; it is now in supabase/applied/ (do not run again). Exterior Care gained four tabs reading the existing records: Outreach leads (counts, revenue recorded, status filter, full list), Conversations (a thread per lead), Bookings (upcoming and past, joined to the lead), Door knocking (totals, answer rate, value per door, every session). Read only: to change a record, use the old system.
+**Verified against the live project (read-only checks):** the five `oj_member_read` SELECT policies exist, `authenticated` has SELECT only on those five tables and nothing on `settings`, `anon` has nothing, row-level security is on everywhere, the ownership table holds exactly one workspace. GoHighLevel token also checked: location, contacts, pipelines, opportunities and conversations all answer 200; the sub-account has no calendars.
+**Files:** src/lib/exterior.ts, src/app/workspace/exterior-actions.ts, src/components/app/ExteriorView.tsx, VentureView.tsx, src/styles/views.css, tests/exterior-logic.test.ts.
+**Verified:** 82 tests pass; typecheck clean.
+**Not verified:** the tabs on screen with a signed-in member (I have no session), so the real read through a member's session has not been seen working.
+**Notes:** Job revenue is summed only where it was entered (48 of 50 completed jobs today) and says so; quotes are never counted as money. The conversations table is empty in the live database, so that tab shows an empty state. The core "Leads" tab is still the workspace's own pipeline; "Outreach leads" is the old system's list. Not yet in Home or Finance figures. GoHighLevel tabs are next.
+
 ## 2026-10-03 00:40 UTC -- Claude Code, for Oscar (OJ Essentials: Orders, Products and Inventory from Shopify)
 **Summary:** The three Essentials tabs now read the real store. Orders: order totals, count and average for the last 30 days, a by-day chart, best sellers, recent orders. Products: the catalogue with status, price and stock. Inventory: stock per option, with low (5 or fewer) and sold-out flags. Cancelled and test orders never count. No customer names or addresses are fetched.
 **How it works:** src/lib/shopify-server.ts (server only) swaps the client id and secret for a 24-hour token, runs two read queries, and caches the result for five minutes. The server action loadShopify checks workspace membership first. Summaries are calculated in the browser by src/lib/shopify.ts so days follow the viewer's clock. The code sends queries only, never mutations.
