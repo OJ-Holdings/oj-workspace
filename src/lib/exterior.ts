@@ -32,6 +32,25 @@ export function summariseLeads(leads: ExtLead[]) {
   };
 }
 
+const group = <T,>(rows: T[], key: (row: T) => string) => { const m = new Map<string, T[]>(); for (const r of rows) m.set(key(r), [...(m.get(key(r)) ?? []), r]); return [...m]; };
+const paid = (rows: ExtLead[]) => rows.reduce((s, l) => s + (l.job_revenue ?? 0), 0);
+const spent = (rows: ExtLead[]) => rows.reduce((s, l) => s + (l.job_cost ?? 0), 0);
+/** When a job counts as done: the day it was completed, or failing that the day it was last changed (the old system's own rule). */
+export const jobDate = (l: ExtLead) => l.completed_at || l.updated_at || l.created_at;
+
+/** Completed jobs: money paid, costs and profit, by month and by service, plus how each lead source converts. Profit counts only the costs that were entered. */
+export function summariseJobs(leads: ExtLead[], monthOf: (iso: string) => string) {
+  const done = leads.filter(l => l.status === 'completed');
+  const row = (label: string, rows: ExtLead[]) => ({ label, jobs: rows.length, revenue: paid(rows), cost: spent(rows), profit: paid(rows) - spent(rows) });
+  return {
+    jobs: done.length, revenue: paid(done), cost: spent(done), profit: paid(done) - spent(done), costJobs: done.filter(l => l.job_cost !== null).length,
+    average: done.some(l => l.job_revenue !== null) ? paid(done) / done.filter(l => l.job_revenue !== null).length : null,
+    byMonth: group(done, l => monthOf(jobDate(l))).map(([m, rows]) => row(m, rows)).sort((a, b) => b.label.localeCompare(a.label)),
+    byService: group(done, l => l.service_requested?.trim() || 'Unspecified').map(([s, rows]) => row(s, rows)).sort((a, b) => b.revenue - a.revenue),
+    bySource: group(leads, l => sourceLabel(l.source)).map(([source, rows]) => { const won = rows.filter(l => l.status === 'completed' || l.status === 'booked'); return { source, leads: rows.length, won: won.length, rate: won.length / rows.length, revenue: paid(rows.filter(l => l.status === 'completed')) }; }).sort((a, b) => b.leads - a.leads),
+  };
+}
+
 /** Totals across sessions; each rate is null when there is nothing to divide by. */
 export function summariseSessions(sessions: ExtSession[]) {
   const sum = (key: 'doors_knocked' | 'answers' | 'interested' | 'quotes_given' | 'jobs_scheduled' | 'job_total') => sessions.reduce((s, x) => s + (Number(x[key]) || 0), 0);

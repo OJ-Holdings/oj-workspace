@@ -2,6 +2,7 @@ import 'server-only';
 import { requireMember } from '@/lib/supabase';
 import type { Card, Comment, Activity, WorkspaceSnapshot } from '@/lib/board';
 import type { Dashboard } from '@/lib/dashboard';
+import { addExternalFigures } from '@/lib/external';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
 
@@ -41,10 +42,11 @@ export async function loadWorkspace(org: string): Promise<WorkspaceSnapshot> {
   ]);
   if (cards.error || comments.error || members.error || activity.error) throw new Error('Could not load the workspace.');
   const names = new Map((members.data || []).map(m => [m.user_id, m.display_name]));
+  const dashboard = await loadDashboard(client, org, names);
   return {
     members: [...names.values()], role: member.role as WorkspaceSnapshot['role'], displayName: member.display_name,
     limited: (cards.data?.length || 0) >= 1000 || (comments.data?.length || 0) >= 1000,
-    dashboard: await loadDashboard(client, org, names),
+    dashboard: dashboard && await addExternalFigures(client, dashboard),
     data: {
       cards: (cards.data || []).map(c => ({ ...c, due_date: c.due_date || '' })) as Card[],
       comments: (comments.data || []).reverse().map(c => ({ ...c, author: names.get(c.author_id) || 'Former member' })) as Comment[],

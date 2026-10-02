@@ -11,11 +11,12 @@ export type DocumentTag = typeof documentTags[number];
 
 export type Message = { id: string; venture: VentureId | null; author: string; body: string; created_at: string };
 export type Lead = { id: string; venture: VentureId; name: string; contact: string; stage: LeadStage; value: number | null; source: string; notes: string; created_at: string };
-export type FinanceEntry = { id: string; venture: VentureId; kind: 'revenue' | 'cost'; amount: number; occurred_on: string; category: string; note: string };
+/** `auto` names the connected system an entry came from (a paid Exterior Care job, a Shopify order); those are not stored in the workspace and cannot be removed here. */
+export type FinanceEntry = { id: string; venture: VentureId; kind: 'revenue' | 'cost'; amount: number; occurred_on: string; category: string; note: string; auto?: string };
 export type MetricEntry = { id: string; venture: VentureId; label: string; value: number; unit: string; measured_on: string; note: string };
 export type EventItem = { id: string; venture: VentureId | null; title: string; starts_at: string; ends_at: string | null; all_day: boolean; location: string; notes: string };
 export type DocumentItem = { id: string; venture: VentureId | null; name: string; tag: DocumentTag; storage_path: string; size_bytes: number; mime: string; uploaded_by: string; created_at: string };
-export type Dashboard = { messages: Message[]; leads: Lead[]; finance: FinanceEntry[]; metricEntries: MetricEntry[]; events: EventItem[]; documents: DocumentItem[] };
+export type Dashboard = { messages: Message[]; leads: Lead[]; finance: FinanceEntry[]; metricEntries: MetricEntry[]; events: EventItem[]; documents: DocumentItem[]; /** Open leads held in a connected system rather than in the workspace's own pipeline. */ openElsewhere?: Partial<Record<VentureId, number>> };
 export const emptyDashboard: Dashboard = { messages: [], leads: [], finance: [], metricEntries: [], events: [], documents: [] };
 
 export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -45,13 +46,14 @@ export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date): W
   const ventures = Object.fromEntries(ventureIds.map(id => {
     const revenue = dashboard.finance.some(f => f.venture === id && f.kind === 'revenue');
     const leads = dashboard.leads.filter(l => l.venture === id);
-    if (!revenue && leads.length === 0) return [id, null];
+    const elsewhere = dashboard.openElsewhere?.[id] ?? 0;
+    if (!revenue && leads.length === 0 && elsewhere === 0) return [id, null];
     const series = monthlyTotals(dashboard.finance, id, 'revenue', now);
     const current = series[series.length - 1], previous = series[series.length - 2];
     return [id, {
       revenueMtd: current,
       change: previous > 0 ? Math.round(((current - previous) / previous) * 100) : null,
-      activeLeads: leads.filter(l => l.stage !== 'Won' && l.stage !== 'Lost').length,
+      activeLeads: leads.filter(l => l.stage !== 'Won' && l.stage !== 'Lost').length + elsewhere,
       series,
     }];
   })) as WorkspaceMetrics['ventures'];
