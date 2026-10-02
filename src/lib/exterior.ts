@@ -7,7 +7,10 @@ export type ExtLead = { id: string; name: string | null; phone: string | null; a
 export type ExtBooking = { id: string; lead_id: string | null; date: string; time_block: string | null; status: string | null };
 export type ExtSession = { id: string; session_date: string; knocked_by: string | null; area: string | null; doors_knocked: number | null; answers: number | null; interested: number | null; quotes_given: number | null; jobs_scheduled: number | null; job_total: number | null };
 export type ExtMessage = { id: string; lead_id: string | null; direction: string | null; body: string | null; created_at: string };
-export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; messages: ExtMessage[]; messagesTruncated: boolean };
+export type ExtQuote = { id: string; name: string | null; phone: string | null; email: string | null; address: string | null; service_needed: string | null; description: string | null; property_type: string | null; business_name: string | null; recurring_interest: boolean | null; created_at: string };
+/** Null until the database update in supabase/schemas/exterior-extras.sql has been applied. */
+export type ExtExtras = { goal: number | null; upgrades: Record<string, true>; quotes: ExtQuote[] } | null;
+export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; messages: ExtMessage[]; messagesTruncated: boolean; extras: ExtExtras };
 export type ExteriorResult = { ok: true; data: ExteriorData } | { ok: false; reason: 'no-access' | 'failed' };
 
 export const openStatuses = ['new', 'contacted', 'following_up', 'booked'];

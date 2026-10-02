@@ -16,7 +16,7 @@ import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['jobs', 'Jobs and income'], ['outreach', 'Outreach leads'],['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
+  exterior: [['jobs', 'Jobs and income'], ['outreach', 'Outreach leads'],['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['upgrades', 'Upgrades']],
   solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
@@ -73,7 +73,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
       {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
-      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} />}
+      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} />}
       {isExtra(venture, active) && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
     </div>
   );
