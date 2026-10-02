@@ -1,0 +1,91 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import NumberFlow from '@number-flow/react';
+import { motion } from 'motion/react';
+import { ventures, type VentureId } from '@/lib/ventures';
+import type { WorkspaceMetrics } from '@/lib/metrics';
+import { BoardView } from './BoardView';
+import type { Board } from './useBoard';
+
+const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
+const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
+  exterior: [['leads', 'Leads'], ['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking'], ['analytics', 'Analytics']],
+  solutions: [['clients', 'Clients'], ['calls', 'Calls'], ['revenue', 'Revenue']],
+  essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
+};
+// What each tab will hold, said plainly, until its stage of the build lands.
+const planned: Record<string, string> = {
+  metrics: 'Headline figures for this business, plus a form to log any number that no system tracks.',
+  documents: 'Contracts, insurance, tax and brand files for this business, private to workspace members.',
+  leads: 'Every Exterior Care lead with its status, quote and source, from the existing leads database.',
+  conversations: 'The text conversation with each lead. Texts are still sent by the existing Exterior Care server.',
+  bookings: 'Booked jobs by day and time block.',
+  'door-knocking': 'Door-knocking sessions and their results.',
+  analytics: 'Revenue by service and source, close rate and weekly trend.',
+  clients: 'Each AI receptionist client, their plan and status, from GoHighLevel.',
+  calls: 'Calls handled by each receptionist.',
+  revenue: 'Setup fees, monthly fees and running costs.',
+  orders: 'Shopify orders and revenue by day.',
+  products: 'The catalogue, with best sellers.',
+  inventory: 'Stock levels, with low-stock warnings.',
+};
+
+type Props = { base: string; venture: VentureId; tab: string; board: Board; metrics: WorkspaceMetrics; members: string[]; readOnly: boolean; displayName: string };
+
+export function VentureView({ base, venture, tab, board, metrics, members, readOnly, displayName }: Props) {
+  const v = ventures[venture];
+  const m = metrics.ventures[venture];
+  const tabs = [...coreTabs, ...extraTabs[venture]];
+  const active = tabs.some(([id]) => id === tab) ? tab : 'overview';
+  const cards = board.data.cards.filter(c => c.business === venture);
+  const open = cards.filter(c => c.stage !== 'Done');
+
+  return (
+    <div className="venture">
+      <header className="venture-head">
+        <span className="venture-logo"><Image src={v.mark} alt={`${v.name} logo`} width={112} height={112} priority /></span>
+        <div>
+          <h1>{v.name}</h1>
+          <p className="venture-tagline">{v.tagline}</p>
+          <ul className="chips">{v.chips.map(chip => <li key={chip}>{chip}</li>)}</ul>
+        </div>
+      </header>
+
+      <nav className="tabs" aria-label={`${v.name} sections`}>
+        {tabs.map(([id, label]) => (
+          <Link key={id} href={`${base}/b/${venture}${id === 'overview' ? '' : `/${id}`}`} aria-current={active === id ? 'page' : undefined} className={active === id ? 'is-current' : undefined}>
+            {label}
+            {active === id && <motion.i layoutId={`tab-${venture}`} className="tab-line" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+          </Link>
+        ))}
+      </nav>
+
+      {active === 'overview' && (
+        <div className="venture-overview">
+          <div className="kpis">
+            {m ? <>
+              <div><span>Revenue this month</span><strong><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong><small className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}% on last month</small></div>
+              <div><span>Active leads</span><strong><NumberFlow value={m.activeLeads} /></strong></div>
+              <div><span>{v.third}</span><strong><NumberFlow value={m.third} /></strong></div>
+            </> : (
+              <div className="kpi-off"><b>Figures are not connected yet.</b><span>Revenue, leads and {v.third.toLowerCase()} appear here once {v.source} is connected.</span></div>
+            )}
+            <div><span>Open tasks</span><strong><NumberFlow value={open.length} /></strong></div>
+          </div>
+          <h2 className="section-title">Work in progress</h2>
+          <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />
+        </div>
+      )}
+      {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
+      {active !== 'overview' && active !== 'board' && (
+        <div className="planned">
+          <h2>{tabs.find(([id]) => id === active)?.[1]}</h2>
+          <p>{planned[active]}</p>
+          <p className="quiet">This section is being built. Nothing is shown here until it is connected to real data.</p>
+        </div>
+      )}
+    </div>
+  );
+}
