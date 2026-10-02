@@ -123,3 +123,11 @@
   .pipeline-board .column { scroll-snap-align: start; }
   .monthnav h2 { min-width: 0; font-size: var(--t-lg); }
 }
+
+/* Exterior Care text threads */
+.thread { border-top: 1px solid var(--line); padding: var(--s-4) 0; }
+.thread summary { display: flex; justify-content: space-between; gap: var(--s-4); cursor: pointer; }
+.thread ol { list-style: none; margin: var(--s-4) 0 0; padding: 0; display: grid; gap: var(--s-4); }
+.thread li { max-width: 60ch; }
+.thread li.out { justify-self: end; text-align: right; }
+.thread li p { margin: 4px 0 0; white-space: pre-wrap; }

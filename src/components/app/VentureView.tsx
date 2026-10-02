@@ -9,24 +9,23 @@ import type { WorkspaceMetrics } from '@/lib/metrics';
 import { BoardView } from './BoardView';
 import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
 import { ShopifyView } from './ShopifyView';
+import { ExteriorView } from './ExteriorView';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
+  exterior: [['outreach', 'Outreach leads'], ['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
   solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
 // What each tab will hold, said plainly, until its stage of the build lands.
 const planned: Record<string, string> = {
-  conversations: 'The text conversation with each lead, from the existing Exterior Care system. Texts are still sent by that system.',
-  bookings: 'Booked jobs by day and time block.',
-  'door-knocking': 'Door-knocking sessions and their results.',
   clients: 'Each AI receptionist client, their plan and status, from GoHighLevel.',
   calls: 'Calls handled by each receptionist.',
 };
 const shopifyTabs = ['orders', 'products', 'inventory'];
+const exteriorTabs = ['outreach', 'conversations', 'bookings', 'door-knocking'];
 
 type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };
 
@@ -79,6 +78,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
       {venture === 'essentials' && shopifyTabs.includes(active) && <ShopifyView tab={active} org={organizationId} mode={mode} />}
+      {venture === 'exterior' && exteriorTabs.includes(active) && <ExteriorView tab={active} org={organizationId} mode={mode} />}
       {planned[active] && (
         <div className="planned">
           <h2>{tabs.find(([id]) => id === active)?.[1]}</h2>
