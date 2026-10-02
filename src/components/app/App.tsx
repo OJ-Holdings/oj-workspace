@@ -59,7 +59,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       openTasks={open.length} cards={board.data.cards} activity={board.data.activity ?? []} status={status}
       onOpenCard={card => board.openCard(card)} onNewCard={() => board.openCard(undefined, venture ? { business: venture } : {})}>
       {venture ? (
-        <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} />
+        <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} metrics={metrics} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
       ) : current === 'tasks' ? (

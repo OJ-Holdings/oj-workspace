@@ -22,6 +22,15 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 00:40 UTC -- Claude Code, for Oscar (OJ Essentials: Orders, Products and Inventory from Shopify)
+**Summary:** The three Essentials tabs now read the real store. Orders: order totals, count and average for the last 30 days, a by-day chart, best sellers, recent orders. Products: the catalogue with status, price and stock. Inventory: stock per option, with low (5 or fewer) and sold-out flags. Cancelled and test orders never count. No customer names or addresses are fetched.
+**How it works:** src/lib/shopify-server.ts (server only) swaps the client id and secret for a 24-hour token, runs two read queries, and caches the result for five minutes. The server action loadShopify checks workspace membership first. Summaries are calculated in the browser by src/lib/shopify.ts so days follow the viewer's clock. The code sends queries only, never mutations.
+**Scopes:** Oscar chose to leave the Shopify app with wide (write) scopes. The workspace does not use them. If the client secret ever leaks, rotate it in the Dev Dashboard.
+**Files:** src/lib/shopify.ts, src/lib/shopify-server.ts, src/app/workspace/shopify-actions.ts, src/components/app/ShopifyView.tsx, VentureView.tsx, App.tsx, tests/shopify.test.ts.
+**Verified:** 78 tests pass; typecheck clean. The real read was run from this PC against the store: 8 products (all on sale, all tracked), 30 options, 0 orders in the last 60 days, nothing low on stock.
+**Not verified:** the tabs on screen with a signed-in member (I have no session); the preview shows a "live workspace only" note by design. With zero orders, the chart, best-seller and order-table paths have only been exercised by unit tests.
+**Notes:** Orders reach back 60 days (Shopify's limit without `read_all_orders`). Capped at 250 orders and 250 products, and the screen says so when the cap is hit. Shopify figures are NOT yet in Home, the Essentials overview or Finance; those still come from hand-logged money, and adding Shopify there needs a rule against double counting. `.env.local` now exists on Oscar's PC with the Shopify values.
+
 ## 2026-10-02 23:50 UTC -- Claude Code, for Oscar (Exterior Care read access staged; connection steps written)
 **Summary:** Staged the database change that lets workspace owners and members READ the existing Exterior Care tables (leads, conversations, bookings, doorknocking_sessions, activity_log). Read only: no insert, update or delete for anyone in the workspace, nothing for viewers or signed-out visitors, and the legacy `settings` table is untouched. The old server stays the only writer, so its Sheets sync and follow-ups are unaffected. Also wrote docs/CONNECTIONS.md with the founder steps for all three connections, and switched Shopify to client id + client secret (Shopify no longer issues static admin tokens for new apps; the server will request a 24-hour token).
 **NOT applied.** A founder must run supabase/pending/RUN-ME-exterior-care-read-access.sql in the Supabase SQL editor.
