@@ -8,6 +8,7 @@ import { ventures, type VentureId } from '@/lib/ventures';
 import type { WorkspaceMetrics } from '@/lib/metrics';
 import { BoardView } from './BoardView';
 import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
+import { ShopifyView } from './ShopifyView';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
@@ -24,14 +25,12 @@ const planned: Record<string, string> = {
   'door-knocking': 'Door-knocking sessions and their results.',
   clients: 'Each AI receptionist client, their plan and status, from GoHighLevel.',
   calls: 'Calls handled by each receptionist.',
-  orders: 'Shopify orders and revenue by day.',
-  products: 'The catalogue, with best sellers.',
-  inventory: 'Stock levels, with low-stock warnings.',
 };
+const shopifyTabs = ['orders', 'products', 'inventory'];
 
-type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string };
+type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };
 
-export function VentureView({ base, venture, tab, board, store, metrics, members, readOnly, displayName }: Props) {
+export function VentureView({ base, venture, tab, board, store, metrics, members, readOnly, displayName, organizationId, mode }: Props) {
   const v = ventures[venture];
   const m = metrics?.ventures[venture] ?? null;
   const tabs = [...coreTabs, ...extraTabs[venture]];
@@ -79,6 +78,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
+      {venture === 'essentials' && shopifyTabs.includes(active) && <ShopifyView tab={active} org={organizationId} mode={mode} />}
       {planned[active] && (
         <div className="planned">
           <h2>{tabs.find(([id]) => id === active)?.[1]}</h2>
