@@ -15,6 +15,17 @@ export async function createLockedLegacyTables(db: PGlite) {
       grant all on public.${table} to service_role;
       insert into public.${table}(payload) values ('Customer record');`);
   }
+  // Settings is a key/value table; quote requests come from the public website form, so signed-out visitors may add (never read) them.
+  await db.exec(`delete from public.settings;
+    alter table public.settings add column key text unique, add column value text, add column updated_at timestamptz;
+    insert into public.settings(key, value) values ('monthlyRevenueGoal', '20000'), ('upgrades_completed', '{"eq_safety":true}'), ('ownerPhone', '+15550100');
+    create table public.quote_requests(id uuid primary key default gen_random_uuid(), payload text);
+    alter table public.quote_requests enable row level security;
+    revoke all on public.quote_requests from public, anon, authenticated;
+    grant all on public.quote_requests to service_role;
+    grant insert on public.quote_requests to anon;
+    create policy "Allow anon insert" on public.quote_requests for insert to anon with check (true);
+    insert into public.quote_requests(payload) values ('Website request');`);
 }
 
 test('Exterior Care records are readable by workspace owners and members only, and writable by no one in the workspace', async t => {
@@ -73,6 +84,44 @@ test('Exterior Care records are readable by workspace owners and members only, a
       await db.exec(`insert into public.${table}(payload) values ('Backend write')`);
       assert.equal((await db.query(`select id from public.${table}`)).rows.length, 2, table);
     }
+  });
+  await db.exec('reset role');
+  await db.exec(await readFile(new URL('../supabase/schemas/exterior-extras.sql', import.meta.url), 'utf8'));
+  const settings = async () => (await db.query<{ s: Record<string, string> | null }>('select public.oj_exterior_settings() as s')).rows[0].s;
+
+  await t.test('quote requests: owners and members read, viewers and strangers do not, visitors can still only add', async () => {
+    await as(member);
+    assert.equal((await db.query('select id from public.quote_requests')).rows.length, 1);
+    await assert.rejects(() => db.exec(`delete from public.quote_requests`));
+    for (const who of [viewer, stranger]) { await as(who); assert.equal((await db.query('select id from public.quote_requests')).rows.length, 0); }
+    await as('', 'anon');
+    await assert.rejects(() => db.query('select id from public.quote_requests'));
+    await db.exec(`insert into public.quote_requests(payload) values ('New request')`);
+  });
+  await t.test('only the goal and the upgrades list leave the settings table, and only for owners and members', async () => {
+    await as(member);
+    assert.deepEqual(await settings(), { monthlyRevenueGoal: '20000', upgrades_completed: '{"eq_safety":true}' });
+    await assert.rejects(() => db.query('select * from public.settings'));
+    for (const who of [viewer, stranger]) { await as(who); assert.equal(await settings(), null); }
+    await as('', 'anon');
+    await assert.rejects(() => settings());
+  });
+  await t.test('members can save the upgrades list and nothing else; bad shapes and other roles are refused', async () => {
+    await as(member);
+    await db.query(`select public.oj_set_exterior_upgrades('{"eq_safety":true,"biz_llc":true}'::jsonb)`);
+    assert.deepEqual(JSON.parse((await settings())!.upgrades_completed), { eq_safety: true, biz_llc: true });
+    for (const bad of [`'[]'`, `'{"a":false}'`, `'{"a":"true"}'`, `'{"Bad Key":true}'`, `'"text"'`, 'null']) await assert.rejects(() => db.query(`select public.oj_set_exterior_upgrades(${bad}::jsonb)`), bad);
+    for (const who of [viewer, stranger]) { await as(who); await assert.rejects(() => db.query(`select public.oj_set_exterior_upgrades('{}'::jsonb)`)); }
+    await as('', 'anon');
+    await assert.rejects(() => db.query(`select public.oj_set_exterior_upgrades('{}'::jsonb)`));
+    await db.exec('reset role');
+    const rows = (await db.query<{ key: string; value: string }>('select key, value from public.settings order by key')).rows;
+    assert.deepEqual(rows.map(r => r.key), ['monthlyRevenueGoal', 'ownerPhone', 'upgrades_completed']);
+    assert.equal(rows[1].value, '+15550100');
+    await db.exec(`delete from public.settings where key = 'upgrades_completed'`);
+    await as(owner);
+    await db.query(`select public.oj_set_exterior_upgrades('{"svc_pw":true}'::jsonb)`);
+    assert.deepEqual(JSON.parse((await settings())!.upgrades_completed), { svc_pw: true });
   });
   await t.test('access ends when membership ends', async () => {
     await db.exec(`reset role; delete from public.oj_memberships where user_id = '${member}'`);

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
-import { loadExterior } from '@/app/workspace/exterior-actions';
+import { Check, Lock } from 'lucide-react';
+import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
+import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
 import { jobDate, sourceLabel, statusLabel, summariseJobs, summariseLeads, summariseSessions, threads, type ExteriorResult } from '@/lib/exterior';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
@@ -13,19 +15,29 @@ const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
 
 /** The Outreach leads, Conversations, Bookings and Door knocking tabs: the existing Exterior Care records, read only. */
-export function ExteriorView({ tab, org, mode }: { tab: string; org: string; mode: 'preview' | 'live' }) {
+export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean }) {
   const [result, setResult] = useState<ExteriorResult | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState('');
   const [shown, setShown] = useState(50);
+  const [ticked, setTicked] = useState<Completed>({});
+  const [notice, setNotice] = useState('');
   useEffect(() => {
     if (mode !== 'live') return;
     let live = true;
     setResult(null);
-    loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
+    loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); if (r.ok && r.data.extras) setTicked(r.data.extras.upgrades); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
     return () => { live = false; };
   }, [org, mode, attempt]);
+
+  function toggle(id: string, name: string) {
+    const { next, removed } = toggleUpgrade(ticked, id);
+    if (removed.length > 1 && !window.confirm(`Unticking "${name}" also unticks ${removed.length - 1} upgrade${removed.length === 2 ? '' : 's'} that depend on it. Continue?`)) return;
+    const before = ticked;
+    setTicked(next); setNotice('');
+    saveUpgrades(org, next).then(() => setNotice('Saved.'), () => { setTicked(before); setNotice('That change did not save. Check your connection and try again.'); });
+  }
 
   if (mode === 'preview') return <div className="planned"><h2>Shown in your live workspace</h2><p>These are real customer records from the Exterior Care system, so there is no sample version of this tab.</p></div>;
   if (!result || !now) return <div className="loading" aria-busy="true" />;
@@ -66,7 +78,16 @@ export function ExteriorView({ tab, org, mode }: { tab: string; org: string; mod
     const j = summariseJobs(data.leads, iso => dayKey(new Date(iso)).slice(0, 7));
     const month = (key: string) => new Date(`${key}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const done = data.leads.filter(l => l.status === 'completed').sort((a, b) => jobDate(b).localeCompare(jobDate(a)));
+    const goal = data.extras?.goal ?? null;
+    const thisMonth = j.byMonth.find(m => m.label === dayKey(now).slice(0, 7))?.revenue ?? 0;
     return <>
+      {goal !== null && (
+        <section className="panel">
+          <header className="panel-head"><h2>This month against the goal</h2><span className="quiet">{dollars(thisMonth)} of {dollars(goal)}</span></header>
+          <progress className="upgrade-bar" value={Math.min(thisMonth, goal)} max={goal} aria-label={`${dollars(thisMonth)} paid of a ${dollars(goal)} monthly goal`} />
+          <p className="quiet">{thisMonth >= goal ? 'Goal reached.' : `${dollars(goal - thisMonth)} to go. Counts jobs marked completed and paid this month.`} The goal is set in the Exterior Care app.</p>
+        </section>
+      )}
       <div className="kpis">
         <div><span>Paid for completed jobs</span><strong><NumberFlow value={j.revenue} format={usd} /></strong><small className="quiet">{j.jobs} jobs, all time</small></div>
         <div><span>Job costs entered</span><strong><NumberFlow value={j.cost} format={usd} /></strong><small className="quiet">On {j.costJobs} of {j.jobs} jobs</small></div>
@@ -101,6 +122,68 @@ export function ExteriorView({ tab, org, mode }: { tab: string; org: string; mod
           <tbody>{done.slice(0, shown).map(l => <tr key={l.id}><td>{day(jobDate(l))}</td><td>{l.name || '-'}</td><td>{l.service_requested || '-'}</td><td className="num">{cash(l.quote_amount)}</td><td className="num">{cash(l.job_revenue)}</td><td className="num">{cash(l.job_cost)}</td></tr>)}</tbody></table>
           {done.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, done.length - shown)} more of {done.length}</button>}</div>
         {source}
+      </section>
+    </>;
+  }
+
+  if ((tab === 'upgrades' || tab === 'quotes') && !data.extras) return (
+    <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update: supabase/pending/RUN-ME-exterior-care-extras.sql.</p></div>
+  );
+
+  if (tab === 'upgrades') {
+    const state = upgradeStatus(ticked);
+    const done = Object.values(state).filter(s => s === 'done').length;
+    return <>
+      <div className="kpis">
+        <div><span>Upgrades unlocked</span><strong><NumberFlow value={done} /> <small className="quiet">of {upgradeCount}</small></strong></div>
+        <div><span>Ready to do next</span><strong><NumberFlow value={Object.values(state).filter(s => s === 'ready').length} /></strong></div>
+        <div><span>Level</span><strong>{tier(done)}</strong><small className="quiet">{Math.round((done / upgradeCount) * 100)}% of the way</small></div>
+      </div>
+      <p className="notice" role="status" aria-live="polite">{notice}</p>
+      {upgradeGroups.map(g => {
+        const count = g.nodes.filter(n => state[n.id] === 'done').length;
+        return (
+          <section className="panel" key={g.id}>
+            <header className="panel-head"><h2>{g.name}</h2><span className="quiet">{count} of {g.nodes.length}</span></header>
+            <progress className="upgrade-bar" value={count} max={g.nodes.length} aria-label={`${g.name}: ${count} of ${g.nodes.length} done`} />
+            <ul className="upgrades">{g.nodes.map(n => {
+              const s = state[n.id];
+              return (
+                <li key={n.id}>
+                  <button type="button" className={`upgrade is-${s}`} aria-pressed={s === 'done'} disabled={readOnly || s === 'locked'} onClick={() => toggle(n.id, n.name)}>
+                    <i aria-hidden="true">{s === 'done' ? <Check size={14} /> : s === 'locked' ? <Lock size={12} /> : null}</i>
+                    <b>{n.name}</b><span>{n.desc}</span>
+                    <small>{s === 'locked' ? 'Locked' : s === 'done' ? 'Done' : 'Ready'}{n.cost ? `, ${n.cost}` : ''}</small>
+                  </button>
+                </li>
+              );
+            })}</ul>
+          </section>
+        );
+      })}
+      <p className="quiet">The same list the Exterior Care app shows. Ticking one here ticks it there. A locked upgrade opens once the ones it depends on are done.</p>
+    </>;
+  }
+
+  if (tab === 'quotes') {
+    const quotes = data.extras!.quotes;
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29).toISOString();
+    return <>
+      <div className="kpis">
+        <div><span>Website quote requests</span><strong><NumberFlow value={quotes.length} /></strong></div>
+        <div><span>Last 30 days</span><strong><NumberFlow value={quotes.filter(q => q.created_at >= from).length} /></strong></div>
+        <div><span>Want regular service</span><strong><NumberFlow value={quotes.filter(q => q.recurring_interest).length} /></strong></div>
+      </div>
+      <section className="panel">
+        <header className="panel-head"><h2>Requests</h2></header>
+        {quotes.length ? <div className="tablewrap"><table className="table">
+          <thead><tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>Service</th><th>Details</th></tr></thead>
+          <tbody>{quotes.slice(0, shown).map(q => (
+            <tr key={q.id}><td>{day(q.created_at)}</td><td>{q.name || '-'}{q.business_name ? ` (${q.business_name})` : ''}</td><td>{q.phone ? <a href={`tel:${q.phone}`}>{q.phone}</a> : '-'}</td><td>{q.email ? <a href={`mailto:${q.email}`}>{q.email}</a> : '-'}</td>
+              <td>{q.address || '-'}</td><td>{[q.service_needed, q.property_type].filter(Boolean).join(', ') || '-'}</td><td>{q.description || '-'}</td></tr>
+          ))}</tbody></table>{quotes.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, quotes.length - shown)} more of {quotes.length}</button>}</div>
+          : <div className="empty"><p><b>No quote requests yet.</b> Requests sent from the website form appear here.</p></div>}
+        <p className="quiet">Sent through the quote form on the Exterior Care website.</p>
       </section>
     </>;
   }
