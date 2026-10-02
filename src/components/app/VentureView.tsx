@@ -7,36 +7,33 @@ import { motion } from 'motion/react';
 import { ventures, type VentureId } from '@/lib/ventures';
 import type { WorkspaceMetrics } from '@/lib/metrics';
 import { BoardView } from './BoardView';
+import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
+import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
-const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
+const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['leads', 'Leads'], ['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking'], ['analytics', 'Analytics']],
-  solutions: [['clients', 'Clients'], ['calls', 'Calls'], ['revenue', 'Revenue']],
+  exterior: [['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
+  solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
 // What each tab will hold, said plainly, until its stage of the build lands.
 const planned: Record<string, string> = {
-  metrics: 'Headline figures for this business, plus a form to log any number that no system tracks.',
-  documents: 'Contracts, insurance, tax and brand files for this business, private to workspace members.',
-  leads: 'Every Exterior Care lead with its status, quote and source, from the existing leads database.',
-  conversations: 'The text conversation with each lead. Texts are still sent by the existing Exterior Care server.',
+  conversations: 'The text conversation with each lead, from the existing Exterior Care system. Texts are still sent by that system.',
   bookings: 'Booked jobs by day and time block.',
   'door-knocking': 'Door-knocking sessions and their results.',
-  analytics: 'Revenue by service and source, close rate and weekly trend.',
   clients: 'Each AI receptionist client, their plan and status, from GoHighLevel.',
   calls: 'Calls handled by each receptionist.',
-  revenue: 'Setup fees, monthly fees and running costs.',
   orders: 'Shopify orders and revenue by day.',
   products: 'The catalogue, with best sellers.',
   inventory: 'Stock levels, with low-stock warnings.',
 };
 
-type Props = { base: string; venture: VentureId; tab: string; board: Board; metrics: WorkspaceMetrics; members: string[]; readOnly: boolean; displayName: string };
+type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string };
 
-export function VentureView({ base, venture, tab, board, metrics, members, readOnly, displayName }: Props) {
+export function VentureView({ base, venture, tab, board, store, metrics, members, readOnly, displayName }: Props) {
   const v = ventures[venture];
-  const m = metrics.ventures[venture];
+  const m = metrics?.ventures[venture] ?? null;
   const tabs = [...coreTabs, ...extraTabs[venture]];
   const active = tabs.some(([id]) => id === tab) ? tab : 'overview';
   const cards = board.data.cards.filter(c => c.business === venture);
@@ -66,11 +63,10 @@ export function VentureView({ base, venture, tab, board, metrics, members, readO
         <div className="venture-overview">
           <div className="kpis">
             {m ? <>
-              <div><span>Revenue this month</span><strong><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong><small className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}% on last month</small></div>
+              <div><span>Revenue this month</span><strong><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong>{m.change !== null && <small className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}% on last month</small>}</div>
               <div><span>Active leads</span><strong><NumberFlow value={m.activeLeads} /></strong></div>
-              <div><span>{v.third}</span><strong><NumberFlow value={m.third} /></strong></div>
             </> : (
-              <div className="kpi-off"><b>Figures are not connected yet.</b><span>Revenue, leads and {v.third.toLowerCase()} appear here once {v.source} is connected.</span></div>
+              <div className="kpi-off"><b>No figures yet.</b><span>Log money on the Money tab or add a lead, and they appear here. {v.source.charAt(0).toUpperCase() + v.source.slice(1)} will add its own once connected.</span></div>
             )}
             <div><span>Open tasks</span><strong><NumberFlow value={open.length} /></strong></div>
           </div>
@@ -79,7 +75,11 @@ export function VentureView({ base, venture, tab, board, metrics, members, readO
         </div>
       )}
       {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
-      {active !== 'overview' && active !== 'board' && (
+      {active === 'leads' && <CrmView store={store} readOnly={readOnly} venture={venture} />}
+      {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
+      {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
+      {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
+      {planned[active] && (
         <div className="planned">
           <h2>{tabs.find(([id]) => id === active)?.[1]}</h2>
           <p>{planned[active]}</p>

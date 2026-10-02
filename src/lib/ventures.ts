@@ -12,9 +12,6 @@ export type Venture = {
   chips: string[];
   /** Square mark on a transparent background, for the rail, cards and headers. */
   mark: string;
-  /** What the three headline figures on the Home card mean for this business. */
-  third: string;
-  quickAction: string;
   /** What has to be connected before this business shows live figures. */
   source: string;
 };
@@ -25,7 +22,7 @@ export const ventures: Record<VentureId, Venture> = {
     tagline: 'Cleaner spaces. Brighter places.',
     description: 'Pressure washing for homes and businesses in Kenosha.',
     chips: ['Driveways', 'House wash', 'Commercial'],
-    mark: '/brand/exterior-mark.png', third: 'Jobs this month', quickAction: 'New lead',
+    mark: '/brand/exterior-mark.png',
     source: 'the Exterior Care leads system',
   },
   solutions: {
@@ -33,7 +30,7 @@ export const ventures: Record<VentureId, Venture> = {
     tagline: 'AI receptionists that answer every call.',
     description: 'AI receptionists and automation for local businesses.',
     chips: ['AI receptionist', 'Automation', 'Setup and support'],
-    mark: '/brand/solutions-mark.png', third: 'Projects', quickAction: 'New project',
+    mark: '/brand/solutions-mark.png',
     source: 'GoHighLevel',
   },
   essentials: {
@@ -41,7 +38,7 @@ export const ventures: Record<VentureId, Venture> = {
     tagline: 'Wellness, tested before listed.',
     description: 'A small, tested catalogue at ojessentials.store.',
     chips: ['Beauty', 'Wellness', 'Tech', 'Car and travel'],
-    mark: '/brand/essentials-mark.png', third: 'New products', quickAction: 'Add product',
+    mark: '/brand/essentials-mark.png',
     source: 'Shopify',
   },
 };

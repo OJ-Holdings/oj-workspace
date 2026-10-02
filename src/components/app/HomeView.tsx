@@ -4,20 +4,28 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import NumberFlow from '@number-flow/react';
-import { ArrowRight, ArrowUpRight, FileArchive, FileSpreadsheet, FileText, Plus, Send } from 'lucide-react';
+import { ArrowUpRight, FileArchive, FileSpreadsheet, FileText, Plus, Send } from 'lucide-react';
 import { ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { money, type WorkspaceMetrics } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
 import { GhostChart, LineChart, Sparkline } from './Charts';
 import { HeroScene } from './Hero';
 import type { Board } from './useBoard';
+import type { DashboardStore } from './useDashboard';
 
 const color = (v: VentureId | 'shared') => `var(--c-${v})`;
 const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
 
-type Props = { base: string; board: Board; metrics: WorkspaceMetrics; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+/** The Home screen before any figures exist: every panel then says what to log or connect. */
+const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null }, pipeline: null, schedule: null, files: null, notes: null };
 
-export function HomeView({ base, board, metrics, mode, displayName, members, readOnly }: Props) {
+type Props = { base: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+
+export function HomeView({ base, board, store, metrics: derived, mode, displayName, members, readOnly }: Props) {
+  const metrics = derived ?? nothingYet;
+  // While the sample workspace is still working out today's date, hold the panels back so nothing flashes as empty.
+  const loading = !derived && !store.missing && mode === 'preview';
+  const [note, setNote] = useState('');
   // The greeting depends on the visitor's clock, so it is set after load to keep server and browser output identical.
   const [greeting, setGreeting] = useState('Welcome back');
   const [todayKey, setTodayKey] = useState('');
@@ -39,7 +47,7 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
   const pipelineMax = Math.max(1, ...(metrics.pipeline ?? []).map(p => p.count));
 
   return (
-    <div className="home">
+    <div className={loading ? 'home is-loading' : 'home'}>
       <section className="hero">
         <HeroScene />
         <div className="hero-copy">
@@ -65,12 +73,12 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
                 <dl className="venture-stats">
                   <div><dd><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: m.revenueMtd >= 10000 ? 'compact' : 'standard' }} /></dd><dt>Revenue this month</dt></div>
                   <div><dd><NumberFlow value={m.activeLeads} /></dd><dt>Active leads</dt></div>
-                  <div><dd><NumberFlow value={m.third} /></dd><dt>{v.third}</dt></div>
+                  <div><dd><NumberFlow value={tasks} /></dd><dt>Open tasks</dt></div>
                 </dl>
               ) : (
                 <div className="venture-unconnected">
                   <p><b>{tasks}</b> open {tasks === 1 ? 'task' : 'tasks'}</p>
-                  <p className="quiet">Revenue and leads appear here once {v.source} is connected.</p>
+                  <p className="quiet">Log money or leads for this business, or connect {v.source}, and its figures appear here.</p>
                 </div>
               )}
               <footer>
@@ -91,7 +99,7 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
           {connected.length > 0 ? (
             <LineChart labels={metrics.months} series={connected.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: metrics.ventures[v.id]!.series }))} />
           ) : (
-            <div className="empty"><GhostChart /><p><b>No revenue connected yet.</b> Connect Shopify, GoHighLevel and the Exterior Care leads system and each business gets its own line here.</p></div>
+            <div className="empty"><GhostChart /><p><b>No revenue logged yet.</b> Log money in on the Finance page and each business gets its own line here. Shopify, GoHighLevel and the Exterior Care system will add theirs once connected.</p></div>
           )}
         </section>
 
@@ -106,7 +114,7 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
                   <span className="perf-name">{v.short}</span>
                   {m ? <>
                     <b>{money(m.revenueMtd)}</b>
-                    <span className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}%</span>
+                    {m.change === null ? <span className="delta" /> : <span className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}%</span>}
                     <Sparkline values={m.series} color={color(v.id)} />
                   </> : <span className="quiet perf-off">Not connected</span>}
                 </li>
@@ -123,7 +131,7 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
                 <li key={p.stage}><span>{p.stage}</span><i><b style={{ width: `${(p.count / pipelineMax) * 100}%` }} data-stage={p.stage} /></i><strong>{p.count}</strong></li>
               ))}
             </ul>
-          ) : <div className="empty"><p><b>No leads connected yet.</b> Exterior Care leads arrive first, then Solutions prospects from GoHighLevel.</p></div>}
+          ) : <div className="empty"><p><b>No leads yet.</b> Add one on the Leads and CRM page. Exterior Care's existing leads join once that system is connected.</p></div>}
         </section>
 
         <section className="panel" aria-labelledby="tasks-h">
@@ -145,7 +153,7 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
                 </li>
               ))}
             </ol>
-          ) : <div className="empty"><p><b>The shared calendar is not set up yet.</b> Events, Exterior Care bookings and task due dates will line up here.</p></div>}
+          ) : <div className="empty"><p><b>Nothing on today.</b> Calendar events and tasks due today line up here.</p></div>}
         </section>
 
         <section className="panel" aria-labelledby="files-h">
@@ -157,18 +165,22 @@ export function HomeView({ base, board, metrics, mode, displayName, members, rea
                 return <li key={file.id}><span className="file-icon" style={{ color: color(file.venture) }}><Icon size={17} aria-hidden="true" /></span><div><b>{file.name}</b><span>Updated {file.updated}</span></div></li>;
               })}
             </ul>
-          ) : <div className="empty"><p><b>No documents yet.</b> Each business gets a Documents tab for contracts, insurance and tax paperwork.</p></div>}
+          ) : <div className="empty"><p><b>No documents yet.</b> Upload contracts, insurance and tax paperwork on the Files page.</p></div>}
         </section>
 
         <section className="panel" aria-labelledby="notes-h">
           <header className="panel-head"><h2 id="notes-h">Messages and notes</h2><Link className="panel-link" href={`${base}/messages`}>View all</Link></header>
-          {metrics.notes ? <>
+          {metrics.notes ? (
             <ul className="notes">
               {metrics.notes.map(n => <li key={n.id}><span className="avatar">{n.author.charAt(0)}</span><div><b>{n.author}<time>{n.when}</time></b><p>{n.body}</p></div></li>)}
             </ul>
-            <div className="note-box"><input placeholder="Write a note" aria-label="Write a note" disabled /><button className="icon-button" aria-label="Send note" disabled><Send size={16} /></button></div>
-            <p className="quiet">Sending is switched off in the sample workspace.</p>
-          </> : <div className="empty"><p><b>Messages are not set up yet.</b> Notes between the two of you, with a thread per business, arrive with the Messages page.</p><Link className="panel-link" href={`${base}/messages`}>See what is planned <ArrowRight size={14} aria-hidden="true" /></Link></div>}
+          ) : <div className="empty"><p><b>{store.missing ? 'Messages need one database update first.' : 'No messages yet.'}</b> {store.missing ? 'See Settings for what is left to switch on.' : 'Write the first note below.'}</p></div>}
+          {!readOnly && !store.missing && (
+            <form className="note-box" onSubmit={e => { e.preventDefault(); if (note.trim()) store.sendMessage(null, note, () => setNote('')); }}>
+              <input placeholder="Write a note" aria-label="Write a note" maxLength={4000} value={note} onChange={e => setNote(e.target.value)} />
+              <button className="icon-button" aria-label="Send note" disabled={store.pending || !note.trim()}><Send size={16} /></button>
+            </form>
+          )}
         </section>
       </div>
     </div>

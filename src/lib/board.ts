@@ -9,7 +9,11 @@ export type Card = {
 export type Comment = { id: string; card_id: string; body: string; author: string; created_at: string };
 export type Activity = { id: string; card_id: string; actor: string; action: 'card_created' | 'card_updated' | 'comment_added'; created_at: string };
 export type BoardData = { cards: Card[]; comments: Comment[]; activity?: Activity[] };
-export type WorkspaceSnapshot = { data: BoardData; members: string[]; role: 'owner' | 'member' | 'viewer'; displayName: string; limited: boolean };
+export type WorkspaceSnapshot = {
+  data: BoardData; members: string[]; role: 'owner' | 'member' | 'viewer'; displayName: string; limited: boolean;
+  /** Messages, leads, money, metrics, events and documents. `null` when those tables are not set up yet or could not be read. */
+  dashboard: import('./dashboard').Dashboard | null;
+};
 export function validateCard(input: unknown): Card {
   if (!input || typeof input !== 'object') throw new Error('Invalid card');
   const c = input as Card;

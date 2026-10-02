@@ -1,13 +1,13 @@
 import type { VentureId } from './ventures';
 
-// Figures a business reports once its data source is connected. `null` means
-// "not connected yet": screens show what to connect, never a made-up number.
+// Figures the Home screen shows. They are always derived from real records
+// (see deriveMetrics in dashboard.ts). `null` means there is nothing to report
+// yet: screens then say what to log or connect, never a made-up number.
 export type VentureMetrics = {
   revenueMtd: number;
-  /** Percentage change against the previous period. */
-  change: number;
+  /** Percentage change against last month; null when last month had no revenue to compare with. */
+  change: number | null;
   activeLeads: number;
-  third: number;
   /** Revenue per month, oldest first, one entry per label in WorkspaceMetrics.months. */
   series: number[];
 };
@@ -26,11 +26,6 @@ export type WorkspaceMetrics = {
   notes: Note[] | null;
 };
 
-/** The live workspace before any data source is connected. */
-export const unconnected: WorkspaceMetrics = {
-  months: [], ventures: { exterior: null, solutions: null, essentials: null },
-  pipeline: null, schedule: null, files: null, notes: null,
-};
-
 export const money = (value: number) =>
   value >= 10000 ? `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}K` : `$${Math.round(value).toLocaleString('en-US')}`;
+export const dollars = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: value % 1 === 0 ? 0 : 2 });
