@@ -10,6 +10,7 @@ import { BoardView } from './BoardView';
 import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
 import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
+import { GhlView } from './GhlView';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
@@ -19,13 +20,7 @@ const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
   solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
-// What each tab will hold, said plainly, until its stage of the build lands.
-const planned: Record<string, string> = {
-  clients: 'Each AI receptionist client, their plan and status, from GoHighLevel.',
-  calls: 'Calls handled by each receptionist.',
-};
-const shopifyTabs = ['orders', 'products', 'inventory'];
-const exteriorTabs = ['outreach', 'conversations', 'bookings', 'door-knocking'];
+const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 
 type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };
 
@@ -77,15 +72,9 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
-      {venture === 'essentials' && shopifyTabs.includes(active) && <ShopifyView tab={active} org={organizationId} mode={mode} />}
-      {venture === 'exterior' && exteriorTabs.includes(active) && <ExteriorView tab={active} org={organizationId} mode={mode} />}
-      {planned[active] && (
-        <div className="planned">
-          <h2>{tabs.find(([id]) => id === active)?.[1]}</h2>
-          <p>{planned[active]}</p>
-          <p className="quiet">This section is being built. Nothing is shown here until it is connected to real data.</p>
-        </div>
-      )}
+      {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
+      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} />}
+      {isExtra(venture, active) && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
     </div>
   );
 }
