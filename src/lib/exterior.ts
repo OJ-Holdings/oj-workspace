@@ -3,14 +3,17 @@
 // them. Unknown stays unknown: a quote is not a payment and a missing figure is
 // not zero.
 
-export type ExtLead = { id: string; name: string | null; phone: string | null; address: string | null; service_requested: string | null; quote_amount: number | null; status: string | null; source: string | null; job_revenue: number | null; job_cost: number | null; created_at: string; updated_at: string | null; completed_at: string | null };
+export type ExtLead = { id: string; name: string | null; phone: string | null; address: string | null; service_requested: string | null; quote_amount: number | null; status: string | null; source: string | null; notes: string | null; job_revenue: number | null; job_cost: number | null; created_at: string; updated_at: string | null; completed_at: string | null };
+export type ExtActivity = { id: string; operator: string | null; action: string | null; description: string | null; lead_name: string | null; created_at: string };
 export type ExtBooking = { id: string; lead_id: string | null; date: string; time_block: string | null; status: string | null };
 export type ExtSession = { id: string; session_date: string; knocked_by: string | null; area: string | null; doors_knocked: number | null; answers: number | null; interested: number | null; quotes_given: number | null; jobs_scheduled: number | null; job_total: number | null };
 export type ExtMessage = { id: string; lead_id: string | null; direction: string | null; body: string | null; created_at: string };
 export type ExtQuote = { id: string; name: string | null; phone: string | null; email: string | null; address: string | null; service_needed: string | null; description: string | null; property_type: string | null; business_name: string | null; recurring_interest: boolean | null; created_at: string };
 /** Null until the database update in supabase/schemas/exterior-extras.sql has been applied. */
-export type ExtExtras = { goal: number | null; upgrades: Record<string, true>; quotes: ExtQuote[] } | null;
-export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; messages: ExtMessage[]; messagesTruncated: boolean; extras: ExtExtras };
+export type ExtExtras = { goal: number | null; upgrades: Record<string, true>; quotes: ExtQuote[]; settings: Record<string, string> } | null;
+export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; messages: ExtMessage[]; messagesTruncated: boolean; activity: ExtActivity[]; extras: ExtExtras; texting: boolean };
+/** Every change the workspace makes reports back this way, so the screen can say what happened. */
+export type Done<T = object> = ({ ok: true } & T) | { ok: false; message: string };
 export type ExteriorResult = { ok: true; data: ExteriorData } | { ok: false; reason: 'no-access' | 'failed' };
 
 export const openStatuses = ['new', 'contacted', 'following_up', 'booked'];
@@ -59,6 +62,17 @@ export function summariseSessions(sessions: ExtSession[]) {
   const sum = (key: 'doors_knocked' | 'answers' | 'interested' | 'quotes_given' | 'jobs_scheduled' | 'job_total') => sessions.reduce((s, x) => s + (Number(x[key]) || 0), 0);
   const doors = sum('doors_knocked'), answers = sum('answers'), jobs = sum('jobs_scheduled'), jobTotal = sum('job_total');
   return { sessions: sessions.length, doors, answers, interested: sum('interested'), quotes: sum('quotes_given'), jobs, jobTotal, answerRate: doors ? answers / doors : null, perDoor: doors ? jobTotal / doors : null };
+}
+
+/** The door-knocking funnel, this week (Monday on), the best areas by money per door, and the best single session. */
+export function doorDetails(sessions: ExtSession[], weekStart: string) {
+  const week = summariseSessions(sessions.filter(s => s.session_date >= weekStart));
+  const areas = new Map<string, ExtSession[]>();
+  for (const s of sessions) { const a = s.area?.trim(); if (a) areas.set(a, [...(areas.get(a) ?? []), s]); }
+  const byArea = [...areas].map(([area, list]) => ({ area, ...summariseSessions(list), closeRate: (() => { const t = summariseSessions(list); return t.quotes ? t.jobs / t.quotes : null; })() }))
+    .sort((a, b) => (b.perDoor ?? -1) - (a.perDoor ?? -1));
+  const best = sessions.filter(s => (s.doors_knocked ?? 0) > 0 && (s.job_total ?? 0) > 0).map(s => ({ ...s, perDoor: (s.job_total as number) / (s.doors_knocked as number) })).sort((a, b) => b.perDoor - a.perDoor)[0] ?? null;
+  return { week, byArea, best };
 }
 
 /** Texts grouped by lead, the most recently active conversation first, each in the order it was sent. */

@@ -20,7 +20,7 @@ test('pending database updates apply cleanly on top of the live schema', async (
     for (const live of ['workspace.sql', 'collaboration.sql', 'dashboard.sql']) await db.exec(await readFile(new URL(`../supabase/schemas/${live}`, import.meta.url), 'utf8'));
     await createLockedLegacyTables(db);
     await db.exec(`insert into public.oj_organizations(id,name) values ('00000000-0000-4000-8000-000000000001','OJ')`);
-    await db.exec(await readFile(new URL('../supabase/schemas/exterior-read.sql', import.meta.url), 'utf8'));
+    for (const live of ['exterior-read.sql', 'exterior-extras.sql']) await db.exec(await readFile(new URL(`../supabase/schemas/${live}`, import.meta.url), 'utf8'));
     const anonGrants = async () => (await db.query(`select table_name, privilege_type from information_schema.role_table_grants where grantee = 'anon' and table_schema = 'public' order by 1, 2`)).rows;
     const before = await anonGrants();
     await db.exec(await readFile(new URL(file, dir), 'utf8')).catch(e => assert.fail(`${file} did not apply: ${e.message}`));
