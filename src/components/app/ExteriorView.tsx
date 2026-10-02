@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Check, Lock } from 'lucide-react';
-import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
+import { loadExterior, saveUpgrades, syncDoorSheet } from '@/app/workspace/exterior-actions';
 import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
-import { jobDate, sourceLabel, statusLabel, summariseJobs, summariseLeads, summariseSessions, threads, type ExteriorResult } from '@/lib/exterior';
+import { doorDetails, jobDate, summariseJobs, summariseSessions, type Done, type ExteriorResult } from '@/lib/exterior';
+import { ActivityList, BookingsManager, Conversations, ExteriorSettings, LeadsManager } from './ExteriorManage';
+import { RefreshCw } from 'lucide-react';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 
@@ -14,12 +16,12 @@ const day = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : is
 const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
 
-/** The Outreach leads, Conversations, Bookings and Door knocking tabs: the existing Exterior Care records, read only. */
+/** Every Exterior Care tab beyond the shared ones: the records the original Exterior Care app works on. */
 export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean }) {
   const [result, setResult] = useState<ExteriorResult | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState(50);
   const [ticked, setTicked] = useState<Completed>({});
   const [notice, setNotice] = useState('');
@@ -30,6 +32,19 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); if (r.ok && r.data.extras) setTicked(r.data.extras.upgrades); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
     return () => { live = false; };
   }, [org, mode, attempt]);
+
+  /** Reloads the records without blanking the screen. */
+  const refresh = useCallback(() => loadExterior(org).then(r => { if (r.ok) { setResult(r); setNow(new Date()); } }), [org]);
+  /** Runs one change, says what happened, and reloads on success. */
+  const act = useCallback(async <T extends object>(work: () => Promise<Done<T>>, success: (r: T) => string) => {
+    setBusy(true); setNotice('');
+    try {
+      const r = await work();
+      if (!r.ok) { setNotice(r.message); return false; }
+      setNotice(success(r as T)); await refresh(); return true;
+    } catch { setNotice('That did not go through. Check your connection and try again.'); return false; }
+    finally { setBusy(false); }
+  }, [refresh]);
 
   function toggle(id: string, name: string) {
     const { next, removed } = toggleUpgrade(ticked, id);
@@ -46,33 +61,18 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     : <div className="planned" role="alert"><h2>The Exterior Care records did not load</h2><p>Nothing is shown rather than a partial list.</p><button className="primary" onClick={() => setAttempt(attempt + 1)}>Try again</button></div>;
 
   const { data } = result;
-  const source = <p className="quiet">From the Exterior Care leads system. To change a record, use that system; this page only reads.</p>;
+  const source = <p className="quiet">The same records the original Exterior Care app uses. A change in either app shows in both.</p>;
+  const common = { data, act, busy, readOnly, org, now };
+  const status = <p className="notice" role="status" aria-live="polite">{notice}</p>;
+  const editingMissing = !readOnly && !data.extras?.settings?.hasOwnProperty('businessName') && !data.extras?.settings?.hasOwnProperty('d2dSheetUrl');
 
-  if (tab === 'outreach') {
-    const s = summariseLeads(data.leads);
-    const rows = data.leads.filter(l => !status || (l.status ?? 'unknown') === status);
-    return <>
-      <div className="kpis">
-        <div><span>Leads on record</span><strong><NumberFlow value={s.total} /></strong></div>
-        <div><span>Still open</span><strong><NumberFlow value={s.open} /></strong><small className="quiet">New, contacted, following up or booked</small></div>
-        <div><span>Jobs completed</span><strong><NumberFlow value={s.completed} /></strong></div>
-        <div><span>Job revenue recorded</span><strong>{s.revenue === null ? '-' : <NumberFlow value={s.revenue} format={usd} />}</strong><small className="quiet">Entered on {s.revenueJobs} of {s.completed} completed jobs</small></div>
-      </div>
-      <section className="panel">
-        <header className="panel-head"><h2>Leads</h2>
-          <label className="quiet">Status <select value={status} onChange={e => { setStatus(e.target.value); setShown(50); }}><option value="">All ({s.total})</option>{s.byStatus.map(([id, n]) => <option key={id} value={id}>{statusLabel(id)} ({n})</option>)}</select></label>
-        </header>
-        {rows.length ? <div className="tablewrap"><table className="table">
-          <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Service</th><th>Status</th><th>Source</th><th className="num">Quote</th><th className="num">Paid</th><th>Added</th></tr></thead>
-          <tbody>{rows.slice(0, shown).map(l => (
-            <tr key={l.id}><td>{l.name || '-'}</td><td>{l.phone ? <a href={`tel:${l.phone}`}>{l.phone}</a> : '-'}</td><td>{l.address || '-'}</td><td>{l.service_requested || '-'}</td>
-              <td><span className="tag">{statusLabel(l.status)}</span></td><td>{sourceLabel(l.source)}</td><td className="num">{cash(l.quote_amount)}</td><td className="num">{cash(l.job_revenue)}</td><td>{day(l.created_at)}</td></tr>
-          ))}</tbody></table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, rows.length - shown)} more of {rows.length}</button>}</div>
-          : <div className="empty"><p><b>No leads with that status.</b></p></div>}
-        {source}
-      </section>
-    </>;
-  }
+  const pending = editingMissing && <p className="banner-inline" role="note">Viewing works now. Adding, editing, booking and syncing switch on after a founder runs one database update: supabase/pending/RUN-ME-exterior-care-editing.sql.</p>;
+
+  if (tab === 'leads') return <>{pending}{status}<LeadsManager {...common} /></>;
+  if (tab === 'bookings') return <>{pending}{status}<BookingsManager {...common} /></>;
+  if (tab === 'conversations') return <>{status}<Conversations {...common} /></>;
+  if (tab === 'activity') return <ActivityList data={data} />;
+  if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
   if (tab === 'jobs') {
     const j = summariseJobs(data.leads, iso => dayKey(new Date(iso)).slice(0, 7));
@@ -85,7 +85,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
         <section className="panel">
           <header className="panel-head"><h2>This month against the goal</h2><span className="quiet">{dollars(thisMonth)} of {dollars(goal)}</span></header>
           <progress className="upgrade-bar" value={Math.min(thisMonth, goal)} max={goal} aria-label={`${dollars(thisMonth)} paid of a ${dollars(goal)} monthly goal`} />
-          <p className="quiet">{thisMonth >= goal ? 'Goal reached.' : `${dollars(goal - thisMonth)} to go. Counts jobs marked completed and paid this month.`} The goal is set in the Exterior Care app.</p>
+          <p className="quiet">{thisMonth >= goal ? 'Goal reached.' : `${dollars(goal - thisMonth)} to go. Counts jobs marked completed and paid this month.`} Change the goal in the Settings tab.</p>
         </section>
       )}
       <div className="kpis">
@@ -101,7 +101,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
           <tbody>{j.byMonth.map(m => <tr key={m.label}><td>{month(m.label)}</td><td className="num">{m.jobs}</td><td className="num">{dollars(m.revenue)}</td><td className="num">{dollars(m.cost)}</td><td className="num">{dollars(m.profit)}</td></tr>)}</tbody></table></div>
           : <div className="empty"><p><b>No completed jobs on record.</b></p></div>}
       </section>
-      <div className="split">
+      <div className="pair">
         <section className="panel">
           <header className="panel-head"><h2>By service</h2></header>
           <div className="tablewrap"><table className="table">
@@ -127,7 +127,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   }
 
   if ((tab === 'upgrades' || tab === 'quotes') && !data.extras) return (
-    <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update: supabase/pending/RUN-ME-exterior-care-extras.sql.</p></div>
+    <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update.</p></div>
   );
 
   if (tab === 'upgrades') {
@@ -188,40 +188,34 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     </>;
   }
 
-  if (tab === 'bookings') {
-    const today = dayKey(now), month = today.slice(0, 7);
-    const lead = new Map(data.leads.map(l => [l.id, l]));
-    const upcoming = data.bookings.filter(b => b.date >= today).sort((a, b) => a.date.localeCompare(b.date));
-    const past = data.bookings.filter(b => b.date < today);
-    return <>
-      <div className="kpis">
-        <div><span>Upcoming jobs</span><strong><NumberFlow value={upcoming.length} /></strong></div>
-        <div><span>Booked this month</span><strong><NumberFlow value={data.bookings.filter(b => b.date.startsWith(month)).length} /></strong></div>
-        <div><span>Bookings on record</span><strong><NumberFlow value={data.bookings.length} /></strong></div>
-      </div>
-      {[['Upcoming', upcoming, 'Nothing booked from today on.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
-        <section className="panel" key={title}>
-          <header className="panel-head"><h2>{title}</h2></header>
-          {list.length ? <div className="tablewrap"><table className="table">
-            <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Address</th><th>Status</th></tr></thead>
-            <tbody>{list.map(b => { const l = b.lead_id ? lead.get(b.lead_id) : undefined; return (
-              <tr key={b.id}><td>{day(b.date)}</td><td>{b.time_block || '-'}</td><td>{l?.name || 'Lead no longer on record'}</td><td>{l?.service_requested || '-'}</td><td>{l?.address || '-'}</td><td>{statusLabel(b.status)}</td></tr>
-            ); })}</tbody></table></div>
-            : <div className="empty"><p><b>{none}</b></p></div>}
-        </section>
-      ))}
-      {source}
-    </>;
-  }
-
   if (tab === 'door-knocking') {
     const s = summariseSessions(data.sessions);
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+    const d = doorDetails(data.sessions, dayKey(monday));
+    const funnel = [['Doors knocked', s.doors, null], ['Answered', s.answers, s.doors], ['Interested', s.interested, s.answers], ['Quotes given', s.quotes, s.interested], ['Jobs scheduled', s.jobs, s.quotes]] as const;
     return <>
+      {status}
+      {!readOnly && <div className="formactions top"><button className="secondary" disabled={busy} onClick={() => act(() => syncDoorSheet(org), r => `Door-knocking sheet synced: ${r.sessions} sessions.`)}><RefreshCw size={15} aria-hidden="true" />Sync door-knocking sheet</button></div>}
+      <div className="kpis">
+        <div><span>Doors this week</span><strong><NumberFlow value={d.week.doors} /></strong><small className="quiet">{d.week.sessions} sessions since Monday</small></div>
+        <div><span>Per door this week</span><strong>{d.week.perDoor === null ? '-' : dollars(Math.round(d.week.perDoor * 100) / 100)}</strong><small className="quiet">{dollars(d.week.jobTotal)} booked</small></div>
+      </div>
       <div className="kpis">
         <div><span>Doors knocked</span><strong><NumberFlow value={s.doors} /></strong><small className="quiet">Across {s.sessions} sessions</small></div>
         <div><span>Answer rate</span><strong>{percent(s.answerRate)}</strong><small className="quiet">{s.answers} answers</small></div>
         <div><span>Jobs scheduled</span><strong><NumberFlow value={s.jobs} /></strong><small className="quiet">{s.quotes} quotes given</small></div>
         <div><span>Job value from knocking</span><strong><NumberFlow value={s.jobTotal} format={usd} /></strong><small className="quiet">{s.perDoor === null ? '' : `${dollars(Math.round(s.perDoor * 100) / 100)} a door`}</small></div>
+      </div>
+      <div className="pair">
+        <section className="panel">
+          <header className="panel-head"><h2>From door to job, all time</h2></header>
+          <ol className="funnel">{funnel.map(([label, value, of]) => <li key={label}><span>{label}</span><b>{value.toLocaleString('en-US')}</b><small className="quiet">{of ? percent(of ? value / of : null) : ''}</small><i style={{ width: `${s.doors ? Math.max(2, (value / s.doors) * 100) : 0}%` }} /></li>)}</ol>
+        </section>
+        <section className="panel">
+          <header className="panel-head"><h2>Best areas, by money per door</h2></header>
+          {d.byArea.length ? <ol className="areas">{d.byArea.slice(0, 10).map(a => <li key={a.area}><div><b>{a.area}</b><small className="quiet">{a.doors} doors, {a.sessions} session{a.sessions === 1 ? '' : 's'}{a.closeRate === null ? '' : `, ${percent(a.closeRate)} of quotes booked`}</small></div><strong>{a.perDoor === null ? '-' : dollars(Math.round(a.perDoor * 100) / 100)}</strong></li>)}</ol> : <div className="empty"><p><b>No areas recorded.</b></p></div>}
+          {d.best && <p className="quiet">Best session: {d.best.area || 'unknown area'} on {day(d.best.session_date)}, {dollars(Math.round(d.best.perDoor * 100) / 100)} a door ({d.best.doors_knocked} doors, {cash(d.best.job_total)} booked).</p>}
+        </section>
       </div>
       <section className="panel">
         <header className="panel-head"><h2>Sessions</h2></header>
@@ -236,18 +230,5 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     </>;
   }
 
-  const list = threads(data.messages, data.leads);
-  return (
-    <section className="panel">
-      <header className="panel-head"><h2>Text conversations</h2></header>
-      {list.length ? list.map(t => (
-        <details key={t.leadId} className="thread">
-          <summary><b>{t.name}</b><span className="quiet">{t.messages.length} texts, last {day(t.last)}</span></summary>
-          <ol>{t.messages.map(m => <li key={m.id} className={m.direction === 'outbound' ? 'out' : 'in'}><span className="quiet">{m.direction === 'outbound' ? 'OJ' : t.name}, {new Date(m.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span><p>{m.body}</p></li>)}</ol>
-        </details>
-      )) : <div className="empty"><p><b>No texts on record yet.</b> The Exterior Care system has not saved any conversations. When it does, each lead&apos;s thread appears here.</p></div>}
-      {data.messagesTruncated && <p className="quiet">Showing the latest 2,000 texts.</p>}
-      <p className="quiet">Texts are sent by the Exterior Care system, not from this page.</p>
-    </section>
-  );
+  return null;
 }

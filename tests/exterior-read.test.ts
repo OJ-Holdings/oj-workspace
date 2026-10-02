@@ -123,6 +123,51 @@ test('Exterior Care records are readable by workspace owners and members only, a
     await db.query(`select public.oj_set_exterior_upgrades('{"svc_pw":true}'::jsonb)`);
     assert.deepEqual(JSON.parse((await settings())!.upgrades_completed), { svc_pw: true });
   });
+  await db.exec('reset role');
+  await db.exec(await readFile(new URL('../supabase/schemas/exterior-write.sql', import.meta.url), 'utf8'));
+
+  await t.test('members can add, change and remove leads, bookings and door-knocking sessions', async () => {
+    for (const who of [owner, member]) {
+      await as(who);
+      for (const table of ['leads', 'bookings', 'doorknocking_sessions']) {
+        const { rows } = await db.query<{ id: string }>(`insert into public.${table}(payload) values ('From the workspace') returning id`);
+        assert.equal((await db.query(`update public.${table} set payload = 'Edited' where id = '${rows[0].id}' returning id`)).rows.length, 1, table);
+        assert.equal((await db.query(`delete from public.${table} where id = '${rows[0].id}' returning id`)).rows.length, 1, table);
+      }
+    }
+  });
+  await t.test('texts can be moved between leads but not written or removed; history can be added to but not rewritten', async () => {
+    await as(member);
+    assert.ok((await db.query(`update public.conversations set payload = 'Moved' returning id`)).rows.length >= 1);
+    await assert.rejects(() => db.exec(`insert into public.conversations(payload) values ('Forged text')`));
+    await assert.rejects(() => db.exec(`delete from public.conversations`));
+    await db.exec(`insert into public.activity_log(payload) values ('Marked a lead as booked')`);
+    await assert.rejects(() => db.exec(`update public.activity_log set payload = 'Rewritten'`));
+    await assert.rejects(() => db.exec(`delete from public.activity_log`));
+    await assert.rejects(() => db.exec(`truncate public.leads`));
+  });
+  await t.test('viewers, strangers and signed-out visitors still cannot write anything', async () => {
+    for (const who of [viewer, stranger]) {
+      await as(who);
+      for (const table of ['leads', 'bookings', 'doorknocking_sessions', 'activity_log']) await assert.rejects(() => db.exec(`insert into public.${table}(payload) values ('Forged')`), table);
+      for (const table of ['leads', 'bookings', 'doorknocking_sessions', 'conversations']) assert.equal((await db.query(`update public.${table} set payload = 'Changed' returning id`)).rows.length, 0, table);
+      for (const table of ['leads', 'bookings', 'doorknocking_sessions']) assert.equal((await db.query(`delete from public.${table} returning id`)).rows.length, 0, table);
+    }
+    await as('', 'anon');
+    for (const table of legacyTables) await assert.rejects(() => db.exec(`insert into public.${table}(payload) values ('Forged')`), table);
+  });
+  await t.test('named settings can be read and saved by members; anything else is refused', async () => {
+    await as(member);
+    await db.query(`select public.oj_set_exterior_settings('{"monthlyRevenueGoal":"25000","aiStyle":"casual","ownerPhone":"+15550199"}'::jsonb)`);
+    const s = await settings();
+    assert.equal(s!.monthlyRevenueGoal, '25000'); assert.equal(s!.aiStyle, 'casual'); assert.equal(s!.ownerPhone, '+15550199');
+    for (const bad of [`'{"upgrades_completed":"{}"}'`, `'{"secretKey":"x"}'`, `'{"aiStyle":5}'`, `'{"aiStyle":null}'`, `'[]'`, 'null', `'{"address":"${'x'.repeat(2001)}"}'`]) await assert.rejects(() => db.query(`select public.oj_set_exterior_settings(${bad}::jsonb)`), bad.slice(0, 40));
+    await assert.rejects(() => db.query('select * from public.settings'));
+    await assert.rejects(() => db.exec(`update public.settings set value = 'x'`));
+    for (const who of [viewer, stranger]) { await as(who); await assert.rejects(() => db.query(`select public.oj_set_exterior_settings('{"aiStyle":"x"}'::jsonb)`)); assert.equal(await settings(), null); }
+    await as('', 'anon');
+    await assert.rejects(() => db.query(`select public.oj_set_exterior_settings('{"aiStyle":"x"}'::jsonb)`));
+  });
   await t.test('access ends when membership ends', async () => {
     await db.exec(`reset role; delete from public.oj_memberships where user_id = '${member}'`);
     await as(member);

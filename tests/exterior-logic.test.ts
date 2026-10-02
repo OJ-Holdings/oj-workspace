@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sourceLabel, summariseJobs, summariseLeads, summariseSessions, threads, type ExtLead, type ExtMessage, type ExtSession } from '../src/lib/exterior';
 
-const lead = (l: Partial<ExtLead>): ExtLead => ({ id: 'a', name: 'A', phone: null, address: null, service_requested: null, quote_amount: null, status: 'new', source: null, job_revenue: null, job_cost: null, created_at: '2026-05-01T00:00:00Z', updated_at: null, completed_at: null, ...l });
+const lead = (l: Partial<ExtLead>): ExtLead => ({ id: 'a', name: 'A', phone: null, address: null, service_requested: null, quote_amount: null, status: 'new', source: null, notes: null, job_revenue: null, job_cost: null, created_at: '2026-05-01T00:00:00Z', updated_at: null, completed_at: null, ...l });
 
 test('lead summary never treats a quote or a missing figure as revenue', () => {
   const s = summariseLeads([
