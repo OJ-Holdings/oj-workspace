@@ -1,0 +1,89 @@
+/*
+ * OJ Workspace tokens. The only place colours, type, spacing and shape are decided.
+ * The shared frame is deep navy. Inside a business, [data-venture] swaps the
+ * surface and accent tokens for that business's logo colours, so every component
+ * below re-themes without knowing which business it is in.
+ */
+:root {
+  --bg: #050914;
+  --bg-2: #081022;
+  --panel: #0c1528;
+  --panel-2: #111c33;
+  --panel-3: #18253f;
+  --line: rgba(151, 174, 226, 0.13);
+  --line-2: rgba(151, 174, 226, 0.26);
+
+  --ink: #f3f6fc;
+  --ink-2: #bcc7dc;
+  --ink-3: #8795b0;
+  --ink-4: #5f6d88;
+
+  --accent: #2f6bff;
+  --accent-hi: #6191ff;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(47, 107, 255, 0.14);
+  --accent-2: #38c8ff;
+
+  --good: #3ad29f;
+  --watch: #f6b94c;
+  --bad: #ff6f6f;
+
+  /* One colour per business, used wherever all three appear together. */
+  --c-exterior: #ff8a1f;
+  --c-solutions: #dc9d84;
+  --c-essentials: #e9e2d6;
+  --c-shared: #6191ff;
+
+  --font-ui: var(--font-manrope), 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-sora), var(--font-manrope), 'Segoe UI', sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, serif;
+  --display: var(--font-display);
+  --display-weight: 600;
+  --display-track: -0.035em;
+
+  --t-xs: 0.6875rem;
+  --t-sm: 0.8125rem;
+  --t-md: 0.9375rem;
+  --t-lg: 1.125rem;
+  --t-xl: 1.5rem;
+  --t-2xl: 2rem;
+  --t-hero: clamp(2.1rem, 4.4vw, 3.6rem);
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 48px;
+  --r-sm: 8px; --r: 12px; --r-lg: 16px; --r-xl: 22px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  --rail: 248px;
+
+  --fast: 140ms; --base: 240ms; --slow: 520ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exterior Care: black, the orange of the O and the green of the leaves. */
+[data-venture='exterior'] {
+  --bg: #080808; --bg-2: #0d0d0d; --panel: #121212; --panel-2: #191919; --panel-3: #222;
+  --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.2);
+  --ink-2: #c9c9c9; --ink-3: #969696; --ink-4: #6a6a6a;
+  --accent: #f58220; --accent-hi: #ffa24d; --accent-ink: #1a0c00; --accent-soft: rgba(245, 130, 32, 0.16);
+  --accent-2: #7bc043;
+}
+/* OJ Solutions: charcoal and the copper flick from its mark. */
+[data-venture='solutions'] {
+  --bg: #121212; --bg-2: #171717; --panel: #1c1c1c; --panel-2: #242424; --panel-3: #2d2d2d;
+  --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.2);
+  --ink-2: #cbc6c2; --ink-3: #9a938e; --ink-4: #6e6863;
+  --accent: #c98a6b; --accent-hi: #e0a88d; --accent-ink: #1c0f08; --accent-soft: rgba(201, 138, 107, 0.16);
+  --accent-2: #e6d2c6;
+}
+/* OJ Essentials: the cream and near-black of its logo sheet, with its serif. */
+[data-venture='essentials'] {
+  --bg: #ece6dc; --bg-2: #e6dfd3; --panel: #f6f2ea; --panel-2: #fbf8f2; --panel-3: #ffffff;
+  --line: rgba(31, 26, 23, 0.13); --line-2: rgba(31, 26, 23, 0.28);
+  --ink: #1f1a17; --ink-2: #4b423b; --ink-3: #71665d; --ink-4: #968b81;
+  --accent: #1f1a17; --accent-hi: #3d332c; --accent-ink: #f6f2ea; --accent-soft: rgba(31, 26, 23, 0.07);
+  --accent-2: #8a7a66;
+  --good: #2f7d5c; --watch: #96651d; --bad: #a63b3b;
+  --display: var(--font-serif); --display-weight: 500; --display-track: 0.01em;
+  /* On cream, the Essentials marker colour has to be dark to be seen. */
+  --c-essentials: #8a7a66; --c-solutions: #b06f50; --c-exterior: #d96a0b;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 16px 34px -26px rgba(31, 26, 23, 0.5);
+}

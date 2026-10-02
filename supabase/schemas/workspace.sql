@@ -36,7 +36,7 @@ create table public.oj_cards (
   organization_id uuid not null references public.oj_organizations(id),
   title text not null check (length(btrim(title)) between 1 and 180),
   description text not null default '' check (length(description) <= 8000),
-  business text not null check (business in ('exterior','solutions')),
+  business text not null check (business in ('exterior','solutions','essentials')),
   stage text not null default 'Backlog' check (stage in ('Backlog','Ready','In progress','Review','Done')),
   priority text not null default 'normal' check (priority in ('normal','high')),
   assignee text not null default '' check (length(assignee) <= 120),

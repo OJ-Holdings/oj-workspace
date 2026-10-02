@@ -1,6 +1,6 @@
 export const stages = ['Backlog', 'Ready', 'In progress', 'Review', 'Done'] as const;
 export type Stage = typeof stages[number];
-export type Business = 'exterior' | 'solutions';
+export type Business = 'exterior' | 'solutions' | 'essentials';
 export type Card = {
   id: string; organization_id: string; title: string; description: string;
   business: Business; stage: Stage; priority: 'normal' | 'high'; assignee: string;
@@ -14,7 +14,7 @@ export function validateCard(input: unknown): Card {
   if (!input || typeof input !== 'object') throw new Error('Invalid card');
   const c = input as Card;
   if (typeof c.id !== 'string' || typeof c.organization_id !== 'string' || typeof c.title !== 'string' || !c.title.trim() || c.title.length > 180) throw new Error('Give the card a title of 1 to 180 characters.');
-  if (!stages.includes(c.stage) || !['exterior', 'solutions'].includes(c.business) || !['normal', 'high'].includes(c.priority)) throw new Error('Invalid card selection.');
+  if (!stages.includes(c.stage) || !['exterior', 'solutions', 'essentials'].includes(c.business) || !['normal', 'high'].includes(c.priority)) throw new Error('Invalid card selection.');
   if (typeof c.description !== 'string' || c.description.length > 8000 || typeof c.assignee !== 'string' || c.assignee.length > 120) throw new Error('Card text is too long.');
   if (typeof c.due_date !== 'string' || (c.due_date !== '' && (!/^\d{4}-\d{2}-\d{2}$/.test(c.due_date) || Number.isNaN(Date.parse(c.due_date)) || new Date(c.due_date).toISOString().slice(0,10) !== c.due_date))) throw new Error('Choose a valid due date.');
   if (!Number.isInteger(c.revision) || c.revision < 0) throw new Error('Invalid revision.');

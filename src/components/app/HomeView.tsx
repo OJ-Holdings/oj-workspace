@@ -1,0 +1,189 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import NumberFlow from '@number-flow/react';
+import { ArrowRight, ArrowUpRight, FileArchive, FileSpreadsheet, FileText, Plus, Send } from 'lucide-react';
+import { ventureList, ventures, type VentureId } from '@/lib/ventures';
+import { money, type WorkspaceMetrics } from '@/lib/metrics';
+import type { Card } from '@/lib/board';
+import { GhostChart, LineChart, Sparkline } from './Charts';
+import { HeroScene } from './Hero';
+import type { Board } from './useBoard';
+
+const color = (v: VentureId | 'shared') => `var(--c-${v})`;
+const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
+
+type Props = { base: string; board: Board; metrics: WorkspaceMetrics; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+
+export function HomeView({ base, board, metrics, mode, displayName, members, readOnly }: Props) {
+  // The greeting depends on the visitor's clock, so it is set after load to keep server and browser output identical.
+  const [greeting, setGreeting] = useState('Welcome back');
+  const [todayKey, setTodayKey] = useState('');
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    setGreeting(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
+    setTodayKey(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+  }, []);
+
+  const cards = board.data.cards;
+  const open = cards.filter(c => c.stage !== 'Done');
+  const connected = ventureList.filter(v => metrics.ventures[v.id]);
+  const total = connected.reduce((sum, v) => sum + (metrics.ventures[v.id]?.revenueMtd ?? 0), 0);
+  // Today's tasks: anything due today or earlier and not done, then high priority work.
+  const due = open.filter(c => c.due_date && todayKey && c.due_date <= todayKey);
+  const focus = [...due, ...open.filter(c => c.priority === 'high' && !due.includes(c))].slice(0, 5);
+  const who = mode === 'preview' ? 'Oscar and Jacob' : displayName || members[0] || '';
+  const pipelineMax = Math.max(1, ...(metrics.pipeline ?? []).map(p => p.count));
+
+  return (
+    <div className="home">
+      <section className="hero">
+        <HeroScene />
+        <div className="hero-copy">
+          <p>{greeting}{who ? `, ${who}` : ''}</p>
+          <h1>Welcome to the OJ Workspace</h1>
+          <p className="hero-sub">Three businesses. One vision. Built together.</p>
+        </div>
+        <blockquote className="hero-quote">Ideas. Execution. Freedom.</blockquote>
+      </section>
+
+      <section className="venture-cards" aria-label="Businesses">
+        {ventureList.map(v => {
+          const m = metrics.ventures[v.id];
+          const tasks = open.filter(c => c.business === v.id).length;
+          return (
+            <article key={v.id} className="venture-card" data-venture={v.id}>
+              <header>
+                <span className="venture-mark"><Image src={v.mark} alt="" width={52} height={52} /></span>
+                <div><h2>{v.name}</h2><p>{v.description}</p></div>
+                <Link className="icon-button" href={`${base}/b/${v.id}`} aria-label={`Open ${v.name}`}><ArrowUpRight size={18} /></Link>
+              </header>
+              {m ? (
+                <dl className="venture-stats">
+                  <div><dd><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: m.revenueMtd >= 10000 ? 'compact' : 'standard' }} /></dd><dt>Revenue this month</dt></div>
+                  <div><dd><NumberFlow value={m.activeLeads} /></dd><dt>Active leads</dt></div>
+                  <div><dd><NumberFlow value={m.third} /></dd><dt>{v.third}</dt></div>
+                </dl>
+              ) : (
+                <div className="venture-unconnected">
+                  <p><b>{tasks}</b> open {tasks === 1 ? 'task' : 'tasks'}</p>
+                  <p className="quiet">Revenue and leads appear here once {v.source} is connected.</p>
+                </div>
+              )}
+              <footer>
+                <Link className="primary" href={`${base}/b/${v.id}`}>Open dashboard</Link>
+                {!readOnly && <button className="secondary" onClick={() => board.openCard(undefined, { business: v.id, title: '' })}><Plus size={15} aria-hidden="true" />New task</button>}
+              </footer>
+            </article>
+          );
+        })}
+      </section>
+
+      <div className="home-grid">
+        <section className="panel panel-wide" aria-labelledby="rev-h">
+          <header className="panel-head">
+            <h2 id="rev-h">Revenue overview</h2>
+            {connected.length > 0 && <p className="panel-figure"><span>This month</span><b>{money(total)}</b></p>}
+          </header>
+          {connected.length > 0 ? (
+            <LineChart labels={metrics.months} series={connected.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: metrics.ventures[v.id]!.series }))} />
+          ) : (
+            <div className="empty"><GhostChart /><p><b>No revenue connected yet.</b> Connect Shopify, GoHighLevel and the Exterior Care leads system and each business gets its own line here.</p></div>
+          )}
+        </section>
+
+        <section className="panel" aria-labelledby="perf-h">
+          <header className="panel-head"><h2 id="perf-h">Business performance</h2><span className="panel-note">This month</span></header>
+          <ul className="perf">
+            {ventureList.map(v => {
+              const m = metrics.ventures[v.id];
+              return (
+                <li key={v.id}>
+                  <span className="venture-mark venture-mark-sm" data-venture={v.id}><Image src={v.mark} alt="" width={30} height={30} /></span>
+                  <span className="perf-name">{v.short}</span>
+                  {m ? <>
+                    <b>{money(m.revenueMtd)}</b>
+                    <span className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}%</span>
+                    <Sparkline values={m.series} color={color(v.id)} />
+                  </> : <span className="quiet perf-off">Not connected</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className="panel" aria-labelledby="pipe-h">
+          <header className="panel-head"><h2 id="pipe-h">Leads pipeline</h2><Link className="panel-link" href={`${base}/crm`}>View all</Link></header>
+          {metrics.pipeline ? (
+            <ul className="pipeline">
+              {metrics.pipeline.map(p => (
+                <li key={p.stage}><span>{p.stage}</span><i><b style={{ width: `${(p.count / pipelineMax) * 100}%` }} data-stage={p.stage} /></i><strong>{p.count}</strong></li>
+              ))}
+            </ul>
+          ) : <div className="empty"><p><b>No leads connected yet.</b> Exterior Care leads arrive first, then Solutions prospects from GoHighLevel.</p></div>}
+        </section>
+
+        <section className="panel" aria-labelledby="tasks-h">
+          <header className="panel-head"><h2 id="tasks-h">Today's tasks</h2><Link className="panel-link" href={`${base}/tasks`}>View all</Link></header>
+          {focus.length ? (
+            <ul className="tasklist">
+              {focus.map(card => <TaskRow key={card.id} card={card} board={board} readOnly={readOnly} overdue={!!todayKey && !!card.due_date && card.due_date < todayKey} />)}
+            </ul>
+          ) : <div className="empty"><p><b>Nothing due today.</b> Tasks with a due date of today, and anything marked high priority, show up here.</p></div>}
+        </section>
+
+        <section className="panel" aria-labelledby="sched-h">
+          <header className="panel-head"><h2 id="sched-h">Schedule</h2><Link className="panel-link" href={`${base}/calendar`}>Calendar</Link></header>
+          {metrics.schedule ? (
+            <ol className="schedule">
+              {metrics.schedule.map(item => (
+                <li key={item.id} style={{ '--dot': color(item.venture) } as React.CSSProperties}>
+                  <time>{item.time}</time><div><b>{item.title}</b><span>{item.venture === 'shared' ? 'Shared' : ventures[item.venture].short} / {item.detail}</span></div>
+                </li>
+              ))}
+            </ol>
+          ) : <div className="empty"><p><b>The shared calendar is not set up yet.</b> Events, Exterior Care bookings and task due dates will line up here.</p></div>}
+        </section>
+
+        <section className="panel" aria-labelledby="files-h">
+          <header className="panel-head"><h2 id="files-h">Recent files</h2><Link className="panel-link" href={`${base}/files`}>View all</Link></header>
+          {metrics.files ? (
+            <ul className="files">
+              {metrics.files.map(file => {
+                const Icon = fileIcon[file.kind];
+                return <li key={file.id}><span className="file-icon" style={{ color: color(file.venture) }}><Icon size={17} aria-hidden="true" /></span><div><b>{file.name}</b><span>Updated {file.updated}</span></div></li>;
+              })}
+            </ul>
+          ) : <div className="empty"><p><b>No documents yet.</b> Each business gets a Documents tab for contracts, insurance and tax paperwork.</p></div>}
+        </section>
+
+        <section className="panel" aria-labelledby="notes-h">
+          <header className="panel-head"><h2 id="notes-h">Messages and notes</h2><Link className="panel-link" href={`${base}/messages`}>View all</Link></header>
+          {metrics.notes ? <>
+            <ul className="notes">
+              {metrics.notes.map(n => <li key={n.id}><span className="avatar">{n.author.charAt(0)}</span><div><b>{n.author}<time>{n.when}</time></b><p>{n.body}</p></div></li>)}
+            </ul>
+            <div className="note-box"><input placeholder="Write a note" aria-label="Write a note" disabled /><button className="icon-button" aria-label="Send note" disabled><Send size={16} /></button></div>
+            <p className="quiet">Sending is switched off in the sample workspace.</p>
+          </> : <div className="empty"><p><b>Messages are not set up yet.</b> Notes between the two of you, with a thread per business, arrive with the Messages page.</p><Link className="panel-link" href={`${base}/messages`}>See what is planned <ArrowRight size={14} aria-hidden="true" /></Link></div>}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function TaskRow({ card, board, readOnly, overdue }: { card: Card; board: Board; readOnly: boolean; overdue: boolean }) {
+  return (
+    <li>
+      <input type="checkbox" aria-label={`Mark "${card.title}" done`} disabled={readOnly || board.pending} checked={false} onChange={() => board.move(card, 'Done')} />
+      <button onClick={() => board.openCard(card)}>
+        <b>{card.title}</b>
+        <span><i style={{ background: color(card.business) }} />{ventures[card.business].short}{card.priority === 'high' && ' / High priority'}{overdue && ' / Overdue'}</span>
+      </button>
+      {card.assignee && <span className="avatar" title={card.assignee}>{card.assignee.charAt(0).toUpperCase()}</span>}
+    </li>
+  );
+}

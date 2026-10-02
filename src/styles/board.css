@@ -1,0 +1,82 @@
+/* The task board and the task dialog. */
+.statstrip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: var(--s-4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.statstrip > div { padding: var(--s-4) var(--s-5); border-left: 1px solid var(--line); }
+.statstrip > div:first-child { border-left: 0; }
+.statstrip span { display: block; font-size: var(--t-sm); color: var(--ink-3); }
+.statstrip strong { font-family: var(--display); font-size: var(--t-xl); font-weight: var(--display-weight); font-variant-numeric: tabular-nums; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.toolbar .primary { margin-left: auto; }
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.seg button { position: relative; min-height: 34px; padding: 0 12px; border-radius: 7px; font-size: var(--t-sm); font-weight: 600; color: var(--ink-3); }
+.seg button span { position: relative; }
+.seg button[aria-pressed='true'] { color: var(--ink); }
+.seg-pill { position: absolute; inset: 0; border-radius: 7px; background: var(--panel-3); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 4px 12px -6px #000; }
+.searchbox { display: flex; align-items: center; gap: 8px; padding-left: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); color: var(--ink-3); }
+.searchbox input { width: 180px; border: 0; background: transparent; box-shadow: none; padding: 9px 12px 9px 0; font-size: var(--t-sm); }
+.notice { min-height: 22px; margin: 6px 0; font-size: var(--t-sm); color: var(--accent-hi); }
+
+.board { display: grid; grid-template-columns: repeat(5, minmax(232px, 1fr)); gap: var(--s-3); overflow-x: auto; padding-bottom: var(--s-3); scrollbar-width: thin; }
+.column { min-width: 0; min-height: 360px; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); transition: border-color var(--fast) linear, background var(--fast) linear; }
+.column.is-over { border-color: var(--accent); background: var(--accent-soft); }
+.column > header { display: flex; align-items: center; gap: 8px; padding: 2px 4px 12px; }
+.column h2 { margin: 0; font-size: var(--t-sm); font-weight: 650; }
+.stage-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-4); }
+[data-stage='Ready'] .stage-dot { background: var(--accent-2); }
+[data-stage='In progress'] .stage-dot { background: var(--accent); }
+[data-stage='Review'] .stage-dot { background: var(--watch); }
+[data-stage='Done'] .stage-dot { background: var(--good); }
+.column-count { padding: 1px 8px; border-radius: 999px; background: var(--panel-3); font-size: var(--t-xs); font-weight: 650; color: var(--ink-2); }
+.column > header .icon-button { margin-left: auto; width: 30px; height: 30px; }
+.column-cards { display: flex; flex-direction: column; gap: 10px; }
+.column-empty { margin: 0; padding: 40px 8px; text-align: center; font-size: var(--t-sm); color: var(--ink-4); }
+.taskcard { position: relative; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); box-shadow: 0 10px 24px -18px #000; overflow: hidden; cursor: grab; transition: border-color var(--fast) linear, box-shadow var(--fast) linear; }
+.taskcard::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c-exterior); }
+.taskcard[data-venture-tag='solutions']::before { background: var(--c-solutions); }
+.taskcard[data-venture-tag='essentials']::before { background: var(--c-essentials); }
+.taskcard:hover { border-color: var(--line-2); box-shadow: 0 16px 30px -18px #000; }
+.taskcard:active { cursor: grabbing; }
+.taskcard-open { display: block; width: 100%; padding: 14px 14px 10px 16px; text-align: left; }
+.taskcard-tags { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; }
+.taskcard h3 { margin: 0 0 6px; font-size: var(--t-sm); font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.taskcard p { margin: 0 0 12px; font-size: var(--t-xs); color: var(--ink-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.taskcard-meta { display: flex; align-items: center; gap: 10px; font-size: var(--t-xs); color: var(--ink-3); }
+.taskcard-meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.taskcard-meta .avatar { margin-left: auto; width: 24px; height: 24px; }
+.taskcard-meta .due { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.move { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px 8px 16px; border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
+.move select { padding: 4px 6px; font-size: var(--t-xs); border-color: transparent; background: transparent; }
+.board-foot { margin: 8px 0 0; }
+
+.card-dialog { width: 580px; max-width: calc(100vw - 24px); max-height: 90dvh; padding: var(--s-6); border: 1px solid var(--line-2); border-radius: var(--r-xl); background: var(--panel); color: var(--ink); box-shadow: 0 50px 110px -30px #000; }
+.card-dialog[open] { animation: pop var(--base) var(--ease); }
+.card-dialog::backdrop { background: rgba(3, 6, 14, 0.7); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-dialog h2 { font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-track); font-size: var(--t-xl); margin-bottom: var(--s-5); }
+.card-dialog h3 { font-size: var(--t-md); margin: 18px 0 10px; }
+.card-dialog form > label, .form-grid > label { display: flex; flex-direction: column; gap: 7px; margin-bottom: var(--s-4); font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); }
+.card-dialog input, .card-dialog textarea, .card-dialog select { font-weight: 400; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--s-4); }
+.card-dialog .checkbox-row { flex-direction: row; align-items: center; gap: 10px; font-weight: 400; color: var(--ink); margin-bottom: 10px; min-height: 28px; }
+.checkbox-row input { width: 18px; height: 18px; padding: 0; accent-color: var(--accent); }
+.inline-input { display: flex; align-items: center; gap: 8px; }
+.inline-input input, .inline-input textarea { flex: 1; }
+.dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
+.comments { margin-top: var(--s-6); border-top: 1px solid var(--line); }
+.comment { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--t-sm); }
+.comment p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); }
+.dialog-notice { margin: 14px 0 0; font-size: var(--t-sm); color: var(--accent-hi); }
+
+@media (max-width: 700px) {
+  .statstrip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statstrip > div:nth-child(3) { border-left: 0; }
+  .statstrip > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .toolbar .primary { margin-left: 0; }
+  .searchbox { flex: 1; }
+  .searchbox input { width: 100%; }
+  .seg { overflow-x: auto; max-width: 100%; }
+  .board { grid-template-columns: repeat(5, 78vw); scroll-snap-type: x mandatory; }
+  .column { scroll-snap-align: start; }
+  .form-grid { grid-template-columns: 1fr; }
+  .card-dialog { padding: var(--s-5); }
+}

@@ -1,0 +1,129 @@
+/* Home, the business index, and the business pages. */
+
+/* --- hero --- */
+.hero { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: var(--s-6); min-height: 280px; margin: calc(var(--s-6) * -1) calc(var(--s-7) * -1) var(--s-6); padding: var(--s-8) var(--s-7) var(--s-7); overflow: hidden; }
+.hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; }
+.hero::after { content: ''; position: absolute; inset: auto 0 0 0; height: 34%; z-index: -1; background: linear-gradient(180deg, transparent, var(--bg)); }
+.hero-copy > p:first-child { margin: 0 0 6px; font-size: var(--t-lg); color: #bcc7dc; }
+.hero h1 { margin: 0; font-family: var(--font-display); font-size: var(--t-hero); font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; color: #fff; text-wrap: balance; }
+.hero-sub { margin: 12px 0 0; font-size: var(--t-lg); color: #9fb0d0; }
+.hero-quote { margin: 0 0 6px; padding-left: var(--s-4); border-left: 2px solid rgba(151, 174, 226, 0.4); font-family: var(--font-display); font-style: italic; font-size: var(--t-md); color: #dbe6ff; white-space: nowrap; }
+
+/* --- the three business cards: each wears its own colours --- */
+.venture-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); margin-bottom: var(--s-4); }
+.venture-card { position: relative; display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border: 1px solid var(--line-2); border-radius: var(--r-lg); background: radial-gradient(420px 220px at 100% 0%, var(--accent-soft), transparent 70%), var(--panel); color: var(--ink); box-shadow: var(--shadow); overflow: hidden; transition: transform var(--base) var(--ease), border-color var(--fast) linear; }
+.venture-card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.venture-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.venture-card header { display: flex; align-items: flex-start; gap: var(--s-3); }
+.venture-card h2 { margin: 2px 0 4px; font-family: var(--display); font-size: var(--t-lg); font-weight: var(--display-weight); letter-spacing: var(--display-track); }
+.venture-card header p { margin: 0; font-size: var(--t-sm); color: var(--ink-3); }
+.venture-card header .icon-button { margin-left: auto; }
+[data-venture='essentials'].venture-card h2 { font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 400; }
+[data-venture='essentials'] .venture-stats dd { font-size: 1.75rem; }
+.venture-mark { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; border-radius: 14px; background: var(--panel-3); border: 1px solid var(--line); overflow: hidden; }
+.venture-mark img { width: 100%; height: 100%; object-fit: cover; }
+.venture-mark-sm { width: 34px; height: 34px; border-radius: 9px; }
+.venture-stats { display: grid; grid-template-columns: 1.3fr 1fr 1fr; margin: 0; }
+.venture-stats div { padding-left: var(--s-4); border-left: 1px solid var(--line); }
+.venture-stats div:first-child { padding-left: 0; border-left: 0; }
+.venture-stats dd { margin: 0; font-family: var(--display); font-size: var(--t-xl); font-weight: var(--display-weight); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.venture-stats dt { margin-top: 2px; font-size: var(--t-xs); color: var(--ink-3); }
+.venture-unconnected p { margin: 0 0 4px; font-size: var(--t-sm); }
+.venture-unconnected b { font-family: var(--display); font-size: var(--t-xl); font-weight: var(--display-weight); margin-right: 6px; }
+.venture-card footer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: auto; }
+.venture-card footer > :only-child { grid-column: 1 / -1; }
+
+/* --- the panel grid --- */
+.home-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--s-4); }
+.home-grid > .panel { grid-column: span 3; }
+.home-grid > .panel-wide { grid-column: span 6; }
+.perf { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.perf li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px 12px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-2); font-size: var(--t-sm); }
+.perf-name { font-weight: 600; }
+.perf b { font-variant-numeric: tabular-nums; }
+.perf .sparkline { grid-column: 1 / -1; width: 100%; height: 34px; }
+.perf-off { grid-column: 3 / -1; }
+.pipeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pipeline li { display: grid; grid-template-columns: 78px minmax(0, 1fr) 30px; align-items: center; gap: 12px; font-size: var(--t-sm); color: var(--ink-2); }
+.pipeline i { height: 9px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
+.pipeline i b { display: block; height: 100%; border-radius: inherit; background: var(--accent); transform-origin: left; animation: grow 800ms var(--ease) both; }
+.pipeline i b[data-stage='Contacted'] { background: #8b7bff; animation-delay: 60ms; }
+.pipeline i b[data-stage='Qualified'] { background: var(--accent-2); animation-delay: 120ms; }
+.pipeline i b[data-stage='Proposal'] { background: #5bd0e6; animation-delay: 180ms; }
+.pipeline i b[data-stage='Won'] { background: var(--good); animation-delay: 240ms; }
+.pipeline strong { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+@keyframes grow { from { transform: scaleX(0); } }
+
+.tasklist, .files, .notes, .schedule { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.tasklist li { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.tasklist li:last-child { border-bottom: 0; }
+.tasklist input { width: 20px; height: 20px; padding: 0; accent-color: var(--accent); flex-shrink: 0; }
+.tasklist button { flex: 1; min-width: 0; text-align: left; }
+.tasklist button b { display: block; font-size: var(--t-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tasklist button span { display: flex; align-items: center; gap: 7px; font-size: var(--t-xs); color: var(--ink-3); }
+.tasklist button i { width: 7px; height: 7px; border-radius: 50%; }
+.tasklist button:hover b { color: var(--accent-hi); }
+.schedule { gap: 0; }
+.schedule li { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 22px; padding: 0 0 16px; font-size: var(--t-sm); }
+.schedule li::before { content: ''; position: absolute; left: 53px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 0 3px var(--panel); z-index: 1; }
+.schedule li::after { content: ''; position: absolute; left: 57px; top: 12px; bottom: -4px; width: 1px; background: var(--line-2); }
+.schedule li:last-child::after { display: none; }
+.schedule time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.schedule b { display: block; font-weight: 600; }
+.schedule span { color: var(--ink-3); font-size: var(--t-xs); }
+.files li, .notes li { display: flex; gap: 12px; padding: 8px 0; font-size: var(--t-sm); }
+.file-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px; background: var(--bg-2); border: 1px solid var(--line); }
+.files b, .notes b { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+.files span, .notes time { font-size: var(--t-xs); color: var(--ink-3); font-weight: 400; }
+.notes p { margin: 2px 0 0; color: var(--ink-2); }
+.note-box { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding: 2px 4px 2px 0; border: 1px solid var(--line-2); border-radius: var(--r-sm); }
+.note-box input { flex: 1; border: 0; background: transparent; box-shadow: none; padding: 9px 12px; font-size: var(--t-sm); }
+
+/* --- business index --- */
+.business-index { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
+.business-tile { display: flex; flex-direction: column; gap: 8px; padding: var(--s-7); border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--bg); color: var(--ink); box-shadow: var(--shadow); transition: transform var(--base) var(--ease), border-color var(--fast) linear; }
+.business-tile:hover { transform: translateY(-4px); border-color: var(--accent); }
+.business-tile h2 { margin: var(--s-4) 0 0; font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-track); font-size: var(--t-xl); }
+.business-tile p { margin: 0; color: var(--ink-3); }
+.business-tile-foot { margin-top: var(--s-4); padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: var(--t-sm); color: var(--ink-2); }
+
+/* --- a business page: the whole content area takes the business's colours --- */
+.venture-head { display: flex; align-items: center; gap: var(--s-6); margin-bottom: var(--s-6); padding: var(--s-6); border: 1px solid var(--line); border-radius: var(--r-xl); background: radial-gradient(700px 320px at 0% 0%, var(--accent-soft), transparent 70%), var(--panel); box-shadow: var(--shadow); animation: wash var(--slow) var(--ease); }
+@keyframes wash { from { opacity: 0; transform: scale(0.985); } }
+.venture-logo { display: grid; place-items: center; flex-shrink: 0; width: 112px; height: 112px; border-radius: 26px; background: var(--panel-3); border: 1px solid var(--line); overflow: hidden; }
+.venture-logo img { width: 100%; height: 100%; object-fit: cover; }
+.venture-head h1 { font-size: clamp(1.8rem, 3.4vw, 2.7rem); margin-bottom: 6px; }
+.venture-tagline { margin: 0 0 12px; font-size: var(--t-lg); color: var(--ink-2); }
+[data-venture='essentials'] .venture-tagline { font-family: var(--font-serif); font-style: italic; font-size: 1.3rem; }
+[data-venture='essentials'] .venture-head h1 { text-transform: uppercase; letter-spacing: 0.2em; font-weight: 400; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; }
+.chips li { padding: 4px 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); }
+.tabs { display: flex; gap: 4px; margin-bottom: var(--s-6); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs a { position: relative; flex-shrink: 0; padding: 12px 14px; font-size: var(--t-sm); font-weight: 600; color: var(--ink-3); transition: color var(--fast) linear; }
+.tabs a:hover, .tabs a.is-current { color: var(--ink); }
+.tab-line { position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--s-4); margin-bottom: var(--s-7); }
+.kpis > div { padding: var(--s-5); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.kpis span { display: block; font-size: var(--t-sm); color: var(--ink-3); margin-bottom: 8px; }
+.kpis strong { display: block; font-family: var(--display); font-size: var(--t-2xl); font-weight: var(--display-weight); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.kpis small { display: block; margin-top: 6px; }
+.kpis .kpi-off { grid-column: span 2; border-style: dashed; background: transparent; box-shadow: none; }
+.kpi-off b { display: block; margin-bottom: 6px; }
+.kpi-off span { margin: 0; }
+.section-title { font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-track); font-size: var(--t-xl); margin-bottom: var(--s-4); }
+
+@media (max-width: 1400px) {
+  .home-grid > .panel { grid-column: span 6; }
+  .home-grid > .panel-wide { grid-column: span 12; }
+}
+@media (max-width: 1000px) {
+  .hero { margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) var(--s-4); padding: var(--s-7) var(--s-4) var(--s-5); min-height: 190px; }
+  .hero-quote { display: none; }
+  .venture-cards, .business-index { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .home-grid > .panel, .home-grid > .panel-wide { grid-column: span 12; }
+  .venture-head { flex-direction: column; align-items: flex-start; padding: var(--s-5); gap: var(--s-4); }
+  .venture-logo { width: 84px; height: 84px; border-radius: 20px; }
+  .kpis .kpi-off { grid-column: auto; }
+}

@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Workspace } from '@/components/Workspace';
+import { App } from '@/components/app/App';
+import { unconnected } from '@/lib/metrics';
 import type { WorkspaceSnapshot } from '@/lib/board';
 import { ojConnection } from '@/lib/oj-connection';
 export function LiveWorkspace({ organizationId, initial }: { organizationId: string; initial: WorkspaceSnapshot }) {
@@ -48,5 +49,5 @@ export function LiveWorkspace({ organizationId, initial }: { organizationId: str
     return () => { disposed = true; controller.abort(); window.clearInterval(timer); window.removeEventListener('offline', onOffline); window.removeEventListener('online', onFocus); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); auth.data.subscription.unsubscribe(); void client.removeChannel(channel); };
   }, [organizationId]);
   if (ended) return <main className="entry"><div className="entry-card"><h1>Workspace access ended.</h1><p>Returning to sign in…</p></div></main>;
-  return <Workspace mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={status} limited={snapshot.limited} />;
+  return <App base="/workspace" metrics={unconnected} mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={status} limited={snapshot.limited} />;
 }
