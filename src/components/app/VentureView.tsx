@@ -16,7 +16,7 @@ import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['outreach', 'Outreach leads'], ['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
+  exterior: [['jobs', 'Jobs and income'], ['outreach', 'Outreach leads'],['conversations', 'Conversations'], ['bookings', 'Bookings'], ['door-knocking', 'Door knocking']],
   solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };

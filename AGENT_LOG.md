@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 03:10 UTC -- Claude Code, for Oscar (Real income on Home and Finance; Exterior Care "Jobs and income" tab)
+**Summary:** Oscar pointed out the Exterior Care database already holds real income. Paid completed jobs (job_revenue, job_cost on the legacy `leads` table) and Shopify orders now flow into Home, each business overview, Finance and Analytics as finance entries marked `auto`. They are built on each load by src/lib/external.ts, are not stored in the workspace tables, and cannot be removed from the Finance page. Open leads in the old system and open GoHighLevel deals count toward "active leads". New Exterior Care tab "Jobs and income": paid, costs, profit and average job, by month, by service, by lead source, plus the completed-jobs list.
+**Rules kept:** only money recorded as paid counts. Quotes and GoHighLevel deal values are never income. A job is dated by completed_at, else updated_at (the old system's rule), in Central time. Jobs with revenue but a status other than completed are left out (one such lead, $325, exists).
+**Files:** src/lib/external.ts, src/lib/workspace-data.ts, src/lib/dashboard.ts (FinanceEntry.auto, Dashboard.openElsewhere), src/lib/exterior.ts (summariseJobs), ExteriorView.tsx, VentureView.tsx, Pages.tsx (Finance copy, no delete on auto entries), tests.
+**Verified:** 86 tests pass; typecheck clean. Expected from the live data (read-only query): 50 completed jobs, $15,675 paid (Apr $450, May $3,755, Jun $5,510, Jul $5,960), $162 costs.
+**Not verified:** on screen with a signed-in member.
+**Notes:** If Shopify or GoHighLevel takes over four seconds or fails, its figures are left out of that load and the error is logged on the server; the page does not say so. Hand-logging a job that is already in the old system would double count it; the Finance page warns about this. Still unread from that database: `settings` (monthly goal, the upgrades skill tree) and `quote_requests` (16 website quote requests); both need one more database update, staged next.
+
 ## 2026-10-03 02:15 UTC -- Claude Code, for Oscar (OJ Solutions: Clients and Calls from GoHighLevel)
 **Summary:** The two Solutions tabs now read the real sub-account. Clients: clients and prospects, open and won deal value, the pipeline by stage, every deal, every contact. Calls: calls in the last 30 days, incoming count, average length, recent calls. Every business tab is now real; no "being built" placeholders remain in VentureView.
 **How it works:** src/lib/ghl-server.ts (server only, GET requests only, five-minute cache) reads contacts, pipelines, opportunities and the 50 most recent conversations, then each conversation's messages to find calls. loadGhl requires owner or member (the tab lists people by name).

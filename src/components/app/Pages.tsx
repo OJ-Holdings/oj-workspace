@@ -165,12 +165,12 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
     <div className="kpis">
       <div><span>Money in this month</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
       <div><span>Money out this month</span><strong><NumberFlow value={costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
-      <div><span>Profit this month</span><strong className={revenue - costs < 0 ? 'neg' : ''}><NumberFlow value={revenue - costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong><small className="quiet">From logged entries only</small></div>
+      <div><span>Profit this month</span><strong className={revenue - costs < 0 ? 'neg' : ''}><NumberFlow value={revenue - costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong><small className="quiet">Paid jobs, Shopify orders and hand-logged entries</small></div>
     </div>
     <section className="panel">
       <header className="panel-head"><h2>Money in, last 12 months</h2></header>
       {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
-        : <div className="empty"><p><b>No money logged yet.</b> Add what has been paid in and paid out below. Shopify and the other systems will add theirs once connected.</p></div>}
+        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
     </section>
     <section className="panel">
       <header className="panel-head"><h2>Entries</h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
@@ -188,13 +188,14 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
         </form>
       )}
       <Notice store={store} />
+      {entries.some(f => f.auto) && <p className="quiet">Paid Exterior Care jobs and Shopify orders are added automatically, so do not log those by hand as well.</p>}
       {entries.length ? (
         <div className="tablewrap"><table className="table">
           <thead><tr><th>Date</th><th>Business</th><th>Category</th><th>Note</th><th className="num">Amount</th><th /></tr></thead>
           <tbody>{entries.slice(0, shown).map(f => (
-            <tr key={f.id}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}</td>
+            <tr key={f.id}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
               <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
-              <td>{!readOnly && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
+              <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
           ))}</tbody>
         </table>{entries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, entries.length - shown)} more of {entries.length}</button>}</div>
       ) : <div className="empty"><p><b>Nothing logged.</b> A quote is not money in: log it when it is paid.</p></div>}

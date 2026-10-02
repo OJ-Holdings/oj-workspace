@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { loadExterior } from '@/app/workspace/exterior-actions';
-import { sourceLabel, statusLabel, summariseLeads, summariseSessions, threads, type ExteriorResult } from '@/lib/exterior';
+import { jobDate, sourceLabel, statusLabel, summariseJobs, summariseLeads, summariseSessions, threads, type ExteriorResult } from '@/lib/exterior';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 
@@ -57,6 +57,49 @@ export function ExteriorView({ tab, org, mode }: { tab: string; org: string; mod
               <td><span className="tag">{statusLabel(l.status)}</span></td><td>{sourceLabel(l.source)}</td><td className="num">{cash(l.quote_amount)}</td><td className="num">{cash(l.job_revenue)}</td><td>{day(l.created_at)}</td></tr>
           ))}</tbody></table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, rows.length - shown)} more of {rows.length}</button>}</div>
           : <div className="empty"><p><b>No leads with that status.</b></p></div>}
+        {source}
+      </section>
+    </>;
+  }
+
+  if (tab === 'jobs') {
+    const j = summariseJobs(data.leads, iso => dayKey(new Date(iso)).slice(0, 7));
+    const month = (key: string) => new Date(`${key}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const done = data.leads.filter(l => l.status === 'completed').sort((a, b) => jobDate(b).localeCompare(jobDate(a)));
+    return <>
+      <div className="kpis">
+        <div><span>Paid for completed jobs</span><strong><NumberFlow value={j.revenue} format={usd} /></strong><small className="quiet">{j.jobs} jobs, all time</small></div>
+        <div><span>Job costs entered</span><strong><NumberFlow value={j.cost} format={usd} /></strong><small className="quiet">On {j.costJobs} of {j.jobs} jobs</small></div>
+        <div><span>Profit on those figures</span><strong><NumberFlow value={j.profit} format={usd} /></strong><small className="quiet">Jobs with no cost entered count as no cost</small></div>
+        <div><span>Average job</span><strong>{j.average === null ? '-' : dollars(Math.round(j.average))}</strong></div>
+      </div>
+      <section className="panel">
+        <header className="panel-head"><h2>By month</h2></header>
+        {j.byMonth.length ? <div className="tablewrap"><table className="table">
+          <thead><tr><th>Month</th><th className="num">Jobs</th><th className="num">Paid</th><th className="num">Costs</th><th className="num">Profit</th></tr></thead>
+          <tbody>{j.byMonth.map(m => <tr key={m.label}><td>{month(m.label)}</td><td className="num">{m.jobs}</td><td className="num">{dollars(m.revenue)}</td><td className="num">{dollars(m.cost)}</td><td className="num">{dollars(m.profit)}</td></tr>)}</tbody></table></div>
+          : <div className="empty"><p><b>No completed jobs on record.</b></p></div>}
+      </section>
+      <div className="split">
+        <section className="panel">
+          <header className="panel-head"><h2>By service</h2></header>
+          <div className="tablewrap"><table className="table">
+            <thead><tr><th>Service</th><th className="num">Jobs</th><th className="num">Paid</th></tr></thead>
+            <tbody>{j.byService.map(s => <tr key={s.label}><td>{s.label}</td><td className="num">{s.jobs}</td><td className="num">{dollars(s.revenue)}</td></tr>)}</tbody></table></div>
+        </section>
+        <section className="panel">
+          <header className="panel-head"><h2>Where leads come from</h2></header>
+          <div className="tablewrap"><table className="table">
+            <thead><tr><th>Source</th><th className="num">Leads</th><th className="num">Booked or done</th><th className="num">Paid</th></tr></thead>
+            <tbody>{j.bySource.map(s => <tr key={s.source}><td>{s.source}</td><td className="num">{s.leads}</td><td className="num">{s.won} ({percent(s.rate)})</td><td className="num">{dollars(s.revenue)}</td></tr>)}</tbody></table></div>
+        </section>
+      </div>
+      <section className="panel">
+        <header className="panel-head"><h2>Completed jobs</h2></header>
+        <div className="tablewrap"><table className="table">
+          <thead><tr><th>Done</th><th>Customer</th><th>Service</th><th className="num">Quote</th><th className="num">Paid</th><th className="num">Cost</th></tr></thead>
+          <tbody>{done.slice(0, shown).map(l => <tr key={l.id}><td>{day(jobDate(l))}</td><td>{l.name || '-'}</td><td>{l.service_requested || '-'}</td><td className="num">{cash(l.quote_amount)}</td><td className="num">{cash(l.job_revenue)}</td><td className="num">{cash(l.job_cost)}</td></tr>)}</tbody></table>
+          {done.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, done.length - shown)} more of {done.length}</button>}</div>
         {source}
       </section>
     </>;

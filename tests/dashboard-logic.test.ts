@@ -61,3 +61,10 @@ test('calendar file escapes text and marks all-day events', () => {
   assert.ok(ics.includes('DTSTART;VALUE=DATE:20261006') && ics.includes('DTEND;VALUE=DATE:20261007'));
   assert.equal(ics.split('BEGIN:VEVENT').length - 1, 2);
 });
+
+test('open leads held in a connected system count as active leads for that business', () => {
+  const m = deriveMetrics({ ...emptyDashboard, openElsewhere: { exterior: 32, solutions: 0 } }, [], now);
+  assert.equal(m.ventures.exterior?.activeLeads, 32);
+  assert.equal(m.ventures.exterior?.revenueMtd, 0);
+  assert.equal(m.ventures.solutions, null, 'zero open leads elsewhere and nothing logged still reports nothing');
+});
