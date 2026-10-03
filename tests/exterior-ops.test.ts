@@ -83,6 +83,17 @@ test('door-knocking rows parse, skipping headers and totals, and a yearless Dece
   assert.equal(s[2].session_date, '2025-12-20');
 });
 
+test('a returning client keeps one record per job: completed or paid jobs are never merged away', () => {
+  const merges = planDedupe([
+    lead({ id: 'j1', status: 'completed', job_revenue: 300 }),
+    lead({ id: 'j2', status: 'completed', job_revenue: 350 }),
+    lead({ id: 'j3', status: 'closed', job_revenue: 200 }),
+    lead({ id: 'dup', status: 'new' }),
+  ]);
+  assert.deepEqual(merges, [{ keep: 'j3', remove: ['dup'], notes: null, phone: null }]);
+  assert.deepEqual(planDedupe([lead({ id: 'a1', status: 'completed', job_revenue: 300 }), lead({ id: 'a2', status: 'completed', job_revenue: 300 })]), []);
+});
+
 test('the newer door-knocking sheet layout reads by header: weekday dates, rep columns, same-day second sessions, no totals row', () => {
   const rows = [
     ['SESSION Date', 'WHO Who Knocked', 'Jacob', 'Oscar', 'Parker', 'Hendrix', 'Reps', 'SESSION Area', 'Start', 'End', 'Hours', 'RAW Doors', 'Answers', 'Interested', 'Quotes', 'Jobs', 'Job Total', 'RATES Answer %', 'Interest %', 'Quote %', 'Close %', 'VALUE $ / Door', 'Avg Job', 'Doors / Hr', 'Doors / Rep-Hr', 'SESSION Notes'],
