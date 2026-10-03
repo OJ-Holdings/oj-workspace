@@ -83,6 +83,21 @@ test('door-knocking rows parse, skipping headers and totals, and a yearless Dece
   assert.equal(s[2].session_date, '2025-12-20');
 });
 
+test('the newer door-knocking sheet layout reads by header: weekday dates, rep columns, same-day second sessions, no totals row', () => {
+  const rows = [
+    ['SESSION Date', 'WHO Who Knocked', 'Jacob', 'Oscar', 'Parker', 'Hendrix', 'Reps', 'SESSION Area', 'Start', 'End', 'Hours', 'RAW Doors', 'Answers', 'Interested', 'Quotes', 'Jobs', 'Job Total', 'RATES Answer %', 'Interest %', 'Quote %', 'Close %', 'VALUE $ / Door', 'Avg Job', 'Doors / Hr', 'Doors / Rep-Hr', 'SESSION Notes'],
+    ['Thu Mar 19', 'Jacob + Oscar', 'x', 'x', '', '', '2', '', '', '', '', '34', '16', '3', '1', '', '', '47%', '19%', '33%', '0%', '$0.00', '', '', '', ''],
+    ['Sat Aug 08', 'Jacob', 'x', '', '', '', '1', '10th Ave', '6:00 PM', '', '', '25', '3', '', '', '', '', '12%', '0%', '', '', '$0.00', '', '', '', 'Rain'],
+    ['', 'Jacob + Oscar', 'x', 'x', '', '', '2', '', '', '', '', '35', '19', '6', '3', '1', '$450', '54%', '32%', '50%', '0%', '$12.86', '', '', '', ''],
+    ['', '', '', '', '', '', '', '', '', '', '', '94', '38', '9', '4', '1', '$450', '40%', '', '', '', '', '', '', '', ''],
+  ];
+  const s = parseDoorRows(rows, new Date(2026, 9, 3));
+  assert.equal(s.length, 3);
+  assert.deepEqual([s[0].session_date, s[0].knocked_by, s[0].doors_knocked, s[0].answers, s[0].quotes_given, s[0].answer_rate], ['2026-03-19', 'Jacob + Oscar', 34, 16, 1, 47]);
+  assert.deepEqual([s[1].session_date, s[1].area, s[1].start_time, s[1].notes], ['2026-08-08', '10th Ave', '6:00 PM', 'Rain']);
+  assert.deepEqual([s[2].session_date, s[2].doors_knocked, s[2].jobs_scheduled, s[2].job_total, s[2].dollars_per_door], ['2026-08-08', 35, 1, 450, 12.86]);
+});
+
 test('duplicates merge into the lead furthest along, keeping notes and a real phone', () => {
   const merges = planDedupe([
     lead({ id: '1', status: 'new', notes: 'First knock' }),

@@ -16,14 +16,14 @@ import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['conversations', 'Conversations'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
+  exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
   solutions: [['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
 const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'exterior'
-  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 5), coreTabs[3], ...extraTabs.exterior.slice(5), coreTabs[4], coreTabs[5]]
+  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 4), coreTabs[3], ...extraTabs.exterior.slice(4), coreTabs[4], coreTabs[5]]
   : [...coreTabs, ...extraTabs[venture]];
 
 type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };

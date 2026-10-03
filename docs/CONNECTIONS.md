@@ -5,17 +5,14 @@ serves the app (later: the host's settings). Never paste a key into a chat, a
 card, a commit or this file. After changing `.env.local`, rebuild and restart the
 live copy.
 
-## 1. Exterior Care: existing leads, texts, bookings, door knocking
+## 1. Exterior Care
 
-Read-only access for workspace owners and members. Nothing in the old app changes.
-
-1. Open `supabase/pending/RUN-ME-exterior-care-read-access.sql` and copy all of it.
-2. Supabase dashboard -> project "OJ EXTERIOR CARE LEADS" -> SQL Editor -> New query.
-3. Paste, press Run. Expect "Success. No rows returned". Run it once only.
-4. Tell whoever is building, so the file moves to `supabase/applied/`.
-
-Sending texts from the workspace is separate: it needs the oj-sms-system server
-running somewhere reachable, then `EXTERIOR_API_URL` and `EXTERIOR_API_KEY`.
+Nothing to connect: Exterior Care's records live in this workspace's own
+Supabase project, and the workspace is where leads, bookings, payments and
+door knocking are recorded. The three database updates that allow this are in
+`supabase/applied/`. The Google Sheets are only a starting point: Exterior Care
+-> Settings -> "Bring in leads" / "Bring in door knocking", once each. Texting is
+not used.
 
 ## 2. OJ Essentials: Shopify
 

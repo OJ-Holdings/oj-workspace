@@ -6,12 +6,11 @@
 export type ExtLead = { id: string; name: string | null; phone: string | null; address: string | null; service_requested: string | null; quote_amount: number | null; status: string | null; source: string | null; notes: string | null; job_revenue: number | null; job_cost: number | null; created_at: string; updated_at: string | null; completed_at: string | null };
 export type ExtActivity = { id: string; operator: string | null; action: string | null; description: string | null; lead_name: string | null; created_at: string };
 export type ExtBooking = { id: string; lead_id: string | null; date: string; time_block: string | null; status: string | null };
-export type ExtSession = { id: string; session_date: string; knocked_by: string | null; area: string | null; doors_knocked: number | null; answers: number | null; interested: number | null; quotes_given: number | null; jobs_scheduled: number | null; job_total: number | null };
-export type ExtMessage = { id: string; lead_id: string | null; direction: string | null; body: string | null; created_at: string };
+export type ExtSession = { id: string; session_date: string; knocked_by: string | null; area: string | null; start_time?: string | null; end_time?: string | null; doors_knocked: number | null; answers: number | null; interested: number | null; quotes_given: number | null; jobs_scheduled: number | null; job_total: number | null; notes?: string | null };
 export type ExtQuote = { id: string; name: string | null; phone: string | null; email: string | null; address: string | null; service_needed: string | null; description: string | null; property_type: string | null; business_name: string | null; recurring_interest: boolean | null; created_at: string };
 /** Null until the database update in supabase/schemas/exterior-extras.sql has been applied. */
 export type ExtExtras = { goal: number | null; upgrades: Record<string, true>; quotes: ExtQuote[]; settings: Record<string, string> } | null;
-export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; messages: ExtMessage[]; messagesTruncated: boolean; activity: ExtActivity[]; extras: ExtExtras; texting: boolean };
+export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; activity: ExtActivity[]; extras: ExtExtras };
 /** Every change the workspace makes reports back this way, so the screen can say what happened. */
 export type Done<T = object> = ({ ok: true } & T) | { ok: false; message: string };
 export type ExteriorResult = { ok: true; data: ExteriorData } | { ok: false; reason: 'no-access' | 'failed' };
@@ -75,13 +74,3 @@ export function doorDetails(sessions: ExtSession[], weekStart: string) {
   return { week, byArea, best };
 }
 
-/** Texts grouped by lead, the most recently active conversation first, each in the order it was sent. */
-export function threads(messages: ExtMessage[], leads: ExtLead[]) {
-  const names = new Map(leads.map(l => [l.id, l.name || 'Unnamed lead']));
-  const groups = new Map<string, ExtMessage[]>();
-  for (const m of messages) { const key = m.lead_id ?? ''; groups.set(key, [...(groups.get(key) ?? []), m]); }
-  return [...groups].map(([leadId, list]) => {
-    const sorted = [...list].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    return { leadId, name: names.get(leadId) ?? 'Unknown lead', messages: sorted, last: sorted[sorted.length - 1].created_at };
-  }).sort((a, b) => b.last.localeCompare(a.last));
-}

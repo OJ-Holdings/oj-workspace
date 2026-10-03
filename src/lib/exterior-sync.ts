@@ -112,32 +112,54 @@ export function planSheetSync(rows: string[][], existing: SyncLead[], stamp: str
   return plan;
 }
 
-const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const number = (raw: string | undefined) => { const n = parseFloat((raw ?? '').replace(/[$,%]/g, '').trim()); return Number.isNaN(n) ? null : n; };
+const whole = (raw: string | undefined) => Math.max(0, Math.round(number(raw) ?? 0));
+
+/** "2026-03-19", "March 19", "Thu Mar 19" or "Mar 19, 2026". A date with no year is this year, or last year if that would put it more than a month ahead. */
+export function sessionDate(raw: string, today: Date) {
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(?:[a-z]{3,9},?\s+)?([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?$/i);
+  const month = m ? months.indexOf(m[1].slice(0, 3).toLowerCase()) : -1;
+  if (!m || month < 0 || Number(m[2]) < 1 || Number(m[2]) > 31) return null;
+  let year = m[3] ? Number(m[3]) : today.getFullYear();
+  if (!m[3] && new Date(year, month, Number(m[2])).getTime() - today.getTime() > 31 * 86400000) year--;
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(Number(m[2])).padStart(2, '0')}`;
+}
+
+// Which column holds what, read from the header row so added or moved columns do not matter.
+const door: Record<string, (h: string) => boolean> = {
+  date: h => h.includes('date'), who: h => h.includes('who'), area: h => h.includes('area'), start: h => h.startsWith('start'), end: h => h.startsWith('end'),
+  doors: h => /(^|\s)doors$/.test(h), answers: h => h.endsWith('answers'), interested: h => h.endsWith('interested'), quotes: h => /quotes( given)?$/.test(h), jobs: h => /jobs( scheduled)?$/.test(h),
+  total: h => h.includes('job total'), answerRate: h => /answer (%|rate)/.test(h), interestRate: h => /interest (%|rate)/.test(h), quoteRate: h => /quote (%|rate)/.test(h), closeRate: h => /close (%|rate)/.test(h),
+  perDoor: h => /\$ ?(\/|per) ?door/.test(h), avgJob: h => h.includes('avg job'), perHour: h => /doors ?(\/|per) ?(hr|hour)$/.test(h), notes: h => h.includes('notes'),
+};
+const legacyDoor: Record<string, number> = { date: 0, who: 1, area: 2, start: 3, end: 4, doors: 5, answers: 6, interested: 7, quotes: 8, jobs: 9, total: 10, answerRate: 11, interestRate: 12, quoteRate: 13, closeRate: 14, perDoor: 15, avgJob: 16, perHour: 17, notes: 18 };
 
 /**
- * Door-knocking sheet rows to session records. Columns, in order: Date, Who,
- * Area, Start, End, Doors, Answers, Interested, Quotes, Jobs, Job total, four
- * rate columns, $ per door, Avg job, Doors per hour, Notes. A date with no year
- * is taken as this year, or last year if that would put it more than a month ahead.
+ * Door-knocking sheet rows to session records. Columns are found by their
+ * headers (both the original layout and the newer one with a column per rep).
+ * A row with a blank date but a session in it is a second session on the day
+ * above it; the totals row at the bottom is skipped.
  */
 export function parseDoorRows(rows: string[][], today: Date) {
+  if (rows.length < 2) return [];
+  const header = rows[0].map(h => h.toLowerCase().trim().replace(/\s+/g, ' '));
+  const found = Object.fromEntries(Object.entries(door).map(([k, test]) => [k, header.findIndex(test)]));
+  const at = found.date >= 0 && found.doors >= 0 ? found : legacyDoor;
+  let lastDate: string | null = null;
   return rows.slice(1).flatMap(row => {
-    const raw = (row[0] ?? '').trim();
-    let date: string | null = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
-    const m = raw.match(/^([a-zA-Z]+)\s+(\d+)(?:st|nd|rd|th)?,?\s*(\d{4})?$/);
-    if (!date && m && months.includes(m[1].toLowerCase())) {
-      const month = months.indexOf(m[1].toLowerCase());
-      let year = m[3] ? Number(m[3]) : today.getFullYear();
-      if (!m[3] && new Date(year, month, Number(m[2])).getTime() - today.getTime() > 31 * 86400000) year--;
-      date = `${year}-${String(month + 1).padStart(2, '0')}-${String(Number(m[2])).padStart(2, '0')}`;
-    }
-    const doors = parseInt(row[5]) || 0;
-    if (!date || (doors === 0 && !row[1])) return [];
+    const cell = (k: string) => (at[k] >= 0 ? row[at[k]] ?? '' : '').trim();
+    const who = cell('who'), doors = whole(cell('doors'));
+    const date = cell('date') ? sessionDate(cell('date'), today) : who ? lastDate : null;
+    if (cell('date')) lastDate = date;
+    if (!date || (doors === 0 && !who)) return [];
     return [{
-      session_date: date, knocked_by: row[1] || 'Both', area: row[2] || null, start_time: row[3] || null, end_time: row[4] || null,
-      doors_knocked: doors, answers: parseInt(row[6]) || 0, interested: parseInt(row[7]) || 0, quotes_given: parseInt(row[8]) || 0, jobs_scheduled: parseInt(row[9]) || 0, job_total: number(row[10]) ?? 0,
-      answer_rate: number(row[11]), interest_rate: number(row[12]), quote_rate: number(row[13]), close_rate: number(row[14]), dollars_per_door: number(row[15]), avg_job_value: number(row[16]), doors_per_hour: number(row[17]), notes: row[18] || null,
+      session_date: date, knocked_by: who || 'Both', area: cell('area') || null, start_time: cell('start') || null, end_time: cell('end') || null,
+      doors_knocked: doors, answers: whole(cell('answers')), interested: whole(cell('interested')), quotes_given: whole(cell('quotes')), jobs_scheduled: whole(cell('jobs')), job_total: number(cell('total')) ?? 0,
+      answer_rate: number(cell('answerRate')), interest_rate: number(cell('interestRate')), quote_rate: number(cell('quoteRate')), close_rate: number(cell('closeRate')),
+      dollars_per_door: number(cell('perDoor')), avg_job_value: number(cell('avgJob')), doors_per_hour: number(cell('perHour')), notes: cell('notes') || null,
     }];
   });
 }

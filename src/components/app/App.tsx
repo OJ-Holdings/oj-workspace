@@ -35,7 +35,7 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
   settings: { title: 'Settings', body: 'Your account and what is connected.' },
 };
 
-const noConnections: Connections = { shopify: false, ghl: false, exterior: false };
+const noConnections: Connections = { shopify: false, ghl: false };
 
 export function App({ base, initial, mode, organizationId, members, dashboard, connections = noConnections, readOnly = false, owner = false, displayName = '', connectionStatus = '', limited = false }: AppProps) {
   const pathname = usePathname() ?? base;
