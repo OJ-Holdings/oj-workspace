@@ -58,7 +58,7 @@ const aliases: Record<string, string[]> = {
 };
 const legacyOrder: Record<string, number> = { name: 0, address: 1, phone: 2, source: 3, service: 4, quote: 5, status: 6, lastContacted: 7, nextFollowUp: 8, notes: 9 };
 
-export type SyncLead = { id: string; name: string | null; phone: string | null; address: string | null; source: string | null; service_requested: string | null; quote_amount: number | null; status: string | null; notes: string | null; manually_updated_fields: unknown };
+export type SyncLead = { id: string; name: string | null; phone: string | null; address: string | null; source: string | null; service_requested: string | null; quote_amount: number | null; status: string | null; notes: string | null; manually_updated_fields: unknown; job_revenue?: number | string | null };
 type Fields = { name: string; address: string | null; source: string; service_requested: string | null; quote_amount: number | null; status: string; notes: string | null; phone?: string };
 
 /**
@@ -179,12 +179,15 @@ export function planDedupe(leads: SyncLead[]) {
     for (const l of leads) if (!done.has(l.id) && key(l)) groups.set(key(l), [...(groups.get(key(l)) ?? []), l]);
     for (const group of groups.values()) {
       if (group.length < 2) continue;
-      const [keep, ...rest] = [...group].sort((a, b) => score(b) - score(a));
+      const [keep, ...all] = [...group].sort((a, b) => score(b) - score(a));
+      group.forEach(l => done.add(l.id));
+      // A returning client has one record per job: a completed or paid job is never merged away.
+      const rest = all.filter(r => r.status !== 'completed' && !(Number(r.job_revenue) > 0));
+      if (!rest.length) continue;
       let notes = keep.notes;
       for (const r of rest) if (r.notes && r.notes !== keep.notes) notes = notes ? `${notes}\n[Merged] ${r.notes}` : `[Merged] ${r.notes}`;
       const better = !digits(keep.phone) ? rest.find(r => digits(r.phone))?.phone ?? null : null;
       merges.push({ keep: keep.id, remove: rest.map(r => r.id), notes: notes !== keep.notes ? notes : null, phone: better });
-      group.forEach(l => done.add(l.id));
     }
   };
   pass(l => digits(l.phone));

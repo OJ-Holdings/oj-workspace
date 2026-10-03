@@ -141,22 +141,44 @@ export async function saveFinancials(org: string, id: string, input: { job_reven
   });
 }
 
-/** Books a job directly as confirmed, as the original app's manual booking does. No text is sent. */
-export async function bookJob(org: string, leadId: string, date: string, timeBlock: string): Promise<Done> {
-  return guarded(org, async (client, who) => {
-    const when = day(date), slot = block(timeBlock);
-    const [{ data: lead }, { data: taken }] = await Promise.all([
-      client.from('leads').select('id,name').eq('id', uuid(leadId)).maybeSingle(),
-      client.from('bookings').select('id,date,time_block,status').eq('date', when),
-    ]);
-    if (!lead) say('That lead no longer exists.');
-    if (slotTaken(taken ?? [], when, slot)) say('That time block is already booked. Choose another.');
-    const { error } = await client.from('bookings').insert({ lead_id: leadId, date: when, time_block: slot, status: 'confirmed', created_at: new Date().toISOString() });
-    if (error) throw new Error(error.message);
-    await changed(client.from('leads').update({ status: 'booked', updated_at: new Date().toISOString() }).eq('id', leadId).select('id'));
-    await log(client, who, 'booking_manual', `Manually booked ${lead!.name} - ${when} ${slot}`, lead, { date: when, timeBlock: slot });
-    return { ok: true };
-  });
+async function book(client: Client, who: string, leadId: string, date: string, timeBlock: string) {
+  const when = day(date), slot = block(timeBlock);
+  const [{ data: lead }, { data: taken }] = await Promise.all([
+    client.from('leads').select('id,name,phone,address,service_requested,source,quote_amount,status').eq('id', uuid(leadId)).maybeSingle(),
+    client.from('bookings').select('id,date,time_block,status').eq('date', when),
+  ]);
+  if (!lead) say('That client no longer exists.');
+  if (slotTaken(taken ?? [], when, slot)) say('That time block is already booked. Choose another.');
+  const now = new Date().toISOString();
+  // A lead holds one job's money, so a returning client's new job gets its own record; their past job and its payment stay as they were.
+  let target = lead!.id, repeat = false;
+  if (lead!.status === 'completed' || lead!.status === 'closed') {
+    const { data: job, error } = await client.from('leads').insert({
+      name: lead!.name, phone: lead!.phone, address: lead!.address, service_requested: lead!.service_requested, source: lead!.source, quote_amount: lead!.quote_amount,
+      status: 'booked', notes: 'Returning client', manually_updated_fields: [], created_at: now, updated_at: now,
+    }).select('id').single();
+    if (error || !job) throw new Error(error?.message ?? 'Repeat job not created.');
+    target = job.id; repeat = true;
+  }
+  const { error } = await client.from('bookings').insert({ lead_id: target, date: when, time_block: slot, status: 'confirmed', created_at: now });
+  if (error) throw new Error(error.message);
+  if (!repeat) await changed(client.from('leads').update({ status: 'booked', updated_at: now }).eq('id', target).select('id'));
+  await log(client, who, 'booking_manual', `${repeat ? 'Booked a repeat job for' : 'Booked'} ${lead!.name} - ${when} ${slot}`, { id: target, name: lead!.name }, { date: when, timeBlock: slot, repeat });
+  return repeat;
+}
+
+/** Books a job as confirmed and moves the client to Booked. A client whose last job is done or closed gets a new job record. */
+export async function bookJob(org: string, leadId: string, date: string, timeBlock: string): Promise<Done<{ repeat: boolean }>> {
+  return guarded(org, async (client, who) => ({ ok: true, repeat: await book(client, who, leadId, date, timeBlock) }));
+}
+
+/** Adds a new client and books their job in one step. */
+export async function bookNewClient(org: string, input: LeadInput, date: string, timeBlock: string): Promise<Done> {
+  const checked = await guarded(org, async () => { day(date); block(timeBlock); return { ok: true }; });
+  if (!checked.ok) return checked;
+  const created = await saveLead(org, { ...input, id: undefined });
+  if (!created.ok) return created;
+  return guarded(org, async (client, who) => { await book(client, who, created.id, date, timeBlock); return { ok: true }; });
 }
 
 /** Moves a booking to another day or time block. */
@@ -215,7 +237,7 @@ async function sheetSetting(client: Client, ...keys: string[]) {
   const values = (data ?? {}) as Record<string, string>;
   return keys.map(k => values[k]).find(Boolean) ?? '';
 }
-const syncColumns = 'id,name,phone,address,source,service_requested,quote_amount,status,notes,manually_updated_fields';
+const syncColumns = 'id,name,phone,address,source,service_requested,quote_amount,status,notes,manually_updated_fields,job_revenue';
 
 /**
  * Brings the leads sheet in as a baseline: adds people not here yet and fills in

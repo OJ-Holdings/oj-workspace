@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { bookJob, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
+import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, isRealPhone, leadSources, leadStatuses, services, slotTaken, timeBlocks } from '@/lib/exterior-ops';
 import { dayKey } from '@/lib/dashboard';
@@ -83,7 +83,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <td>{day(l.created_at)}</td>
             {!readOnly && <td><div className="row-actions">
               {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
-              {!['booked', 'completed', 'closed'].includes(l.status ?? '') && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />Book</button>}
+              {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
               <button className="icon-button" aria-label={`Edit ${l.name}`} onClick={() => setEditing({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' })}><Pencil size={15} /></button>
             </div></td>}
           </tr>
@@ -92,20 +92,28 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         : <div className="empty"><p><b>No leads match.</b> Change the filter or search.</p></div>}
     </section>
 
-    <LeadDialog lead={editing} close={() => setEditing(null)} act={act} busy={busy} org={org} />
+    <LeadDialog lead={editing} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <MoneyDialog lead={paying} close={() => setPaying(null)} act={act} busy={busy} org={org} />
     <BookDialog lead={booking} close={() => setBooking(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
   </>;
 }
 
-function LeadDialog({ lead, close, act, busy, org }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string }) {
+/** Adds or edits a lead. A new lead can be booked in the same step. */
+function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = false }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; bookNow?: boolean }) {
   const [f, setF] = useState<LeadInput>(blankLead);
-  useEffect(() => { if (lead) setF(lead); }, [lead]);
+  const [booking, setBooking] = useState(false);
+  const [date, setDate] = useState('');
+  const [slot, setSlot] = useState('');
+  useEffect(() => { if (lead) { setF(lead); setBooking(bookNow); setDate(''); setSlot(''); } }, [lead, bookNow]);
   const set = (k: keyof LeadInput) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const sourceKnown = leadSources.some(([id]) => id === f.source);
+  const isNew = !lead?.id;
+  const submit = () => isNew && booking
+    ? act(() => bookNewClient(org, f, date, slot), () => `${f.name} added and booked for ${day(date)}, ${blockLabel(slot)}.`)
+    : act(() => saveLead(org, f), () => lead?.id ? 'Lead saved.' : `${f.name} added.`);
   return (
-    <Modal title={lead?.id ? `Edit ${lead.name || 'lead'}` : 'New lead'} open={!!lead} onClose={close}>
-      <form onSubmit={e => { e.preventDefault(); act(() => saveLead(org, f), () => lead?.id ? 'Lead saved.' : `${f.name} added.`).then(ok => ok && close()); }}>
+    <Modal title={lead?.id ? `Edit ${lead.name || 'lead'}` : bookNow ? 'Book a new client' : 'New lead'} open={!!lead} onClose={close}>
+      <form onSubmit={e => { e.preventDefault(); submit().then(ok => ok && close()); }}>
         <div className="form-grid">
           <label>Full name<input required maxLength={255} autoComplete="off" value={f.name} onChange={set('name')} /></label>
           <label>Phone<input required type="tel" maxLength={40} value={f.phone} onChange={set('phone')} placeholder="(262) 555-0123" /></label>
@@ -117,8 +125,13 @@ function LeadDialog({ lead, close, act, busy, org }: { lead: LeadInput | null; c
           <label>Lead source<select value={f.source} onChange={set('source')}>{!sourceKnown && f.source && <option value={f.source}>{sourceLabel(f.source)}</option>}{leadSources.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
         </div>
         <datalist id="oj-services">{services.map(s => <option key={s} value={s} />)}</datalist>
-        <label>Notes<textarea rows={3} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
-        <div className="dialog-actions"><span>{lead?.id ? 'Edited fields are kept when the sheet syncs.' : 'Starts as New.'}</span><button className="primary" disabled={busy}>{busy ? 'Saving' : 'Save lead'}</button></div>
+        <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
+        {isNew && <label className="checkbox-row"><input type="checkbox" checked={booking} onChange={e => setBooking(e.target.checked)} />Book a job now</label>}
+        {isNew && booking && <SlotPicker bookings={bookings} now={now} date={date} slot={slot} setDate={setDate} setSlot={setSlot} />}
+        <div className="dialog-actions">
+          <span>{lead?.id ? 'Edited fields are kept if the sheet is brought in again.' : booking ? 'Saved as Booked, with the job on the Bookings tab.' : 'Starts as New. Book them any time from the Leads tab.'}</span>
+          <button className="primary" disabled={busy || (isNew && booking && (!date || !slot))}>{busy ? 'Saving' : isNew && booking ? 'Add and book' : 'Save lead'}</button>
+        </div>
       </form>
     </Modal>
   );
@@ -148,32 +161,72 @@ function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | null; cl
   );
 }
 
-/** Dates for the next two weeks, Thursdays and Fridays marked as the usual job days. */
+/** Today and the next three weeks, Thursdays and Fridays marked as the usual job days. */
 function nextDays(now: Date) {
-  return Array.from({ length: 21 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i + 1)).map(d => ({ key: dayKey(d), label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), usual: d.getDay() === 4 || d.getDay() === 5 }));
+  return Array.from({ length: 22 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)).map((d, i) => ({ key: dayKey(d), label: i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), usual: d.getDay() === 4 || d.getDay() === 5 }));
 }
+
+/** Pick a day and a time block; blocks already taken that day are shown as booked. */
+function SlotPicker({ bookings, now, date, slot, setDate, setSlot, ignoreId }: { bookings: ExtBooking[]; now: Date; date: string; slot: string; setDate: (d: string) => void; setSlot: (s: string) => void; ignoreId?: string }) {
+  const days = useMemo(() => nextDays(now), [now]);
+  return <>
+    <fieldset className="day-picker"><legend>Day</legend>
+      {days.map(d => <button type="button" key={d.key} aria-pressed={date === d.key} className={d.usual ? 'usual' : ''} onClick={() => { setDate(d.key); setSlot(''); }}>{d.label}</button>)}
+      <label className="other-day">Another day<input type="date" value={date} onChange={e => { setDate(e.target.value); setSlot(''); }} /></label>
+    </fieldset>
+    <fieldset className="block-picker"><legend>Time</legend>
+      {timeBlocks.map(([id, label, part]) => { const taken = !!date && slotTaken(bookings, date, id, ignoreId); return (
+        <button type="button" key={id} aria-pressed={slot === id} disabled={!date || taken} onClick={() => setSlot(id)}><b>{label}</b><span>{taken ? 'Booked' : part}</span></button>
+      ); })}
+    </fieldset>
+  </>;
+}
+
+const isDone = (l: ExtLead) => l.status === 'completed' || l.status === 'closed';
 
 function BookDialog({ lead, close, act, busy, org, bookings, now, booking }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; booking?: ExtBooking }) {
   const [date, setDate] = useState('');
   const [slot, setSlot] = useState('');
   const open = !!lead;
   useEffect(() => { if (open) { setDate(booking?.date ?? ''); setSlot(booking?.time_block ?? ''); } }, [open, booking]);
-  const days = useMemo(() => nextDays(now), [now]);
+  const again = !!lead && !booking && isDone(lead);
   return (
-    <Modal title={booking ? `Move ${lead?.name ?? ''}` : `Book ${lead?.name ?? ''}`} open={open} onClose={close}>
+    <Modal title={booking ? `Move ${lead?.name ?? ''}` : `${again ? 'Book again' : 'Book'}: ${lead?.name ?? ''}`} open={open} onClose={close}>
       {lead && <form onSubmit={e => { e.preventDefault(); act(() => booking ? moveBooking(org, booking.id, date, slot) : bookJob(org, lead.id, date, slot), () => booking ? 'Booking moved.' : `${lead.name} booked for ${day(date)}, ${blockLabel(slot)}.`).then(ok => ok && close()); }}>
         <p className="quiet">{[lead.service_requested, cash(lead.quote_amount), lead.address, isRealPhone(lead.phone) ? shownPhone(lead.phone) : null].filter(v => v && v !== '-').join(', ')}</p>
-        <fieldset className="day-picker"><legend>Day</legend>
-          {days.map(d => <button type="button" key={d.key} aria-pressed={date === d.key} className={d.usual ? 'usual' : ''} onClick={() => { setDate(d.key); setSlot(''); }}>{d.label}</button>)}
-          <label className="other-day">Another day<input type="date" value={date} min={dayKey(now)} onChange={e => { setDate(e.target.value); setSlot(''); }} /></label>
-        </fieldset>
-        <fieldset className="block-picker"><legend>Time</legend>
-          {timeBlocks.map(([id, label, part]) => { const taken = !!date && slotTaken(bookings, date, id, booking?.id); return (
-            <button type="button" key={id} aria-pressed={slot === id} disabled={!date || taken} onClick={() => setSlot(id)}><b>{label}</b><span>{taken ? 'Booked' : part}</span></button>
-          ); })}
-        </fieldset>
-        <div className="dialog-actions"><span>{booking ? 'Let the customer know about the new time.' : 'Booked as confirmed, and the lead moves to Booked.'}</span><button className="primary" disabled={busy || !date || !slot}>{busy ? 'Saving' : booking ? 'Move booking' : 'Confirm booking'}</button></div>
+        <SlotPicker bookings={bookings} now={now} date={date} slot={slot} setDate={setDate} setSlot={setSlot} ignoreId={booking?.id} />
+        <div className="dialog-actions">
+          <span>{booking ? 'Let the customer know about the new time.' : again ? 'Returning client: this books a new job, and their past job and payment stay as they are.' : 'Booked as confirmed, and the lead moves to Booked.'}</span>
+          <button className="primary" disabled={busy || !date || !slot}>{busy ? 'Saving' : booking ? 'Move booking' : 'Confirm booking'}</button>
+        </div>
       </form>}
+    </Modal>
+  );
+}
+
+/** Choose who to book: anyone already on record, or a new client. */
+function ClientPicker({ open, leads, close, pick, fresh }: { open: boolean; leads: ExtLead[]; close: () => void; pick: (l: ExtLead) => void; fresh: () => void }) {
+  const [q, setQ] = useState('');
+  useEffect(() => { if (open) setQ(''); }, [open]);
+  const term = q.trim().toLowerCase();
+  // One row per person: the most recent record for each phone number or name.
+  const people = useMemo(() => {
+    const seen = new Set<string>();
+    return [...leads].sort((a, b) => (b.updated_at ?? b.created_at).localeCompare(a.updated_at ?? a.created_at)).filter(l => {
+      const key = isRealPhone(l.phone) ? l.phone! : `${l.name}|${l.address}`;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  }, [leads]);
+  const matches = people.filter(l => !term || [l.name, l.phone, l.address].some(v => (v ?? '').toLowerCase().includes(term))).slice(0, 8);
+  return (
+    <Modal title="Book a job" open={open} onClose={close}>
+      <div className="fields"><label className="wide">Who is it for?<input type="search" autoFocus placeholder="Search by name, phone or address" value={q} onChange={e => setQ(e.target.value)} /></label></div>
+      <ul className="client-list">{matches.map(l => (
+        <li key={l.id}><button type="button" onClick={() => pick(l)}><b>{l.name || 'Unnamed'}</b><span>{[l.address, isRealPhone(l.phone) ? shownPhone(l.phone) : null].filter(Boolean).join(', ')}</span><small>{isDone(l) ? 'Returning client' : statusLabel(l.status)}</small></button></li>
+      ))}</ul>
+      {!matches.length && <p className="quiet">Nobody matches. Add them as a new client.</p>}
+      <div className="dialog-actions"><span>Not on record yet?</span><button type="button" className="primary" onClick={fresh}><Plus size={15} aria-hidden="true" />New client</button></div>
     </Modal>
   );
 }
@@ -182,18 +235,22 @@ function BookDialog({ lead, close, act, busy, org, bookings, now, booking }: { l
 
 export function BookingsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [moving, setMoving] = useState<ExtBooking | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const [booking, setBooking] = useState<ExtLead | null>(null);
+  const [adding, setAdding] = useState<LeadInput | null>(null);
   const today = dayKey(now), month = today.slice(0, 7);
   const lead = new Map(data.leads.map(l => [l.id, l]));
   const live = data.bookings.filter(b => b.status !== 'denied');
   const upcoming = live.filter(b => b.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.time_block ?? '').localeCompare(b.time_block ?? ''));
   const past = live.filter(b => b.date < today);
   return <>
+    {!readOnly && <div className="formactions top"><button className="primary" disabled={busy} onClick={() => setChoosing(true)}><CalendarPlus size={15} aria-hidden="true" />Book a job</button></div>}
     <div className="kpis">
       <div><span>Upcoming jobs</span><strong><NumberFlow value={upcoming.length} /></strong></div>
       <div><span>Booked this month</span><strong><NumberFlow value={live.filter(b => b.date.startsWith(month)).length} /></strong></div>
       <div><span>Upcoming quoted value</span><strong><NumberFlow value={upcoming.reduce((s, b) => s + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0)} format={usd} /></strong><small className="quiet">Quotes, not money in</small></div>
     </div>
-    {[['Upcoming', upcoming, 'Nothing booked from today on. Book a job from the Leads tab.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
+    {[['Upcoming', upcoming, 'Nothing booked from today on. Press "Book a job" to add one.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
       <section className="panel" key={title}>
         <header className="panel-head"><h2>{title}</h2></header>
         {list.length ? <div className="tablewrap"><table className="table">
@@ -209,7 +266,10 @@ export function BookingsManager({ data, act, busy, readOnly, org, now }: Common)
           : <div className="empty"><p><b>{none}</b></p></div>}
       </section>
     ))}
+    <ClientPicker open={choosing} leads={data.leads} close={() => setChoosing(false)} pick={l => { setChoosing(false); setBooking(l); }} fresh={() => { setChoosing(false); setAdding({ ...blankLead }); }} />
+    <BookDialog lead={booking} close={() => setBooking(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    <LeadDialog lead={adding} bookNow close={() => setAdding(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
   </>;
 }
 
