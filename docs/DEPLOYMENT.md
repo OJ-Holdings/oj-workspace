@@ -1,5 +1,27 @@
 # Staging setup and release checklist
 
+## Hosting: Netlify (from 2026-10-03)
+
+The workspace is served by Netlify at https://ojworkspace.netlify.app, built from
+the `main` branch of this GitHub repo. Every merge to `main` deploys on its own;
+nobody's PC needs to be on.
+
+- **Keys** (Shopify, GoHighLevel) live in Netlify -> Project configuration ->
+  Environment variables. Change them there, then trigger a redeploy. Never in the repo.
+- **Supabase sign-in** must list the address: Supabase -> Authentication -> URL
+  Configuration. Site URL `https://ojworkspace.netlify.app`; redirect URL
+  `https://ojworkspace.netlify.app/auth/callback**`.
+- **Sign-up and invitation emails** link back to `https://ojworkspace.netlify.app`
+  (src/lib/auth-url.ts). Set `OJ_WORKSPACE_URL` in Netlify only if the address changes,
+  for example to a custom domain.
+- The Netlify project must be **public**: the app has its own sign-in, and a
+  private Netlify project blocks Jacob, phone calendars and anyone without a
+  Netlify login.
+- A broken deploy can be rolled back in Netlify -> Deploys -> pick an earlier
+  deploy -> Publish deploy.
+
+Everything below describes the earlier PC-hosted copy, kept for history.
+
 ## Public access enabled (2026-09-30)
 
 OJ is available without installing Tailscale at https://desktop-lbi2ein.tail3f006f.ts.net:10000/login. Tailscale Funnel publishes only HTTPS port 10000 to loopback 3011. Ports 443 and 8443 remain tailnet-only, forwarding to the existing private services. The app still requires individual Auth sessions and OJ memberships. The original URL and callback allowlist remain valid, so new invitation links already use the public origin. The PC, app process and Tailscale service must remain running; this is public desktop hosting, not an independent cloud deployment. App automatic restart after reboot is not configured.

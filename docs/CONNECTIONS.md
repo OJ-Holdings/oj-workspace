@@ -52,7 +52,9 @@ Note: `read_orders` covers the last 60 days of orders. Older history needs
        GHL_ACCESS_TOKEN=<token>
        GHL_LOCATION_ID=<location id>
 
-## After any change to `.env.local`
+## Where the keys live
 
-Build on `main`, stop the process on port 3011, run `scripts/serve-local.ps1`.
-Settings -> Connections in the workspace then shows the connection as on.
+The live site runs on Netlify: keys go in Netlify -> Project configuration ->
+Environment variables, followed by a redeploy (see docs/DEPLOYMENT.md).
+`.env.local` is only for running the app on your own computer.
+Settings -> Connections in the workspace shows whether each connection is on.
