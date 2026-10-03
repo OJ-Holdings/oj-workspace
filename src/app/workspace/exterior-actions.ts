@@ -5,11 +5,9 @@ import type { Done, ExteriorData, ExteriorResult, ExtExtras, ExtLead, ExtSession
 import { upgradeGroups } from '@/lib/upgrades';
 import { isSheetUrl, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, timeBlocks, type LeadPatch } from '@/lib/exterior-ops';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
-import { exteriorApi, textingConfigured } from '@/lib/exterior-server';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
 const num = (v: unknown) => v === null || v === undefined ? null : Number(v);
-const messageLimit = 2000;
 
 /** The goal, the upgrades list, website quote requests and the shared settings. Null when the database does not have that access yet. */
 async function loadExtras(client: Client): Promise<ExtExtras> {
@@ -32,22 +30,20 @@ async function loadExtras(client: Client): Promise<ExtExtras> {
 export async function loadExterior(org: string): Promise<ExteriorResult> {
   let client: Client;
   try { ({ client } = await requireMember(org, true)); } catch { return { ok: false, reason: 'no-access' }; }
-  const [leads, bookings, sessions, messages, activity, extras] = await Promise.all([
+  const [leads, bookings, sessions, activity, extras] = await Promise.all([
     client.from('leads').select('id,name,phone,address,service_requested,quote_amount,status,source,notes,job_revenue,job_cost,created_at,updated_at,completed_at').order('created_at', { ascending: false }).limit(5000),
     client.from('bookings').select('id,lead_id,date,time_block,status').order('date', { ascending: false }).limit(5000),
-    client.from('doorknocking_sessions').select('id,session_date,knocked_by,area,doors_knocked,answers,interested,quotes_given,jobs_scheduled,job_total').order('session_date', { ascending: false }).limit(5000),
-    client.from('conversations').select('id,lead_id,direction,body,created_at').order('created_at', { ascending: false }).limit(messageLimit),
+    client.from('doorknocking_sessions').select('id,session_date,knocked_by,area,start_time,end_time,doors_knocked,answers,interested,quotes_given,jobs_scheduled,job_total,notes,created_at').order('session_date', { ascending: false }).order('created_at', { ascending: false }).limit(5000),
     client.from('activity_log').select('id,operator,action,description,lead_name,created_at').order('created_at', { ascending: false }).limit(300),
     loadExtras(client),
   ]);
-  const failed = [leads, bookings, sessions, messages, activity].find(r => r.error);
+  const failed = [leads, bookings, sessions, activity].find(r => r.error);
   if (failed) { console.error('Exterior Care read failed:', failed.error?.message); return { ok: false, reason: 'failed' }; }
   const data: ExteriorData = {
     leads: (leads.data ?? []).map(l => ({ ...l, quote_amount: num(l.quote_amount), job_revenue: num(l.job_revenue), job_cost: num(l.job_cost) }) as ExtLead),
     bookings: bookings.data ?? [],
     sessions: (sessions.data ?? []).map(s => ({ ...s, job_total: num(s.job_total) }) as ExtSession),
-    messages: messages.data ?? [], messagesTruncated: (messages.data ?? []).length === messageLimit,
-    activity: activity.data ?? [], extras, texting: textingConfigured(),
+    activity: activity.data ?? [], extras,
   };
   return { ok: true, data };
 }
@@ -189,7 +185,7 @@ export async function removeBooking(org: string, id: string): Promise<Done> {
   });
 }
 
-/** Saves business, sheet, texting and notification settings. */
+/** Saves business details, sheet links and the monthly goal. */
 export async function saveSettings(org: string, changes: Record<string, string>): Promise<Done> {
   return guarded(org, async client => {
     for (const [key, value] of Object.entries(changes ?? {})) {
@@ -221,13 +217,18 @@ async function sheetSetting(client: Client, ...keys: string[]) {
 }
 const syncColumns = 'id,name,phone,address,source,service_requested,quote_amount,status,notes,manually_updated_fields';
 
-/** Pulls the leads sheet and adds or updates leads. Hand edits always win. */
-export async function syncLeadSheet(org: string): Promise<Done<{ added: number; updated: number; unchanged: number; failed: number }>> {
+/**
+ * Brings the leads sheet in as a baseline: adds people not here yet and fills in
+ * what the sheet knows, without ever undoing an edit made in the workspace or
+ * moving a status backwards. Without `apply` it only reports what would change.
+ */
+export async function importLeadSheet(org: string, apply: boolean): Promise<Done<{ added: number; updated: number; unchanged: number; failed: number }>> {
   return guarded(org, async (client, who) => {
     const rows = await readSheet(await sheetSetting(client, 'googleSheetUrl', 'google_sheet_url'));
     const { data: existing, error } = await client.from('leads').select(syncColumns).limit(10000);
     if (error) throw new Error(error.message);
     const plan = planSheetSync(rows, (existing ?? []) as SyncLead[], Date.now().toString().slice(-7));
+    if (!apply) return { ok: true, added: plan.inserts.length, updated: plan.updates.length, unchanged: plan.unchanged, failed: 0 };
     const now = new Date().toISOString();
     let failed = 0;
     if (plan.inserts.length) {
@@ -239,24 +240,59 @@ export async function syncLeadSheet(org: string): Promise<Done<{ added: number; 
       failed += results.filter(r => r.error || !r.data?.length).length;
     }
     if (failed && failed === plan.inserts.length + plan.updates.length) throw new Error('Every write was refused.');
-    await log(client, who, 'sheet_synced', `Sheet synced: ${plan.inserts.length} new, ${plan.updates.length} updated, ${plan.unchanged + plan.blank} skipped`, null, { inserted: plan.inserts.length, updated: plan.updates.length, skipped: plan.unchanged + plan.blank });
+    await log(client, who, 'sheet_synced', `Leads sheet imported: ${plan.inserts.length} new, ${plan.updates.length} updated, ${plan.unchanged + plan.blank} skipped`, null, { inserted: plan.inserts.length, updated: plan.updates.length, skipped: plan.unchanged + plan.blank });
     return { ok: true, added: plan.inserts.length, updated: plan.updates.length, unchanged: plan.unchanged, failed };
   });
 }
 
-/** Replaces the door-knocking sessions with the sheet's. New rows go in before old ones come out, so a failure loses nothing. */
-export async function syncDoorSheet(org: string): Promise<Done<{ sessions: number }>> {
+/**
+ * Replaces every door-knocking session here with the sheet's, as the baseline.
+ * New rows go in before old ones come out, so a failure loses nothing. Without
+ * `apply` it only counts both sides.
+ */
+export async function importDoorSheet(org: string, apply: boolean): Promise<Done<{ sessions: number; doors: number; current: number }>> {
   return guarded(org, async (client, who) => {
     const sessions = parseDoorRows(await readSheet(await sheetSetting(client, 'd2dSheetUrl')), new Date());
     if (!sessions.length) say('No sessions found in that sheet. Check it is the door-knocking sheet.');
     const { data: old, error: readError } = await client.from('doorknocking_sessions').select('id').limit(10000);
     if (readError) throw new Error(readError.message);
+    const doors = sessions.reduce((n, s) => n + s.doors_knocked, 0);
+    if (!apply) return { ok: true, sessions: sessions.length, doors, current: old?.length ?? 0 };
     const { error } = await client.from('doorknocking_sessions').insert(sessions);
     if (error) throw new Error(error.message);
     const ids = (old ?? []).map(o => o.id);
     for (let i = 0; i < ids.length; i += 200) await client.from('doorknocking_sessions').delete().in('id', ids.slice(i, i + 200));
-    await log(client, who, 'doorknocking_synced', `Door-knocking sheet synced: ${sessions.length} sessions`);
-    return { ok: true, sessions: sessions.length };
+    await log(client, who, 'doorknocking_synced', `Door-knocking sheet imported: ${sessions.length} sessions replaced ${ids.length}`);
+    return { ok: true, sessions: sessions.length, doors, current: ids.length };
+  });
+}
+
+export type SessionInput = { id?: string; session_date: string; knocked_by: string; area: string; start_time: string; end_time: string; doors_knocked: string | number; answers: string | number; interested: string | number; quotes_given: string | number; jobs_scheduled: string | number; job_total: string | number; notes: string };
+const count = (v: unknown, label: string) => { const n = Number(v === '' || v === null || v === undefined ? 0 : v); return Number.isInteger(n) && n >= 0 && n < 100000 ? n : say(`${label} must be a whole number.`); };
+
+/** Logs a door-knocking session, or saves changes to one. Each step of the funnel cannot exceed the one before it. */
+export async function saveSession(org: string, input: SessionInput): Promise<Done> {
+  return guarded(org, async (client, who) => {
+    const s = {
+      session_date: day(input.session_date), knocked_by: text(input.knocked_by, 120, 'Who knocked') ?? 'Both', area: text(input.area, 200, 'Area'),
+      start_time: text(input.start_time, 20, 'Start'), end_time: text(input.end_time, 20, 'End'),
+      doors_knocked: count(input.doors_knocked, 'Doors'), answers: count(input.answers, 'Answers'), interested: count(input.interested, 'Interested'),
+      quotes_given: count(input.quotes_given, 'Quotes'), jobs_scheduled: count(input.jobs_scheduled, 'Jobs'), job_total: money(input.job_total, 'Job total') ?? 0, notes: text(input.notes, 2000, 'Notes'),
+    };
+    if (s.answers > s.doors_knocked || s.interested > s.answers || s.quotes_given > s.interested || s.jobs_scheduled > s.quotes_given) say('Each number has to be no more than the one before it: doors, answers, interested, quotes, jobs.');
+    if (input.id) await changed(client.from('doorknocking_sessions').update(s).eq('id', uuid(input.id)).select('id'));
+    else { const { error } = await client.from('doorknocking_sessions').insert(s); if (error) throw new Error(error.message); }
+    await log(client, who, input.id ? 'doorknocking_updated' : 'doorknocking_logged', `${input.id ? 'Updated' : 'Logged'} door knocking: ${s.area || 'no area'}, ${s.session_date}, ${s.doors_knocked} doors`);
+    return { ok: true };
+  });
+}
+
+export async function removeSession(org: string, id: string): Promise<Done> {
+  return guarded(org, async (client, who) => {
+    const { data } = await client.from('doorknocking_sessions').select('session_date,area').eq('id', uuid(id)).maybeSingle();
+    await changed(client.from('doorknocking_sessions').delete().eq('id', id).select('id'));
+    await log(client, who, 'doorknocking_removed', `Removed door-knocking session: ${data?.area || 'no area'}, ${data?.session_date ?? ''}`);
+    return { ok: true };
   });
 }
 
@@ -281,51 +317,6 @@ export async function dedupeLeads(org: string, apply: boolean): Promise<Done<{ g
     }
     await log(client, who, 'dedup_run', `Deduplication complete: ${removed} duplicate lead${removed === 1 ? '' : 's'} removed`);
     return { ok: true, groups: merges.length, removed };
-  });
-}
-
-/* ------------------------------ Texting (through the Exterior Care server) ------------------------------ */
-
-// The operator name is sent as Oscar or Jacob because the original server only records those two.
-const operatorFor = (who: string) => (['Oscar', 'Jacob'].includes(who) ? who : 'Unknown');
-
-/** Sends one text to a lead, typed by a person. */
-export async function sendText(org: string, leadId: string, body: string): Promise<Done> {
-  return guarded(org, async (client, who) => {
-    const message = text(body, 1600, 'A message', true)!;
-    const { data: lead } = await client.from('leads').select('id,name,phone').eq('id', uuid(leadId)).maybeSingle();
-    if (!lead) say('That lead no longer exists.');
-    const to = normalizePhone(lead!.phone) ?? say('This lead has no usable phone number.');
-    await exteriorApi('/sms/send', operatorFor(who), { method: 'POST', body: { to, body: message } });
-    await log(client, who, 'text_sent', `Texted ${lead!.name}`, lead);
-    return { ok: true };
-  });
-}
-
-/** Sends the opening outreach text to up to 25 leads that have not been booked, completed or closed. */
-export async function sendOutreach(org: string, leadIds: string[]): Promise<Done<{ sent: number; skipped: number; failed: number }>> {
-  return guarded(org, async (client, who) => {
-    if (!Array.isArray(leadIds) || !leadIds.length) say('Choose at least one lead.');
-    if (leadIds.length > 25) say('Send to 25 leads or fewer at a time.');
-    // One lead at a time: the original server's bulk route is shadowed by its single-lead route and never runs.
-    const { data: leads } = await client.from('leads').select('id,status,phone').in('id', leadIds.map(uuid));
-    let sent = 0, skipped = leadIds.length - (leads?.length ?? 0), failed = 0, lastError = '';
-    for (const lead of leads ?? []) {
-      if (['booked', 'completed', 'closed'].includes(lead.status ?? '') || !normalizePhone(lead.phone)) { skipped++; continue; }
-      try { await exteriorApi(`/sms/outreach/${lead.id}`, operatorFor(who), { method: 'POST' }); sent++; }
-      catch (error) { failed++; lastError = error instanceof Error ? error.message : ''; if (!sent && failed === 1 && lastError.includes('not answering')) throw error; }
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    if (!sent && failed) throw new Error(lastError || '!No texts were sent.');
-    return { ok: true, sent, skipped, failed };
-  });
-}
-
-/** Three suggested replies, written by the Exterior Care server's AI. */
-export async function suggestReplies(org: string, leadId: string): Promise<Done<{ suggestions: string[] }>> {
-  return guarded(org, async (_client, who) => {
-    const result = await exteriorApi<{ suggestions?: string[] }>(`/sms/ai-suggest/${uuid(leadId)}`, operatorFor(who));
-    return { ok: true, suggestions: (result.suggestions ?? []).filter(s => typeof s === 'string').slice(0, 3) };
   });
 }
 

@@ -237,3 +237,6 @@
   .kpis.many strong { font-size: var(--t-xl); }
   .kpis.many > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+.form-grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 640px) { .form-grid.five { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

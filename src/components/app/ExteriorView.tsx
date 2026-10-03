@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Check, Lock } from 'lucide-react';
-import { loadExterior, saveUpgrades, syncDoorSheet } from '@/app/workspace/exterior-actions';
+import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
 import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
 import { doorDetails, jobDate, summariseJobs, summariseSessions, type Done, type ExteriorResult } from '@/lib/exterior';
-import { ActivityList, BookingsManager, Conversations, ExteriorSettings, LeadsManager } from './ExteriorManage';
-import { RefreshCw } from 'lucide-react';
+import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 
@@ -61,16 +60,12 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     : <div className="planned" role="alert"><h2>The Exterior Care records did not load</h2><p>Nothing is shown rather than a partial list.</p><button className="primary" onClick={() => setAttempt(attempt + 1)}>Try again</button></div>;
 
   const { data } = result;
-  const source = <p className="quiet">The same records the original Exterior Care app uses. A change in either app shows in both.</p>;
+  const source = <p className="quiet">Worked out from the leads recorded here.</p>;
   const common = { data, act, busy, readOnly, org, now };
   const status = <p className="notice" role="status" aria-live="polite">{notice}</p>;
-  const editingMissing = !readOnly && !data.extras?.settings?.hasOwnProperty('businessName') && !data.extras?.settings?.hasOwnProperty('d2dSheetUrl');
 
-  const pending = editingMissing && <p className="banner-inline" role="note">Viewing works now. Adding, editing, booking and syncing switch on after a founder runs one database update: supabase/pending/RUN-ME-exterior-care-editing.sql.</p>;
-
-  if (tab === 'leads') return <>{pending}{status}<LeadsManager {...common} /></>;
-  if (tab === 'bookings') return <>{pending}{status}<BookingsManager {...common} /></>;
-  if (tab === 'conversations') return <>{status}<Conversations {...common} /></>;
+  if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
+  if (tab === 'bookings') return <>{status}<BookingsManager {...common} /></>;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
@@ -195,12 +190,9 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     const funnel = [['Doors knocked', s.doors, null], ['Answered', s.answers, s.doors], ['Interested', s.interested, s.answers], ['Quotes given', s.quotes, s.interested], ['Jobs scheduled', s.jobs, s.quotes]] as const;
     return <>
       {status}
-      {!readOnly && <div className="formactions top"><button className="secondary" disabled={busy} onClick={() => act(() => syncDoorSheet(org), r => `Door-knocking sheet synced: ${r.sessions} sessions.`)}><RefreshCw size={15} aria-hidden="true" />Sync door-knocking sheet</button></div>}
-      <div className="kpis">
+      <div className="kpis many">
         <div><span>Doors this week</span><strong><NumberFlow value={d.week.doors} /></strong><small className="quiet">{d.week.sessions} sessions since Monday</small></div>
         <div><span>Per door this week</span><strong>{d.week.perDoor === null ? '-' : dollars(Math.round(d.week.perDoor * 100) / 100)}</strong><small className="quiet">{dollars(d.week.jobTotal)} booked</small></div>
-      </div>
-      <div className="kpis">
         <div><span>Doors knocked</span><strong><NumberFlow value={s.doors} /></strong><small className="quiet">Across {s.sessions} sessions</small></div>
         <div><span>Answer rate</span><strong>{percent(s.answerRate)}</strong><small className="quiet">{s.answers} answers</small></div>
         <div><span>Jobs scheduled</span><strong><NumberFlow value={s.jobs} /></strong><small className="quiet">{s.quotes} quotes given</small></div>
@@ -217,16 +209,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
           {d.best && <p className="quiet">Best session: {d.best.area || 'unknown area'} on {day(d.best.session_date)}, {dollars(Math.round(d.best.perDoor * 100) / 100)} a door ({d.best.doors_knocked} doors, {cash(d.best.job_total)} booked).</p>}
         </section>
       </div>
-      <section className="panel">
-        <header className="panel-head"><h2>Sessions</h2></header>
-        {data.sessions.length ? <div className="tablewrap"><table className="table">
-          <thead><tr><th>Date</th><th>Who</th><th>Area</th><th className="num">Doors</th><th className="num">Answers</th><th className="num">Interested</th><th className="num">Quotes</th><th className="num">Jobs</th><th className="num">Job value</th></tr></thead>
-          <tbody>{data.sessions.map(x => (
-            <tr key={x.id}><td>{day(x.session_date)}</td><td>{x.knocked_by || '-'}</td><td>{x.area || '-'}</td><td className="num">{x.doors_knocked ?? '-'}</td><td className="num">{x.answers ?? '-'}</td><td className="num">{x.interested ?? '-'}</td><td className="num">{x.quotes_given ?? '-'}</td><td className="num">{x.jobs_scheduled ?? '-'}</td><td className="num">{cash(x.job_total)}</td></tr>
-          ))}</tbody></table></div>
-          : <div className="empty"><p><b>No door-knocking sessions recorded.</b></p></div>}
-        {source}
-      </section>
+      <SessionsManager {...common} />
     </>;
   }
 

@@ -400,13 +400,12 @@ export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
 }
 
 /* ------------------------------ Settings and connections ------------------------------ */
-export type Connections = { shopify: boolean; ghl: boolean; exterior: boolean };
+export type Connections = { shopify: boolean; ghl: boolean };
 export function SettingsView({ store, displayName, role, connections, mode }: { store: DashboardStore; displayName: string; role: string; connections: Connections; mode: 'preview' | 'live' }) {
   const rows: { name: string; what: string; on: boolean; next: string }[] = [
     { name: 'Workspace database', what: 'Tasks, messages, leads, money, calendar and documents.', on: !store.missing, next: 'A founder approves the one-time database update (supabase/schemas/dashboard.sql).' },
     { name: 'Shopify (OJ Essentials)', what: 'Orders, revenue, products and stock from ojessentials.store.', on: connections.shopify, next: 'Create a read-only app in the Shopify Dev Dashboard, install it on the store, and add SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET to the host settings. Steps are in docs/CONNECTIONS.md.' },
     { name: 'GoHighLevel (OJ Solutions)', what: 'Clients, calls handled and pipeline.', on: connections.ghl, next: 'Create a read-only private integration in GoHighLevel and add GHL_ACCESS_TOKEN and GHL_LOCATION_ID. Steps are in docs/CONNECTIONS.md.' },
-    { name: 'Exterior Care texting', what: 'Sending texts from the workspace through the existing Exterior Care server. Leads, bookings and door knocking are already readable without it.', on: connections.exterior, next: 'Run the oj-sms-system server somewhere this app can reach, then set EXTERIOR_API_URL (and EXTERIOR_API_KEY if that server needs one).' },
   ];
   return <>
     <section className="panel"><header className="panel-head"><h2>You</h2></header>
