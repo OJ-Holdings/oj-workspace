@@ -22,6 +22,10 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 09:30 UTC -- Claude Code, for Oscar (Old Exterior Care app and texting server stopped)
+**Summary:** At Oscar's request, stopped the original oj-sms-system app on his PC: the backend (`node src/server.js`, port 3001, which owned Twilio texting, the 10:00 weekday follow-up texts and the 08:00 owner summary) and the React frontend (port 3000). Both had been started by hand with `npm start`; no scheduled task or startup entry relaunches them. Both ports confirmed closed and the health check no longer answers. Nothing in that repo or its data was changed. No automatic texts go out now.
+**Notes:** To bring it back, run `npm start` in its backend and frontend folders. The Netlify site is confirmed working (public pages, login redirect, API refusal, calendar feed, no console errors); the PC-hosted copy on port 3011 is still running until Oscar and Jacob confirm they can sign in on Netlify.
+
 ## 2026-10-03 09:00 UTC -- Claude Code, for Oscar (Moving to Netlify)
 **Summary:** Oscar created the Netlify project (ojworkspace.netlify.app, deploys from GitHub main) and added the five Shopify and GoHighLevel variables. Sign-up and invitation emails now default to https://ojworkspace.netlify.app instead of the PC tunnel (src/lib/auth-url.ts). docs/DEPLOYMENT.md and docs/CONNECTIONS.md describe the Netlify setup.
 **Found:** every path on the Netlify address answered 401 because the Netlify project is Private (Netlify's own login wall). It has to be made public for Jacob and phone calendars; the app's own sign-in still protects all data. Supabase URL Configuration still needs `https://` on the Site URL and the Netlify callback in the redirect list.
