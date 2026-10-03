@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-03 09:00 UTC -- Claude Code, for Oscar (Moving to Netlify)
+**Summary:** Oscar created the Netlify project (ojworkspace.netlify.app, deploys from GitHub main) and added the five Shopify and GoHighLevel variables. Sign-up and invitation emails now default to https://ojworkspace.netlify.app instead of the PC tunnel (src/lib/auth-url.ts). docs/DEPLOYMENT.md and docs/CONNECTIONS.md describe the Netlify setup.
+**Found:** every path on the Netlify address answered 401 because the Netlify project is Private (Netlify's own login wall). It has to be made public for Jacob and phone calendars; the app's own sign-in still protects all data. Supabase URL Configuration still needs `https://` on the Site URL and the Netlify callback in the redirect list.
+**Not verified yet:** anything on Netlify beyond the 401s (cannot see past the wall). The PC copy is still running and will be shut down after the Netlify copy is confirmed with both accounts.
+
 ## 2026-10-03 08:30 UTC -- Claude Code, for Oscar (Booking clients: add and book in one step, Book a job, Book again)
 **Summary:** Oscar wants to add a lead and book them with a date and time from the workspace. New lead form has "Book a job now" (day and time picker; saves the lead as Booked with the job on the Bookings tab, via bookNewClient). The Bookings tab has "Book a job": search anyone on record or add a new client. Every lead that is not already booked has Book; completed or closed clients show "Book again", which creates a new job record for the returning client (a lead row holds one job's money, so the past job and its payment stay untouched). Day picker now includes today.
 **Duplicate merge changed:** a returning client has one record per job sharing a phone, so the merge now never removes a completed or paid record; only leftover unpaid duplicates are merged.
