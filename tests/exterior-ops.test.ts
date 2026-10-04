@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePhone, planLeadUpdate, slotTaken } from '../src/lib/exterior-ops';
+import { blockLabel, blockStartLabel, clockLabel, isValidBlock, jobLengths, lengthLabel, makeBlock, normalizePhone, parseBlock, planLeadUpdate, quickStarts, slotTaken } from '../src/lib/exterior-ops';
 import { mapStatus, parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '../src/lib/exterior-sync';
 
 const now = '2026-10-03T15:00:00.000Z';
@@ -33,6 +33,70 @@ test('a time block is taken only by confirmed or pending bookings, and a booking
   assert.equal(slotTaken(b, '2026-10-08', '9-12', '1'), false);
   assert.equal(slotTaken(b, '2026-10-08', '4-6'), false);
   assert.equal(slotTaken(b, '2026-10-09', '9-12'), false);
+});
+
+const m = (h: number, min = 0) => h * 60 + min;
+
+test('time blocks: the old three blocks keep their meaning, and minutes are allowed', () => {
+  assert.deepEqual(parseBlock('9-12'), { start: m(9), end: m(12) });
+  assert.deepEqual(parseBlock('12-3'), { start: m(12), end: m(15) });
+  assert.deepEqual(parseBlock('4-6'), { start: m(16), end: m(18) });
+  assert.deepEqual(parseBlock('12-1'), { start: m(12), end: m(13) });
+  assert.deepEqual(parseBlock('11-12'), { start: m(11), end: m(12) });
+  assert.deepEqual(parseBlock('4:30-9'), { start: m(16, 30), end: m(21) });
+  assert.deepEqual(parseBlock('8:15-9:45'), { start: m(8, 15), end: m(9, 45) });
+  assert.deepEqual(parseBlock('11:30-1'), { start: m(11, 30), end: m(13) });
+  assert.deepEqual(parseBlock('7:30-9:30'), { start: m(19, 30), end: m(21, 30) });
+  for (const bad of ['13-14', 'morning', '4:60-5', '4:5-6', '0-1', '9-', '', '9 - 12']) assert.equal(parseBlock(bad), null, bad);
+  assert.equal(parseBlock(null), null);
+  assert.equal(blockLabel('9-12'), '9 AM to 12 PM');
+  assert.equal(blockLabel('12-3'), '12 to 3 PM');
+  assert.equal(blockLabel('4-6'), '4 to 6 PM');
+  assert.equal(blockLabel('10-11'), '10 to 11 AM');
+  assert.equal(blockLabel('11-12'), '11 AM to 12 PM');
+  assert.equal(blockLabel('4:30-9'), '4:30 to 9 PM');
+  assert.equal(blockLabel('11:30-1'), '11:30 AM to 1 PM');
+  assert.equal(blockLabel('weird'), 'weird');
+  assert.equal(blockStartLabel('4:30-9'), '4:30 PM');
+  assert.equal(blockStartLabel('9-12'), '9 AM');
+  assert.equal(clockLabel(m(16, 30)), '4:30 PM');
+  assert.equal(clockLabel(m(12)), '12 PM');
+  assert.equal(clockLabel(m(8)), '8 AM');
+});
+
+test('makeBlock builds ids that parse back, for every start in the day and every length offered', () => {
+  assert.equal(makeBlock(m(9), 180), '9-12');
+  assert.equal(makeBlock(m(12), 180), '12-3');
+  assert.equal(makeBlock(m(16), 120), '4-6');
+  assert.equal(makeBlock(m(16, 30), 270), '4:30-9');
+  assert.equal(makeBlock(m(12), 60), '12-1');
+  assert.equal(makeBlock(m(8, 15), 90), '8:15-9:45');
+  // Every time that ends by 10 PM round-trips (a job cannot run past midnight, and the workspace refuses ends after 10 PM).
+  for (let start = m(8); start <= m(19, 55); start += 5) for (const len of jobLengths) if (start + len <= m(22)) assert.deepEqual(parseBlock(makeBlock(start, len)), { start, end: start + len }, `${start} + ${len}`);
+  assert.equal(quickStarts[0], m(8));
+  assert.equal(quickStarts[quickStarts.length - 1], m(19));
+  assert.equal(lengthLabel(30), '30 min');
+  assert.equal(lengthLabel(60), '1 hour');
+  assert.equal(lengthLabel(90), '1.5 hours');
+  assert.equal(lengthLabel(120), '2 hours');
+});
+
+test('isValidBlock accepts a start from 8:00 AM to 7:59 PM, an end by 10 PM, and 15 minutes to 8 hours', () => {
+  for (const ok of ['9-12', '12-3', '4-6', '8-9', '7-8', '10-11', '1-6', '4:30-9', '8:15-8:30', '7:45-10', '7-9:30', '12-7:30']) assert.equal(isValidBlock(ok), true, ok);
+  for (const bad of ['5-12', '9-9', '3-2', '8-5', '7:59-11', '12-8:30', '8:15-8:20', 'abc', '', 5, null, undefined]) assert.equal(isValidBlock(bad), false, String(bad));
+});
+
+test('slots: any shared time conflicts, minutes included, so an old 3-hour block holds the time inside it', () => {
+  const b = [{ id: '1', date: '2026-10-08', time_block: '9-12', status: 'confirmed' }, { id: '2', date: '2026-10-08', time_block: '2-3', status: 'pending_approval' }, { id: '3', date: '2026-10-08', time_block: '4:30-9', status: 'confirmed' }];
+  assert.equal(slotTaken(b, '2026-10-08', '10-11'), true, 'an hour inside the old block');
+  assert.equal(slotTaken(b, '2026-10-08', '8-9'), false);
+  assert.equal(slotTaken(b, '2026-10-08', '8:30-9:30'), true, 'starts before and runs into the 9 AM job');
+  assert.equal(slotTaken(b, '2026-10-08', '12-1'), false, 'back to back is fine');
+  assert.equal(slotTaken(b, '2026-10-08', '1-3'), true, 'overlapping the 2-3 booking');
+  assert.equal(slotTaken(b, '2026-10-08', '1-2'), false);
+  assert.equal(slotTaken(b, '2026-10-08', '3-4:30'), false, 'ends exactly when the 4:30 job starts');
+  assert.equal(slotTaken(b, '2026-10-08', '3-4:45'), true);
+  assert.equal(slotTaken(b, '2026-10-08', '10-12', '1'), false, 'moving the 9-12 job to 10-12 does not block itself');
 });
 
 test('CSV parsing handles quotes, commas and line breaks inside cells', () => {

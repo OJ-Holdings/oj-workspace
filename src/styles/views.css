@@ -194,6 +194,28 @@
 .block-picker button b { font-size: var(--t-sm); }
 .block-picker button span { font-size: var(--t-xs); opacity: 0.8; }
 .block-picker button:disabled { opacity: 0.4; cursor: not-allowed; }
+.time-picker, .length-picker { margin: 0 0 var(--s-4); padding: 0; border: 0; }
+.time-picker legend, .length-picker legend { margin-bottom: 8px; font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); }
+.time-quick, .length-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.length-picker legend { flex: 0 0 100%; }
+.time-quick button, .length-picker button { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); }
+.time-quick button[aria-pressed='true'], .length-picker button[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.time-exact, .length-custom { display: flex; align-items: center; gap: var(--s-3); margin-top: 8px; font-size: var(--t-sm); color: var(--ink-3); }
+.length-custom { margin-top: 0; flex: 1 0 100%; }
+.time-exact input, .length-custom input { width: auto; max-width: 140px; }
+.slot-summary { margin: 0 0 var(--s-4); }
+.slot-summary p { margin: 0 0 4px; font-size: var(--t-sm); }
+.slot-summary p span { color: var(--ink-3); }
+.slot-problem { color: var(--bad); font-weight: 600; }
+a.month-item { text-decoration: none; }
+button.month-more { background: none; border: 0; text-align: left; cursor: pointer; }
+.month-day.is-picked { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.job-day { list-style: none; margin: 0 0 var(--s-4); padding: 0; display: grid; gap: var(--s-4); }
+.job-day li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px var(--s-3); align-items: start; padding-left: 12px; border-left: 3px solid var(--dot); }
+.job-day time { grid-column: 1 / -1; font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); }
+.job-day div { display: grid; gap: 2px; min-width: 0; font-size: var(--t-sm); }
+.job-day div b { font-weight: 600; }
+.job-day div span, .job-day div small { font-size: var(--t-xs); color: var(--ink-3); }
 .convo { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--s-4); align-items: start; }
 .convo > .panel { margin: 0; }
 .convo-list select { width: 100%; margin-bottom: var(--s-3); }

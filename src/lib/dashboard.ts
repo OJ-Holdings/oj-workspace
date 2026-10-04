@@ -40,7 +40,10 @@ export function monthlyTotals(finance: FinanceEntry[], venture: VentureId, kind:
  * Nothing is estimated: a business with no logged revenue and no leads reports
  * `null`, and the screen says what to log or connect.
  */
-export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date): WorkspaceMetrics {
+/** A booked Exterior Care job, reduced to what the schedule needs. */
+export type ScheduleJob = { id: string; date: string; startMinutes: number; timeLabel: string; name: string; service: string | null };
+
+export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date, jobs: ScheduleJob[] = []): WorkspaceMetrics {
   const months = lastMonths(now);
   const today = dayKey(now);
   const ventures = Object.fromEntries(ventureIds.map(id => {
@@ -61,12 +64,17 @@ export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date): W
   const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Won'] as const;
   const todaysEvents = dashboard.events.filter(e => dayKey(new Date(e.starts_at)) === today).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const dueToday = cards.filter(c => c.due_date === today && c.stage !== 'Done');
+  const todaysJobs = jobs.filter(j => j.date === today);
+  const eventRows = todaysEvents.map(e => ({ id: e.id, time: e.all_day ? 'All day' : new Date(e.starts_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), title: e.title, detail: e.location || e.notes || 'Event', venture: e.venture ?? 'shared' as const }));
+  const jobRows = todaysJobs.map(j => ({ id: `job-${j.id}`, time: `${String(Math.floor(j.startMinutes / 60)).padStart(2, '0')}:${String(j.startMinutes % 60).padStart(2, '0')}`, title: j.name, detail: `${j.service || 'Job'} / ${j.timeLabel}`, venture: 'exterior' as const }));
+  // All-day items first, then everything with a time in order.
+  const dayRows = [...eventRows, ...jobRows].sort((a, b) => (a.time === 'All day' ? -1 : 0) - (b.time === 'All day' ? -1 : 0) || a.time.localeCompare(b.time));
   return {
     months: months.map(m => m.label),
     ventures,
     pipeline: dashboard.leads.length ? stages.map(stage => ({ stage, count: dashboard.leads.filter(l => l.stage === stage).length })) : null,
-    schedule: todaysEvents.length || dueToday.length ? [
-      ...todaysEvents.map(e => ({ id: e.id, time: e.all_day ? 'All day' : new Date(e.starts_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), title: e.title, detail: e.location || e.notes || 'Event', venture: e.venture ?? 'shared' as const })),
+    schedule: dayRows.length || dueToday.length ? [
+      ...dayRows,
       ...dueToday.map(c => ({ id: c.id, time: 'Due', title: c.title, detail: `Task / ${c.stage}`, venture: c.business })),
     ] : null,
     files: dashboard.documents.length ? dashboard.documents.slice(0, 4).map(d => ({ id: d.id, name: d.name, kind: fileKind(d.mime, d.name), updated: relativeDay(d.created_at, now), venture: d.venture ?? 'shared' as const })) : null,

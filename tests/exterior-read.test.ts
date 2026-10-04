@@ -15,6 +15,8 @@ export async function createLockedLegacyTables(db: PGlite) {
       grant all on public.${table} to service_role;
       insert into public.${table}(payload) values ('Customer record');`);
   }
+  // Bookings on the live project carry a date and one of three time blocks, enforced by a check; later updates alter that rule.
+  await db.exec(`alter table public.bookings add column date date, add column time_block varchar check (time_block in ('9-12','12-3','4-6'));`);
   // Settings is a key/value table; quote requests come from the public website form, so signed-out visitors may add (never read) them.
   await db.exec(`delete from public.settings;
     alter table public.settings add column key text unique, add column value text, add column updated_at timestamptz;

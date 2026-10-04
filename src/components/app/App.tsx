@@ -13,6 +13,7 @@ import { VentureView } from './VentureView';
 import { CardDialog } from './CardDialog';
 import { useBoard } from './useBoard';
 import { useDashboard } from './useDashboard';
+import { useJobs } from './useJobs';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
 export type AppProps = {
@@ -42,7 +43,8 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   const parts = pathname.slice(base.length).split('/').filter(Boolean);
   const board = useBoard(initial, mode, organizationId, readOnly);
   const store = useDashboard(dashboard, mode, organizationId, displayName);
-  const metrics = store.data && store.now ? deriveMetrics(store.data, board.data.cards, store.now) : null;
+  const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
+  const metrics = store.data && store.now ? deriveMetrics(store.data, board.data.cards, store.now, jobSchedule) : null;
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
   let current: NavKey = 'home';
@@ -92,7 +94,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : (
         <div className="page">
           <header className="page-head"><h1>{info?.title}</h1><p>{info?.body}</p></header>
-          {current === 'calendar' && <CalendarView store={store} readOnly={readOnly} cards={board.data.cards} />}
+          {current === 'calendar' && <CalendarView store={store} readOnly={readOnly} cards={board.data.cards} jobs={jobs} base={base} />}
           {current === 'crm' && <CrmView store={store} readOnly={readOnly} />}
           {current === 'finance' && <FinanceView store={store} readOnly={readOnly} />}
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}

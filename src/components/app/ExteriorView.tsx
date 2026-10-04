@@ -7,6 +7,7 @@ import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
 import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
 import { doorDetails, jobDate, summariseJobs, summariseSessions, type Done, type ExteriorResult } from '@/lib/exterior';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
+import { JobsCalendar } from './ExteriorCalendar';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 
@@ -66,6 +67,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
 
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} /></>;
+  if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
