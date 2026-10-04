@@ -45,6 +45,26 @@ test('pipeline, active leads and today\'s schedule come from real rows', () => {
   assert.deepEqual(m.schedule?.map(s => s.title), ['Sync', 'Task']);
 });
 
+test('booked Exterior Care jobs join the schedule for today, in time order, and nothing from other days', () => {
+  const event = { id: 'e1', venture: null, title: 'Sync', starts_at: new Date(2026, 9, 2, 16, 0).toISOString(), ends_at: null, all_day: false, location: '', notes: '' };
+  const allDay = { id: 'e0', venture: null, title: 'Offsite', starts_at: new Date(2026, 9, 2, 0, 0).toISOString(), ends_at: null, all_day: true, location: '', notes: '' };
+  const d: Dashboard = { ...emptyDashboard, events: [event, allDay] };
+  const jobs = [
+    { id: 'j1', date: '2026-10-02', startMinutes: 12 * 60, timeLabel: '12 to 3 PM', name: 'Dulce Brandt', service: 'House Washing' },
+    { id: 'j2', date: '2026-10-02', startMinutes: 8 * 60 + 15, timeLabel: '8:15 to 9:45 AM', name: 'Early Bird', service: null },
+    { id: 'j3', date: '2026-10-03', startMinutes: 9 * 60, timeLabel: '9 AM to 12 PM', name: 'Tomorrow', service: 'Roof Cleaning' },
+  ];
+  const m = deriveMetrics(d, [], now, jobs);
+  assert.deepEqual(m.schedule?.map(s => s.title), ['Offsite', 'Early Bird', 'Dulce Brandt', 'Sync']);
+  assert.deepEqual(m.schedule?.map(s => s.time), ['All day', '08:15', '12:00', '16:00']);
+  assert.equal(m.schedule?.find(s => s.title === 'Dulce Brandt')?.detail, 'House Washing / 12 to 3 PM');
+  assert.equal(m.schedule?.find(s => s.title === 'Early Bird')?.detail, 'Job / 8:15 to 9:45 AM');
+  assert.equal(m.schedule?.find(s => s.title === 'Dulce Brandt')?.venture, 'exterior');
+  // With nothing else on, a job alone still makes a schedule; with no jobs the old behaviour holds.
+  assert.equal(deriveMetrics(emptyDashboard, [], now, jobs).schedule?.length, 2);
+  assert.equal(deriveMetrics(emptyDashboard, [], now).schedule, null);
+});
+
 test('months roll back across a year boundary', () => {
   assert.deepEqual(lastMonths(new Date(2026, 1, 10), 3).map(m => m.key), ['2025-12', '2026-01', '2026-02']);
 });

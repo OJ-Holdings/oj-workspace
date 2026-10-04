@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
@@ -9,6 +10,8 @@ import { dollars, money } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
 import { LineChart } from './Charts';
 import type { DashboardStore } from './useDashboard';
+import type { JobItem } from '@/app/workspace/exterior-actions';
+import { blockLabel, parseBlock } from '@/lib/exterior-ops';
 
 const color = (v: VentureId | null | 'shared') => `var(--c-${v ?? 'shared'})`;
 const short = (v: VentureId | null) => v ? ventures[v].short : 'Shared';
@@ -206,31 +209,33 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
 /* ------------------------------ Calendar ------------------------------ */
 const blankEvent = (day: string): EventItem => ({ id: crypto.randomUUID(), venture: null, title: '', starts_at: `${day}T09:00`, ends_at: `${day}T10:00`, all_day: false, location: '', notes: '' });
 const toLocalInput = (iso: string) => { const d = new Date(iso); return `${dayKey(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-export function CalendarView({ store, readOnly, cards }: Common & { cards: Card[] }) {
+export function CalendarView({ store, readOnly, cards, jobs, base }: Common & { cards: Card[]; jobs: JobItem[]; base: string }) {
   const [offset, setOffset] = useState(0);
   const [draft, setDraft] = useState<(EventItem & { isNew: boolean }) | null>(null);
   const [link, setLink] = useState('');
   const [linkError, setLinkError] = useState('');
   return (
     <Gate store={store} what="The calendar">
-      {() => <CalendarBody store={store} readOnly={readOnly} cards={cards} offset={offset} setOffset={setOffset} draft={draft} setDraft={setDraft} link={link} setLink={setLink} linkError={linkError} setLinkError={setLinkError} />}
+      {() => <CalendarBody store={store} readOnly={readOnly} cards={cards} jobs={jobs} base={base} offset={offset} setOffset={setOffset} draft={draft} setDraft={setDraft} link={link} setLink={setLink} linkError={linkError} setLinkError={setLinkError} />}
     </Gate>
   );
 }
-function CalendarBody({ store, readOnly, cards, offset, setOffset, draft, setDraft, link, setLink, linkError, setLinkError }: any) {
+function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, draft, setDraft, link, setLink, linkError, setLinkError }: any) {
   const now: Date = store.now, data = store.data;
   const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
   const gridStart = new Date(first.getFullYear(), first.getMonth(), 1 - first.getDay());
   const days = Array.from({ length: 42 }, (_, i) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i));
   const today = dayKey(now);
-  type Item = { id: string; title: string; venture: VentureId | null; time: string; event?: EventItem };
+  type Item = { id: string; title: string; venture: VentureId | null; time: string; event?: EventItem; href?: string };
   const byDay = useMemo(() => {
     const map = new Map<string, Item[]>();
     const push = (k: string, item: Item) => map.set(k, [...(map.get(k) ?? []), item]);
     for (const e of data.events as EventItem[]) push(dayKey(new Date(e.starts_at)), { id: e.id, title: e.title, venture: e.venture, time: e.all_day ? '' : new Date(e.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), event: e });
     for (const c of cards as Card[]) if (c.due_date && c.stage !== 'Done') push(c.due_date, { id: c.id, title: c.title, venture: c.business, time: 'Task due' });
+    // Exterior Care jobs, in time order within their day, linking to the Exterior Care calendar to edit them.
+    for (const j of [...(jobs as JobItem[])].sort((a, b) => (parseBlock(a.time_block)?.start ?? 0) - (parseBlock(b.time_block)?.start ?? 0))) push(j.date, { id: `job-${j.id}`, title: `${j.name}${j.service ? `, ${j.service}` : ''}`, venture: 'exterior', time: blockLabel(j.time_block), href: `${base}/b/exterior/calendar` });
     return map;
-  }, [data.events, cards]);
+  }, [data.events, cards, jobs, base]);
   const upcoming = [...byDay.entries()].filter(([k]) => k >= today).sort(([a], [b]) => a.localeCompare(b)).slice(0, 8);
   return <>
     <div className="toolbar">
@@ -264,7 +269,7 @@ function CalendarBody({ store, readOnly, cards, offset, setOffset, draft, setDra
           return (
             <div key={k} role="gridcell" className={`month-day${d.getMonth() !== first.getMonth() ? ' is-other' : ''}${k === today ? ' is-today' : ''}`}>
               <button className="month-num" disabled={readOnly} aria-label={`Add an event on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`} onClick={() => setDraft({ ...blankEvent(k), isNew: true })}>{d.getDate()}</button>
-              {items.slice(0, 3).map(item => <button key={item.id} className="month-item" style={{ '--dot': color(item.venture) } as React.CSSProperties} disabled={!item.event || readOnly} onClick={() => item.event && setDraft({ ...item.event, starts_at: toLocalInput(item.event.starts_at), ends_at: item.event.ends_at ? toLocalInput(item.event.ends_at) : null, isNew: false })} title={item.title}>{item.title}</button>)}
+              {items.slice(0, 3).map(item => item.href ? <Link key={item.id} className="month-item" style={{ '--dot': color(item.venture) } as React.CSSProperties} href={item.href} title={`${item.time}: ${item.title}`}>{item.title}</Link> : <button key={item.id} className="month-item" style={{ '--dot': color(item.venture) } as React.CSSProperties} disabled={!item.event || readOnly} onClick={() => item.event && setDraft({ ...item.event, starts_at: toLocalInput(item.event.starts_at), ends_at: item.event.ends_at ? toLocalInput(item.event.ends_at) : null, isNew: false })} title={item.title}>{item.title}</button>)}
               {items.length > 3 && <span className="month-more">+{items.length - 3} more</span>}
             </div>
           );

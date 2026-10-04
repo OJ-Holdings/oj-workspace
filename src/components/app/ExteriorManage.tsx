@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
+import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
-import { blockLabel, isRealPhone, leadSources, leadStatuses, services, slotTaken, timeBlocks } from '@/lib/exterior-ops';
+import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 
@@ -99,12 +99,12 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
 }
 
 /** Adds or edits a lead. A new lead can be booked in the same step. */
-function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = false }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; bookNow?: boolean }) {
+function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = false, presetDate = '' }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; bookNow?: boolean; presetDate?: string }) {
   const [f, setF] = useState<LeadInput>(blankLead);
   const [booking, setBooking] = useState(false);
   const [date, setDate] = useState('');
   const [slot, setSlot] = useState('');
-  useEffect(() => { if (lead) { setF(lead); setBooking(bookNow); setDate(''); setSlot(''); } }, [lead, bookNow]);
+  useEffect(() => { if (lead) { setF(lead); setBooking(bookNow); setDate(presetDate); setSlot(''); } }, [lead, bookNow, presetDate]);
   const set = (k: keyof LeadInput) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const sourceKnown = leadSources.some(([id]) => id === f.source);
   const isNew = !lead?.id;
@@ -166,29 +166,59 @@ function nextDays(now: Date) {
   return Array.from({ length: 22 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)).map((d, i) => ({ key: dayKey(d), label: i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), usual: d.getDay() === 4 || d.getDay() === 5 }));
 }
 
-/** Pick a day and a time block; blocks already taken that day are shown as booked. */
+const hhmm = (minutes: number | null) => minutes === null ? '' : `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+const fromHhmm = (value: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(value); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+
+/**
+ * Pick a day, any start time, and how long the job will take. Times that clash with another booking that day, or
+ * have already passed, are not accepted, and the screen says why. Reports the finished time (like '4:30-9') or ''.
+ */
 function SlotPicker({ bookings, now, date, slot, setDate, setSlot, ignoreId }: { bookings: ExtBooking[]; now: Date; date: string; slot: string; setDate: (d: string) => void; setSlot: (s: string) => void; ignoreId?: string }) {
   const days = useMemo(() => nextDays(now), [now]);
+  const [start, setStart] = useState<number | null>(null);
+  const [length, setLength] = useState(120);
+  const block = start === null ? '' : makeBlock(start, length);
+  // A booking being edited (or a time chosen elsewhere) brings its own start and length.
+  useEffect(() => { const p = parseBlock(slot); if (p && makeBlock(p.start, p.end - p.start) !== block) { setStart(p.start); setLength(p.end - p.start); } }, [slot]); // eslint-disable-line react-hooks/exhaustive-deps
+  const today = dayKey(now);
+  // Judge the time that was actually picked, not the saved text: '7-8:30' reads back as 7 PM, so a 7 AM pick must be refused here.
+  const end = start === null ? null : start + length;
+  const inHours = start !== null && end !== null && start >= DAY_FIRST_START && start <= DAY_LAST_START && end <= DAY_LAST_END && length >= MIN_JOB && length <= MAX_JOB;
+  const that = bookings.filter(b => b.id !== ignoreId && b.date === date && (b.status === 'confirmed' || b.status === 'pending_approval'));
+  const clashes = inHours && date ? that.filter(b => blocksOverlap(b.time_block, block)) : [];
+  const passed = inHours && date === today && start! <= now.getHours() * 60 + now.getMinutes();
+  const problem = start === null ? '' : !inHours ? `Jobs start between ${clockLabel(DAY_FIRST_START)} and ${clockLabel(DAY_LAST_START + 1)} and finish by ${clockLabel(DAY_LAST_END)}, and last ${MIN_JOB} minutes to ${MAX_JOB / 60} hours.`
+    : passed ? 'That time has already passed today.' : clashes.length ? `Overlaps another job: ${clashes.map(b => blockLabel(b.time_block)).join(', ')}.` : '';
+  const ok = !!date && inHours && !problem;
+  // Only tell the form about a time that can actually be booked.
+  useEffect(() => { if (!block) return; const next = ok ? block : ''; if (next !== slot) setSlot(next); }, [block, ok, date]); // eslint-disable-line react-hooks/exhaustive-deps
   return <>
     <fieldset className="day-picker"><legend>Day</legend>
-      {days.map(d => <button type="button" key={d.key} aria-pressed={date === d.key} className={d.usual ? 'usual' : ''} onClick={() => { setDate(d.key); setSlot(''); }}>{d.label}</button>)}
-      <label className="other-day">Another day<input type="date" value={date} onChange={e => { setDate(e.target.value); setSlot(''); }} /></label>
+      {days.map(d => <button type="button" key={d.key} aria-pressed={date === d.key} className={d.usual ? 'usual' : ''} onClick={() => setDate(d.key)}>{d.label}</button>)}
+      <label className="other-day">Another day<input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
     </fieldset>
-    <fieldset className="block-picker"><legend>Time</legend>
-      {timeBlocks.map(([id, label, part]) => { const taken = !!date && slotTaken(bookings, date, id, ignoreId); return (
-        <button type="button" key={id} aria-pressed={slot === id} disabled={!date || taken} onClick={() => setSlot(id)}><b>{label}</b><span>{taken ? 'Booked' : part}</span></button>
-      ); })}
+    <fieldset className="time-picker"><legend>Start time</legend>
+      <div className="time-quick">{quickStarts.map(q => <button type="button" key={q} aria-pressed={start === q} onClick={() => setStart(q)}>{clockLabel(q)}</button>)}</div>
+      <label className="time-exact">Or any time<input type="time" value={hhmm(start)} onChange={e => setStart(fromHhmm(e.target.value))} /></label>
     </fieldset>
+    <fieldset className="length-picker"><legend>How long will the job take?</legend>
+      {jobLengths.map(h => <button type="button" key={h} aria-pressed={length === h} onClick={() => setLength(h)}>{lengthLabel(h)}</button>)}
+      <label className="length-custom">Other, in minutes<input type="number" min={MIN_JOB} max={MAX_JOB} step={5} inputMode="numeric" value={length} onChange={e => { const n = Math.round(Number(e.target.value)); if (Number.isFinite(n) && n > 0) setLength(Math.min(MAX_JOB, n)); }} /></label>
+    </fieldset>
+    <div className="slot-summary" role="status" aria-live="polite">
+      {problem ? <p className="slot-problem">{problem}</p> : ok && start !== null && end !== null ? <p><b>{clockLabel(start)} to {clockLabel(end)}</b> <span>{lengthLabel(length)}</span></p> : <p className="quiet">{date ? 'Choose a start time and how long it will take.' : 'Choose a day first.'}</p>}
+      {!!date && !!that.length && <p className="quiet">Already booked that day: {that.map(b => blockLabel(b.time_block)).join(', ')}.</p>}
+    </div>
   </>;
 }
 
 const isDone = (l: ExtLead) => l.status === 'completed' || l.status === 'closed';
 
-function BookDialog({ lead, close, act, busy, org, bookings, now, booking }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; booking?: ExtBooking }) {
+function BookDialog({ lead, close, act, busy, org, bookings, now, booking, presetDate = '' }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; booking?: ExtBooking; presetDate?: string }) {
   const [date, setDate] = useState('');
   const [slot, setSlot] = useState('');
   const open = !!lead;
-  useEffect(() => { if (open) { setDate(booking?.date ?? ''); setSlot(booking?.time_block ?? ''); } }, [open, booking]);
+  useEffect(() => { if (open) { setDate(booking?.date ?? presetDate); setSlot(booking?.time_block ?? ''); } }, [open, booking, presetDate]);
   const again = !!lead && !booking && isDone(lead);
   return (
     <Modal title={booking ? `Move ${lead?.name ?? ''}` : `${again ? 'Book again' : 'Book'}: ${lead?.name ?? ''}`} open={open} onClose={close}>
@@ -233,18 +263,73 @@ function ClientPicker({ open, leads, close, pick, fresh }: { open: boolean; lead
 
 /* ------------------------------ Bookings ------------------------------ */
 
+const toLeadInput = (l: ExtLead): LeadInput => ({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' });
+
+/** Edit a booked job: the customer's details, the day and the time, or cancel it. Used by the Bookings tab and the calendar. */
+export function JobDialog({ booking, lead, close, act, busy, org, bookings, now }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date }) {
+  const [f, setF] = useState<LeadInput>(blankLead);
+  const [date, setDate] = useState('');
+  const [slot, setSlot] = useState('');
+  useEffect(() => { if (booking && lead) { setF(toLeadInput(lead)); setDate(booking.date); setSlot(booking.time_block ?? ''); } }, [booking, lead]);
+  const set = (k: keyof LeadInput) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const sourceKnown = leadSources.some(([id]) => id === f.source);
+  const open = !!booking && !!lead;
+  const changedTime = !!booking && (booking.date !== date || booking.time_block !== slot);
+  return (
+    <Modal title={`Edit job: ${lead?.name || 'customer'}`} open={open} onClose={close}>
+      {booking && lead && <form onSubmit={e => { e.preventDefault(); act(() => saveJob(org, booking.id, f, date, slot), r => r.moved ? `Job saved and moved to ${day(date)}, ${blockLabel(slot)}.` : 'Job saved.').then(ok => ok && close()); }}>
+        <div className="form-grid">
+          <label>Full name<input required maxLength={255} autoComplete="off" value={f.name} onChange={set('name')} /></label>
+          <label>Phone<input required type="tel" maxLength={40} value={f.phone} onChange={set('phone')} placeholder="(262) 555-0123" /></label>
+        </div>
+        <label>Address<input maxLength={500} value={f.address} onChange={set('address')} placeholder="Street, Kenosha, WI 53140" /></label>
+        <div className="form-grid">
+          <label>Service<input list="oj-services" maxLength={255} value={f.service_requested} onChange={set('service_requested')} /></label>
+          <label>Quote in dollars<input type="number" min="0" step="1" inputMode="decimal" value={f.quote_amount ?? ''} onChange={set('quote_amount')} /></label>
+          <label>Lead source<select value={f.source} onChange={set('source')}>{!sourceKnown && f.source && <option value={f.source}>{sourceLabel(f.source)}</option>}{leadSources.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+        </div>
+        <datalist id="oj-services">{services.map(s => <option key={s} value={s} />)}</datalist>
+        <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
+        <SlotPicker bookings={bookings} now={now} date={date} slot={slot} setDate={setDate} setSlot={setSlot} ignoreId={booking.id} />
+        <div className="dialog-actions">
+          <button type="button" className="secondary danger" disabled={busy} onClick={() => { if (window.confirm(`Cancel ${lead.name ?? 'this'} booking on ${day(booking.date)}? The lead goes back to following up.`)) act(() => removeBooking(org, booking.id), () => 'Booking cancelled.').then(ok => ok && close()); }}><Trash2 size={14} aria-hidden="true" />Cancel booking</button>
+          <span>{changedTime ? 'Let the customer know about the new time.' : 'Edited fields are kept if the sheet is brought in again.'}</span>
+          <button className="primary" disabled={busy || !date || !slot}>{busy ? 'Saving' : changedTime ? 'Save and move' : 'Save job'}</button>
+        </div>
+      </form>}
+    </Modal>
+  );
+}
+
+/**
+ * The whole "book a job" path: pick who it is for (or add them), then pick the day and time.
+ * `startDate` null means closed; '' opens it with no day chosen; a day opens it with that day chosen.
+ */
+export function BookFlow({ startDate, close, data, act, busy, org, now }: { startDate: string | null; close: () => void; data: ExteriorData; act: Act; busy: boolean; org: string; now: Date }) {
+  const [stage, setStage] = useState<'pick' | 'book' | 'new'>('pick');
+  const [lead, setLead] = useState<ExtLead | null>(null);
+  useEffect(() => { if (startDate !== null) { setStage('pick'); setLead(null); } }, [startDate]);
+  const open = startDate !== null;
+  const fresh = useMemo(() => ({ ...blankLead }), [startDate, stage]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <>
+    <ClientPicker open={open && stage === 'pick'} leads={data.leads} close={close} pick={l => { setLead(l); setStage('book'); }} fresh={() => setStage('new')} />
+    <BookDialog lead={open && stage === 'book' ? lead : null} presetDate={startDate ?? ''} close={close} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    <LeadDialog lead={open && stage === 'new' ? fresh : null} bookNow presetDate={startDate ?? ''} close={close} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+  </>;
+}
+
 export function BookingsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [moving, setMoving] = useState<ExtBooking | null>(null);
-  const [choosing, setChoosing] = useState(false);
-  const [booking, setBooking] = useState<ExtLead | null>(null);
-  const [adding, setAdding] = useState<LeadInput | null>(null);
+  const [editing, setEditing] = useState<ExtBooking | null>(null);
+  const [flow, setFlow] = useState<string | null>(null);
   const today = dayKey(now), month = today.slice(0, 7);
   const lead = new Map(data.leads.map(l => [l.id, l]));
   const live = data.bookings.filter(b => b.status !== 'denied');
-  const upcoming = live.filter(b => b.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.time_block ?? '').localeCompare(b.time_block ?? ''));
+  const byTime = (a: ExtBooking, b: ExtBooking) => a.date.localeCompare(b.date) || (parseBlock(a.time_block)?.start ?? 0) - (parseBlock(b.time_block)?.start ?? 0);
+  const upcoming = live.filter(b => b.date >= today).sort(byTime);
   const past = live.filter(b => b.date < today);
   return <>
-    {!readOnly && <div className="formactions top"><button className="primary" disabled={busy} onClick={() => setChoosing(true)}><CalendarPlus size={15} aria-hidden="true" />Book a job</button></div>}
+    {!readOnly && <div className="formactions top"><button className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={15} aria-hidden="true" />Book a job</button></div>}
     <div className="kpis">
       <div><span>Upcoming jobs</span><strong><NumberFlow value={upcoming.length} /></strong></div>
       <div><span>Booked this month</span><strong><NumberFlow value={live.filter(b => b.date.startsWith(month)).length} /></strong></div>
@@ -258,6 +343,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now }: Common)
           <tbody>{list.map(b => { const l = lead.get(b.lead_id ?? ''); return (
             <tr key={b.id}><td>{day(b.date)}</td><td>{blockLabel(b.time_block)}</td><td>{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td>{l?.service_requested || '-'}</td><td>{l?.address || '-'}</td><td className="num">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && title === 'Upcoming' && <td><div className="row-actions">
+                {l && <button className="secondary small" onClick={() => setEditing(b)}><Pencil size={13} aria-hidden="true" />Edit</button>}
                 {l && <button className="secondary small" onClick={() => setMoving(b)}>Move</button>}
                 <button className="icon-button" aria-label={`Cancel booking for ${l?.name ?? 'lead'}`} disabled={busy} onClick={() => { if (window.confirm(`Cancel ${l?.name ?? 'this'} booking on ${day(b.date)}? The lead goes back to following up.`)) act(() => removeBooking(org, b.id), () => 'Booking cancelled.'); }}><Trash2 size={15} /></button>
               </div></td>}
@@ -266,10 +352,9 @@ export function BookingsManager({ data, act, busy, readOnly, org, now }: Common)
           : <div className="empty"><p><b>{none}</b></p></div>}
       </section>
     ))}
-    <ClientPicker open={choosing} leads={data.leads} close={() => setChoosing(false)} pick={l => { setChoosing(false); setBooking(l); }} fresh={() => { setChoosing(false); setAdding({ ...blankLead }); }} />
-    <BookDialog lead={booking} close={() => setBooking(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    <BookFlow startDate={flow} close={() => setFlow(null)} data={data} act={act} busy={busy} org={org} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
-    <LeadDialog lead={adding} bookNow close={() => setAdding(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    <JobDialog booking={editing} lead={editing ? lead.get(editing.lead_id ?? '') : undefined} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
   </>;
 }
 

@@ -3,7 +3,7 @@
 import { requireMember } from '@/lib/supabase';
 import type { Done, ExteriorData, ExteriorResult, ExtExtras, ExtLead, ExtSession } from '@/lib/exterior';
 import { upgradeGroups } from '@/lib/upgrades';
-import { isSheetUrl, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, timeBlocks, type LeadPatch } from '@/lib/exterior-ops';
+import { isSheetUrl, isValidBlock, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, type LeadPatch } from '@/lib/exterior-ops';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
@@ -55,12 +55,13 @@ export async function loadExterior(org: string): Promise<ExteriorResult> {
 // refuses (for example before the editing update has been applied) comes back
 // as a plain message rather than an error page.
 const refused = 'That did not save. If this keeps happening, the database update that allows editing (supabase/pending/RUN-ME-exterior-care-editing.sql) may not have been run yet.';
+const hourlyPending = 'Times other than 9 to 12, 12 to 3 and 4 to 6 need a one-time database update that has not been run yet (supabase/pending/2026-10-04-exterior-hourly-slots.sql). Until then only those three blocks can be booked.';
 async function guarded<T extends object>(org: string, work: (client: Client, who: string) => Promise<Done<T>>): Promise<Done<T>> {
   let client: Client, who: string;
   try { const m = await requireMember(org, true); client = m.client; who = m.member.display_name.split(' ')[0] || 'Workspace'; }
   catch { return { ok: false, message: 'Only workspace owners and members can change Exterior Care records.' }; }
   try { return await work(client, who); }
-  catch (error) { console.error('Exterior Care change failed:', error instanceof Error ? error.message : error); return { ok: false, message: error instanceof Error && error.message.startsWith('!') ? error.message.slice(1) : refused }; }
+  catch (error) { console.error('Exterior Care change failed:', error instanceof Error ? error.message : error); if (error instanceof Error && /bookings_time_block/.test(error.message)) return { ok: false, message: hourlyPending }; return { ok: false, message: error instanceof Error && error.message.startsWith('!') ? error.message.slice(1) : refused }; }
 }
 /** A message meant for the person, not a database failure. */
 const say = (message: string): never => { throw new Error(`!${message}`); };
@@ -77,7 +78,7 @@ const money = (v: unknown, label: string) => {
   return Number.isFinite(n) && n >= 0 && n < 1e7 ? Math.round(n * 100) / 100 : say(`${label} must be a positive amount.`);
 };
 const day = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : say('Choose a valid date.');
-const block = (v: unknown) => timeBlocks.some(([id]) => id === v) ? v as string : say('Choose a time block.');
+const block = (v: unknown) => isValidBlock(v) ? v : say('Choose a start time between 8 AM and 8 PM, finishing by 10 PM, for 15 minutes to 8 hours.');
 
 async function log(client: Client, who: string, action: string, description: string, lead?: { id: string; name: string | null } | null, metadata: object = {}) {
   const { error } = await client.from('activity_log').insert({ operator: who, action, description, lead_id: lead?.id ?? null, lead_name: lead?.name ?? null, metadata });
@@ -192,6 +193,55 @@ export async function moveBooking(org: string, id: string, date: string, timeBlo
     const { data: lead } = await client.from('leads').select('id,name').eq('id', data.lead_id).maybeSingle();
     await log(client, who, 'booking_updated', `Updated booking for ${lead?.name ?? 'lead'} -> ${when} ${slot}`, lead, { date: when, timeBlock: slot });
     return { ok: true };
+  });
+}
+
+/**
+ * Edits a booked job: the customer's details (the same fields and rules as editing a lead) and, if it
+ * changed, the day and time. Everything is checked first so a clash does not leave half a change.
+ */
+export async function saveJob(org: string, bookingId: string, input: LeadInput, date: string, timeBlock: string): Promise<Done<{ moved: boolean }>> {
+  return guarded(org, async (client, who) => {
+    const when = day(date), slot = block(timeBlock), id = uuid(bookingId);
+    const { data: current } = await client.from('bookings').select('id,lead_id,date,time_block').eq('id', id).maybeSingle();
+    if (!current) say('That booking no longer exists.');
+    const moved = current!.date !== when || current!.time_block !== slot;
+    if (moved) {
+      const { data: taken } = await client.from('bookings').select('id,date,time_block,status').eq('date', when);
+      if (slotTaken(taken ?? [], when, slot, id)) say('That time is already booked. Choose another.');
+    }
+    const saved = await saveLead(org, { ...input, id: current!.lead_id as string });
+    if (!saved.ok) return saved;
+    if (moved) {
+      const { error } = await client.from('bookings').update({ date: when, time_block: slot, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) {
+        if (/bookings_time_block/.test(error.message)) say(`Details saved. ${hourlyPending}`);
+        throw new Error(error.message);
+      }
+      await log(client, who, 'booking_updated', `Updated booking for ${input.name.trim()} -> ${when} ${slot}`, { id: current!.lead_id as string, name: input.name.trim() }, { date: when, timeBlock: slot });
+    }
+    return { ok: true, moved };
+  });
+}
+
+export type JobItem = { id: string; lead_id: string; date: string; time_block: string; status: string | null; name: string; service: string | null; address: string | null; quote: number | null };
+
+/**
+ * Booked jobs for the calendars: from 45 days back, with the customer's name, service, address and quote.
+ * Members and owners only, through their own session (viewers get nothing, like the rest of Exterior Care).
+ */
+export async function loadJobs(org: string): Promise<JobItem[]> {
+  let client: Client;
+  try { ({ client } = await requireMember(org, true)); } catch { return []; }
+  const from = new Date(Date.now() - 45 * 86_400_000).toISOString().slice(0, 10);
+  const { data: bookings, error } = await client.from('bookings').select('id,lead_id,date,time_block,status').gte('date', from).order('date').limit(1500);
+  if (error || !bookings?.length) return [];
+  const ids = [...new Set(bookings.map(b => b.lead_id).filter(Boolean))] as string[];
+  const { data: leads } = await client.from('leads').select('id,name,service_requested,address,quote_amount').in('id', ids);
+  const byId = new Map((leads ?? []).map(l => [l.id as string, l]));
+  return bookings.filter(b => b.status !== 'denied' && b.status !== 'cancelled').map(b => {
+    const l = byId.get(b.lead_id as string);
+    return { id: b.id, lead_id: b.lead_id, date: b.date, time_block: b.time_block ?? '', status: b.status, name: l?.name || 'Customer', service: l?.service_requested ?? null, address: l?.address ?? null, quote: l?.quote_amount === null || l?.quote_amount === undefined ? null : Number(l.quote_amount) };
   });
 }
 
