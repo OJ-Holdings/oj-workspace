@@ -1,5 +1,7 @@
 -- OJ Workspace: hourly time slots for Exterior Care bookings.
 --
+-- Applied to the live project 2026-10-04 (supabase/applied/2026-10-04-exterior-any-time-bookings.sql).
+--
 -- The original Exterior Care app only allowed three time blocks on a booking
 -- ('9-12', '12-3', '4-6'), enforced by the check bookings_time_block_check.
 -- The workspace now books any start time and any length ('10-11', '4:30-9',

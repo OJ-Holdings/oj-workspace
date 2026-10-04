@@ -19,7 +19,7 @@ test('before the update the live table refuses any block but the three old ones'
 });
 
 test('the any-time update keeps old bookings, accepts every time the workspace can make, and still refuses nonsense', async () => {
-  for (const file of ['supabase/schemas/exterior-hourly-slots.sql', 'supabase/pending/2026-10-04-exterior-hourly-slots.sql']) {
+  for (const file of ['supabase/schemas/exterior-hourly-slots.sql', 'supabase/applied/2026-10-04-exterior-any-time-bookings.sql']) {
     const fresh = new PGlite();
     await legacyBookings(fresh);
     await fresh.exec(await readFile(new URL(`../${file}`, import.meta.url), 'utf8'));

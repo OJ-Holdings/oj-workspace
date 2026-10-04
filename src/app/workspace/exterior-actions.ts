@@ -55,7 +55,7 @@ export async function loadExterior(org: string): Promise<ExteriorResult> {
 // refuses (for example before the editing update has been applied) comes back
 // as a plain message rather than an error page.
 const refused = 'That did not save. If this keeps happening, the database update that allows editing (supabase/pending/RUN-ME-exterior-care-editing.sql) may not have been run yet.';
-const hourlyPending = 'Times other than 9 to 12, 12 to 3 and 4 to 6 need a one-time database update that has not been run yet (supabase/pending/2026-10-04-exterior-hourly-slots.sql). Until then only those three blocks can be booked.';
+const hourlyPending = 'Times other than 9 to 12, 12 to 3 and 4 to 6 need a one-time database update that has not been run yet (supabase/applied/2026-10-04-exterior-any-time-bookings.sql). Until then only those three blocks can be booked.';
 async function guarded<T extends object>(org: string, work: (client: Client, who: string) => Promise<Done<T>>): Promise<Done<T>> {
   let client: Client, who: string;
   try { const m = await requireMember(org, true); client = m.client; who = m.member.display_name.split(' ')[0] || 'Workspace'; }
