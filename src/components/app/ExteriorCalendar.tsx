@@ -35,8 +35,12 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
   const days = Array.from({ length: 42 }, (_, i) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i));
   const monthKey = dayKey(first).slice(0, 7);
   const monthJobs = [...byDay].filter(([k]) => k.startsWith(monthKey)).flatMap(([, list]) => list);
-  const monthValue = monthJobs.reduce((s, b) => s + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0);
+  // Booked value is the sum of the jobs' quotes. Quotes, not money in; a job without a quote adds nothing.
+  const quoted = (list: ExtBooking[]) => list.reduce((s, b) => s + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0);
+  const monthValue = quoted(monthJobs);
   const dayJobs = byDay.get(picked) ?? [];
+  const dayValue = quoted(dayJobs);
+  const unquoted = dayJobs.filter(b => lead.get(b.lead_id ?? '')?.quote_amount == null).length;
   const dot = { '--dot': 'var(--c-exterior)' } as CSSProperties;
 
   return <>
@@ -57,10 +61,13 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
       <div className="month panel" role="grid" aria-label="Exterior Care jobs by day">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="month-head" role="columnheader">{d}</div>)}
         {days.map(d => {
-          const k = dayKey(d), jobs = byDay.get(k) ?? [];
+          const k = dayKey(d), jobs = byDay.get(k) ?? [], value = quoted(jobs);
           return (
             <div key={k} role="gridcell" className={`month-day${d.getMonth() !== first.getMonth() ? ' is-other' : ''}${k === today ? ' is-today' : ''}${k === picked ? ' is-picked' : ''}`}>
-              <button className="month-num" aria-label={`${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}`} aria-pressed={k === picked} onClick={() => setPicked(k)}>{d.getDate()}</button>
+              <div className="month-top">
+                <button className="month-num" aria-label={`${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}${value ? `, ${dollars(value)} booked` : ''}`} aria-pressed={k === picked} onClick={() => setPicked(k)}>{d.getDate()}</button>
+                {value > 0 && <span className="month-value" aria-hidden="true" title="Booked on this day (quotes)">{dollars(value)}</span>}
+              </div>
               {jobs.slice(0, 3).map(b => { const l = lead.get(b.lead_id ?? ''); return (
                 <button key={b.id} className="month-item" style={dot} disabled={readOnly || !l} onClick={() => setEditing(b)} title={`${blockLabel(b.time_block)}: ${l?.name ?? 'Customer'}${l?.service_requested ? `, ${l.service_requested}` : ''}`}>{blockStartLabel(b.time_block)} {l?.name ?? 'Customer'}</button>
               ); })}
@@ -72,6 +79,7 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
       <aside className="calendar-side">
         <section className="panel">
           <header className="panel-head"><h2>{picked === today ? 'Today' : longDay(picked)}</h2></header>
+          {dayJobs.length > 0 && <p className="day-total"><strong><NumberFlow value={dayValue} format={usd} /></strong> booked across {dayJobs.length} {dayJobs.length === 1 ? 'job' : 'jobs'}{unquoted ? <small className="quiet">{unquoted} without a quote</small> : null}</p>}
           {dayJobs.length ? <ol className="job-day">{dayJobs.map(b => { const l = lead.get(b.lead_id ?? ''); return (
             <li key={b.id} style={dot}>
               <time>{blockLabel(b.time_block)}</time>
