@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-05 22:00 UTC -- Claude Code, for Oscar (iPhone calendar link now includes Exterior Care jobs)
+**Summary:** Oscar asked for Exterior Care bookings in the iPhone calendar subscription. New desired-state file supabase/schemas/exterior-calendar-feed.sql replaces public.oj_calendar_feed (same signature, same two existing parts) with a third part: bookings except denied, from 60 days back, each at its booked time in America/Chicago (12-hour block rules match parseBlock), titled "Customer / Service", address as location, quote, phone and "Waiting for approval" in the notes. Only owners' and members' links get jobs (customer details); viewers' links do not, matching exterior-read.sql. Unreadable time blocks become all-day events.
+**Database (applied with Oscar's OK, 2026-10-05):** migration exterior_calendar_feed, recorded in supabase/applied/2026-10-05-exterior-calendar-feed.sql. Read only, no table changes. To undo, re-run the oj_calendar_feed definition in dashboard.sql.
+**Files:** supabase/schemas/exterior-calendar-feed.sql, supabase/applied/2026-10-05-exterior-calendar-feed.sql, tests/exterior-calendar-feed.test.ts.
+**Verified:** new PGlite test (owner link: Kenosha times, denied and old jobs left out, notes, missing lead; viewer link: no jobs; bad tokens: nothing; ICS output). Before applying, the jobs part ran read-only against live data and matched the calendar screen (Oct 6 9-12, 12-3, 4-6; Oct 7 12-3). After applying, the live feed on Netlify still returns a valid calendar (200, text/calendar). Not verified: the iPhone itself showing the jobs (needs Oscar's link).
+**Notes:** the server keeps only a hash of each calendar link, so nobody can read a link back; a new one comes from Calendar, "Create my private link", on the Netlify site. A link created on a PC-hosted copy points at the PC and fails on the phone with "validation failed".
+
 ## 2026-10-05 21:10 UTC -- Claude Code, for Oscar (Calendar: booked total per day)
 **Summary:** Oscar asked for the Exterior Care calendar to show how much is booked on each day. Each day cell now shows the sum of that day's job quotes next to the date (under it on a phone), and the side panel for the picked day opens with "$1,300 booked across 3 jobs", plus "N without a quote" when a job has no quote. Same source as "Quoted this month": quotes, not money in; a job without a quote adds nothing. Denied bookings stay excluded as before.
 **Files:** src/components/app/ExteriorCalendar.tsx, src/styles/views.css.
