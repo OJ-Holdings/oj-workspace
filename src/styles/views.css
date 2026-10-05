@@ -72,6 +72,12 @@
 .month-day:nth-child(7n) { border-right: 0; }
 .month-day.is-other { background: var(--bg-2); }
 .month-day.is-other .month-num { color: var(--ink-4); }
+.month-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-wrap: wrap; }
+.month-value { font-size: var(--t-xs); font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; padding-right: 4px; white-space: nowrap; }
+.is-other .month-value { opacity: .55; }
+.day-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 12px; color: var(--ink-3); font-size: var(--t-sm); }
+.day-total strong { font-size: 1.35em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.day-total small { flex-basis: 100%; }
 .month-num { align-self: flex-start; min-width: 28px; height: 28px; border-radius: 50%; font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .month-num:hover:not(:disabled) { background: var(--accent-soft); }
 .is-today .month-num { background: var(--accent); color: var(--accent-ink); }
