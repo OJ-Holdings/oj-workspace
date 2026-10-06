@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-05 23:00 UTC -- Claude Code, for Oscar (Calendar link: https instead of webcals)
+**Summary:** Oscar's iPhone said "validation failed" on the calendar link. The workspace built the link by turning https into webcals://, which the iPhone "Add Subscribed Calendar" box rejects. The link is now plain https://ojworkspace.netlify.app/api/calendar/<token>.ics, with a note saying so. The feed itself was already fine.
+**Files:** src/components/app/Pages.tsx.
+**Verified:** typecheck; npm test 121 passing. Not verified on the iPhone itself.
+**Notes:** old links already created still work if the https:// scheme is typed in place of webcals://; the token part is unchanged.
+
 ## 2026-10-05 21:10 UTC -- Claude Code, for Oscar (Calendar: booked total per day)
 **Summary:** Oscar asked for the Exterior Care calendar to show how much is booked on each day. Each day cell now shows the sum of that day's job quotes next to the date (under it on a phone), and the side panel for the picked day opens with "$1,300 booked across 3 jobs", plus "N without a quote" when a job has no quote. Same source as "Quoted this month": quotes, not money in; a job without a quote adds nothing. Denied bookings stay excluded as before.
 **Files:** src/components/app/ExteriorCalendar.tsx, src/styles/views.css.

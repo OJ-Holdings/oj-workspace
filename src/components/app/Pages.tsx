@@ -281,11 +281,11 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
             : <div className="empty"><p><b>Nothing scheduled.</b> Add an event, or give a task a due date.</p></div>}
         </section>
         <section className="panel"><header className="panel-head"><h2>On your iPhone</h2></header>
-          <p className="quiet">Create a private link, then on your iPhone open Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar, and paste it. Events and task due dates show up in your Calendar app and refresh on their own. The phone can read this calendar but not change it.</p>
+          <p className="quiet">Create a private link, then on your iPhone open Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar, and paste it. (The link starts with https://; the iPhone box rejects webcals://.) Events and task due dates show up in your Calendar app and refresh on their own. The phone can read this calendar but not change it.</p>
           {link ? <>
             <label className="linkbox">Your private link<input readOnly value={link} onFocus={e => e.currentTarget.select()} /></label>
             <p className="quiet">Anyone with this link can read the calendar, so keep it to yourself. Creating a new link switches the old one off.</p>
-          </> : <button className="secondary" onClick={async () => { try { setLinkError(''); setLink(`${window.location.origin.replace(/^http/, 'webcal')}${await store.calendarLink()}.ics`); } catch (e) { setLinkError(e instanceof Error ? e.message : 'Could not create the link.'); } }}>Create my private link</button>}
+          </> : <button className="secondary" onClick={async () => { try { setLinkError(''); setLink(`${window.location.origin}${await store.calendarLink()}.ics`); } catch (e) { setLinkError(e instanceof Error ? e.message : 'Could not create the link.'); } }}>Create my private link</button>}
           {linkError && <p className="error-text">{linkError}</p>}
         </section>
       </aside>
