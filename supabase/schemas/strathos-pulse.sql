@@ -1,12 +1,33 @@
 -- Desired additive schema, after workspace.sql and dashboard.sql (presence.sql is optional: see below).
--- A read-only summary of the workspace for the owner's private STRATHOS dashboard. It uses the SAME private link
--- token as the calendar subscription (only the SHA-256 is stored), so it stops working the moment the member is
--- removed or the link is regenerated, and it needs no service key.
+-- A read-only summary of the workspace for the owner's private STRATHOS dashboard.
 --
--- Returned: money logged (category and amount only, no notes), open leads by stage, open tasks and what is due soon,
--- and each member's connection state with the status line they chose to write. It never returns messages, documents,
--- lead names or contact details, task descriptions, or anything a member did not choose to share with the team.
+-- Its OWN credential, deliberately not the calendar link: the calendar link is meant to sit on phones and be
+-- shared around, and shows event titles. This one shows money and presence, so it is a separate 256-bit token
+-- (only its SHA-256 is stored), minted by a workspace OWNER, one per workspace. Minting a new one replaces the old.
+-- It stops working at once if that owner is removed or is no longer an owner.
+--
+-- Returned: money logged (category and amount only, no notes), open leads by stage, open tasks and what is due
+-- soon, and each member's connection state with the status line they chose to write. Never returned: messages,
+-- documents, lead names or contacts, task descriptions, or any note field.
 -- Presence is read only if presence.sql has been applied; otherwise members report offline.
+create table oj_private.pulse_feeds (
+  organization_id uuid primary key references public.oj_organizations(id),
+  token_hash text not null unique check (token_hash ~ '^[a-f0-9]{64}$'),
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now()
+);
+alter table oj_private.pulse_feeds enable row level security;
+revoke all on oj_private.pulse_feeds from public, anon, authenticated;
+
+create function public.oj_set_pulse_feed(org uuid, digest text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or oj_private.member_role(org) is distinct from 'owner' then raise exception 'Workspace owner required'; end if;
+  if digest is null or digest !~ '^[a-f0-9]{64}$' then raise exception 'Invalid link'; end if;
+  insert into oj_private.pulse_feeds(organization_id, token_hash, created_by) values (org, digest, auth.uid())
+  on conflict (organization_id) do update set token_hash = excluded.token_hash, created_by = excluded.created_by, created_at = now();
+end $$;
+
 create function public.oj_pulse(token text) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -19,10 +40,10 @@ declare
   org_name text;
 begin
   if token is null or token !~ '^[a-f0-9]{64}$' then return null; end if;
-  select cf.organization_id, cf.user_id into f
-  from oj_private.calendar_feeds cf
-  join public.oj_memberships m on m.organization_id = cf.organization_id and m.user_id = cf.user_id
-  where cf.token_hash = encode(sha256(convert_to(token, 'UTF8')), 'hex');
+  select pf.organization_id, pf.created_by as user_id into f
+  from oj_private.pulse_feeds pf
+  join public.oj_memberships m on m.organization_id = pf.organization_id and m.user_id = pf.created_by and m.role = 'owner'
+  where pf.token_hash = encode(sha256(convert_to(token, 'UTF8')), 'hex');
   if not found then return null; end if;
 
   select name into org_name from public.oj_organizations where id = f.organization_id;
@@ -89,5 +110,7 @@ begin
     'tasks', jsonb_build_object('open', open_tasks, 'dueSoon', due)
   );
 end $$;
-revoke all on function public.oj_pulse(text) from public, anon;
+
+revoke all on function public.oj_set_pulse_feed(uuid, text), public.oj_pulse(text) from public, anon;
+grant execute on function public.oj_set_pulse_feed(uuid, text) to authenticated;
 grant execute on function public.oj_pulse(text) to anon, authenticated;

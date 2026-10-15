@@ -37,7 +37,9 @@ const digest = (token: string) => createHash('sha256').update(token).digest('hex
 test('pulse feed: token-gated summary of money, leads, tasks and presence', async t => {
   const { db, org, oscar, jacob, stranger, as } = await setup(true);
   const token = 'c'.repeat(64);
-  await as(oscar); await db.exec(`select public.oj_set_calendar_feed('${org}','${digest(token)}')`);
+  await as(jacob);
+  await assert.rejects(() => db.exec(`select public.oj_set_pulse_feed('${org}','${digest('9'.repeat(64))}')`), /owner required/i);
+  await as(oscar); await db.exec(`select public.oj_set_pulse_feed('${org}','${digest(token)}')`);
   await db.exec(`insert into public.oj_finance_entries(organization_id,venture,kind,amount,occurred_on,category,note) values
     ('${org}','exterior','revenue',400,current_date,'House wash','Private: customer owes more'),
     ('${org}','exterior','cost',60,current_date - 2,'Chemicals',''),
@@ -79,6 +81,22 @@ test('pulse feed: token-gated summary of money, leads, tasks and presence', asyn
     const text = JSON.stringify(await get(token));
     for (const secret of ['customer owes more', 'Henderson\'s', 'Mrs Henderson', '555-0100', 'Private details']) assert.equal(text.includes(secret), false, secret);
   });
+  await t.test('the calendar link does not open the summary', async () => {
+    await as(oscar);
+    await db.exec(`select public.oj_set_calendar_feed('${org}','${digest('1'.repeat(64))}')`);
+    await as('', 'anon');
+    assert.equal(await get('1'.repeat(64)), null);
+  });
+  await t.test('making a new link cancels the old one', async () => {
+    await as(oscar);
+    await db.exec(`select public.oj_set_pulse_feed('${org}','${digest('2'.repeat(64))}')`);
+    await as('', 'anon');
+    assert.equal(await get(token), null);
+    assert.ok(await get('2'.repeat(64)));
+    await as(oscar);
+    await db.exec(`select public.oj_set_pulse_feed('${org}','${digest(token)}')`);
+    await as('', 'anon');
+  });
   await t.test('unknown, malformed and null tokens return nothing', async () => {
     assert.equal(await get('d'.repeat(64)), null);
     assert.equal(await get('not-a-token'), null);
@@ -86,7 +104,13 @@ test('pulse feed: token-gated summary of money, leads, tasks and presence', asyn
   });
   await t.test('a stranger organisation never sees this workspace, and the link dies with membership', async () => {
     await as(stranger);
-    await assert.rejects(() => db.exec(`select public.oj_set_calendar_feed('${org}','${digest('e'.repeat(64))}')`));
+    await assert.rejects(() => db.exec(`select public.oj_set_pulse_feed('${org}','${digest('e'.repeat(64))}')`));
+    await db.exec(`reset role; update public.oj_memberships set role='member' where user_id='${oscar}'`);
+    await as('', 'anon');
+    assert.equal(await get(token), null, 'no longer an owner');
+    await db.exec(`reset role; update public.oj_memberships set role='owner' where user_id='${oscar}'`);
+    await as('', 'anon');
+    assert.ok(await get(token));
     await db.exec(`reset role; delete from public.oj_memberships where user_id='${oscar}'`);
     await as('', 'anon');
     assert.equal(await get(token), null);
@@ -101,7 +125,7 @@ test('pulse feed: token-gated summary of money, leads, tasks and presence', asyn
 test('pulse feed works before presence.sql is applied: members report offline', async () => {
   const { db, org, oscar, as } = await setup(false);
   const token = 'f'.repeat(64);
-  await as(oscar); await db.exec(`select public.oj_set_calendar_feed('${org}','${digest(token)}')`);
+  await as(oscar); await db.exec(`select public.oj_set_pulse_feed('${org}','${digest(token)}')`);
   await as('', 'anon');
   const p = (await db.query<{ p: Pulse }>(`select public.oj_pulse('${token}') as p`)).rows[0].p;
   assert.deepEqual(p.members.map(m => m.state), ['offline', 'offline']);
