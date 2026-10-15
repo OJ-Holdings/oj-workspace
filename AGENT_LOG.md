@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-15 12:00 UTC -- Claude Code, for Oscar (Read-only summary feed for his STRATHOS dashboard)
+**Summary:** Adds public.oj_pulse(token), a read-only JSON summary behind GET /api/pulse/<token>, using the same private link token as the calendar subscription. It returns money logged (amount and category only), open leads by stage, open tasks and what is due soon, and each member's connection state plus the status line they chose to write. It never returns messages, documents, lead names or contacts, task descriptions or note fields. Oscar's private STRATHOS dashboard reads it; nothing from STRATHOS is imported here.
+**Files:** supabase/schemas/strathos-pulse.sql, src/app/api/pulse/[token]/route.ts, tests/strathos-pulse.test.ts.
+**Verified:** typecheck; PGlite test: valid token returns the shape, private fields absent, unknown/malformed/null tokens return nothing, link dies when membership is removed, link table stays unreadable, works without presence tables (members report offline). Not applied to the live project. Not deployed.
+**Notes:** DATABASE CHANGE, needs a human's OK before it is applied to the live project; additive only (one function). Jacob's online state needs presence.sql, which is still uncommitted in the Codex working tree and not applied; until it is, members show offline. The function reads those tables only if they exist, so it can be applied first. The feed is in the same trust class as the calendar link: anyone holding the token can read the summary, so treat the link as private and regenerate it if shared.
+
+---
+
 ## 2026-10-05 23:00 UTC -- Claude Code, for Oscar (Calendar link: https instead of webcals)
 **Summary:** Oscar's iPhone said "validation failed" on the calendar link. The workspace built the link by turning https into webcals://, which the iPhone "Add Subscribed Calendar" box rejects. The link is now plain https://ojworkspace.netlify.app/api/calendar/<token>.ics, with a note saying so. The feed itself was already fine.
 **Files:** src/components/app/Pages.tsx.
