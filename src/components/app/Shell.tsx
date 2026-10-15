@@ -29,12 +29,14 @@ type Props = {
   base: string; current: NavKey; venture: VentureId | null; mode: 'preview' | 'live';
   members: string[]; displayName: string; owner: boolean; readOnly: boolean;
   openTasks: number; cards: Card[]; activity: Activity[]; status: string;
+  /** The work timer, shown in the top bar on every page. */
+  timer?: ReactNode;
   onOpenCard: (card: Card) => void; onNewCard: () => void; children: ReactNode;
 };
 
 const actionWord = { card_created: 'created', card_updated: 'updated', comment_added: 'commented on' } as const;
 
-export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, onOpenCard, onNewCard, children }: Props) {
+export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children }: Props) {
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
@@ -114,6 +116,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
             <Search size={16} aria-hidden="true" /><span>Search anything</span><kbd>Ctrl K</kbd>
           </button>
           <div className="topbar-right">
+            {timer}
             <div className="bell-wrap">
               <button className="icon-button" aria-label={`Recent activity, ${activity.length} updates`} aria-expanded={bell} onClick={() => setBell(v => !v)}>
                 <Bell size={18} />{activity.length > 0 && <i className="bell-dot" aria-hidden="true" />}

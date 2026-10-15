@@ -11,6 +11,7 @@ export function LiveWorkspace({ organizationId, initial, connections }: { organi
   const [available, setAvailable] = useState(true);
   const [ended, setEnded] = useState(false);
   const hasDashboard = snapshot.dashboard !== null;
+  const hasWork = snapshot.work !== null;
   useEffect(() => {
     let disposed = false, busy = false, queued = false, pushConnected = false;
     const controller = new AbortController();
@@ -49,6 +50,10 @@ export function LiveWorkspace({ organizationId, initial, connections }: { organi
       }
       extra.subscribe();
     }
+    // Work sessions likewise: only once the leaderboard's table exists, and only for partners (viewers get no figures).
+    const work = hasWork ? client.channel(`oj-work:${organizationId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oj_work_sessions', filter: `organization_id=eq.${organizationId}` }, () => { void refresh(); })
+      .subscribe() : null;
     const auth = client.auth.onAuthStateChange(event => {
       if (event === 'SIGNED_OUT' && !disposed) { setEnded(true); window.location.replace('/login'); }
     });
@@ -57,8 +62,8 @@ export function LiveWorkspace({ organizationId, initial, connections }: { organi
     const onOffline = () => { setAvailable(false); setStatus('You are offline. Editing paused; reconnecting…'); };
     window.addEventListener('offline', onOffline); window.addEventListener('online', onFocus);
     window.addEventListener('focus', onFocus); document.addEventListener('visibilitychange', onFocus); void refresh();
-    return () => { disposed = true; controller.abort(); window.clearInterval(timer); window.removeEventListener('offline', onOffline); window.removeEventListener('online', onFocus); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); auth.data.subscription.unsubscribe(); void client.removeChannel(channel); if (extra) void client.removeChannel(extra); };
-  }, [organizationId, hasDashboard]);
+    return () => { disposed = true; controller.abort(); window.clearInterval(timer); window.removeEventListener('offline', onOffline); window.removeEventListener('online', onFocus); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); auth.data.subscription.unsubscribe(); void client.removeChannel(channel); if (extra) void client.removeChannel(extra); if (work) void client.removeChannel(work); };
+  }, [organizationId, hasDashboard, hasWork]);
   if (ended) return <main className="entry"><div className="entry-card"><h1>Workspace access ended.</h1><p>Returning to sign in…</p></div></main>;
-  return <App base="/workspace" dashboard={snapshot.dashboard} connections={connections} mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={status} limited={snapshot.limited} />;
+  return <App base="/workspace" dashboard={snapshot.dashboard} work={snapshot.work} partner={snapshot.role !== 'viewer'} connections={connections} mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={status} limited={snapshot.limited} />;
 }

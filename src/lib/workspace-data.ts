@@ -3,6 +3,7 @@ import { requireMember } from '@/lib/supabase';
 import type { Card, Comment, Activity, WorkspaceSnapshot } from '@/lib/board';
 import type { Dashboard } from '@/lib/dashboard';
 import { addExternalFigures } from '@/lib/external';
+import { loadWork } from '@/lib/work-data';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
 
@@ -33,7 +34,7 @@ async function loadDashboard(client: Client, org: string, names: Map<string, str
 }
 
 export async function loadWorkspace(org: string): Promise<WorkspaceSnapshot> {
-  const { client, member } = await requireMember(org);
+  const { client, member, user } = await requireMember(org);
   const [cards, comments, members, activity] = await Promise.all([
     client.from('oj_cards').select('*').eq('organization_id', org).order('created_at').limit(1000),
     client.from('oj_comments').select('*').eq('organization_id', org).order('created_at', { ascending: false }).limit(1000),
@@ -42,11 +43,16 @@ export async function loadWorkspace(org: string): Promise<WorkspaceSnapshot> {
   ]);
   if (cards.error || comments.error || members.error || activity.error) throw new Error('Could not load the workspace.');
   const names = new Map((members.data || []).map(m => [m.user_id, m.display_name]));
-  const dashboard = await loadDashboard(client, org, names);
+  const [dashboard, work] = await Promise.all([
+    loadDashboard(client, org, names),
+    // Sessions and scores are for the partners; viewers get neither.
+    member.role === 'viewer' ? null : loadWork(client, org, user.id),
+  ]);
   return {
     members: [...names.values()], role: member.role as WorkspaceSnapshot['role'], displayName: member.display_name,
     limited: (cards.data?.length || 0) >= 1000 || (comments.data?.length || 0) >= 1000,
     dashboard: dashboard && await addExternalFigures(client, dashboard),
+    work,
     data: {
       cards: (cards.data || []).map(c => ({ ...c, due_date: c.due_date || '' })) as Card[],
       comments: (comments.data || []).reverse().map(c => ({ ...c, author: names.get(c.author_id) || 'Former member' })) as Comment[],

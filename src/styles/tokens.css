@@ -28,6 +28,10 @@
   --watch: #f6b94c;
   --bad: #ff6f6f;
 
+  /* Leading the weekly leaderboard: the crown and the leader's card. */
+  --win: #f5c451;
+  --win-soft: rgba(245, 196, 81, 0.14);
+
   /* One colour per business, used wherever all three appear together. */
   --c-exterior: #ff8a1f;
   --c-solutions: #dc9d84;
