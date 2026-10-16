@@ -7,6 +7,7 @@ import { recount, sampleWork } from '@/lib/sample-work';
 
 const PREVIEW_KEY = 'oj-workspace-preview-work-v1';
 const RETRY_MS = 60_000;
+const DUE_TITLE = 'Still working? - OJ Workspace';
 
 /**
  * The work timer and the leaderboard's figures. Live: the figures arrive with
@@ -23,9 +24,12 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
   // null until the page is running in the browser, so nothing time-based is rendered on the server.
   const [now, setNow] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
+  // A notice that a timer ended (or an error) stays until dismissed; anything else fades.
+  const [noticeSticky, setNoticeSticky] = useState(false);
   const [pending, startTransition] = useTransition();
   const nextClose = useRef(new Map<string, number>());
-  const clearNotice = useCallback(() => setNotice(''), []);
+  const clearNotice = useCallback(() => { setNotice(''); setNoticeSticky(false); }, []);
+  const titleBefore = useRef<string | null>(null);
 
   // A newer workspace load replaces the figures; an older one never overwrites an action's fresher result.
   useEffect(() => {
@@ -70,22 +74,22 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
   const apply = (r: WorkResult) => {
     const fresh = r.work;
     if (fresh) setData(d => !d || fresh.asOf >= d.asOf ? fresh : d);
-    setNotice(r.notice);
+    setNotice(r.notice); setNoticeSticky(!r.ok || !!r.sticky);
     return r;
   };
-  const run = (live: () => Promise<WorkResult>, preview: (d: WorkData, t: number) => { data: WorkData; ok: boolean; notice: string }, done?: (r: WorkResult) => void) => {
+  const run = (live: () => Promise<WorkResult>, preview: (d: WorkData, t: number) => { data: WorkData; ok: boolean; notice: string; sticky?: boolean }, done?: (r: WorkResult) => void) => {
     if (!canWrite) return;
     startTransition(async () => {
       try {
         let r: WorkResult;
         if (mode === 'preview') {
           const out = preview(data!, Date.now());
-          r = { ok: out.ok, notice: out.notice, work: out.ok ? recount(out.data, Date.now()) : null };
+          r = { ok: out.ok, notice: out.notice, sticky: out.sticky, work: out.ok ? recount(out.data, Date.now()) : null };
         } else r = await live();
         apply(r); done?.(r);
       } catch {
         const r = { ok: false, notice: 'Something went wrong. Check your connection and try again.', work: null };
-        setNotice(r.notice); done?.(r);
+        setNotice(r.notice); setNoticeSticky(true); done?.(r);
       }
     });
   };
@@ -103,19 +107,24 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
     stale.forEach(s => nextClose.current.set(s.id, now + RETRY_MS));
     const ownStale = stale.find(s => s.user_id === data.me);
     const said = ownStale ? `Your timer ended at ${new Date(ownStale.last_checkin_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}, your last check-in, because "Still working?" went unanswered.` : '';
-    run(() => closeIdleWork(org).then(r => ({ ...r, notice: said || r.notice })), (d, t) => ({ data: endIdle(d, t), ok: true, notice: said }));
+    run(() => closeIdleWork(org).then(r => ({ ...r, notice: said || r.notice, sticky: !!said })), (d, t) => ({ data: endIdle(d, t), ok: true, notice: said, sticky: !!said }));
   }, [now, data, canWrite]);
 
-  // While "Still working?" waits for an answer, the browser tab says so too.
+  // While "Still working?" waits for an answer, the browser tab says so too. Set again on every tick,
+  // because Next.js can write the page title after this runs.
   useEffect(() => {
-    if (phase !== 'due') return;
-    const before = document.title;
-    document.title = 'Still working? - OJ Workspace';
-    return () => { document.title = before; };
-  }, [phase]);
+    if (phase === 'due') {
+      if (titleBefore.current === null) titleBefore.current = document.title;
+      if (document.title !== DUE_TITLE) document.title = DUE_TITLE;
+    } else if (titleBefore.current !== null) {
+      document.title = titleBefore.current;
+      titleBefore.current = null;
+    }
+  }, [phase, now]);
+  useEffect(() => () => { if (titleBefore.current !== null) document.title = titleBefore.current; }, []);
 
   return {
-    mode, data, now, notice, pending, phase, mine, checkin: state,
+    mode, data, now, notice, noticeSticky, pending, phase, mine, checkin: state,
     /** The timer and leaderboard can be shown. */
     available: partner && !!data,
     /** A partner on the live workspace, but the leaderboard's database update is not applied yet. */
@@ -128,13 +137,14 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
       return { ok: true, notice: 'Timer started.', data: { ...d, sessions: [{ id: crypto.randomUUID(), user_id: d.me, business, started_at: at, last_checkin_at: at, ended_at: null, ended_reason: null, note: '' }, ...d.sessions] } };
     }),
     checkIn: () => { if (mine) run(() => checkInWork(org, mine.id), (d, t) => checkinState(mine, t).phase === 'expired'
-      ? { data: endIdle(d, t), ok: true, notice: 'The check-in was missed, so your timer ended at your last check-in.' }
+      ? { data: endIdle(d, t), ok: true, notice: 'The check-in was missed, so your timer ended at your last check-in.', sticky: true }
       : { data: replace(d, mine.id, { last_checkin_at: new Date(t).toISOString() }), ok: true, notice: 'Checked in. The timer keeps running.' }); },
     stop: (how: 'manual' | 'idle') => { if (mine) run(() => stopWork(org, mine.id, how), (d, t) => {
       const missed = checkinState(mine, t).phase === 'expired';
       if (how === 'idle' && checkinState(mine, t).phase === 'ok') return { data: d, ok: false, notice: 'A check-in is not due yet.' };
-      return missed || how === 'idle'
-        ? { data: replace(d, mine.id, { ended_at: mine.last_checkin_at, ended_reason: 'idle' }), ok: true, notice: 'Timer ended at your last check-in.' }
+      const idle = { data: replace(d, mine.id, { ended_at: mine.last_checkin_at, ended_reason: 'idle' }), ok: true };
+      return missed ? { ...idle, notice: 'The check-in was missed, so the timer ended at your last check-in.', sticky: true }
+        : how === 'idle' ? { ...idle, notice: 'Timer ended at your last check-in.' }
         : { data: replace(d, mine.id, { ended_at: new Date(t).toISOString(), ended_reason: 'manual' }), ok: true, notice: 'Timer stopped.' };
     }); },
     edit: (edit: SessionEdit, done: (r: WorkResult) => void) => run(() => editWorkSession(org, edit), (d, t) => {

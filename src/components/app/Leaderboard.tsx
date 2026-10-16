@@ -150,7 +150,7 @@ function Detail({ view, work, cards, onClose }: { view: LeaderboardView; work: W
         const counted = row?.task_ids ?? [];
         return (
           <section key={partner.id} className="lb-detail-person">
-            <h3>{partner.name}{partner.id === data.me && <small> (you)</small>}<span>{points(live?.points ?? row?.points ?? 0)}{row?.won && <Crown size={15} aria-label="Won this week" className="lb-last-crown" />}</span></h3>
+            <h3><span>{partner.name}{partner.id === data.me && <small> (you)</small>}</span><span>{points(live?.points ?? row?.points ?? 0)}{row?.won && <Crown size={15} aria-label="Won this week" className="lb-last-crown" />}</span></h3>
             {sessions.length === 0 && <p className="quiet">No timed sessions this week.</p>}
             <ul className="lb-sessions">
               {sessions.map(s => {

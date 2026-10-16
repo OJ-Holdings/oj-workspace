@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, X } from 'lucide-react';
 import { clock, workBusinessColor, workBusinessLabel, workBusinesses } from '@/lib/work';
 import type { WorkStore } from './useWork';
 
@@ -11,7 +11,7 @@ const time = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { hour: 'n
 export function WorkTimer({ work }: { work: WorkStore }) {
   const [picking, setPicking] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const { mine, now, notice } = work;
+  const { mine, now, notice, noticeSticky } = work;
 
   // The business menu closes on a click elsewhere or Escape.
   useEffect(() => {
@@ -21,7 +21,11 @@ export function WorkTimer({ work }: { work: WorkStore }) {
     document.addEventListener('mousedown', away); document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
   }, [picking]);
-  useEffect(() => { if (!notice) return; const id = window.setTimeout(work.clearNotice, 6000); return () => window.clearTimeout(id); }, [notice, work.clearNotice]);
+  useEffect(() => {
+    if (!notice || noticeSticky) return;
+    const id = window.setTimeout(work.clearNotice, 8000);
+    return () => window.clearTimeout(id);
+  }, [notice, noticeSticky, work.clearNotice]);
 
   if (!work.available) return null;
   const locked = !work.canWrite || work.pending;
@@ -50,7 +54,12 @@ export function WorkTimer({ work }: { work: WorkStore }) {
           ))}
         </div>
       )}
-      {notice && <p className="timer-notice" role="status">{notice}</p>}
+      {notice && (
+        <div className="timer-notice" role="status">
+          <p>{notice}</p>
+          <button className="icon-button" aria-label="Dismiss" onClick={work.clearNotice}><X size={15} /></button>
+        </div>
+      )}
       <StillWorking work={work} />
     </div>
   );

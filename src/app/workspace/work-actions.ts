@@ -11,7 +11,8 @@ import { editProblem, isWorkBusiness, type SessionEdit, type WorkData } from '@/
 // supabase/schemas/work-leaderboard.sql). Each action returns the fresh
 // figures, so the screen does not wait for the next workspace load.
 
-export type WorkResult = { ok: boolean; notice: string; work: WorkData | null };
+/** `sticky`: the notice reports a timer ending at its last check-in, so it stays until dismissed. */
+export type WorkResult = { ok: boolean; notice: string; sticky?: boolean; work: WorkData | null };
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 // Refusals the database words for people; anything else becomes a generic message.
@@ -27,8 +28,8 @@ async function asPartner(org: string) {
   return requireMember(org, true);
 }
 type Partner = Awaited<ReturnType<typeof asPartner>>;
-const reply = async ({ client, user }: Partner, org: string, ok: boolean, notice: string): Promise<WorkResult> =>
-  ({ ok, notice, work: await loadWork(client, org, user.id) });
+const reply = async ({ client, user }: Partner, org: string, ok: boolean, notice: string, sticky = false): Promise<WorkResult> =>
+  ({ ok, notice, sticky, work: await loadWork(client, org, user.id) });
 
 export async function startWork(org: string, business: string): Promise<WorkResult> {
   const partner = await asPartner(org);
@@ -49,7 +50,7 @@ export async function checkInWork(org: string, sessionId: string): Promise<WorkR
     .eq('id', sessionId).eq('organization_id', org).eq('user_id', partner.user.id).is('ended_at', null).select('id');
   if (error && refusal(error.message, '') === plainRefusals[0]) {
     await partner.client.rpc('oj_close_idle_work', { org });
-    return reply(partner, org, false, 'The check-in was missed, so your timer ended at your last check-in.');
+    return reply(partner, org, false, 'The check-in was missed, so your timer ended at your last check-in.', true);
   }
   if (error) return reply(partner, org, false, 'Could not check in. Check your connection and try again.');
   if (!data?.length) return reply(partner, org, false, 'That timer had already stopped.');
@@ -65,7 +66,7 @@ export async function stopWork(org: string, sessionId: string, how: 'manual' | '
     .eq('id', sessionId).eq('organization_id', org).eq('user_id', partner.user.id).is('ended_at', null).select('ended_reason');
   if (error) return reply(partner, org, false, 'Could not stop the timer. Check your connection and try again.');
   if (!data?.length) return reply(partner, org, false, 'That timer had already stopped.');
-  if (how === 'manual' && data[0].ended_reason === 'idle') return reply(partner, org, true, 'The check-in was missed, so the timer ended at your last check-in.');
+  if (how === 'manual' && data[0].ended_reason === 'idle') return reply(partner, org, true, 'The check-in was missed, so the timer ended at your last check-in.', true);
   return reply(partner, org, true, how === 'idle' ? 'Timer ended at your last check-in.' : 'Timer stopped.');
 }
 
