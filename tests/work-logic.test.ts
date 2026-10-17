@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ventureList } from '../src/lib/ventures';
 import {
-  checkinState, clock, editProblem, hoursMinutes, leaderboardView, liveSeconds, scoreFrom, weekLabel, workBusinesses,
+  checkinState, clock, editableFrom, editProblem, hoursMinutes, leaderboardView, liveSeconds, scoreFrom, weekLabel, workBusinesses,
   type WeekScore, type WorkData, type WorkSession,
 } from '../src/lib/work';
 import { previewMe, recount, sampleWork } from '../src/lib/sample-work';
@@ -152,6 +152,12 @@ test('an edit is checked the way the database checks it', () => {
   assert.match(editProblem({ ...ok, started_at: '2026-10-13T15:00:00Z' }, now)!, /24 hours/);
   assert.match(editProblem({ ...ok, business: 'unknown' as never }, now)!, /what the time was for/);
   assert.match(editProblem({ ...ok, started_at: 'nonsense' }, now)!, /valid/);
+  // Only from the start of last week (Monday 00:00 Central), as the database allows.
+  assert.equal(editableFrom(now), Date.parse('2026-10-05T05:00:00Z'));
+  assert.equal(editableFrom(Date.parse('2026-11-03T12:00:00Z')), Date.parse('2026-10-26T05:00:00Z'), 'last week began before the clocks went back');
+  assert.match(editProblem({ ...ok, started_at: '2026-10-05T04:59:00Z', ended_at: '2026-10-05T06:00:00Z' }, now)!, /last week's/);
+  assert.equal(editProblem({ ...ok, started_at: '2026-10-05T05:00:00Z', ended_at: '2026-10-05T06:00:00Z' }, now), null);
+  assert.match(editProblem({ ...ok, started_at: '2016-10-14T14:00:00Z', ended_at: '2016-10-14T16:00:00Z' }, now)!, /last week's/);
 });
 
 test('the sample workspace is fictional, consistent, and changes only in the browser', () => {

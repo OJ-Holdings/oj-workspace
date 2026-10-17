@@ -11,11 +11,14 @@ const oscar = '00000000-0000-4000-8000-000000000011';
 const jacob = '00000000-0000-4000-8000-000000000012';
 const viewer = '00000000-0000-4000-8000-000000000013';
 const outsider = '00000000-0000-4000-8000-000000000014';
+/** A card already in Done before the leaderboard existed: when and by whom it was finished is unknown. */
+const doneBefore = '00000000-0000-4000-8000-000000000031';
+const HOUR = 3_600_000;
 const schema = (file: string) => readFile(new URL(`../supabase/schemas/${file}`, import.meta.url), 'utf8');
 
 type Row = { week_start: string; starts_at: Date; ends_at: Date; user_id: string; worked_seconds: number; hours: string; tasks: number; task_ids: string[]; points: string; by_business: Record<string, number>; won: boolean };
 
-/** The workspace schema plus the leaderboard, with Oscar (owner) and Jacob (member) as partners. */
+/** The workspace schema plus the leaderboard, with Oscar (owner) and Jacob (member) as partners, applied over one card already in Done. */
 async function setup() {
   const db = new PGlite();
   await db.exec(`create role authenticated; create role anon;
@@ -25,10 +28,13 @@ async function setup() {
     grant execute on function auth.uid() to authenticated,anon;
     insert into auth.users values ('${oscar}'),('${jacob}'),('${viewer}'),('${outsider}');`);
   await db.exec(await schema('workspace.sql'));
-  await db.exec(await schema('work-leaderboard.sql'));
   await db.exec(`insert into public.oj_organizations(id,name) values ('${org}','OJ'),('${otherOrg}','Other');
     insert into public.oj_memberships(organization_id,user_id,role,display_name) values
-    ('${org}','${oscar}','owner','Oscar'),('${org}','${jacob}','member','Jacob'),('${org}','${viewer}','viewer','Viewer'),('${otherOrg}','${outsider}','member','Other');`);
+    ('${org}','${oscar}','owner','Oscar'),('${org}','${jacob}','member','Jacob'),('${org}','${viewer}','viewer','Viewer'),('${otherOrg}','${outsider}','member','Other');
+    set session_replication_role = replica;
+    insert into public.oj_cards(id,organization_id,title,business,stage,created_by,created_at) values ('${doneBefore}','${org}','Finished before the leaderboard','exterior','Done','${oscar}','2026-06-01');
+    set session_replication_role = origin;`);
+  await db.exec(await schema('work-leaderboard.sql'));
   return db;
 }
 const as = (db: PGlite, id: string, role = 'authenticated') => db.exec(`reset role; set request.jwt.claim.sub = '${id}'; set role ${role};`);
@@ -206,37 +212,49 @@ test('Idle timers end at their last check-in', async t => {
   await db.close();
 });
 
-test('Editing a finished session needs a note and is marked as edited', async t => {
+test('Editing a finished session needs a note, is marked as edited, and stays within this week and last week', async t => {
   const db = await setup();
-  const done = session(oscar, ts('2026-09-14T14:00:00Z'), ts('2026-09-14T16:00:00Z'), { business: 'exterior' });
-  const next = session(oscar, ts('2026-09-14T18:00:00Z'), ts('2026-09-14T19:00:00Z'));
-  const jacobs = session(jacob, ts('2026-09-14T14:00:00Z'), ts('2026-09-14T15:00:00Z'));
-  await seed(db, `${done.sql}; ${next.sql}; ${jacobs.sql}`);
+  // Last week's Tuesday 09:00 Central, and a session from the week before that.
+  const lastWeek = centralWeek(Date.parse(centralWeek(Date.now()).startsAt) - HOUR);
+  const at = (h: number) => new Date(Date.parse(lastWeek.startsAt) + h * HOUR).toISOString();
+  const done = session(oscar, ts(at(33)), ts(at(35)), { business: 'exterior' });
+  const next = session(oscar, ts(at(37)), ts(at(38)));
+  const jacobs = session(jacob, ts(at(33)), ts(at(34)));
+  const older = session(oscar, ts(at(-48)), ts(at(-47)));
+  await seed(db, `${done.sql}; ${next.sql}; ${jacobs.sql}; ${older.sql}`);
   const edit = (set: string, sid = done.sid) => db.exec(`update public.oj_work_sessions set ${set} where id='${sid}'`);
 
   await t.test('without a note it is refused', async () => {
     await as(db, oscar);
-    await assert.rejects(edit(`ended_at='2026-09-14T16:30:00Z'`), /Say why/);
-    await assert.rejects(edit(`ended_at='2026-09-14T16:30:00Z', note='   '`), /Say why/);
+    await assert.rejects(edit(`ended_at='${at(35.5)}'`), /Say why/);
+    await assert.rejects(edit(`ended_at='${at(35.5)}', note='   '`), /Say why/);
   });
   await t.test('it cannot end in the future, run past 24 hours, end before it starts, overlap, or reopen', async () => {
     await as(db, oscar);
     await assert.rejects(edit(`ended_at=now() + interval '1 hour', note='x'`), /future/);
-    await assert.rejects(edit(`ended_at='2026-09-15T15:00:00Z', note='x'`), /24 hours/);
-    await assert.rejects(edit(`ended_at='2026-09-14T13:00:00Z', note='x'`), /end after it starts/);
-    await assert.rejects(edit(`ended_at='2026-09-14T18:30:00Z', note='x'`), /overlaps/);
+    await assert.rejects(edit(`ended_at='${at(58)}', note='x'`), /24 hours/);
+    await assert.rejects(edit(`ended_at='${at(32)}', note='x'`), /end after it starts/);
+    await assert.rejects(edit(`ended_at='${at(37.5)}', note='x'`), /overlaps/);
     await assert.rejects(edit(`ended_at=null, ended_reason=null, note='x'`), /cannot be restarted/);
+  });
+  await t.test('only sessions from this week and last week, and only within them', async () => {
+    await as(db, oscar);
+    // A session from the week before last cannot be edited at all...
+    await assert.rejects(edit(`ended_at='${at(-46.5)}', note='x'`, older.sid), /this week's and last week's/);
+    // ...and a recent one cannot be moved back before last week (a mistyped year, say).
+    await assert.rejects(edit(`started_at='${at(-26)}', ended_at='${at(-25)}', note='x'`), /this week's and last week's/);
+    await assert.rejects(edit(`started_at='2016-10-13T14:00:00Z', ended_at='2016-10-13T16:00:00Z', note='Wrong year'`), /this week's and last week's/);
   });
   await t.test("the other partner's sessions cannot be edited", async () => {
     await as(db, oscar);
-    assert.equal((await db.query(`update public.oj_work_sessions set ended_at='2026-09-14T15:30:00Z', note='x' where id='${jacobs.sid}' returning id`)).rows.length, 0);
+    assert.equal((await db.query(`update public.oj_work_sessions set ended_at='${at(33.5)}', note='x' where id='${jacobs.sid}' returning id`)).rows.length, 0);
   });
   await t.test('with a note it saves, is marked edited, and counts the new times', async () => {
     await as(db, oscar);
-    await edit(`started_at='2026-09-14T13:30:00Z', ended_at='2026-09-14T16:30:00Z', business='solutions', note='Forgot to start the timer'`);
+    await edit(`started_at='${at(32.5)}', ended_at='${at(35.5)}', business='solutions', note='Forgot to start the timer'`);
     const row = (await db.query<{ ended_reason: string; note: string; business: string }>(`select ended_reason, note, business from public.oj_work_sessions where id='${done.sid}'`)).rows[0];
     assert.deepEqual(row, { ended_reason: 'edited', note: 'Forgot to start the timer', business: 'solutions' });
-    const w = week(await scores(db), '2026-09-14', oscar);
+    const w = week(await scores(db), lastWeek.weekStart, oscar);
     assert.equal(Number(w.worked_seconds), 3 * 3600 + 3600);
     assert.deepEqual(w.by_business, { solutions: 3 * 3600, general: 3600 });
   });
@@ -246,7 +264,7 @@ test('Editing a finished session needs a note and is marked as edited', async t 
 test('Finishing a task records who finished it and when', async t => {
   const db = await setup();
   const cid = id();
-  await t.test('moving a card to Done stamps the person and time; moving it out clears them', async () => {
+  await t.test('moving a card to Done stamps the person and time; undoing it within 10 minutes (a misclick) clears them', async () => {
     await as(db, oscar);
     await db.exec(`insert into public.oj_cards(id,organization_id,title,business) values ('${cid}','${org}','Quote the Smith driveway','exterior')`);
     const get = async () => (await db.query<{ completed_by: string | null; recent: boolean | null }>(`select completed_by, completed_at > now() - interval '1 minute' as recent from public.oj_cards where id='${cid}'`)).rows[0];
@@ -260,6 +278,37 @@ test('Finishing a task records who finished it and when', async t => {
     assert.equal((await get()).completed_by, jacob);
     await db.exec(`update public.oj_cards set stage='Review', revision=2 where id='${cid}'`);
     assert.deepEqual(await get(), { completed_by: null, recent: null });
+  });
+  await t.test('after 10 minutes the first finish stands: out of Done and back keeps the finisher, the time and the week', async () => {
+    const finished = id();
+    await seed(db, `insert into public.oj_cards(id,organization_id,title,business,stage,created_by,created_at,completed_by,completed_at) values
+      ('${finished}','${org}','Finished by Jacob','solutions','Done','${oscar}',now() - interval '3 days','${jacob}',now() - interval '2 hours')`);
+    const get = async () => {
+      const row = (await db.query<{ completed_by: string; hours: number }>(`select completed_by, round(extract(epoch from now() - completed_at) / 3600) as hours from public.oj_cards where id='${finished}'`)).rows[0];
+      return { completed_by: row.completed_by, hours: Number(row.hours) };
+    };
+    const credited = async () => (await scores(db)).filter(r => r.task_ids.includes(finished)).map(r => r.user_id);
+    assert.deepEqual(await credited(), [jacob]);
+    await as(db, oscar);
+    await db.exec(`update public.oj_cards set stage='Review', revision=0 where id='${finished}'`);
+    assert.deepEqual(await get(), { completed_by: jacob, hours: 2 });
+    // While it is out of Done it scores for nobody.
+    assert.deepEqual(await credited(), []);
+    await as(db, oscar);
+    await db.exec(`update public.oj_cards set stage='Done', revision=1 where id='${finished}'`);
+    assert.deepEqual(await get(), { completed_by: jacob, hours: 2 });
+    assert.deepEqual(await credited(), [jacob]);
+  });
+  await t.test('a card already in Done before the leaderboard never gets a finisher, even moved out and back', async () => {
+    await as(db, oscar);
+    await db.exec(`update public.oj_cards set stage='Review', revision=0 where id='${doneBefore}'`);
+    await db.exec(`update public.oj_cards set stage='Done', revision=1 where id='${doneBefore}'`);
+    const row = (await db.query<{ completed_by: string | null; completed_at: string | null }>(`select completed_by, completed_at from public.oj_cards where id='${doneBefore}'`)).rows[0];
+    assert.deepEqual(row, { completed_by: null, completed_at: null });
+    assert.ok((await scores(db)).every(r => !r.task_ids.includes(doneBefore)));
+    // The list of those cards is private.
+    await as(db, oscar);
+    await assert.rejects(db.query(`select * from oj_private.untracked_done_cards`));
   });
   await t.test('the finisher and finish time cannot be written by a member', async () => {
     await as(db, oscar);
@@ -430,6 +479,20 @@ test('Points: hours to the minute plus 3 per task; the browser arithmetic matche
     assert.equal(rows.filter(r => dateKey(r.week_start) === '2026-08-17' && r.won).length, 0);
     const current = centralWeek(Date.now()).weekStart;
     assert.equal(rows.filter(r => dateKey(r.week_start) === current && r.won).length, 0);
+  });
+  await t.test('rows come newest week first, so a cap on returned rows can only drop the oldest weeks', () => {
+    const starts = rows.map(r => dateKey(r.week_start));
+    assert.equal(starts[0], centralWeek(Date.now()).weekStart);
+    assert.deepEqual(starts, [...starts].sort().reverse());
+  });
+  await t.test('a partner who becomes a viewer keeps their past weeks, so wins do not change hands', async () => {
+    await asAdmin(db);
+    await db.exec(`update public.oj_memberships set role='viewer' where user_id='${jacob}'`);
+    const after = await scores(db);
+    assert.equal(week(after, '2026-08-03', jacob).won, true);
+    assert.equal(week(after, '2026-08-03', oscar).won, false);
+    await asAdmin(db);
+    await db.exec(`update public.oj_memberships set role='member' where user_id='${jacob}'`);
   });
   await t.test('viewers, other workspaces and signed-out visitors get no scores', async () => {
     for (const who of [viewer, outsider]) { await as(db, who); await assert.rejects(db.query(`select * from public.oj_work_scores('${org}')`)); }

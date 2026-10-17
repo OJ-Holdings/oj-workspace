@@ -19,8 +19,8 @@ const DUE_TITLE = 'Still working? - OJ Workspace';
  */
 export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 'live', org: string, partner: boolean, readOnly: boolean) {
   const [data, setData] = useState<WorkData | null>(mode === 'live' ? initial ?? null : null);
-  // The server's clock minus this browser's, so a timer reads the same on every device.
-  const [offset, setOffset] = useState(0);
+  // The server's clock minus this browser's, so a timer reads the same on every device. null until known.
+  const [offset, setOffset] = useState<number | null>(null);
   // null until the page is running in the browser, so nothing time-based is rendered on the server.
   const [now, setNow] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
@@ -54,12 +54,24 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
     if (mode === 'preview' && data) { try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(data)); } catch { /* the preview just won't survive a reload */ } }
   }, [data, mode]);
 
-  useEffect(() => { if (data) setOffset(mode === 'live' ? Date.parse(data.asOf) - Date.now() : 0); }, [data, mode]);
+  // Each load gives one sample of (server clock - browser clock - time the response took). The time taken
+  // only ever makes a sample smaller, so keep the largest; a sample far smaller means this device's clock
+  // was changed.
+  useEffect(() => {
+    if (!data) return;
+    if (mode !== 'live') { setOffset(0); return; }
+    const sample = Date.parse(data.asOf) - Date.now();
+    setOffset(o => o === null || sample > o || o - sample > 30_000 ? sample : o);
+  }, [data, mode]);
 
-  // Tick every second while any timer runs, otherwise every half minute.
+  // Tick every second while any timer runs, otherwise every half minute. A small step back (a better
+  // clock estimate arriving) holds the time still for a moment rather than running it backwards.
   const anyRunning = !!data?.sessions.some(s => !s.ended_at);
   useEffect(() => {
-    const tick = () => setNow(Date.now() + offset);
+    const tick = () => setNow(prev => {
+      const next = Date.now() + (offset ?? 0);
+      return prev !== null && next < prev && prev - next < 10_000 ? prev : next;
+    });
     tick();
     const id = window.setInterval(tick, anyRunning ? 1000 : 30_000);
     document.addEventListener('visibilitychange', tick);
@@ -70,15 +82,26 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
   const state = mine && now !== null ? checkinState(mine, now) : null;
   const phase: CheckinPhase = state?.phase ?? 'ok';
   const canWrite = partner && !readOnly && !!data;
+  // Answering "Still working?" and stopping still go through while the workspace is reconnecting: the
+  // action reaches the server on its own and returns fresh figures, and fails with a message if offline.
+  const canAnswer = partner && !!data;
 
-  const apply = (r: WorkResult) => {
+  const apply = (r: WorkResult, quiet: boolean) => {
     const fresh = r.work;
     if (fresh) setData(d => !d || fresh.asOf >= d.asOf ? fresh : d);
+    // A quiet action (the automatic close) leaves the current notice alone unless it has something to say.
+    if (quiet && r.ok && !r.notice) return r;
     setNotice(r.notice); setNoticeSticky(!r.ok || !!r.sticky);
     return r;
   };
-  const run = (live: () => Promise<WorkResult>, preview: (d: WorkData, t: number) => { data: WorkData; ok: boolean; notice: string; sticky?: boolean }, done?: (r: WorkResult) => void) => {
-    if (!canWrite) return;
+  type Preview = (d: WorkData, t: number) => { data: WorkData; ok: boolean; notice: string; sticky?: boolean };
+  const run = (live: () => Promise<WorkResult>, preview: Preview, opts: { done?: (r: WorkResult) => void; answer?: boolean; quiet?: boolean } = {}) => {
+    if (!(opts.answer ? canAnswer : canWrite)) {
+      const r = { ok: false, notice: 'The workspace is reconnecting. Try again in a moment.', work: null };
+      if (!opts.quiet) { setNotice(r.notice); setNoticeSticky(false); }
+      opts.done?.(r);
+      return;
+    }
     startTransition(async () => {
       try {
         let r: WorkResult;
@@ -86,10 +109,10 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
           const out = preview(data!, Date.now());
           r = { ok: out.ok, notice: out.notice, sticky: out.sticky, work: out.ok ? recount(out.data, Date.now()) : null };
         } else r = await live();
-        apply(r); done?.(r);
+        apply(r, !!opts.quiet); opts.done?.(r);
       } catch {
         const r = { ok: false, notice: 'Something went wrong. Check your connection and try again.', work: null };
-        setNotice(r.notice); setNoticeSticky(true); done?.(r);
+        setNotice(r.notice); setNoticeSticky(true); opts.done?.(r);
       }
     });
   };
@@ -106,8 +129,17 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
     if (!stale.length) return;
     stale.forEach(s => nextClose.current.set(s.id, now + RETRY_MS));
     const ownStale = stale.find(s => s.user_id === data.me);
-    const said = ownStale ? `Your timer ended at ${new Date(ownStale.last_checkin_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}, your last check-in, because "Still working?" went unanswered.` : '';
-    run(() => closeIdleWork(org).then(r => ({ ...r, notice: said || r.notice, sticky: !!said })), (d, t) => ({ data: endIdle(d, t), ok: true, notice: said, sticky: !!said }));
+    // Say your timer ended only if the reply shows it did (another device may have checked in meanwhile).
+    const ended = (d: WorkData | null) => {
+      const own = ownStale && d?.sessions.find(s => s.id === ownStale.id);
+      return own?.ended_reason === 'idle' && own.ended_at
+        ? `Your timer ended at ${new Date(own.ended_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}, your last check-in, because "Still working?" went unanswered.` : '';
+    };
+    run(async () => {
+      const r = await closeIdleWork(org);
+      const said = r.ok ? ended(r.work) : '';
+      return said ? { ...r, notice: said, sticky: true } : r;
+    }, (d, t) => { const next = endIdle(d, t); const said = ended(next); return { data: next, ok: true, notice: said, sticky: !!said }; }, { quiet: true });
   }, [now, data, canWrite]);
 
   // While "Still working?" waits for an answer, the browser tab says so too. Set again on every tick,
@@ -129,7 +161,7 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
     available: partner && !!data,
     /** A partner on the live workspace, but the leaderboard's database update is not applied yet. */
     missing: mode === 'live' && partner && !data,
-    canWrite,
+    canWrite, canAnswer,
     clearNotice,
     start: (business: WorkBusiness) => run(() => startWork(org, business), (d, t) => {
       if (runningSession(d, d.me)) return { data: d, ok: false, notice: 'Your timer is already running.' };
@@ -138,7 +170,7 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
     }),
     checkIn: () => { if (mine) run(() => checkInWork(org, mine.id), (d, t) => checkinState(mine, t).phase === 'expired'
       ? { data: endIdle(d, t), ok: true, notice: 'The check-in was missed, so your timer ended at your last check-in.', sticky: true }
-      : { data: replace(d, mine.id, { last_checkin_at: new Date(t).toISOString() }), ok: true, notice: 'Checked in. The timer keeps running.' }); },
+      : { data: replace(d, mine.id, { last_checkin_at: new Date(t).toISOString() }), ok: true, notice: 'Checked in. The timer keeps running.' }, { answer: true }); },
     stop: (how: 'manual' | 'idle') => { if (mine) run(() => stopWork(org, mine.id, how), (d, t) => {
       const missed = checkinState(mine, t).phase === 'expired';
       if (how === 'idle' && checkinState(mine, t).phase === 'ok') return { data: d, ok: false, notice: 'A check-in is not due yet.' };
@@ -146,7 +178,7 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
       return missed ? { ...idle, notice: 'The check-in was missed, so the timer ended at your last check-in.', sticky: true }
         : how === 'idle' ? { ...idle, notice: 'Timer ended at your last check-in.' }
         : { data: replace(d, mine.id, { ended_at: new Date(t).toISOString(), ended_reason: 'manual' }), ok: true, notice: 'Timer stopped.' };
-    }); },
+    }, { answer: true }); },
     edit: (edit: SessionEdit, done: (r: WorkResult) => void) => run(() => editWorkSession(org, edit), (d, t) => {
       const problem = editProblem(edit, t);
       const target = d.sessions.find(s => s.id === edit.id && s.user_id === d.me && s.ended_at);
@@ -154,7 +186,7 @@ export function useWork(initial: WorkData | null | undefined, mode: 'preview' | 
       const overlaps = d.sessions.some(s => s.user_id === d.me && s.id !== edit.id && Date.parse(s.started_at) < end && (s.ended_at ? Date.parse(s.ended_at) : Infinity) > start);
       if (problem || !target || overlaps) return { data: d, ok: false, notice: problem ?? (!target ? 'Only your own finished sessions can be edited.' : 'This overlaps another of your sessions') };
       return { ok: true, notice: 'Session saved and marked as edited.', data: replace(d, edit.id, { business: edit.business, started_at: new Date(start).toISOString(), ended_at: new Date(end).toISOString(), last_checkin_at: new Date(end).toISOString(), note: edit.note.trim(), ended_reason: 'edited' }) };
-    }, done),
+    }, { done }),
   };
 }
 

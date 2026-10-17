@@ -1,7 +1,7 @@
 /* The work timer in the top bar, the "Still working?" prompt, and the weekly leaderboard on Home. */
 
 /* --- timer --- */
-.timer { position: relative; display: flex; align-items: center; }
+.timer { position: relative; display: flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
 .timer-start { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--t-sm); font-weight: 650; color: var(--ink); transition: border-color var(--fast) linear, background var(--fast) linear; }
 .timer-start:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
 .timer-start svg { color: var(--accent-hi); }
@@ -12,10 +12,12 @@
 .timer-running time { min-width: 4.4em; font-family: var(--display); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 .timer-stop { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--panel-3); color: var(--ink); transition: background var(--fast) linear, color var(--fast) linear; }
 .timer-stop:hover:not(:disabled) { background: color-mix(in srgb, var(--bad) 22%, var(--panel-3)); color: var(--bad); }
-.timer-menu { width: 250px; }
+.timer-checkin { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: var(--t-xs); font-weight: 700; animation: pop var(--base) var(--ease); }
+.timer-checkin:hover:not(:disabled) { background: var(--accent-hi); }
+.timer-menu { width: 250px; white-space: normal; }
 .timer-menu .popover-row { align-items: center; color: var(--ink); }
 .timer-swatch { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; }
-.timer-notice { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; display: flex; align-items: flex-start; gap: 6px; width: max-content; max-width: min(340px, 86vw); padding: 10px 6px 10px 14px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 20px 40px -20px #000; font-size: var(--t-sm); color: var(--ink-2); animation: pop var(--base) var(--ease); }
+.timer-notice { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; display: flex; align-items: flex-start; gap: 6px; width: max-content; max-width: min(340px, 86vw); padding: 10px 6px 10px 14px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 20px 40px -20px #000; font-size: var(--t-sm); color: var(--ink-2); white-space: normal; animation: pop var(--base) var(--ease); }
 .timer-notice p { margin: 4px 0 0; }
 .timer-notice .icon-button { width: 28px; height: 28px; }
 
@@ -23,6 +25,7 @@
 .still-working h2 { margin-bottom: 10px; }
 .still-working p { color: var(--ink-2); }
 .still-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
+.still-notice { margin: var(--s-4) 0 0; }
 
 /* --- leaderboard --- */
 .leaderboard { margin-bottom: var(--s-4); }
@@ -97,8 +100,15 @@
 .lb-dialog .lb-history-h { margin-top: var(--s-6); }
 .lb-rules { margin: var(--s-5) 0 0; }
 
-@media (max-width: 1000px) {
+/* The business name in the running timer needs room; below this the colour says it. */
+@media (max-width: 1200px) {
   .timer-biz { display: none; }
+}
+/* With the rail showing, the search box gives up room before anything in the top bar wraps. */
+@media (min-width: 1001px) {
+  .search-trigger { min-width: 0; }
+  .search-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .who span { white-space: nowrap; }
 }
 @media (max-width: 520px) {
   /* Narrow phones: the running timer drops its dot (its border keeps the business colour). */
@@ -108,7 +118,11 @@
 @media (max-width: 700px) {
   /* Icon only; the words stay for screen readers. */
   .timer-start { padding: 0 11px; }
-  .timer-start span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .timer-start span, .timer-checkin span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .timer-checkin { padding: 0 8px; }
+  /* The menu and notices hang from the full-width top bar, not the small timer, so they stay on screen. */
+  .timer { position: static; }
+  .timer-menu, .timer-notice { left: var(--s-4); right: var(--s-4); top: calc(100% + 6px); width: auto; max-width: none; }
   .leaderboard .panel-head { flex-direction: column; gap: 6px; }
   .lb-people { gap: var(--s-3); }
   .lb-person { gap: 10px; padding: var(--s-4) var(--s-3); }

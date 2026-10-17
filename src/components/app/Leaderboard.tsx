@@ -5,7 +5,7 @@ import NumberFlow from '@number-flow/react';
 import { Crown, Flame, Pencil, Trophy, X } from 'lucide-react';
 import type { Card } from '@/lib/board';
 import {
-  checkinState, editProblem, hoursMinutes, leaderboardView, twoDecimals, weekLabel, workBusinessColor, workBusinessLabel, workBusinesses,
+  checkinState, editableFrom, editProblem, hoursMinutes, leaderboardView, twoDecimals, weekLabel, workBusinessColor, workBusinessLabel, workBusinesses,
   type LeaderboardView, type PersonView, type WeekResult, type WorkBusiness, type WorkSession,
 } from '@/lib/work';
 import type { WorkStore } from './useWork';
@@ -51,7 +51,7 @@ function Person({ p, tied, nobody }: { p: PersonView; tied: boolean; nobody: boo
     : nobody ? 'No points yet this week' : tied && p.gap === 0 ? 'Level at the top' : `${twoDecimals(p.gap)} behind`;
   const total = p.byBusiness.reduce((sum, b) => sum + b.seconds, 0);
   return (
-    <article className={p.isLeader ? 'lb-person is-leader' : 'lb-person'} aria-label={`${p.name}${p.isMe ? ' (you)' : ''}: ${points(p.points)}${p.isLeader ? ', leading' : ''}`}>
+    <article className={p.isLeader ? 'lb-person is-leader' : 'lb-person'}>
       <header className="lb-who">
         <span className="avatar avatar-lg" aria-hidden="true">{p.name.charAt(0).toUpperCase()}</span>
         <div>
@@ -60,11 +60,13 @@ function Person({ p, tied, nobody }: { p: PersonView; tied: boolean; nobody: boo
             ? <span className="lb-live" style={{ '--dot': workBusinessColor(p.running.business) } as React.CSSProperties}><i aria-hidden="true" />Timing {workBusinessLabel(p.running.business)}</span>
             : <span className="lb-idle">No timer running</span>}
         </div>
-        {p.isLeader && <span className="lb-crown" title="Leading this week"><Crown size={22} aria-hidden="true" /></span>}
+        {p.isLeader && <span className="lb-crown" title="Leading this week"><Crown size={22} aria-hidden="true" /><span className="sr-only">Leading this week</span></span>}
       </header>
       <p className="lb-points">
+        {/* The rolling figure is decoration; screen readers get the plain number. */}
         <span className="lb-figure"><NumberFlow value={p.points} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} aria-hidden="true" /></span>
-        <span>points</span>
+        <span aria-hidden="true">points</span>
+        <span className="sr-only">{points(p.points)}</span>
       </p>
       <p className="lb-gap">{gap}</p>
       <div className="lb-split" aria-hidden="true">
@@ -157,7 +159,8 @@ function Detail({ view, work, cards, onClose }: { view: LeaderboardView; work: W
                 const expired = !s.ended_at && checkinState(s, now).phase === 'expired';
                 const end = s.ended_at ?? (expired ? s.last_checkin_at : null);
                 const seconds = ((end ? Date.parse(end) : now) - Date.parse(s.started_at)) / 1000;
-                const mineToEdit = s.user_id === data.me && !!s.ended_at && work.canWrite;
+                // Your own finished sessions from this week and last week (the database refuses older ones).
+                const mineToEdit = s.user_id === data.me && !!s.ended_at && work.canWrite && Date.parse(s.started_at) >= editableFrom(now);
                 return (
                   <li key={s.id}>
                     <div className="lb-session">
@@ -205,6 +208,8 @@ function EditSession({ session, work, onDone }: { session: WorkSession; work: Wo
   const [end, setEnd] = useState(toLocalInput(session.ended_at!));
   const [note, setNote] = useState('');
   const [problem, setProblem] = useState('');
+  const nowMs = work.now ?? Date.now();
+  const min = toLocalInput(new Date(editableFrom(nowMs)).toISOString()), max = toLocalInput(new Date(nowMs).toISOString());
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     const edit = { id: session.id, business, started_at: new Date(start).toISOString(), ended_at: new Date(end).toISOString(), note };
@@ -216,8 +221,8 @@ function EditSession({ session, work, onDone }: { session: WorkSession; work: Wo
   return (
     <form className="lb-edit" onSubmit={save}>
       <div className="form-grid">
-        <label>Started<input type="datetime-local" required value={start} onChange={e => setStart(e.target.value)} /></label>
-        <label>Ended<input type="datetime-local" required value={end} onChange={e => setEnd(e.target.value)} /></label>
+        <label>Started<input type="datetime-local" required min={min} max={max} value={start} onChange={e => setStart(e.target.value)} /></label>
+        <label>Ended<input type="datetime-local" required min={min} max={max} value={end} onChange={e => setEnd(e.target.value)} /></label>
       </div>
       <label>Worked on<select value={business} onChange={e => setBusiness(e.target.value as WorkBusiness)}>{workBusinesses.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}</select></label>
       <label>Why are you changing it?<textarea required rows={2} maxLength={500} value={note} onChange={e => setNote(e.target.value)} placeholder="For example: forgot to stop the timer before lunch." /></label>

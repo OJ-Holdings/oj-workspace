@@ -19,7 +19,7 @@ const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const plainRefusals = [
   'This timer already ended at its last check-in', 'Say why this session was edited', 'A session cannot end in the future',
   'A session must end after it starts', 'A session can be at most 24 hours long', 'This overlaps another of your sessions',
-  'A finished session cannot be restarted',
+  'A finished session cannot be restarted', "Only this week's and last week's sessions can be edited",
 ];
 const refusal = (message: string | undefined, fallback: string) => plainRefusals.find(r => message?.includes(r)) ?? fallback;
 

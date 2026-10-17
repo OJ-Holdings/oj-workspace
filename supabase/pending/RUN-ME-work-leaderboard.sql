@@ -7,7 +7,8 @@
 --
 -- What it does (all additive; no existing row is changed):
 --   * oj_cards gains completed_by and completed_at, set by the database when a
---     card moves to Done. Cards already in Done stay blank (unknown) and never score.
+--     card first moves to Done. Cards already in Done are listed once in
+--     oj_private.untracked_done_cards: they stay blank (unknown) and never score.
 --   * new table oj_work_sessions (the work timer), readable by owners and members,
 --     each of whom can start and change only their own sessions.
 --   * oj_close_idle_work(org) and oj_work_scores(org), the scoring source of truth.
@@ -23,6 +24,8 @@
 --   drop function oj_private.guard_work_session();
 --   drop trigger stamp_card_completion on public.oj_cards;
 --   drop function oj_private.stamp_card_completion();
+--   drop function oj_private.completion_untracked(uuid);
+--   drop table oj_private.untracked_done_cards;
 --   alter table public.oj_cards drop column completed_by, drop column completed_at;
 -- ============================================================================
 begin;
@@ -32,8 +35,8 @@ begin;
 -- Desired state. Apply after workspace.sql and collaboration.sql (it changes
 -- oj_cards). NOT applied to the live project: the paste-ready copy is
 -- supabase/pending/RUN-ME-work-leaderboard.sql, run by a founder after review.
--- Everything here is additive: one new table, two new columns on oj_cards, one
--- new trigger on oj_cards, three functions. No existing row is changed.
+-- Everything here is additive: two new tables, two new columns on oj_cards, one
+-- new trigger on oj_cards, and functions. No existing row is changed.
 --
 -- The partners are the workspace's owners and members. Viewers take no part:
 -- they cannot read sessions or scores, and they have no timer.
@@ -48,36 +51,56 @@ begin;
 -- its own clock, whatever the caller sends.
 
 -- 1. Who finished a task, and when -------------------------------------------
--- Tasks already in Done keep both empty: when they were finished, and by whom,
--- is not recorded anywhere, so they never score.
+-- The first person to move a card into Done, and when, are kept for good: a
+-- card dragged out of Done and back does not score again or change hands, and
+-- the week it scored in stays put. The one exception is an undo within 10
+-- minutes, which counts as a misclick: the card is then treated as never
+-- finished. Scoring only counts cards that are in Done.
 alter table public.oj_cards
   add column completed_by uuid references auth.users(id),
   add column completed_at timestamptz,
-  add constraint oj_cards_completion_pair check ((completed_by is null) = (completed_at is null)),
-  add constraint oj_cards_completion_done check (completed_at is null or stage = 'Done');
+  add constraint oj_cards_completion_pair check ((completed_by is null) = (completed_at is null));
 create index oj_cards_completed on public.oj_cards(organization_id, completed_at) where completed_at is not null;
 create index oj_cards_completer on public.oj_cards(completed_by);
 
--- Moving a card into Done records the person who moved it and the time; moving
--- it out clears both; a card that stays in Done keeps them. A new card's
--- created_at is the moment it is inserted, so a task cannot be back-dated past
--- the 12-hour rule in oj_work_scores. Members cannot write either column
--- directly (they are not in the column grants on oj_cards).
+-- Cards already in Done when this is applied: when they were finished, and by
+-- whom, is not recorded anywhere. They are listed here once and never get a
+-- completion, even if they are moved out of Done and back, so they never score.
+-- Listing them here, rather than flagging the cards, leaves every card row as it is.
+create table oj_private.untracked_done_cards (
+  card_id uuid primary key references public.oj_cards(id)
+);
+alter table oj_private.untracked_done_cards enable row level security;
+revoke all on oj_private.untracked_done_cards from public, anon, authenticated;
+insert into oj_private.untracked_done_cards(card_id) select id from public.oj_cards where stage = 'Done';
+
+create function oj_private.completion_untracked(card uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from oj_private.untracked_done_cards where card_id = card)
+$$;
+revoke all on function oj_private.completion_untracked(uuid) from public;
+grant execute on function oj_private.completion_untracked(uuid) to authenticated;
+
+-- Members cannot write completed_by or completed_at (they are not in the column
+-- grants on oj_cards); this trigger sets them. It also fixes a new card's
+-- created_at to the moment it is inserted, so a task cannot be back-dated past
+-- the 12-hour rule in oj_work_scores.
 create function oj_private.stamp_card_completion() returns trigger
 language plpgsql security invoker set search_path = '' as $$
 begin
   if tg_op = 'INSERT' then
     new.created_at := now();
     new.updated_at := now();
-  end if;
-  if new.stage <> 'Done' then
-    new.completed_by := null; new.completed_at := null;
-  elsif tg_op = 'UPDATE' and old.stage = 'Done' then
-    new.completed_by := old.completed_by; new.completed_at := old.completed_at;
-  elsif auth.uid() is null then
-    -- Finished outside the app (the SQL editor, a backend job): unknown who did it.
     new.completed_by := null; new.completed_at := null;
   else
+    new.completed_by := old.completed_by; new.completed_at := old.completed_at;
+    if old.stage = 'Done' and new.stage <> 'Done' and old.completed_at > now() - interval '10 minutes' then
+      new.completed_by := null; new.completed_at := null;
+    end if;
+  end if;
+  -- Finished outside the app (the SQL editor, a backend job) leaves it unknown.
+  if new.stage = 'Done' and new.completed_at is null and auth.uid() is not null
+    and not oj_private.completion_untracked(new.id) then
     new.completed_by := auth.uid(); new.completed_at := now();
   end if;
   return new;
@@ -134,9 +157,14 @@ create policy own_change on public.oj_work_sessions for update to authenticated
 --             be asked for once a check-in is due (60 minutes).
 --   edit:     only a finished session, only with a note saying why; it becomes
 --             'edited'. It cannot be reopened, end in the future, run past 24
---             hours, or overlap the same person's other sessions.
+--             hours, or overlap the same person's other sessions. Only sessions
+--             from this week and last week (Central time) can be edited, and only
+--             within those two weeks: those are the weeks the leaderboard lists
+--             session by session, so every edit stays visible with its badge.
 create function oj_private.guard_work_session() returns trigger
 language plpgsql security invoker set search_path = '' as $$
+declare
+  last_week timestamptz := (date_trunc('week', now() at time zone 'America/Chicago') - interval '7 days') at time zone 'America/Chicago';
 begin
   if tg_op = 'INSERT' then
     new.started_at := now(); new.last_checkin_at := now(); new.created_at := now();
@@ -172,6 +200,7 @@ begin
   end if;
 
   if new.ended_at is null then raise exception 'A finished session cannot be restarted'; end if;
+  if old.started_at < last_week or new.started_at < last_week then raise exception 'Only this week''s and last week''s sessions can be edited'; end if;
   if length(btrim(new.note)) = 0 then raise exception 'Say why this session was edited'; end if;
   if new.ended_at > now() then raise exception 'A session cannot end in the future'; end if;
   if new.ended_at < new.started_at then raise exception 'A session must end after it starts'; end if;
@@ -210,8 +239,10 @@ revoke all on function public.oj_close_idle_work(uuid) from public, anon;
 grant execute on function public.oj_close_idle_work(uuid) to authenticated;
 
 -- 4. Scoring: the one source of truth ------------------------------------------
--- One row per partner per week, from the week of the first recorded work up to
--- the current week. A week runs Monday 00:00 to the next Monday 00:00 in
+-- One row per partner per week, newest week first, from the current week back
+-- to the week of the first recorded work. Someone who has left the partnership
+-- (removed, or now a viewer) keeps their rows, so past weeks, wins and streaks
+-- do not change when membership does. A week runs Monday 00:00 to the next Monday 00:00 in
 -- America/Chicago, so it is 167 hours long when clocks go forward and 169 when
 -- they go back. A session that crosses midnight into Monday is split between
 -- the two weeks.
@@ -240,6 +271,11 @@ begin
   with partners as (
     select m.user_id from public.oj_memberships m
     where m.organization_id = org and m.role in ('owner','member')
+    union
+    select s.user_id from public.oj_work_sessions s where s.organization_id = org
+    union
+    select c.completed_by from public.oj_cards c
+    where c.organization_id = org and c.stage = 'Done' and c.completed_by is not null
   ),
   sessions as (
     select s.user_id, s.business, s.started_at,
@@ -328,7 +364,8 @@ begin
   select c.week, c.starts_at, c.ends_at, c.user_id, c.worked_seconds, c.hours, c.tasks, c.task_ids,
     c.points, c.by_business, (c.ends_at <= now() and c.points > 0 and c.points = c.top and c.at_top = 1)
   from counted c
-  order by c.week, c.user_id;
+  -- Newest first, so a cap on returned rows can only ever drop the oldest weeks.
+  order by c.week desc, c.user_id;
 end $$;
 revoke all on function public.oj_work_scores(uuid) from public, anon;
 grant execute on function public.oj_work_scores(uuid) to authenticated;

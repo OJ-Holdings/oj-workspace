@@ -84,6 +84,8 @@ export function liveSeconds(row: WeekScore, running: WorkSession | undefined, as
 export const runningSession = (data: WorkData, userId: string) => data.sessions.find(s => s.user_id === userId && !s.ended_at);
 
 export type SessionEdit = { id: string; business: WorkBusiness; started_at: string; ended_at: string; note: string };
+/** Sessions can be edited from this moment on: the start of last week, Monday 00:00 Central time. */
+export const editableFrom = (nowMs: number) => Date.parse(centralWeek(Date.parse(centralWeek(nowMs).startsAt) - 3_600_000).startsAt);
 /**
  * The same limits the database puts on an edit, checked first so the form can
  * say what is wrong. Returns the problem, or null. The database checks again,
@@ -93,6 +95,7 @@ export function editProblem(edit: SessionEdit, nowMs: number): string | null {
   const start = Date.parse(edit.started_at), end = Date.parse(edit.ended_at);
   if (!isWorkBusiness(edit.business)) return 'Choose what the time was for.';
   if (!Number.isFinite(start) || !Number.isFinite(end)) return 'Choose a valid start and end.';
+  if (start < editableFrom(nowMs)) return "Only this week's and last week's sessions can be edited.";
   if (end <= start) return 'The session has to end after it starts.';
   if (end > nowMs + MINUTE) return 'A session cannot end in the future.';
   if (end - start > 24 * 60 * MINUTE) return 'A session can be at most 24 hours long.';
