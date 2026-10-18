@@ -31,6 +31,14 @@ this file is how work gets handed over.
 **Not verified:** anything against the live database (not applied, no signed-in session): the server actions, the RPCs through PostgREST, realtime updates of sessions between two devices.
 **Notes:** Assumptions are listed in the pull request. The table is oj_work_sessions (oj_ prefix like every workspace table) and carries organization_id. Adding a business later means updating the check on oj_work_sessions.business as well as oj_cards; a test fails until both match ventures.ts.
 
+## 2026-10-15 12:00 UTC -- Claude Code, for Oscar (Read-only summary feed for his STRATHOS dashboard)
+**Summary:** Adds public.oj_pulse(token), a read-only JSON summary behind GET /api/pulse/<token>, behind its OWN owner-minted private token (not the calendar link, so the link on phones never opens money or presence; made at /strathos-link, one per workspace, stored hashed). It returns money logged (amount and category only), open leads by stage, open tasks and what is due soon, and each member's connection state plus the status line they chose to write. It never returns messages, documents, lead names or contacts, task descriptions or note fields. Oscar's private STRATHOS dashboard reads it; nothing from STRATHOS is imported here.
+**Files:** supabase/schemas/strathos-pulse.sql, src/app/api/pulse/[token]/route.ts, src/app/strathos-link/page.tsx, src/components/StrathosLinkForm.tsx, src/app/workspace/strathos-link-action.ts, tests/strathos-pulse.test.ts.
+**Verified:** typecheck; PGlite test: valid token returns the shape, private fields absent, unknown/malformed/null tokens return nothing, link dies when membership is removed, link table stays unreadable, works without presence tables (members report offline). Not applied to the live project. Not deployed.
+**Notes:** DATABASE CHANGE, needs a human's OK before it is applied to the live project; additive only (one table, two functions). Jacob's online state needs presence.sql, which is still uncommitted in the Codex working tree and not applied; until it is, members show offline. The function reads those tables only if they exist, so it can be applied first. Whoever holds the new link can read the summary: keep it private and make a new one at /strathos-link if it leaks.
+
+---
+
 ## 2026-10-05 23:00 UTC -- Claude Code, for Oscar (Calendar link: https instead of webcals)
 **Summary:** Oscar's iPhone said "validation failed" on the calendar link. The workspace built the link by turning https into webcals://, which the iPhone "Add Subscribed Calendar" box rejects. The link is now plain https://ojworkspace.netlify.app/api/calendar/<token>.ics, with a note saying so. The feed itself was already fine.
 **Files:** src/components/app/Pages.tsx.
