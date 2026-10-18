@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import NumberFlow from '@number-flow/react';
-import { motion } from 'motion/react';
+import { BusinessNav } from './BusinessNav';
 import { ventures, type VentureId } from '@/lib/ventures';
 import type { WorkspaceMetrics } from '@/lib/metrics';
 import { BoardView } from './BoardView';
@@ -43,18 +43,10 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
         <div>
           <h1>{v.name}</h1>
           <p className="venture-tagline">{v.tagline}</p>
-          <ul className="chips">{v.chips.map(chip => <li key={chip}>{chip}</li>)}</ul>
         </div>
       </header>
 
-      <nav className="tabs" aria-label={`${v.name} sections`}>
-        {tabs.map(([id, label]) => (
-          <Link key={id} href={`${base}/b/${venture}${id === 'overview' ? '' : `/${id}`}`} aria-current={active === id ? 'page' : undefined} className={active === id ? 'is-current' : undefined}>
-            {label}
-            {active === id && <motion.i layoutId={`tab-${venture}`} className="tab-line" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
-          </Link>
-        ))}
-      </nav>
+      <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
 
       {active === 'overview' && (
         <div className="venture-overview">

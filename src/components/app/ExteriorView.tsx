@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NumberFlow from '@number-flow/react';
 import { Check, Lock } from 'lucide-react';
 import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
 import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
-import { doorDetails, jobDate, summariseJobs, summariseSessions, type Done, type ExteriorResult } from '@/lib/exterior';
+import { doorDetails, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
+import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type JobFilters } from '@/lib/reporting';
+import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { JobsCalendar } from './ExteriorCalendar';
 import { dayKey } from '@/lib/dashboard';
@@ -26,7 +30,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   const [ticked, setTicked] = useState<Completed>({});
   const [notice, setNotice] = useState('');
   useEffect(() => {
-    if (mode !== 'live') return;
+    if (mode === 'preview') { const time = new Date(); setResult({ ok: true, data: sampleExterior(time) }); setNow(time); return; }
     let live = true;
     setResult(null);
     loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); if (r.ok && r.data.extras) setTicked(r.data.extras.upgrades); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
@@ -37,6 +41,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   const refresh = useCallback(() => loadExterior(org).then(r => { if (r.ok) { setResult(r); setNow(new Date()); } }), [org]);
   /** Runs one change, says what happened, and reloads on success. */
   const act = useCallback(async <T extends object>(work: () => Promise<Done<T>>, success: (r: T) => string) => {
+    if (mode === 'preview') { setNotice('These Exterior Care records are read-only samples. Nothing was saved.'); return false; }
     setBusy(true); setNotice('');
     try {
       const r = await work();
@@ -44,9 +49,10 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
       setNotice(success(r as T)); await refresh(); return true;
     } catch { setNotice('That did not go through. Check your connection and try again.'); return false; }
     finally { setBusy(false); }
-  }, [refresh]);
+  }, [refresh, mode]);
 
   function toggle(id: string, name: string) {
+    if (mode === 'preview') return;
     const { next, removed } = toggleUpgrade(ticked, id);
     if (removed.length > 1 && !window.confirm(`Unticking "${name}" also unticks ${removed.length - 1} upgrade${removed.length === 2 ? '' : 's'} that depend on it. Continue?`)) return;
     const before = ticked;
@@ -54,15 +60,13 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     saveUpgrades(org, next).then(() => setNotice('Saved.'), () => { setTicked(before); setNotice('That change did not save. Check your connection and try again.'); });
   }
 
-  if (mode === 'preview') return <div className="planned"><h2>Shown in your live workspace</h2><p>These are real customer records from the Exterior Care system, so there is no sample version of this tab.</p></div>;
   if (!result || !now) return <div className="loading" aria-busy="true" />;
   if (!result.ok) return result.reason === 'no-access'
     ? <div className="planned"><h2>Members only</h2><p>These records hold customers&apos; names, phone numbers and addresses, so view-only access does not include them. Ask a founder for member access.</p></div>
     : <div className="planned" role="alert"><h2>The Exterior Care records did not load</h2><p>Nothing is shown rather than a partial list.</p><button className="primary" onClick={() => setAttempt(attempt + 1)}>Try again</button></div>;
 
   const { data } = result;
-  const source = <p className="quiet">Worked out from the leads recorded here.</p>;
-  const common = { data, act, busy, readOnly, org, now };
+  const common = { data, act, busy, readOnly: readOnly || mode === 'preview', org, now };
   const status = <p className="notice" role="status" aria-live="polite">{notice}</p>;
 
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
@@ -71,57 +75,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
-  if (tab === 'jobs') {
-    const j = summariseJobs(data.leads, iso => dayKey(new Date(iso)).slice(0, 7));
-    const month = (key: string) => new Date(`${key}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const done = data.leads.filter(l => l.status === 'completed').sort((a, b) => jobDate(b).localeCompare(jobDate(a)));
-    const goal = data.extras?.goal ?? null;
-    const thisMonth = j.byMonth.find(m => m.label === dayKey(now).slice(0, 7))?.revenue ?? 0;
-    return <>
-      {goal !== null && (
-        <section className="panel">
-          <header className="panel-head"><h2>This month against the goal</h2><span className="quiet">{dollars(thisMonth)} of {dollars(goal)}</span></header>
-          <progress className="upgrade-bar" value={Math.min(thisMonth, goal)} max={goal} aria-label={`${dollars(thisMonth)} paid of a ${dollars(goal)} monthly goal`} />
-          <p className="quiet">{thisMonth >= goal ? 'Goal reached.' : `${dollars(goal - thisMonth)} to go. Counts jobs marked completed and paid this month.`} Change the goal in the Settings tab.</p>
-        </section>
-      )}
-      <div className="kpis">
-        <div><span>Paid for completed jobs</span><strong><NumberFlow value={j.revenue} format={usd} /></strong><small className="quiet">{j.jobs} jobs, all time</small></div>
-        <div><span>Job costs entered</span><strong><NumberFlow value={j.cost} format={usd} /></strong><small className="quiet">On {j.costJobs} of {j.jobs} jobs</small></div>
-        <div><span>Profit on those figures</span><strong><NumberFlow value={j.profit} format={usd} /></strong><small className="quiet">Jobs with no cost entered count as no cost</small></div>
-        <div><span>Average job</span><strong>{j.average === null ? '-' : dollars(Math.round(j.average))}</strong></div>
-      </div>
-      <section className="panel">
-        <header className="panel-head"><h2>By month</h2></header>
-        {j.byMonth.length ? <div className="tablewrap"><table className="table">
-          <thead><tr><th>Month</th><th className="num">Jobs</th><th className="num">Paid</th><th className="num">Costs</th><th className="num">Profit</th></tr></thead>
-          <tbody>{j.byMonth.map(m => <tr key={m.label}><td>{month(m.label)}</td><td className="num">{m.jobs}</td><td className="num">{dollars(m.revenue)}</td><td className="num">{dollars(m.cost)}</td><td className="num">{dollars(m.profit)}</td></tr>)}</tbody></table></div>
-          : <div className="empty"><p><b>No completed jobs on record.</b></p></div>}
-      </section>
-      <div className="pair">
-        <section className="panel">
-          <header className="panel-head"><h2>By service</h2></header>
-          <div className="tablewrap"><table className="table">
-            <thead><tr><th>Service</th><th className="num">Jobs</th><th className="num">Paid</th></tr></thead>
-            <tbody>{j.byService.map(s => <tr key={s.label}><td>{s.label}</td><td className="num">{s.jobs}</td><td className="num">{dollars(s.revenue)}</td></tr>)}</tbody></table></div>
-        </section>
-        <section className="panel">
-          <header className="panel-head"><h2>Where leads come from</h2></header>
-          <div className="tablewrap"><table className="table">
-            <thead><tr><th>Source</th><th className="num">Leads</th><th className="num">Booked or done</th><th className="num">Paid</th></tr></thead>
-            <tbody>{j.bySource.map(s => <tr key={s.source}><td>{s.source}</td><td className="num">{s.leads}</td><td className="num">{s.won} ({percent(s.rate)})</td><td className="num">{dollars(s.revenue)}</td></tr>)}</tbody></table></div>
-        </section>
-      </div>
-      <section className="panel">
-        <header className="panel-head"><h2>Completed jobs</h2></header>
-        <div className="tablewrap"><table className="table">
-          <thead><tr><th>Done</th><th>Customer</th><th>Service</th><th className="num">Quote</th><th className="num">Paid</th><th className="num">Cost</th></tr></thead>
-          <tbody>{done.slice(0, shown).map(l => <tr key={l.id}><td>{day(jobDate(l))}</td><td>{l.name || '-'}</td><td>{l.service_requested || '-'}</td><td className="num">{cash(l.quote_amount)}</td><td className="num">{cash(l.job_revenue)}</td><td className="num">{cash(l.job_cost)}</td></tr>)}</tbody></table>
-          {done.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, done.length - shown)} more of {done.length}</button>}</div>
-        {source}
-      </section>
-    </>;
-  }
+  if (tab === 'jobs') return <ExteriorJobReport data={data} now={now} mode={mode} />;
 
   if ((tab === 'upgrades' || tab === 'quotes') && !data.extras) return (
     <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update.</p></div>
@@ -147,7 +101,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
               const s = state[n.id];
               return (
                 <li key={n.id}>
-                  <button type="button" className={`upgrade is-${s}`} aria-pressed={s === 'done'} disabled={readOnly || s === 'locked'} onClick={() => toggle(n.id, n.name)}>
+                  <button type="button" className={`upgrade is-${s}`} aria-pressed={s === 'done'} disabled={readOnly || mode === 'preview' || s === 'locked'} onClick={() => toggle(n.id, n.name)}>
                     <i aria-hidden="true">{s === 'done' ? <Check size={14} /> : s === 'locked' ? <Lock size={12} /> : null}</i>
                     <b>{n.name}</b><span>{n.desc}</span>
                     <small>{s === 'locked' ? 'Locked' : s === 'done' ? 'Done' : 'Ready'}{n.cost ? `, ${n.cost}` : ''}</small>
@@ -216,4 +170,110 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   }
 
   return null;
+}
+
+/** A single filtered population drives totals and every drilldown, including the accessible record table. */
+export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now: Date; mode: 'preview' | 'live' }) {
+  const pathname = usePathname(), query = useSearchParams(), router = useRouter();
+  const filterDate = (key: string) => /^\d{4}-\d{2}-\d{2}$/.test(query.get(key) || '') ? query.get(key)! : '';
+  const filters: JobFilters = { from: filterDate('from'), to: filterDate('to'), service: query.get('service') || '', source: query.get('source') || '' };
+  const [inspection, setInspection] = useState<'all' | 'missing-payment' | 'missing-cost' | 'matched'>('all');
+  const [shown, setShown] = useState(50);
+  const records = useRef<HTMLHeadingElement>(null);
+  const completed = data.leads.filter(lead => lead.status === 'completed');
+  const done = filterCompletedJobs(data.leads, filters, sourceLabel).sort((a, b) => jobDate(b).localeCompare(jobDate(a)));
+  const figures = summariseJobs(done, iso => businessDay(iso)?.slice(0, 7) || 'Unknown date');
+  const monthLabel = (key: string) => /^\d{4}-\d{2}$/.test(key) ? new Date(`${key}-15T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : key;
+  const base = mode === 'preview' ? '/preview' : '/workspace';
+  const services = [...new Set(completed.map(serviceName))].sort();
+  const sources = [...new Set(completed.map(lead => sourceLabel(lead.source)))].sort();
+  const rows = done.filter(lead => inspection === 'missing-payment' ? lead.job_revenue === null : inspection === 'missing-cost' ? lead.job_cost === null : inspection === 'matched' ? lead.job_revenue !== null && lead.job_cost !== null : true);
+  const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
+  const coverage = data.coverage?.leads;
+  const currentMonth = businessDay(now.toISOString())!.slice(0, 7);
+  const monthFigures = summariseJobs(completed.filter(lead => businessDay(jobDate(lead))?.startsWith(currentMonth)), iso => businessDay(iso)?.slice(0, 7) || 'Unknown date');
+  const goal = data.extras?.goal;
+  const focusRecords = () => records.current?.focus();
+  function update(patch: Partial<JobFilters>) {
+    const next = new URLSearchParams(query.toString());
+    for (const [key, value] of Object.entries(patch)) value ? next.set(key, value) : next.delete(key);
+    router.replace(`${pathname}${next.size ? `?${next}` : ''}`, { scroll: false });
+    setInspection('all'); setShown(50);
+  }
+  function inspect(value: typeof inspection) { setInspection(value); setShown(50); focusRecords(); }
+  function drillMonth(month: string) {
+    if (!/^\d{4}-\d{2}$/.test(month)) return;
+    const end = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+    update({ from: `${month}-01`, to: `${month}-${end}` }); focusRecords();
+  }
+  return <>
+    {mode === 'preview' && <p className="banner-inline">Fictional Exterior Care sample records. Explore filters and source rows here; no live records or payments are changed.</p>}
+    <section className="panel" aria-label="Job report filters">
+      <header className="panel-head"><h2>Completed work, clearly accounted for</h2><span className="quiet">{completed.length} completed records</span></header>
+      <div className="fields">
+        <label>From<input type="date" value={filters.from} max={filters.to || undefined} onChange={event => update({ from: event.target.value })} /></label>
+        <label>Through<input type="date" value={filters.to} min={filters.from || undefined} onChange={event => update({ to: event.target.value })} /></label>
+        <label>Service<select value={filters.service} onChange={event => update({ service: event.target.value })}><option value="">All services</option>{services.map(service => <option key={service}>{service}</option>)}</select></label>
+        <label>Lead source<select value={filters.source} onChange={event => update({ source: event.target.value })}><option value="">All sources</option>{sources.map(source => <option key={source}>{source}</option>)}</select></label>
+      </div>
+      <div className="formactions"><button className="secondary small" onClick={() => update({ from: `${currentMonth}-01`, to: businessDay(now.toISOString())! })}>This month</button><button className="secondary small" onClick={() => update(emptyJobFilters)}>Clear filters</button></div>
+      {invalidRange && <p role="alert" className="notice">Choose an end date on or after the start date.</p>}
+      <p className="quiet">Dates use America/Chicago and the recorded completion date. {figures.estimatedDateJobs > 0 ? `${figures.estimatedDateJobs} jobs use an estimated date from the last update or creation because completion was not dated. ` : ''}Payment collection dates are not recorded separately.</p>
+      {coverage && coverage.total !== null && coverage.total > coverage.loaded && <p className="banner-inline" role="status">Partial history: {coverage.loaded} of {coverage.total} accessible lead records loaded. These totals cover the loaded records only.</p>}
+    </section>
+
+    <div className="kpis">
+      <div><span>Recorded payments</span><strong>{cash(figures.revenue)}</strong><small className="quiet">Entered on {figures.revenueJobs} of {figures.jobs} completed jobs</small></div>
+      <div><span>Recorded job costs</span><strong>{cash(figures.cost)}</strong><small className="quiet">Entered on {figures.costJobs} of {figures.jobs} completed jobs</small></div>
+      <div><span>Known-job contribution</span><strong>{cash(figures.contribution)}</strong><small className="quiet">Payments less entered costs on {figures.matchedJobs} jobs with both figures</small></div>
+      <div><span>Average recorded payment</span><strong>{cash(figures.average)}</strong><small className="quiet">Only jobs with a payment figure entered</small></div>
+    </div>
+    <section className="panel">
+      <header className="panel-head"><h2>What still needs recording</h2><span className="quiet">{figures.matchedJobs} / {figures.jobs} jobs have both figures</span></header>
+      <div className="filter-chips">
+        <button aria-pressed={inspection === 'all'} onClick={() => inspect('all')}>All jobs <span>{figures.jobs}</span></button>
+        <button aria-pressed={inspection === 'missing-payment'} onClick={() => inspect('missing-payment')}>Payment not recorded <span>{figures.missingRevenue}</span></button>
+        <button aria-pressed={inspection === 'missing-cost'} onClick={() => inspect('missing-cost')}>Cost not recorded <span>{figures.missingCosts}</span></button>
+        <button aria-pressed={inspection === 'matched'} onClick={() => inspect('matched')}>Both entered <span>{figures.matchedJobs}</span></button>
+      </div>
+      <p className="quiet">A completed job may still be unpaid. Blank costs remain unknown; an explicit $0 is known. Contribution covers only the paired records and is not total business profit. Owner labor, overhead and other unentered costs may be missing.</p>
+    </section>
+
+    {goal !== null && goal !== undefined && goal > 0 && <section className="panel">
+      <header className="panel-head"><h2>{monthLabel(currentMonth)} job revenue goal</h2><span className="quiet">{cash(monthFigures.revenue)} of {dollars(goal)}</span></header>
+      <progress className="upgrade-bar" value={Math.min(monthFigures.revenue ?? 0, goal)} max={goal} aria-label="Monthly recorded job payments against goal" />
+      <p className="quiet">All services and sources; independent of the filters above. Based on recorded payments for work dated this month, not collection dates. {monthFigures.missingRevenue} completed jobs have no payment entered.</p>
+    </section>}
+
+    <section className="panel">
+      <header className="panel-head"><h2>Completion months</h2><span className="quiet">Choose a month to inspect its jobs</span></header>
+      {figures.byMonth.length ? <div className="tablewrap"><table className="table">
+        <caption className="sr-only">Recorded payments and costs grouped by completion month for the current filters</caption>
+        <thead><tr><th scope="col">Month</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Payments entered</th><th scope="col" className="num">Costs entered</th><th scope="col" className="num">Paired contribution</th><th scope="col">Coverage</th></tr></thead>
+        <tbody>{figures.byMonth.map(month => <tr key={month.label}><th scope="row"><button className="secondary small" onClick={() => drillMonth(month.label)} disabled={month.label === 'Unknown date'}>{monthLabel(month.label)}</button></th><td className="num">{month.jobs}</td><td className="num">{cash(month.revenue)}</td><td className="num">{cash(month.cost)}</td><td className="num">{cash(month.contribution)}</td><td>{month.matchedJobs}/{month.jobs} paired{month.estimatedDateJobs ? `; ${month.estimatedDateJobs} estimated dates` : ''}</td></tr>)}</tbody>
+      </table></div> : <div className="empty"><p><b>No completed jobs match these filters.</b> Clear the filters or complete a job from Leads.</p></div>}
+    </section>
+
+    <div className="pair">
+      <section className="panel"><header className="panel-head"><h2>Service mix</h2><span className="quiet">Filter by service</span></header><div className="tablewrap"><table className="table">
+        <caption className="sr-only">Completed jobs by service for the current filters</caption>
+        <thead><tr><th scope="col">Service</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Payments entered</th></tr></thead>
+        <tbody>{figures.byService.map(service => <tr key={service.label}><th scope="row"><button className="secondary small" onClick={() => { update({ service: service.label }); focusRecords(); }}>{service.label}</button></th><td className="num">{service.jobs}</td><td className="num">{cash(service.revenue)}<small className="quiet block">{service.revenueJobs}/{service.jobs} recorded</small></td></tr>)}</tbody>
+      </table></div></section>
+      <section className="panel"><header className="panel-head"><h2>Sources of completed work</h2><span className="quiet">Filter by source</span></header><div className="tablewrap"><table className="table">
+        <caption className="sr-only">Lead sources of completed jobs for the current filters; this is not a lead conversion rate</caption>
+        <thead><tr><th scope="col">Source</th><th scope="col" className="num">Completed jobs</th><th scope="col" className="num">Payments entered</th></tr></thead>
+        <tbody>{figures.bySource.map(source => <tr key={source.source}><th scope="row"><button className="secondary small" onClick={() => { update({ source: source.source }); focusRecords(); }}>{source.source}</button></th><td className="num">{source.leads}</td><td className="num">{cash(source.revenue)}</td></tr>)}</tbody>
+      </table></div></section>
+    </div>
+
+    <section className="panel">
+      <header className="panel-head"><h2 ref={records} tabIndex={-1}>Jobs behind the figures</h2><span className="quiet" role="status">{rows.length} jobs{inspection !== 'all' ? ` / ${inspection === 'missing-payment' ? 'payment not recorded' : inspection === 'missing-cost' ? 'cost not recorded' : 'both figures entered'}` : ''}</span></header>
+      {rows.length ? <div className="tablewrap"><table className="table">
+        <caption className="sr-only">Source job records for the selected report and completeness filter</caption>
+        <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Payment entered</th><th scope="col" className="num">Cost entered</th></tr></thead>
+        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{lead.job_revenue === null ? 'Not recorded' : cash(lead.job_revenue)}</td><td className="num">{lead.job_cost === null ? 'Not recorded' : cash(lead.job_cost)}</td></tr>)}</tbody>
+      </table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(value => value + 50)}>Show {Math.min(50, rows.length - shown)} more jobs</button>}</div> : <div className="empty"><p><b>No jobs in this selection.</b> Choose another completeness filter to return to the source records.</p></div>}
+    </section>
+  </>;
 }

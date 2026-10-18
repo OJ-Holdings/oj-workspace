@@ -10,16 +10,19 @@ test('phone numbers normalise to +1 form and junk is refused', () => {
   assert.deepEqual(['(262) 555-0100', '1 262 555 0100', '555-0100', '', 'call me'].map(normalizePhone), ['+12625550100', '+12625550100', null, null, null]);
 });
 
-test('completing a job fills the payment from the quote, stamps the date and locks edited fields', () => {
+test('completing work stamps its date but never turns a quote into a payment', () => {
   const u = planLeadUpdate({ status: 'booked', quote_amount: 400, job_revenue: null, completed_at: null, manually_updated_fields: ['notes'] }, { status: 'completed' }, now);
-  assert.equal(u.job_revenue, 400);
+  assert.equal('job_revenue' in u, false);
   assert.equal(u.completed_at, now);
-  assert.deepEqual(u.manually_updated_fields, ['notes', 'status', 'job_revenue']);
+  assert.deepEqual(u.manually_updated_fields, ['notes', 'status']);
 });
 
-test('entering a payment on a completed job moves it to today; other edits leave the date alone', () => {
+test('editing payment or completion status never moves historical work to today', () => {
   const done = { status: 'completed', quote_amount: 400, job_revenue: 400, completed_at: '2026-07-01T00:00:00Z', manually_updated_fields: null };
-  assert.equal(planLeadUpdate(done, { job_revenue: 450 }, now).completed_at, now);
+  assert.equal('completed_at' in planLeadUpdate(done, { job_revenue: 450 }, now), false);
+  assert.equal('completed_at' in planLeadUpdate(done, { status: 'completed' }, now), false);
+  assert.equal('completed_at' in planLeadUpdate({ ...done, completed_at: null }, { job_revenue: 450 }, now), false, 'unknown historic completion dates stay unknown');
+  assert.equal('completed_at' in planLeadUpdate({ ...done, completed_at: null }, { status: 'completed' }, now), false, 'saving an already completed legacy record does not invent a completion date');
   assert.equal('completed_at' in planLeadUpdate(done, { notes: 'Gate code 12' }, now), false);
   assert.equal('completed_at' in planLeadUpdate(done, { job_cost: 20 }, now), false);
   assert.equal('job_revenue' in planLeadUpdate({ ...done, status: 'new' }, { status: 'contacted' }, now), false);

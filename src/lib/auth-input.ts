@@ -5,6 +5,8 @@ export function validEmail(value: string) {
 export function safeAuthNext(value: string | null) {
   if (value === '/auth/password' || value === '/setup') return value;
   if (value && /^\/join\/[a-f0-9]{64}$/.test(value)) return value;
+  if (value === '/employee') return value;
+  if (value && /^\/employee\/join\/[a-f0-9]{64}$/.test(value)) return value;
   return '/workspace';
 }
 export function passwordError(password: string, confirmation: string) {

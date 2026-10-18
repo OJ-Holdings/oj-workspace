@@ -17,5 +17,5 @@ export default async function Team() {
     client.rpc('oj_list_invitations', { org: membership.organization_id }),
   ]);
   if (members.error || invitations.error) throw new Error('Could not load workspace access. Check the collaboration schema is installed.');
-  return <main className="settings-page"><Link className="text-link" href="/workspace">← Back to workspace</Link><p className="eyebrow">Your OJ team</p><h1>People &amp; access<span className="heading-dot">.</span></h1><p>Give each person the access their work needs.</p><TeamPanel org={membership.organization_id} members={members.data || []} invitations={invitations.data || []} /></main>;
+  return <main className="settings-page"><Link className="text-link" href="/workspace">← Back to workspace</Link><p className="eyebrow">Your OJ team</p><h1>People &amp; access<span className="heading-dot">.</span></h1><p>Give each person the access their work needs.</p><p><Link className="secondary" href="/workspace/employees">Manage employees &amp; assigned jobs →</Link></p><TeamPanel org={membership.organization_id} members={members.data || []} invitations={invitations.data || []} /></main>;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,8 @@ import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, 
 import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
+import type { Dashboard } from '@/lib/dashboard';
+import { searchWorkspace } from '@/lib/workspace-search';
 
 export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings';
 
@@ -32,47 +34,81 @@ type Props = {
   /** The work timer, shown in the top bar on every page. */
   timer?: ReactNode;
   onOpenCard: (card: Card) => void; onNewCard: () => void; children: ReactNode;
+  dashboard?: Dashboard | null; presence?: ReactNode;
 };
 
 const actionWord = { card_created: 'created', card_updated: 'updated', comment_added: 'commented on' } as const;
 
-export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children }: Props) {
+export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence }: Props) {
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
+  const palette = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
+  const restoreFocus = useRef(true);
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
-  // Ctrl/Cmd+K opens search from anywhere; Escape closes whatever is open.
+  const openSearch = useCallback(() => {
+    // Do not stack this modal over a task editor and its unsaved draft.
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (active?.closest('dialog[open], [aria-modal="true"]') && !palette.current?.contains(active)) return;
+    if (!palette.current) previousFocus.current = active;
+    restoreFocus.current = true;
+    setDrawer(false); setBell(false); setSearch(true);
+    searchInput.current?.focus();
+  }, []);
+  // Ctrl/Cmd+K opens search; browser Back dismisses it before the next route renders.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch(true); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch(); }
       if (e.key === 'Escape') { setSearch(false); setBell(false); setDrawer(false); }
     };
+    const onBack = () => { restoreFocus.current = false; setSearch(false); setBell(false); setDrawer(false); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+    window.addEventListener('popstate', onBack);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('popstate', onBack); };
+  }, [openSearch]);
   useEffect(() => { if (search) searchInput.current?.focus(); else setQuery(''); }, [search]);
+  useEffect(() => {
+    if (!search) return;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const items = palette.current?.querySelectorAll<HTMLElement>('input,button:not(:disabled),a[href]');
+      if (!items?.length) return;
+      if (!palette.current?.contains(document.activeElement)) { e.preventDefault(); items[0].focus(); }
+      else if (e.shiftKey && document.activeElement === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
+    };
+    document.addEventListener('keydown', trap);
+    return () => {
+      document.body.style.overflow = old; document.removeEventListener('keydown', trap);
+      if (restoreFocus.current) (previousFocus.current?.isConnected ? previousFocus.current : trigger.current)?.focus();
+    };
+  }, [search]);
+  const records = useMemo(() => searchWorkspace(query, cards, dashboard), [query, cards, dashboard]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return { pages: nav.slice(0, 5), cards: [] as Card[] };
+    if (!q) return { pages: nav.slice(0, 5) };
     return {
       pages: [...nav, ...ventureList.map(v => ({ key: 'businesses' as NavKey, label: v.name, path: `/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
-      cards: cards.filter(c => `${c.title} ${c.description} ${c.assignee}`.toLowerCase().includes(q)).slice(0, 8),
     };
-  }, [query, cards]);
+  }, [query]);
 
-  const go = (path: string) => { setSearch(false); setDrawer(false); router.push(base + path); };
+  const go = (path: string) => { restoreFocus.current = false; setSearch(false); setDrawer(false); router.push(base + path); };
 
   return (
     <div className="shell" data-venture={venture ?? undefined}>
       <a className="skip-link" href="#main">Skip to content</a>
       {drawer && <button className="rail-scrim" aria-label="Close menu" onClick={() => setDrawer(false)} />}
 
-      <aside className={drawer ? 'rail is-open' : 'rail'} aria-label="Main navigation">
+      <aside className={drawer ? 'rail is-open' : 'rail'} aria-label="Main navigation" inert={search}>
         <Link className="rail-brand" href={base || '/'} onClick={() => setDrawer(false)}>
           <span className="rail-logo" aria-hidden="true">OJ</span>
           <span>Workspace</span>
@@ -109,10 +145,10 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         <p className="rail-motto">Different skills. Same vision. Bigger together.</p>
       </aside>
 
-      <div className="stage">
+      <div className="stage" inert={search}>
         <header className="topbar">
           <button className="icon-button topbar-menu" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}><Menu size={20} /></button>
-          <button className="search-trigger" onClick={() => setSearch(true)}>
+          <button ref={trigger} className="search-trigger" aria-haspopup="dialog" aria-expanded={search} onClick={openSearch}>
             <Search size={16} aria-hidden="true" /><span>Search anything</span><kbd>Ctrl K</kbd>
           </button>
           <div className="topbar-right">
@@ -146,28 +182,29 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         </header>
         {mode === 'preview' && <p className="banner">Sample workspace. Every figure and task here is made up, and changes stay in this browser. <Link href="/login">Sign in to your workspace</Link></p>}
         {mode === 'live' && status && <p className="banner banner-quiet" role="status">{status}</p>}
+        {presence}
         <main id="main">{children}</main>
       </div>
 
       {search && (
         <div className="palette-scrim" onClick={() => setSearch(false)}>
-          <div className="palette" role="dialog" aria-modal="true" aria-label="Search" onClick={e => e.stopPropagation()}>
+          <div ref={palette} className="palette" role="dialog" aria-modal="true" aria-label="Search" onClick={e => e.stopPropagation()}>
             <div className="palette-input">
               <Search size={18} aria-hidden="true" />
-              <input ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks and pages" aria-label="Search tasks and pages" />
+              <input ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Tasks, leads, files, messages, events…" aria-label="Search workspace" />
               <button className="icon-button" aria-label="Close search" onClick={() => setSearch(false)}><X size={18} /></button>
             </div>
             <div className="palette-results">
               {results.pages.length > 0 && <p>Pages</p>}
               {results.pages.map(p => <button key={p.path + p.label} onClick={() => go(p.path)}><p.icon size={16} aria-hidden="true" />{p.label}</button>)}
-              {results.cards.length > 0 && <p>Tasks</p>}
-              {results.cards.map(c => <button key={c.id} onClick={() => { setSearch(false); onOpenCard(c); }}><CheckSquare size={16} aria-hidden="true" />{c.title}<small>{c.stage}</small></button>)}
-              {query && results.pages.length + results.cards.length === 0 && <p className="quiet">Nothing matches "{query}". Leads, files and messages become searchable as those sections are connected.</p>}
+              {records.length > 0 && <p>Workspace records</p>}
+              {records.map(record => <button key={`${record.kind}-${record.id}`} className="search-record" onClick={() => go(record.path)}><span className="search-kind">{record.kind}</span><span><b>{record.title}</b><small>{record.detail}</small></span></button>)}
+              {query.trim() && results.pages.length + records.length === 0 && <p className="quiet" role="status">No loaded records match “{query}”. Try a name, task, or document. Connected business records also have search inside their business section.</p>}
             </div>
           </div>
         </div>
       )}
-      {!readOnly && current !== 'tasks' && <button className="fab" onClick={onNewCard} aria-label="New task"><Plus size={22} /></button>}
+      {!readOnly && current !== 'tasks' && <button className="fab" inert={search} onClick={onNewCard} aria-label="New task"><Plus size={22} /></button>}
     </div>
   );
 }

@@ -1,0 +1,36 @@
+.presence-panel { border-bottom: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.presence-panel details > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; cursor: pointer; font-size: var(--t-sm); list-style: none; }
+.presence-panel details > summary::-webkit-details-marker { display: none; }
+.presence-heading { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; }
+.presence-summary { color: var(--ink-2); display: flex; align-items: center; gap: 12px; }
+.presence-summary::after { content: '+'; font-size: 18px; }
+.presence-panel details[open] .presence-summary::after { content: '−'; }
+.presence-panel summary:focus-visible, .presence-panel button:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: -3px; }
+.presence-body { padding: 0 24px 20px; max-width: 920px; animation: presence-open 140ms ease-out; }
+.presence-explainer, .presence-notice { font-size: var(--t-sm); color: var(--ink-2); margin: 0 0 14px; line-height: 1.6; }
+.presence-notice { margin-top: 12px; }
+.presence-notice button { color: var(--accent-hi); text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 4px; }
+.presence-roster { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); list-style: none; padding: 0; margin: 0 0 18px; gap: 16px 24px; }
+.presence-roster > li { display: flex; gap: 12px; min-width: 0; }
+.presence-avatar { position: relative; flex-shrink: 0; }
+.presence-avatar::after { content: ''; position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid var(--panel); border-radius: 50%; background: var(--ink-4); }
+.presence-avatar[data-state='online']::after { background: var(--good); }
+.presence-avatar[data-state='away']::after { background: var(--watch); }
+.presence-person { flex: 1; min-width: 0; }
+.presence-person > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.presence-person strong { font-size: var(--t-sm); }
+.presence-state { color: var(--ink-3); font-size: var(--t-xs); }
+.presence-state[data-state='online'] { color: var(--good); }
+.presence-state[data-state='away'] { color: var(--watch); }
+.presence-person p { margin: 5px 0; font-size: var(--t-sm); overflow-wrap: anywhere; }
+.presence-person small { display: block; font-size: var(--t-xs); color: var(--ink-3); margin-top: 4px; }
+.presence-task { display: inline-flex; align-items: center; gap: 5px; text-align: left; padding: 3px 0; border: 0; background: none; color: var(--accent-hi); cursor: pointer; font-size: var(--t-sm); overflow-wrap: anywhere; }
+.presence-controls, .presence-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.presence-controls label, .presence-form label { display: grid; gap: 6px; font-size: var(--t-sm); color: var(--ink-2); }
+.presence-panel select, .presence-panel input { width: 100%; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--ink); border-radius: var(--r-sm); padding: 10px 12px; min-height: 42px; font: inherit; }
+.presence-form { margin-top: 16px; }
+.presence-form fieldset { display: grid; gap: 12px; padding: 0; margin: 0; border: 0; min-width: 0; }
+.presence-form .quiet { margin: 0; font-size: var(--t-xs); }
+@keyframes presence-open { from { opacity: 0; } to { opacity: 1; } }
+@media(max-width: 640px) { .presence-panel details > summary { padding: 12px 16px; } .presence-body { padding: 0 16px 16px; } .presence-roster { grid-template-columns: 1fr; } .presence-controls > label { width: 100%; } }
+@media(prefers-reduced-motion: reduce) { .presence-body { animation: none; } }

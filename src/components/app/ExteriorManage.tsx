@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import NumberFlow from '@number-flow/react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
@@ -45,6 +48,11 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [editing, setEditing] = useState<LeadInput | null>(null);
   const [paying, setPaying] = useState<ExtLead | null>(null);
   const [booking, setBooking] = useState<ExtLead | null>(null);
+  const selected = useSearchParams().get('lead');
+  useEffect(() => {
+    const lead = data.leads.find(l => l.id === selected);
+    if (lead) { setFilter('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
+  }, [selected, data.leads]);
 
   const counts = useMemo(() => Object.fromEntries(leadStatuses.map(s => [s, data.leads.filter(l => l.status === s).length])), [data.leads]);
   const pipeline = data.leads.filter(l => openStatuses.includes(l.status ?? '')).reduce((s, l) => s + (l.quote_amount ?? 0), 0);
@@ -70,7 +78,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
       {rows.length ? <div className="tablewrap"><table className="table lead-table">
         <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
-          <tr key={l.id}>
+          <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
             <td><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
             <td>{l.service_requested || '-'}</td>
             <td className="num">{cash(l.quote_amount)}</td>
@@ -140,7 +148,8 @@ function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = fals
 function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string }) {
   const [f, setF] = useState({ job_revenue: '', job_cost: '', notes: '' });
   useEffect(() => { if (lead) setF({ job_revenue: lead.job_revenue?.toString() ?? '', job_cost: lead.job_cost?.toString() ?? '', notes: lead.notes ?? '' }); }, [lead]);
-  const revenue = Number(f.job_revenue) || 0, cost = Number(f.job_cost) || 0;
+  const revenue = f.job_revenue.trim() === '' ? null : Number(f.job_revenue), cost = f.job_cost.trim() === '' ? null : Number(f.job_cost);
+  const contribution = revenue === null || cost === null ? null : revenue - cost;
   return (
     <Modal title={`Payment for ${lead?.name ?? ''}`} open={!!lead} onClose={close}>
       {lead && <form onSubmit={e => { e.preventDefault(); act(() => saveFinancials(org, lead.id, f), () => 'Payment saved.').then(ok => ok && close()); }}>
@@ -150,12 +159,12 @@ function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | null; cl
           <label>Job expenses<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={e => setF({ ...f, job_cost: e.target.value })} placeholder="Labour, supplies, gas" /></label>
         </div>
         <div className="kpis compact">
-          <div><span>Paid</span><strong>{dollars(revenue)}</strong></div>
-          <div><span>Expenses</span><strong>{dollars(cost)}</strong></div>
-          <div><span>Profit</span><strong className={revenue - cost < 0 ? 'neg' : ''}>{dollars(revenue - cost)}</strong>{revenue > 0 && <small className="quiet">{Math.round(((revenue - cost) / revenue) * 100)}% margin</small>}</div>
+            <div><span>Recorded payment</span><strong>{revenue === null ? 'Not recorded' : dollars(revenue)}</strong></div>
+            <div><span>Expenses</span><strong>{cost === null ? 'Not recorded' : dollars(cost)}</strong></div>
+            <div><span>Contribution</span><strong className={contribution !== null && contribution < 0 ? 'neg' : ''}>{contribution === null ? 'Incomplete' : dollars(contribution)}</strong>{revenue !== null && revenue > 0 && contribution !== null && <small className="quiet">{Math.round((contribution / revenue) * 100)}% margin</small>}</div>
         </div>
         <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} /></label>
-        <div className="dialog-actions"><span>Entering a payment counts it in this month.</span><button className="primary" disabled={busy}>{busy ? 'Saving' : 'Save payment'}</button></div>
+          <div className="dialog-actions"><span>Reports group this by job date, not collection date. Leave unknown amounts blank; enter 0 only when confirmed.</span><button className="primary" disabled={busy}>{busy ? 'Saving' : 'Save payment'}</button></div>
       </form>}
     </Modal>
   );
@@ -420,6 +429,7 @@ function SessionDialog({ session, close, act, busy, org, crew, areas }: { sessio
 /* ------------------------------ Activity ------------------------------ */
 
 export function ActivityList({ data }: { data: ExteriorData }) {
+  const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const [who, setWho] = useState('');
   const people = [...new Set(data.activity.map(a => a.operator).filter(Boolean))] as string[];
   const rows = data.activity.filter(a => !who || a.operator === who);
@@ -428,9 +438,10 @@ export function ActivityList({ data }: { data: ExteriorData }) {
       <header className="panel-head"><h2>Activity</h2>
         <label className="quiet">Who <select value={who} onChange={e => setWho(e.target.value)}><option value="">Everyone</option>{people.map(p => <option key={p}>{p}</option>)}</select></label>
       </header>
-      {rows.length ? <ol className="activity">{rows.map(a => (
-        <li key={a.id}><time dateTime={a.created_at}>{new Date(a.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</time><b>{a.operator || 'System'}</b><span>{a.description || a.action}</span></li>
-      ))}</ol> : <div className="empty"><p><b>Nothing recorded yet.</b></p></div>}
+        {rows.length ? <ol className="operating-activity">{rows.map(a => {
+          const matches = a.lead_name ? data.leads.filter(l => l.name === a.lead_name) : [];
+          return <li key={a.id}><span className="activity-person" aria-hidden="true">{(a.operator || 'S').charAt(0)}</span><div><b>{a.operator || 'System'}</b><p>{a.description || a.action || 'Record updated'}</p>{matches.length === 1 && <Link href={`${base}/b/exterior/leads?lead=${encodeURIComponent(matches[0].id)}`}>Open {a.lead_name}</Link>}</div><time dateTime={a.created_at}>{new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(a.created_at))}</time></li>;
+        })}</ol> : <div className="empty"><p><b>Nothing recorded yet.</b></p></div>}
       <p className="quiet">The latest 300 changes made in either app.</p>
     </section>
   );

@@ -74,17 +74,14 @@ export const isRealPhone = (phone: string | null | undefined) => Boolean(phone) 
 
 /**
  * What to write when a person edits a lead:
- * - marking it completed with no payment entered fills the payment from the quote;
- * - completed_at is stamped the first time it is completed, and again whenever a
- *   payment is entered on a completed job, so money lands in the month it was collected;
+ * - completing work never implies that a quote has been paid;
+ * - completed_at is stamped only on the first transition into completed. Editing
+ *   a payment or re-saving a completed status never moves historical work;
  * - every edited field is remembered so the sheet sync will not overwrite it.
  */
 export function planLeadUpdate(current: Current, patch: LeadPatch, nowIso: string): Record<string, unknown> {
   const data: Record<string, unknown> = { ...patch };
-  if (patch.status === 'completed' && patch.job_revenue === undefined && !(Number(current.job_revenue) > 0) && Number(current.quote_amount) > 0) data.job_revenue = current.quote_amount;
-  const becoming = patch.status === 'completed', already = current.status === 'completed';
-  const settingRevenue = data.job_revenue != null && Number(data.job_revenue) > 0;
-  if ((becoming && !current.completed_at) || ((becoming || already) && settingRevenue)) data.completed_at = nowIso;
+  if (patch.status === 'completed' && current.status !== 'completed' && !current.completed_at) data.completed_at = nowIso;
   const locked = Array.isArray(current.manually_updated_fields) ? current.manually_updated_fields.filter((f): f is string => typeof f === 'string') : [];
   const edited = Object.keys(data).filter(k => (trackable as readonly string[]).includes(k));
   return { ...data, manually_updated_fields: [...new Set([...locked, ...edited])], updated_at: nowIso };

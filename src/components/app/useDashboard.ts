@@ -12,7 +12,7 @@ const listOf: Record<Kind, keyof Dashboard> = { lead: 'leads', finance: 'finance
 
 /**
  * Messages, leads, money, metrics, events and documents, plus every way of
- * changing them. Preview mode keeps changes in memory; live mode calls the
+ * changing them. Preview mode keeps changes in this browser; live mode calls the
  * server actions and then applies the saved row.
  *
  * `data` is null while loading (preview, before the browser clock is known) or
@@ -25,7 +25,22 @@ export function useDashboard(initial: Dashboard | null | undefined, mode: 'previ
   const [pending, startTransition] = useTransition();
 
   // The sample workspace is dated from the visitor's clock, so it is built after load.
-  useEffect(() => { const d = new Date(); setNow(d); if (mode === 'preview') setData(sampleDashboard(d)); }, [mode]);
+  useEffect(() => {
+    const d = new Date(); setNow(d);
+    if (mode !== 'preview') return;
+    let sample = sampleDashboard(d);
+    try {
+      const saved = JSON.parse(localStorage.getItem('oj-preview-dashboard-v1') || 'null');
+      if (saved && ['leads', 'finance', 'metricEntries', 'events', 'documents', 'messages'].every(key => Array.isArray(saved[key]))) sample = saved;
+    } catch { /* Start with fictional records if local storage is unavailable. */ }
+    setData(sample);
+  }, [mode]);
+  useEffect(() => {
+    if (mode === 'preview' && data) {
+      try { localStorage.setItem('oj-preview-dashboard-v1', JSON.stringify(data)); }
+      catch { setNotice('Preview changes cannot be stored in this browser and may be lost on refresh.'); }
+    }
+  }, [mode, data]);
   useEffect(() => { if (mode === 'live') setData(initial ?? null); }, [initial, mode]);
 
   const patch = (fn: (d: Dashboard) => Dashboard) => setData(d => d ? fn(d) : d);

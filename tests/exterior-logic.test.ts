@@ -28,12 +28,16 @@ test('job income counts completed jobs only, by month, service and source', () =
   ], iso => iso.slice(0, 7));
   assert.equal(j.revenue, 800);
   assert.equal(j.cost, 20);
-  assert.equal(j.profit, 780);
+  assert.equal(j.contribution, 280, 'only the job with both payment and cost contributes');
+  assert.equal(j.matchedJobs, 1);
+  assert.equal(j.missingRevenue, 1);
+  assert.equal(j.missingCosts, 2);
+  assert.equal(j.estimatedDateJobs, 1);
   assert.equal(j.costJobs, 1);
   assert.equal(j.average, 400);
   assert.deepEqual(j.byMonth.map(m => [m.label, m.jobs, m.revenue]), [['2026-07', 2, 500], ['2026-06', 1, 300]]);
-  assert.deepEqual(j.byService.map(s => [s.label, s.revenue]), [['House Wash', 800], ['Unspecified', 0]]);
-  assert.deepEqual(j.bySource.map(s => [s.source, s.leads, s.won, s.revenue]), [['Facebook', 3, 2, 0], ['Door to door', 2, 2, 800]]);
+  assert.deepEqual(j.byService.map(s => [s.label, s.revenue]), [['House Wash', 800], ['Unspecified', null]]);
+  assert.deepEqual(j.bySource.map(s => [s.source, s.leads, s.won, s.revenue]), [['Facebook', 3, 2, null], ['Door to door', 2, 2, 800]]);
 });
 
 test('door-knocking rates come from totals and are unknown with no doors', () => {

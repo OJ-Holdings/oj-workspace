@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
-import { ventureList, ventures, type VentureId } from '@/lib/ventures';
+import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { dayKey, documentTags, fileKind, fileSize, lastMonths, leadStages, monthlyTotals, relativeDay, type DocumentItem, type EventItem, type Lead, type LeadStage } from '@/lib/dashboard';
 import { dollars, money } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
@@ -12,6 +13,7 @@ import { LineChart } from './Charts';
 import type { DashboardStore } from './useDashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { blockLabel, parseBlock } from '@/lib/exterior-ops';
+import { businessDay, operationalAnalytics, type AnalyticsFilters } from '@/lib/reporting';
 
 const color = (v: VentureId | null | 'shared') => `var(--c-${v ?? 'shared'})`;
 const short = (v: VentureId | null) => v ? ventures[v].short : 'Shared';
@@ -44,6 +46,7 @@ const Notice = ({ store }: { store: DashboardStore }) => <p className="notice" r
 
 /* ------------------------------ Messages ------------------------------ */
 export function MessagesView({ store, readOnly }: Common) {
+  const selected = useSearchParams().get('message');
   const [thread, setThread] = useState<VentureId | null | 'all'>('all');
   const [body, setBody] = useState('');
   return (
@@ -67,7 +70,7 @@ export function MessagesView({ store, readOnly }: Common) {
           <Notice store={store} />
           <ul className="messages">
             {store.data!.messages.filter(m => thread === 'all' || m.venture === thread).map(m => (
-              <li key={m.id}>
+              <li key={m.id} id={`record-${m.id}`} className={selected === m.id ? 'record-highlight' : undefined}>
                 <span className="avatar">{m.author.charAt(0).toUpperCase()}</span>
                 <div><b>{m.author}<span className="tag" style={{ '--tag': color(m.venture) } as React.CSSProperties}>{short(m.venture)}</span><time>{relativeDay(m.created_at, store.now!)}</time></b><p>{m.body}</p></div>
               </li>
@@ -83,9 +86,18 @@ export function MessagesView({ store, readOnly }: Common) {
 /* ------------------------------ Leads & CRM ------------------------------ */
 const blankLead = (venture: VentureId): Omit<Lead, 'created_at'> => ({ id: crypto.randomUUID(), venture, name: '', contact: '', stage: 'New', value: null, source: '', notes: '' });
 export function CrmView({ store, readOnly, venture }: Common) {
+  const selected = useSearchParams().get('lead');
+  const path = usePathname();
+  const base = path.startsWith('/preview') ? '/preview' : '/workspace';
+  const opened = useRef<string | null>(null);
   const [filter, setFilter] = useState<VentureId | 'all'>(venture ?? 'all');
   const [draft, setDraft] = useState<(Omit<Lead, 'created_at'> & { isNew: boolean }) | null>(null);
   const scope = venture ?? filter;
+  useEffect(() => {
+    if (!selected || opened.current === selected || !store.data) return;
+    const found = store.data.leads.find(l => l.id === selected);
+    if (found) { setFilter(found.venture); setDraft({ ...found, isNew: false }); opened.current = selected; }
+  }, [selected, store.data]);
   return (
     <Gate store={store} what="Leads and CRM">{() => <>
       <div className="toolbar">
@@ -98,9 +110,9 @@ export function CrmView({ store, readOnly, venture }: Common) {
       </div>
       <Notice store={store} />
       {draft && (
-        <form className="panel formpanel" onSubmit={e => { e.preventDefault(); const { isNew, ...lead } = draft; store.saveLead(lead, isNew, () => setDraft(null)); }}>
-          <h2>{draft.isNew ? 'New lead' : 'Edit lead'}</h2>
-          <div className="fields">
+        <form className="panel formpanel" onSubmit={e => { e.preventDefault(); if (readOnly || store.pending) return; const { isNew, ...lead } = draft; store.saveLead(lead, isNew, () => setDraft(null)); }}>
+          <h2>{draft.isNew ? 'New lead' : readOnly ? 'Lead details' : 'Edit lead'}</h2>
+          <fieldset className="fields" disabled={readOnly || store.pending}>
             <label>Name or job<input required autoFocus maxLength={160} value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
             <label>Business<VentureSelect value={draft.venture} onChange={v => v && setDraft({ ...draft, venture: v })} /></label>
             <label>Contact<input maxLength={200} value={draft.contact} onChange={e => setDraft({ ...draft, contact: e.target.value })} placeholder="Phone or email" /></label>
@@ -108,8 +120,8 @@ export function CrmView({ store, readOnly, venture }: Common) {
             <label>Value in dollars<input type="number" min="0" step="0.01" inputMode="decimal" value={draft.value ?? ''} onChange={e => setDraft({ ...draft, value: e.target.value === '' ? null : Number(e.target.value) })} /></label>
             <label>Source<input maxLength={120} value={draft.source} onChange={e => setDraft({ ...draft, source: e.target.value })} placeholder="Website, referral, door knocking" /></label>
             <label className="wide">Notes<textarea rows={2} maxLength={4000} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></label>
-          </div>
-          <div className="formactions"><button type="button" className="secondary" onClick={() => setDraft(null)}>Cancel</button><button className="primary" disabled={store.pending}>Save lead</button></div>
+          </fieldset>
+          <div className="formactions">{!readOnly && !draft.isNew && <Link className="secondary" href={`${base}/tasks?sourceLead=${encodeURIComponent(draft.id)}`}>Create follow-up task</Link>}<button type="button" className="secondary" onClick={() => setDraft(null)}>Close</button><button className="primary" disabled={store.pending || readOnly}>Save lead</button></div>
         </form>
       )}
       <div className="pipeline-board">
@@ -122,7 +134,7 @@ export function CrmView({ store, readOnly, venture }: Common) {
               <div className="column-cards">
                 {rows.map(lead => (
                   <article key={lead.id} className="taskcard leadcard" data-venture-tag={lead.venture}>
-                    <button className="taskcard-open" disabled={readOnly} onClick={() => setDraft({ ...lead, isNew: false })}>
+                    <button className="taskcard-open" onClick={() => setDraft({ ...lead, isNew: false })}>
                       <div className="taskcard-tags"><span className="tag" style={{ '--tag': color(lead.venture) } as React.CSSProperties}>{short(lead.venture)}</span>{lead.value !== null && <b>{dollars(lead.value)}</b>}</div>
                       <h3>{lead.name}</h3>
                       {(lead.contact || lead.source) && <p>{[lead.contact, lead.source].filter(Boolean).join(' / ')}</p>}
@@ -158,17 +170,36 @@ export function FinanceView({ store, readOnly, venture }: Common) {
 function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common & { form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
   const now = store.now!, data = store.data!;
   const [shown, setShown] = useState(12);
-  const scope = venture ? [ventures[venture]] : ventureList;
-  const month = dayKey(now).slice(0, 7);
-  const entries = data.finance.filter(f => !venture || f.venture === venture).sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
+  const query = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const selectedEntry = query.get('entry');
+  const filterBusiness = venture ?? (isVenture(query.get('business') ?? '') ? query.get('business') as VentureId : null);
+  const filterMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(query.get('month') ?? '') ? query.get('month')! : '';
+  const scope = filterBusiness ? [ventures[filterBusiness]] : ventureList;
+  const month = filterMonth || dayKey(now).slice(0, 7);
+  const pick = (key: string, value: string) => { const next = new URLSearchParams(query.toString()); if (value) next.set(key, value); else next.delete(key); setShown(12); router.replace(`${pathname}?${next}`, { scroll: false }); };
+  const entries = data.finance.filter(f => (!filterBusiness || f.venture === filterBusiness) && (!filterMonth || f.occurred_on.startsWith(filterMonth))).sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
+  useEffect(() => {
+    if (!selectedEntry) return;
+    const index = entries.findIndex(f => f.id === selectedEntry);
+    if (index >= 0) setShown(n => Math.max(n, index + 1));
+  }, [selectedEntry, data.finance]);
+  useEffect(() => { if (selectedEntry) document.getElementById(`finance-${selectedEntry}`)?.scrollIntoView({ block: 'center' }); }, [selectedEntry, shown]);
   const sum = (kind: 'revenue' | 'cost') => entries.filter(f => f.kind === kind && f.occurred_on.startsWith(month)).reduce((s, f) => s + f.amount, 0);
   const revenue = sum('revenue'), costs = sum('cost');
+  const netKnown = entries.some(f => f.kind === 'revenue' && f.occurred_on.startsWith(month)) && entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month));
   const withRevenue = scope.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
   return <>
+    <div className="toolbar">
+      {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
+      <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>
+      {filterMonth && <button className="secondary" onClick={() => pick('month', '')}>All dates</button>}
+    </div>
     <div className="kpis">
-      <div><span>Money in this month</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
-      <div><span>Money out this month</span><strong><NumberFlow value={costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
-      <div><span>Profit this month</span><strong className={revenue - costs < 0 ? 'neg' : ''}><NumberFlow value={revenue - costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong><small className="quiet">Paid jobs, Shopify orders and hand-logged entries</small></div>
+      <div><span>Recorded revenue / {month}</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
+      <div><span>Recorded costs / {month}</span><strong>{entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month)) ? dollars(costs) : 'Not recorded'}</strong></div>
+      <div><span>Recorded net / {month}</span><strong className={revenue - costs < 0 ? 'neg' : ''}>{netKnown ? dollars(revenue - costs) : 'Incomplete'}</strong><small className="quiet">Entered revenue minus entered costs. Missing costs can overstate this figure.</small></div>
     </div>
     <section className="panel">
       <header className="panel-head"><h2>Money in, last 12 months</h2></header>
@@ -191,12 +222,13 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
         </form>
       )}
       <Notice store={store} />
-      {entries.some(f => f.auto) && <p className="quiet">Paid Exterior Care jobs and Shopify orders are added automatically, so do not log those by hand as well.</p>}
+      {entries.some(f => f.auto) && <p className="quiet">Recorded Exterior Care payments and paid USD Shopify orders are included automatically. Exterior figures use the job date, not a verified collection date. Do not enter these amounts again.</p>}
+      {data.reporting?.sources.map(source => <p className="quiet" key={source.id}>{source.label}: {source.state}. {source.detail}</p>)}
       {entries.length ? (
         <div className="tablewrap"><table className="table">
           <thead><tr><th>Date</th><th>Business</th><th>Category</th><th>Note</th><th className="num">Amount</th><th /></tr></thead>
           <tbody>{entries.slice(0, shown).map(f => (
-            <tr key={f.id}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
+            <tr key={f.id} id={`finance-${f.id}`} className={selectedEntry === f.id ? 'record-highlight' : undefined}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
               <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
               <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
           ))}</tbody>
@@ -210,10 +242,17 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
 const blankEvent = (day: string): EventItem => ({ id: crypto.randomUUID(), venture: null, title: '', starts_at: `${day}T09:00`, ends_at: `${day}T10:00`, all_day: false, location: '', notes: '' });
 const toLocalInput = (iso: string) => { const d = new Date(iso); return `${dayKey(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 export function CalendarView({ store, readOnly, cards, jobs, base }: Common & { cards: Card[]; jobs: JobItem[]; base: string }) {
+  const eventId = useSearchParams().get('event');
+  const opened = useRef<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [draft, setDraft] = useState<(EventItem & { isNew: boolean }) | null>(null);
   const [link, setLink] = useState('');
   const [linkError, setLinkError] = useState('');
+  useEffect(() => {
+    if (!eventId || opened.current === eventId || !store.data || !store.now) return;
+    const found = store.data.events.find(e => e.id === eventId);
+    if (found) { const d = new Date(found.starts_at); setOffset((d.getFullYear() - store.now.getFullYear()) * 12 + d.getMonth() - store.now.getMonth()); if (!readOnly) setDraft({ ...found, isNew: false }); opened.current = eventId; }
+  }, [eventId, store.data, store.now, readOnly]);
   return (
     <Gate store={store} what="The calendar">
       {() => <CalendarBody store={store} readOnly={readOnly} cards={cards} jobs={jobs} base={base} offset={offset} setOffset={setOffset} draft={draft} setDraft={setDraft} link={link} setLink={setLink} linkError={linkError} setLinkError={setLinkError} />}
@@ -231,7 +270,7 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
     const map = new Map<string, Item[]>();
     const push = (k: string, item: Item) => map.set(k, [...(map.get(k) ?? []), item]);
     for (const e of data.events as EventItem[]) push(dayKey(new Date(e.starts_at)), { id: e.id, title: e.title, venture: e.venture, time: e.all_day ? '' : new Date(e.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), event: e });
-    for (const c of cards as Card[]) if (c.due_date && c.stage !== 'Done') push(c.due_date, { id: c.id, title: c.title, venture: c.business, time: 'Task due' });
+    for (const c of cards as Card[]) if (c.due_date && c.stage !== 'Done') push(c.due_date, { id: c.id, title: c.title, venture: c.business, time: 'Task due', href: `${base}/tasks?task=${encodeURIComponent(c.id)}` });
     // Exterior Care jobs, in time order within their day, linking to the Exterior Care calendar to edit them.
     for (const j of [...(jobs as JobItem[])].sort((a, b) => (parseBlock(a.time_block)?.start ?? 0) - (parseBlock(b.time_block)?.start ?? 0))) push(j.date, { id: `job-${j.id}`, title: `${j.name}${j.service ? `, ${j.service}` : ''}`, venture: 'exterior', time: blockLabel(j.time_block), href: `${base}/b/exterior/calendar` });
     return map;
@@ -296,6 +335,7 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
 /* ------------------------------ Files and documents ------------------------------ */
 const kindIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
 export function FilesView({ store, readOnly, venture }: Common) {
+  const selected = useSearchParams().get('document');
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState('');
   const [meta, setMeta] = useState<{ venture: VentureId | null; name: string; tag: DocumentItem['tag'] }>({ venture: venture ?? null, name: '', tag: 'other' });
@@ -326,7 +366,7 @@ export function FilesView({ store, readOnly, venture }: Common) {
         return <ul className="doclist">{rows.map(d => {
           const Icon = kindIcon[fileKind(d.mime, d.name)];
           return (
-            <li key={d.id} className="panel">
+            <li key={d.id} id={`record-${d.id}`} className={`panel${selected === d.id ? ' record-highlight' : ''}`}>
               <span className="file-icon" style={{ color: color(d.venture) }}><Icon size={18} aria-hidden="true" /></span>
               <div><b>{d.name}</b><span>{short(d.venture)} / {d.tag} / {fileSize(d.size_bytes)} / {d.uploaded_by}, {relativeDay(d.created_at, store.now!)}</span></div>
               <button className="icon-button" aria-label={`Open ${d.name}`} onClick={() => store.open(d)}><Download size={16} /></button>
@@ -376,27 +416,86 @@ export function MetricsTab({ store, readOnly, venture }: Common & { venture: Ven
 
 /* ------------------------------ Analytics ------------------------------ */
 export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
+  const pathname = usePathname(), query = useSearchParams(), router = useRouter();
+  const records = useRef<HTMLHeadingElement>(null);
+  const [shown, setShown] = useState(50);
+  const base = pathname.startsWith('/preview') ? '/preview' : '/workspace';
+  const pick = (patch: Record<string, string>) => {
+    const next = new URLSearchParams(query.toString());
+    for (const [key, value] of Object.entries(patch)) next.set(key, value);
+    setShown(50);
+    router.replace(`${pathname}?${next}`, { scroll: false });
+  };
+  const cash = (value: number | null) => value === null ? 'Not recorded' : dollars(value);
   return (
     <Gate store={store} what="Analytics">
       {() => {
         const now = store.now!, data = store.data!;
-        const month = dayKey(now).slice(0, 7);
-        const row = (v: VentureId) => {
-          const rev = data.finance.filter(f => f.venture === v && f.kind === 'revenue' && f.occurred_on.startsWith(month)).reduce((s, f) => s + f.amount, 0);
-          const cost = data.finance.filter(f => f.venture === v && f.kind === 'cost' && f.occurred_on.startsWith(month)).reduce((s, f) => s + f.amount, 0);
-          const leads = data.leads.filter(l => l.venture === v), won = leads.filter(l => l.stage === 'Won').length, closed = won + leads.filter(l => l.stage === 'Lost').length;
-          return { rev, cost, leads: leads.length, won, rate: closed ? Math.round((won / closed) * 100) : null, open: cards.filter(c => c.business === v && c.stage !== 'Done').length, done: cards.filter(c => c.business === v && c.stage === 'Done').length };
-        };
-        const any = data.finance.length + data.leads.length > 0;
-        const withRevenue = ventureList.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
+        const today = businessDay(now.toISOString())!, month = today.slice(0, 7);
+        const date = (key: string, fallback: string) => { const value = query.get(key); return value === '' || value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback; };
+        const filters: AnalyticsFilters = { venture: ventureList.some(v => v.id === query.get('business')) ? query.get('business') as VentureId : 'all', from: date('from', `${month}-01`), to: date('to', today) };
+        const report = operationalAnalytics(data, cards, filters, today);
+        const kind = query.get('entries') === 'revenue' || query.get('entries') === 'cost' ? query.get('entries') : 'all';
+        const entries = report.finance.filter(row => kind === 'all' || row.kind === kind);
+        const withRevenue = ventureList.filter(v => (filters.venture === 'all' || v.id === filters.venture) && report.finance.some(row => row.venture === v.id && row.kind === 'revenue'));
+        const labelMonth = (key: string) => new Date(`${key}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+        const drill = (patch: Record<string, string>) => { pick(patch); records.current?.focus(); };
+        const sourceState = { available: 'Available', partial: 'Partial coverage', unavailable: 'Unavailable', 'not-connected': 'Not connected' };
         return <>
-          <section className="panel"><header className="panel-head"><h2>Money in by business, last 12 months</h2></header>
-            {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} /> : <div className="empty"><p><b>No revenue to compare yet.</b> Log money in Finance, or connect the business systems.</p></div>}
+          <section className="panel">
+            <header className="panel-head"><h2>Understand the work behind the numbers</h2><span className="quiet">USD / business dates</span></header>
+            <div className="fields">
+              <label>Business<select value={filters.venture} onChange={event => pick({ business: event.target.value })}><option value="all">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
+              <label>From<input type="date" value={filters.from} max={filters.to || undefined} onChange={event => pick({ from: event.target.value })} /></label>
+              <label>Through<input type="date" value={filters.to} min={filters.from || undefined} onChange={event => pick({ to: event.target.value })} /></label>
+            </div>
+            <div className="formactions"><button className="secondary small" onClick={() => pick({ from: `${month}-01`, to: today })}>This month</button><button className="secondary small" onClick={() => pick({ from: businessDay(new Date(now.getTime() - 29 * 86400000).toISOString())!, to: today })}>Last 30 days</button><button className="secondary small" onClick={() => pick({ from: '', to: '' })}>All loaded history</button></div>
+            {filters.from && filters.to && filters.from > filters.to && <p role="alert" className="notice">Choose an end date on or after the start date.</p>}
+            <p className="quiet">Revenue and costs use each entry&apos;s recorded date. Exterior Care uses job completion dates (or labeled estimates); Shopify uses order dates. These are not verified collection or bank-deposit dates.</p>
           </section>
-          <section className="panel"><header className="panel-head"><h2>This month, side by side</h2></header>
-            <div className="tablewrap"><table className="table"><thead><tr><th>Business</th><th className="num">Money in</th><th className="num">Money out</th><th className="num">Profit</th><th className="num">Leads</th><th className="num">Won</th><th className="num">Win rate</th><th className="num">Open tasks</th><th className="num">Done</th></tr></thead>
-              <tbody>{ventureList.map(v => { const r = row(v.id); return <tr key={v.id}><td><span className="tag" style={{ '--tag': color(v.id) } as React.CSSProperties}>{v.short}</span></td><td className="num">{dollars(r.rev)}</td><td className="num">{dollars(r.cost)}</td><td className={r.rev - r.cost < 0 ? 'num neg' : 'num'}>{dollars(r.rev - r.cost)}</td><td className="num">{r.leads}</td><td className="num">{r.won}</td><td className="num">{r.rate === null ? '-' : `${r.rate}%`}</td><td className="num">{r.open}</td><td className="num">{r.done}</td></tr>; })}</tbody></table></div>
-            {!any && <p className="quiet">Money and lead columns read zero because nothing has been logged yet. Tasks are live.</p>}
+
+          <div className="kpis">
+            <div><span>Recorded revenue</span><strong>{cash(report.revenue)}</strong><button className="secondary small" onClick={() => drill({ entries: 'revenue' })}>Inspect {report.revenueEntries} entries</button></div>
+            <div><span>Recorded costs</span><strong>{cash(report.cost)}</strong><button className="secondary small" onClick={() => drill({ entries: 'cost' })}>Inspect {report.costEntries} entries</button></div>
+            <div><span>Recorded net</span><strong>{cash(report.net)}</strong><small className="quiet">Entered revenue minus entered costs; not business profit</small></div>
+            <div><span>Workspace leads added</span><strong>{report.leads.length}</strong><small className="quiet">Created in this range; connected-system leads are separate</small></div>
+          </div>
+          <p className="banner-inline">Missing costs remain unknown. Recorded net appears only when both revenue and cost entries exist, and can still overstate the result when expenses or owner labor are incomplete.</p>
+
+          {data.reporting && <section className="panel">
+            <header className="panel-head"><h2>Source coverage</h2><Link className="panel-link" href={`${base}/settings`}>Connections</Link></header>
+            <ul className="connections">{data.reporting.sources.map(source => <li key={source.id}><i className={source.state === 'available' ? 'is-on' : ''} aria-hidden="true" /><div><b>{source.label}</b><span>{source.detail}</span></div><strong>{sourceState[source.state]}</strong></li>)}</ul>
+            <p className="quiet">Across all loaded Exterior Care history: {data.reporting.exterior.revenueJobs}/{data.reporting.exterior.jobs} completed jobs have payment figures, {data.reporting.exterior.costJobs}/{data.reporting.exterior.jobs} have costs, and {data.reporting.exterior.matchedJobs} have both. <Link href={`${base}/b/exterior/jobs`}>Inspect job coverage</Link>.</p>
+          </section>}
+
+          <section className="panel"><header className="panel-head"><h2>Recorded revenue by month</h2><span className="quiet">Current business and date filters</span></header>
+            {withRevenue.length ? <LineChart labels={report.months.map(row => labelMonth(row.key))} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: report.months.map(row => row.byBusiness.find(business => business.venture === v.id)?.revenue ?? 0) }))} /> : <div className="empty"><p><b>No revenue entries in this range.</b> Choose another date range or log a received payment.</p></div>}
+            <p className="quiet">Only months containing entries are plotted. A zero means no revenue entry in the loaded records for that month, not proof of a fully reconciled period.</p>
+            {report.months.length > 0 && <div className="tablewrap"><table className="table">
+              <caption className="sr-only">Monthly data alternative and entry drilldown</caption><thead><tr><th scope="col">Month</th><th scope="col" className="num">Recorded revenue</th><th scope="col" className="num">Recorded costs</th><th scope="col" className="num">Entries</th></tr></thead>
+              <tbody>{report.months.map(row => <tr key={row.key}><th scope="row"><button className="secondary small" onClick={() => { const last = new Date(Date.UTC(Number(row.key.slice(0, 4)), Number(row.key.slice(5, 7)), 0)).getUTCDate(); drill({ from: filters.from && filters.from > `${row.key}-01` ? filters.from : `${row.key}-01`, to: filters.to && filters.to < `${row.key}-${last}` ? filters.to : `${row.key}-${last}`, entries: 'all' }); }}>{labelMonth(row.key)}</button></th><td className="num">{cash(row.revenue)}</td><td className="num">{cash(row.cost)}</td><td className="num">{row.revenueEntries + row.costEntries}</td></tr>)}</tbody>
+            </table></div>}
+          </section>
+
+          <section className="panel"><header className="panel-head"><h2>Business comparison</h2><span className="quiet">Choose a business to inspect it</span></header>
+            <div className="tablewrap"><table className="table"><caption className="sr-only">Operational figures using the selected dates and businesses</caption><thead><tr><th scope="col">Business</th><th scope="col" className="num">Revenue entered</th><th scope="col" className="num">Costs entered</th><th scope="col" className="num">Recorded net</th><th scope="col" className="num">Leads added</th><th scope="col" className="num">Won</th><th scope="col" className="num">Win rate</th></tr></thead>
+              <tbody>{report.businesses.map(row => <tr key={row.venture}><th scope="row"><button className="secondary small" onClick={() => drill({ business: row.venture, entries: 'all' })}>{short(row.venture)}</button></th><td className="num">{cash(row.revenue)}</td><td className="num">{cash(row.cost)}</td><td className="num">{cash(row.net)}</td><td className="num">{row.leads}</td><td className="num">{row.won}</td><td className="num">{row.winRate === null ? '-' : `${Math.round(row.winRate * 100)}%`}</td></tr>)}</tbody>
+            </table></div><p className="quiet">Lead figures describe the current status of workspace leads created in the selected range. Win rate = won / (won + lost), excluding undecided leads. Exterior Care and GoHighLevel pipelines remain in their business screens.</p>
+          </section>
+
+          <section className="panel"><header className="panel-head"><h2>Current team workload</h2><Link className="panel-link" href={`${base}/tasks`}>Task board</Link></header>
+            <p className="quiet">Business filter applies; date filter does not. The board records current state, so these are not historical completion rates.</p>
+            {report.owners.length ? report.owners.map(owner => <details className="thread" key={owner.owner}><summary><b>{owner.owner}</b><span>{owner.open} open / {owner.overdue} overdue</span></summary><ul>{owner.tasks.map(task => <li key={task.id}><Link href={`${base}/tasks?task=${encodeURIComponent(task.id)}`}>{task.title}</Link> <span className="quiet">{short(task.business)} / {task.stage}{task.due_date ? ` / due ${task.due_date}` : ' / no due date'}</span></li>)}</ul></details>) : <div className="empty"><p><b>No open tasks for this selection.</b></p></div>}
+          </section>
+
+          <section className="panel"><header className="panel-head"><h2 ref={records} tabIndex={-1}>Entries behind the figures</h2><span className="quiet" role="status">{entries.length} matching entries</span></header>
+            <div className="filter-chips" role="group" aria-label="Entry type">{(['all', 'revenue', 'cost'] as const).map(value => <button key={value} aria-pressed={kind === value} onClick={() => pick({ entries: value })}>{value === 'all' ? 'All entries' : value === 'revenue' ? 'Revenue' : 'Costs'}</button>)}</div>
+            {entries.length ? <div className="tablewrap"><table className="table"><caption className="sr-only">The loaded records used in the analytics calculations</caption><thead><tr><th scope="col">Date / basis</th><th scope="col">Business</th><th scope="col">Record</th><th scope="col">Source</th><th scope="col" className="num">Amount</th></tr></thead><tbody>{entries.slice(0, shown).map(row => {
+              const jobId = row.auto === 'Exterior Care job' ? row.id.replace(/^jobcost-|^job-/, '') : null;
+              const href = jobId ? `${base}/b/exterior/leads?lead=${encodeURIComponent(jobId)}` : row.auto === 'Shopify' ? `${base}/b/essentials/orders` : `${base}/b/${row.venture}/money?entry=${encodeURIComponent(row.id)}`;
+              const basis = row.dateBasis === 'completion' ? 'Job completion date' : row.dateBasis === 'updated-estimate' ? 'Estimated from last update' : row.dateBasis === 'created-estimate' ? 'Estimated from creation' : row.dateBasis === 'order-created' ? 'Order created' : 'Entered date';
+              return <tr key={row.id}><td>{row.occurred_on}<small className="quiet block">{basis}</small></td><td>{short(row.venture)}</td><th scope="row"><Link href={href}>{row.category || (row.kind === 'revenue' ? 'Revenue entry' : 'Cost entry')}</Link><small className="quiet block">{row.note}</small></th><td>{row.auto || 'Hand logged'}</td><td className={row.kind === 'cost' ? 'num neg' : 'num'}>{row.kind === 'cost' ? '-' : '+'}{dollars(row.amount)}</td></tr>;
+            })}</tbody></table>{entries.length > shown && <button className="secondary showmore" onClick={() => setShown(value => value + 50)}>Show {Math.min(50, entries.length - shown)} more entries</button>}</div> : <div className="empty"><p><b>No matching entries.</b> Change the date, business or entry-type filter.</p></div>}
           </section>
         </>;
       }}

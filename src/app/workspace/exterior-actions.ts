@@ -31,9 +31,9 @@ export async function loadExterior(org: string): Promise<ExteriorResult> {
   let client: Client;
   try { ({ client } = await requireMember(org, true)); } catch { return { ok: false, reason: 'no-access' }; }
   const [leads, bookings, sessions, activity, extras] = await Promise.all([
-    client.from('leads').select('id,name,phone,address,service_requested,quote_amount,status,source,notes,job_revenue,job_cost,created_at,updated_at,completed_at').order('created_at', { ascending: false }).limit(5000),
-    client.from('bookings').select('id,lead_id,date,time_block,status').order('date', { ascending: false }).limit(5000),
-    client.from('doorknocking_sessions').select('id,session_date,knocked_by,area,start_time,end_time,doors_knocked,answers,interested,quotes_given,jobs_scheduled,job_total,notes,created_at').order('session_date', { ascending: false }).order('created_at', { ascending: false }).limit(5000),
+    client.from('leads').select('id,name,phone,address,service_requested,quote_amount,status,source,notes,job_revenue,job_cost,created_at,updated_at,completed_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(5000),
+    client.from('bookings').select('id,lead_id,date,time_block,status', { count: 'exact' }).order('date', { ascending: false }).limit(5000),
+    client.from('doorknocking_sessions').select('id,session_date,knocked_by,area,start_time,end_time,doors_knocked,answers,interested,quotes_given,jobs_scheduled,job_total,notes,created_at', { count: 'exact' }).order('session_date', { ascending: false }).order('created_at', { ascending: false }).limit(5000),
     client.from('activity_log').select('id,operator,action,description,lead_name,created_at').order('created_at', { ascending: false }).limit(300),
     loadExtras(client),
   ]);
@@ -44,6 +44,7 @@ export async function loadExterior(org: string): Promise<ExteriorResult> {
     bookings: bookings.data ?? [],
     sessions: (sessions.data ?? []).map(s => ({ ...s, job_total: num(s.job_total) }) as ExtSession),
     activity: activity.data ?? [], extras,
+    coverage: { leads: { loaded: leads.data?.length ?? 0, total: leads.count }, bookings: { loaded: bookings.data?.length ?? 0, total: bookings.count }, sessions: { loaded: sessions.data?.length ?? 0, total: sessions.count } },
   };
   return { ok: true, data };
 }

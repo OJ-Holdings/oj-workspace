@@ -1,0 +1,50 @@
+.work-focus { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 12px; }
+.work-focus button { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink-2); font: inherit; font-size: 12px; cursor: pointer; }
+.work-focus button span { border-radius: 4px; padding: 1px 5px; background: var(--panel-3); font-variant-numeric: tabular-nums; }
+.work-focus button[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.work-focus button[aria-pressed=true] span { background: var(--accent); color: var(--accent-ink); }
+.work-feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 42px; }
+.work-feedback .notice { margin: 0; }
+.text-button { border: 0; background: none; padding: 8px 0; color: var(--accent-hi); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.taskcard .due.is-late { color: var(--watch); font-weight: 650; }
+.taskcard[data-dragging=true] { opacity: .5; }
+.column.accepts-drop { outline: 1px dashed var(--line-2); outline-offset: -4px; }
+.column.is-over { outline: 2px solid var(--accent-hi); background: var(--accent-soft); }
+.task-checklist-row { display: flex; gap: 12px; align-items: center; }
+.task-checklist-row .checkbox-row { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.task-source-link { display: inline-flex; padding: 8px 0; color: var(--accent-hi); font-size: 13px; text-decoration: underline; }
+.suggested-work { margin: 20px 0; overflow: hidden; }
+.suggested-work .panel-head { align-items: start; }
+.suggested-work .panel-head p { margin: 5px 0 0; font-size: 12px; }
+.work-rules { background: var(--panel-2); border-block: 1px solid var(--line); padding: 16px 20px; }
+.work-rules p { margin: 0 0 10px; font-size: 13px; }
+.work-rules .checkbox-row { margin: 8px 0; font-size: 13px; }
+.work-rules small { display: block; color: var(--ink-3); line-height: 1.5; max-width: 70ch; }
+.work-suggestions { padding: 0; margin: 0; list-style: none; }
+.work-suggestions > li { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.work-suggestion-copy { min-width: 0; }
+.work-suggestion-business { color: var(--ink-3); font-size: 11px; }
+.work-suggestion-copy h3 { margin: 3px 0 4px; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.work-suggestion-copy p { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.6; max-width: 78ch; }
+.work-suggestion-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.work-suggestion-actions a { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--accent-hi); }
+.work-clear { display: flex; align-items: center; gap: 10px; padding: 16px 20px; color: var(--good); font-size: 13px; }
+.suggested-work > .quiet, .suggested-work > .text-button { margin-inline: 20px; }
+.work-history { padding: 14px 20px; font-size: 12px; }
+.work-history summary { cursor: pointer; color: var(--ink-2); padding: 5px 0; }
+.work-history ul { list-style: none; margin: 10px 0; padding: 0; }
+.work-history li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.work-history li button { font: inherit; text-align: left; border: 0; background: none; color: var(--accent-hi); cursor: pointer; }
+.work-history li span { color: var(--ink-3); flex-shrink: 0; }
+.chart-period { display: flex; align-items: center; gap: 14px; margin: 12px 0 4px; font-size: 12px; color: var(--ink-2); }
+.chart-period input { min-width: 0; flex: 1; accent-color: var(--accent); }
+.chart-table { margin-top: 12px; font-size: 12px; }
+.chart-table summary { cursor: pointer; padding: 7px 0; color: var(--accent-hi); }
+.chart-table caption { text-align: left; padding: 8px; color: var(--ink-3); font-size: 12px; }
+.chart-empty { padding: 35px 12px; color: var(--ink-3); font-size: 13px; }
+@media (max-width: 680px) {
+  .work-suggestions > li { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+  .work-suggestion-actions { justify-content: space-between; }
+  .work-focus button { min-height: 42px; }
+  .task-checklist-row .icon-button { min-width: 40px; min-height: 40px; }
+}

@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { PresencePanel } from './PresencePanel';
+import { SuggestedWork } from './SuggestedWork';
 import type { BoardData } from '@/lib/board';
 import { isVenture, ventureList, type VentureId } from '@/lib/ventures';
 import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
@@ -48,8 +51,70 @@ const noConnections: Connections = { shopify: false, ghl: false };
 export function App({ base, initial, mode, organizationId, members, dashboard, connections = noConnections, work: workData, partner = true, readOnly = false, owner = false, displayName = '', connectionStatus = '', limited = false }: AppProps) {
   const pathname = usePathname() ?? base;
   const parts = pathname.slice(base.length).split('/').filter(Boolean);
-  const board = useBoard(initial, mode, organizationId, readOnly);
+  const rawBoard = useBoard(initial, mode, organizationId, readOnly);
+  const board = {
+    ...rawBoard,
+    openCard: (...args: Parameters<typeof rawBoard.openCard>) => {
+      if (rawBoard.editing && !rawBoard.closeCard()) return;
+      rawBoard.openCard(...args);
+      if (args[0]) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('task', args[0].id);
+        url.searchParams.delete('sourceLead');
+        window.history.pushState(null, '', url.pathname + url.search);
+      }
+    },
+    closeCard: (extraDraft = false) => {
+      if (!rawBoard.closeCard(extraDraft)) return false;
+      const url = new URL(window.location.href);
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      window.history.replaceState(null, '', url.pathname + url.search);
+      return true;
+    },
+  };
   const store = useDashboard(dashboard, mode, organizationId, displayName);
+  const query = useSearchParams();
+  const opened = useRef('');
+  const taskId = query.get('task');
+  const sourceLead = query.get('sourceLead');
+  useEffect(() => {
+    if (!board.ready) return;
+    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : '';
+    if (opened.current === key) return;
+    if (rawBoard.editing && !rawBoard.closeCard()) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      const [kind, ...value] = opened.current.split(':');
+      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : 'sourceLead', value.join(':'));
+      window.history.replaceState(null, '', url.pathname + url.search);
+      return;
+    }
+    if (!key) { opened.current = ''; return; }
+    if (taskId) {
+      const card = board.data.cards.find(c => c.id === taskId);
+      if (card) { opened.current = key; rawBoard.openCard(card); }
+    } else if (sourceLead && !readOnly) {
+      const lead = store.data?.leads.find(l => l.id === sourceLead);
+      if (lead) {
+        opened.current = key;
+        rawBoard.openCard(undefined, { title: `Follow up with ${lead.name}`, business: lead.venture, description: `Follow up on ${lead.name}'s enquiry.\nSource: ${lead.name}\n${base}/crm?lead=${encodeURIComponent(lead.id)}` });
+      }
+    }
+  }, [taskId, sourceLead, board.ready, board.data.cards, store.data, readOnly, base]);
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (wasEditing.current && !rawBoard.editing) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      window.history.replaceState(null, '', url.pathname + url.search);
+      opened.current = '';
+    }
+    wasEditing.current = Boolean(rawBoard.editing);
+  }, [rawBoard.editing]);
+  useEffect(() => {
+    const record = query.get('document') || query.get('message');
+    if (record && store.data) document.getElementById(`record-${record}`)?.scrollIntoView({ block: 'center' });
+  }, [query, store.data]);
   const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
   const work = useWork(workData, mode, organizationId, partner, readOnly);
   const metrics = store.data && store.now ? deriveMetrics(store.data, board.data.cards, store.now, jobSchedule) : null;
@@ -66,7 +131,9 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
 
   return (
     <Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
-      openTasks={open.length} cards={board.data.cards} activity={board.data.activity ?? []} status={status} timer={<WorkTimer work={work} />}
+      openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status}
+      timer={<WorkTimer work={work} />}
+      presence={<PresencePanel mode={mode} organizationId={organizationId} members={members} cards={board.data.cards} onOpenCard={board.openCard} />}
       onOpenCard={card => board.openCard(card)} onNewCard={() => board.openCard(undefined, venture ? { business: venture } : {})}>
       {venture ? (
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
@@ -76,6 +143,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across all three businesses.</p></header>
           <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} />
+          <SuggestedWork board={board} dashboard={store.data} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
         </div>
       ) : current === 'businesses' ? (
         <div className="page">
@@ -95,7 +163,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           <header className="page-head"><h1>{info?.title}</h1></header>
           <div className="planned">
             <p>{info?.body}</p>
-            <p className="quiet">This page is being built. It stays empty until it is connected to real data.</p>
+            <p className="quiet">{members.join(' · ')}. Availability and current work appear in the team strip above. Preview statuses are demonstrations only.</p>
             {mode === 'live' && owner && <Link className="primary" href="/workspace/team">Open team and invitations</Link>}
           </div>
         </div>

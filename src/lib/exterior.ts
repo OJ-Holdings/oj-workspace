@@ -10,7 +10,7 @@ export type ExtSession = { id: string; session_date: string; knocked_by: string 
 export type ExtQuote = { id: string; name: string | null; phone: string | null; email: string | null; address: string | null; service_needed: string | null; description: string | null; property_type: string | null; business_name: string | null; recurring_interest: boolean | null; created_at: string };
 /** Null until the database update in supabase/schemas/exterior-extras.sql has been applied. */
 export type ExtExtras = { goal: number | null; upgrades: Record<string, true>; quotes: ExtQuote[]; settings: Record<string, string> } | null;
-export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; activity: ExtActivity[]; extras: ExtExtras };
+export type ExteriorData = { leads: ExtLead[]; bookings: ExtBooking[]; sessions: ExtSession[]; activity: ExtActivity[]; extras: ExtExtras; coverage?: { leads: { loaded: number; total: number | null }; bookings: { loaded: number; total: number | null }; sessions: { loaded: number; total: number | null } } };
 /** Every change the workspace makes reports back this way, so the screen can say what happened. */
 export type Done<T = object> = ({ ok: true } & T) | { ok: false; message: string };
 export type ExteriorResult = { ok: true; data: ExteriorData } | { ok: false; reason: 'no-access' | 'failed' };
@@ -38,21 +38,40 @@ export function summariseLeads(leads: ExtLead[]) {
 }
 
 const group = <T,>(rows: T[], key: (row: T) => string) => { const m = new Map<string, T[]>(); for (const r of rows) m.set(key(r), [...(m.get(key(r)) ?? []), r]); return [...m]; };
-const paid = (rows: ExtLead[]) => rows.reduce((s, l) => s + (l.job_revenue ?? 0), 0);
-const spent = (rows: ExtLead[]) => rows.reduce((s, l) => s + (l.job_cost ?? 0), 0);
+const known = (value: number | null) => value !== null && Number.isFinite(value) && value >= 0;
+const total = (rows: Pick<ExtLead, 'job_revenue' | 'job_cost'>[], key: 'job_revenue' | 'job_cost') => {
+  const recorded = rows.filter(l => known(l[key]));
+  return recorded.length ? recorded.reduce((sum, l) => sum + (l[key] as number), 0) : null;
+};
 /** When a job counts as done: the day it was completed, or failing that the day it was last changed (the old system's own rule). */
-export const jobDate = (l: ExtLead) => l.completed_at || l.updated_at || l.created_at;
+export const jobDate = (l: Pick<ExtLead, 'completed_at' | 'updated_at' | 'created_at'>) => l.completed_at || l.updated_at || l.created_at;
+export const jobDateBasis = (l: Pick<ExtLead, 'completed_at' | 'updated_at'>) => l.completed_at ? 'completion' as const : l.updated_at ? 'updated-estimate' as const : 'created-estimate' as const;
 
-/** Completed jobs: money paid, costs and profit, by month and by service, plus how each lead source converts. Profit counts only the costs that were entered. */
+/** Recorded job figures, not an accounting profit statement. Costs stay unknown until entered. */
+export function jobFigures(rows: Pick<ExtLead, 'job_revenue' | 'job_cost' | 'completed_at' | 'updated_at'>[]) {
+  const matched = rows.filter(l => known(l.job_revenue) && known(l.job_cost));
+  const revenueJobs = rows.filter(l => known(l.job_revenue)).length;
+  const costJobs = rows.filter(l => known(l.job_cost)).length;
+  const revenue = total(rows, 'job_revenue');
+  return {
+    jobs: rows.length, revenue, cost: total(rows, 'job_cost'), revenueJobs, costJobs,
+    missingRevenue: rows.length - revenueJobs, missingCosts: rows.length - costJobs,
+    matchedJobs: matched.length,
+    contribution: matched.length ? matched.reduce((sum, l) => sum + (l.job_revenue as number) - (l.job_cost as number), 0) : null,
+    estimatedDateJobs: rows.filter(l => jobDateBasis(l) !== 'completion').length,
+    average: revenueJobs ? (revenue as number) / revenueJobs : null,
+  };
+}
+
+/** Completed work grouped by its recorded completion date, not by a claimed collection date. */
 export function summariseJobs(leads: ExtLead[], monthOf: (iso: string) => string) {
   const done = leads.filter(l => l.status === 'completed');
-  const row = (label: string, rows: ExtLead[]) => ({ label, jobs: rows.length, revenue: paid(rows), cost: spent(rows), profit: paid(rows) - spent(rows) });
+  const row = (label: string, rows: ExtLead[]) => ({ label, ...jobFigures(rows) });
   return {
-    jobs: done.length, revenue: paid(done), cost: spent(done), profit: paid(done) - spent(done), costJobs: done.filter(l => l.job_cost !== null).length,
-    average: done.some(l => l.job_revenue !== null) ? paid(done) / done.filter(l => l.job_revenue !== null).length : null,
+    ...jobFigures(done),
     byMonth: group(done, l => monthOf(jobDate(l))).map(([m, rows]) => row(m, rows)).sort((a, b) => b.label.localeCompare(a.label)),
-    byService: group(done, l => l.service_requested?.trim() || 'Unspecified').map(([s, rows]) => row(s, rows)).sort((a, b) => b.revenue - a.revenue),
-    bySource: group(leads, l => sourceLabel(l.source)).map(([source, rows]) => { const won = rows.filter(l => l.status === 'completed' || l.status === 'booked'); return { source, leads: rows.length, won: won.length, rate: won.length / rows.length, revenue: paid(rows.filter(l => l.status === 'completed')) }; }).sort((a, b) => b.leads - a.leads),
+    byService: group(done, l => l.service_requested?.trim() || 'Unspecified').map(([s, rows]) => row(s, rows)).sort((a, b) => (b.revenue ?? -1) - (a.revenue ?? -1)),
+    bySource: group(leads, l => sourceLabel(l.source)).map(([source, rows]) => { const won = rows.filter(l => l.status === 'completed' || l.status === 'booked'); return { source, leads: rows.length, won: won.length, rate: won.length / rows.length, revenue: total(rows.filter(l => l.status === 'completed'), 'job_revenue') }; }).sort((a, b) => b.leads - a.leads),
   };
 }
 

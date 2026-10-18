@@ -9,7 +9,6 @@ import { ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { money, type WorkspaceMetrics } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
 import { GhostChart, LineChart, Sparkline } from './Charts';
-import { HeroScene } from './Hero';
 import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
 import type { WorkStore } from './useWork';
@@ -51,13 +50,12 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
   return (
     <div className={loading ? 'home is-loading' : 'home'}>
       <section className="hero">
-        <HeroScene />
         <div className="hero-copy">
           <p>{greeting}{who ? `, ${who}` : ''}</p>
-          <h1>Welcome to the OJ Workspace</h1>
-          <p className="hero-sub">Three businesses. One vision. Built together.</p>
+          <h1>Let’s move the work forward.</h1>
+          <p className="hero-sub">{open.length} open tasks across your three businesses. {due.length ? `${due.length} due today or overdue.` : 'Nothing due today.'}</p>
         </div>
-        <blockquote className="hero-quote">Ideas. Execution. Freedom.</blockquote>
+        <div className="home-actions"><Link className="primary" href={`${base}/tasks`}>Plan today’s work</Link><Link className="secondary" href={`${base}/calendar`}>View schedule</Link></div>
       </section>
 
       <section className="venture-cards" aria-label="Businesses">
@@ -73,7 +71,7 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
               </header>
               {m ? (
                 <dl className="venture-stats">
-                  <div><dd><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: m.revenueMtd >= 10000 ? 'compact' : 'standard' }} /></dd><dt>Revenue this month</dt></div>
+                  <div><dd><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: m.revenueMtd >= 10000 ? 'compact' : 'standard' }} /></dd><dt>Recorded revenue this month</dt></div>
                   <div><dd><NumberFlow value={m.activeLeads} /></dd><dt>Active leads</dt></div>
                   <div><dd><NumberFlow value={tasks} /></dd><dt>Open tasks</dt></div>
                 </dl>
@@ -93,18 +91,20 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
       </section>
 
       <Leaderboard work={work} cards={cards} />
+      {store.data?.reporting?.sources.some(source => source.state === 'partial' || source.state === 'unavailable') && <p className="banner-inline">Some connected figures are incomplete or unavailable. Totals include only the records loaded. <Link href={`${base}/analytics`}>Review source coverage</Link> before comparing results.</p>}
 
       <div className="home-grid">
         <section className="panel panel-wide" aria-labelledby="rev-h">
           <header className="panel-head">
-            <h2 id="rev-h">Revenue overview</h2>
+            <h2 id="rev-h">Recorded revenue overview</h2>
             {connected.length > 0 && <p className="panel-figure"><span>This month</span><b>{money(total)}</b></p>}
           </header>
           {connected.length > 0 ? (
             <LineChart labels={metrics.months} series={connected.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: metrics.ventures[v.id]!.series }))} />
           ) : (
-            <div className="empty"><GhostChart /><p><b>No revenue logged yet.</b> Log money in on the Finance page and each business gets its own line here. Shopify, GoHighLevel and the Exterior Care system will add theirs once connected.</p></div>
+            <div className="empty"><GhostChart /><p><b>No revenue logged yet.</b> Log received payments in Finance. Recorded Exterior Care payments and fully paid USD Shopify order totals can also appear here. GoHighLevel deal values are not payments.</p></div>
           )}
+          <p className="quiet">Based on entered dates, job dates and order dates, not verified collection dates. <Link href={`${base}/analytics`}>Inspect the records</Link>.</p>
         </section>
 
         <section className="panel" aria-labelledby="perf-h">
@@ -118,24 +118,25 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
                   <span className="perf-name">{v.short}</span>
                   {m ? <>
                     <b>{money(m.revenueMtd)}</b>
-                    {m.change === null ? <span className="delta" /> : <span className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}%</span>}
+                    {m.change === null ? <span className="delta" /> : <span className={m.change >= 0 ? 'delta up' : 'delta down'} title="This month so far compared with the full previous month; not a matched-period growth rate">{m.change >= 0 ? '+' : ''}{m.change}%</span>}
                     <Sparkline values={m.series} color={color(v.id)} />
-                  </> : <span className="quiet perf-off">Not connected</span>}
+                  </> : <span className="quiet perf-off">No recorded figures</span>}
                 </li>
               );
             })}
           </ul>
+          <p className="quiet">Change compares this month so far with the full previous month.</p>
         </section>
 
         <section className="panel" aria-labelledby="pipe-h">
-          <header className="panel-head"><h2 id="pipe-h">Leads pipeline</h2><Link className="panel-link" href={`${base}/crm`}>View all</Link></header>
+          <header className="panel-head"><h2 id="pipe-h">Workspace leads pipeline</h2><Link className="panel-link" href={`${base}/crm`}>View all</Link></header>
           {metrics.pipeline ? (
             <ul className="pipeline">
               {metrics.pipeline.map(p => (
                 <li key={p.stage}><span>{p.stage}</span><i><b style={{ width: `${(p.count / pipelineMax) * 100}%` }} data-stage={p.stage} /></i><strong>{p.count}</strong></li>
               ))}
             </ul>
-          ) : <div className="empty"><p><b>No leads yet.</b> Add one on the Leads and CRM page. Exterior Care's existing leads join once that system is connected.</p></div>}
+          ) : <div className="empty"><p><b>No workspace leads yet.</b> Add one on Leads and CRM. Exterior Care and GoHighLevel keep their own pipelines in their business screens.</p></div>}
         </section>
 
         <section className="panel" aria-labelledby="tasks-h">
