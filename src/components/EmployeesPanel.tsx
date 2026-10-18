@@ -1,5 +1,6 @@
 'use client';
 import { useActionState, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { createEmployeeInvitation, revokeEmployeeInvitation, setEmployeeActive, saveEmployeeAssignment, verifyEmployeeCloseout, approveEmployeeCommission, markEmployeeCommissionPaid, adjustEmployeeCommission } from '@/app/workspace/employees/actions';
 import { EmployeeAssignmentPhotos } from '@/components/EmployeeAssignmentPhotos';
 
@@ -23,9 +24,9 @@ export function EmployeesPanel({ org, employees, invitations, assignments, earni
   }
   const byBooking = new Map(assignments.map(row => [row.booking_id, row]));
   return <>
-    <section className="employee-card"><header><span className="eyebrow">Invite</span><h2>Add an employee</h2><p>They get a separate sign-in for assigned work and their own earnings. This does not add a workspace member.</p></header>
+    <section className="employee-card"><header><span className="eyebrow">Invite</span><h2>Add an employee</h2><p>Send Edy the private invite link. He verifies his email and chooses his own password, then signs in to his employee portal. No shared password is created.</p></header>
       <form action={inviteAction} className="employee-invite-form"><label>Email address<input name="email" type="email" maxLength={254} required disabled={creating} placeholder="edy@example.com" /></label><button className="primary" disabled={creating}>{creating ? 'Creating…' : 'Create employee link'}</button></form>
-      {invite.error && <p role="status" className="error-text">{invite.error}</p>}{invite.link && <div className="employee-invite-result"><label>Copy and send this private link<input readOnly value={invite.link} onFocus={event => event.target.select()} /></label><button className="secondary" onClick={async () => { try { await navigator.clipboard.writeText(invite.link); setNotice('Employee invite link copied.'); } catch { setNotice('Select the link and copy it manually.'); } }}>Copy link</button></div>}
+      {invite.error && <p role="status" className="error-text">{invite.error}</p>}{invite.link && <><div className="employee-invite-result"><label>Copy and send this private link<input readOnly value={invite.link} onFocus={event => event.target.select()} /></label><button className="secondary" onClick={async () => { try { await navigator.clipboard.writeText(invite.link); setNotice('Employee invite link copied.'); } catch { setNotice('Select the link and copy it manually.'); } }}>Copy invite</button></div><p className="employee-empty">After Edy sets his password, he can sign in at <Link href="/login?next=%2Femployee">the employee portal login</Link>.</p></>}
       {invitations.length > 0 && <div className="employee-list">{invitations.map(row => <div className="employee-line" key={row.id}><div><strong>{row.email}</strong><small>{row.accepted_at ? 'Accepted' : row.revoked_at ? 'Revoked' : `Expires ${dateLabel(row.expires_at.slice(0, 10))}`}</small></div>{!row.accepted_at && !row.revoked_at && <button className="secondary small" disabled={busy} onClick={() => run(() => revokeEmployeeInvitation(org, row.id), 'Invitation revoked.')}>Revoke</button>}</div>)}</div>}
     </section>
 

@@ -14,6 +14,25 @@ async function owner(org: string) {
   return client;
 }
 
+/** Narrow owner-only data for assigning a crew member from a booked job. */
+export async function loadJobCrew(org: string) {
+  try {
+    const client = await owner(org);
+    const [employees, assignments] = await Promise.all([
+      client.rpc('oj_employee_admin_list', { org }),
+      client.rpc('oj_employee_assignment_list', { org }),
+    ]);
+    if (employees.error || assignments.error) return { ok: false as const, employees: [], assignments: [] };
+    return {
+      ok: true as const,
+      employees: (employees.data ?? []).map((row: { user_id: string; display_name: string; active: boolean }) => ({ user_id: row.user_id, display_name: row.display_name, active: row.active })),
+      assignments: (assignments.data ?? []).map((row: { booking_id: string; employee_id: string; employee_name: string; commission_percent: number; instructions: string; checklist: unknown }) => ({ booking_id: row.booking_id, employee_id: row.employee_id, employee_name: row.employee_name, commission_percent: Number(row.commission_percent), instructions: row.instructions ?? '', checklist: row.checklist ?? [] })),
+    };
+  } catch {
+    return { ok: false as const, employees: [], assignments: [] };
+  }
+}
+
 export async function createEmployeeInvitation(org: string, _state: { error: string; link: string }, form: FormData) {
   const email = String(form.get('email') || '').trim().toLowerCase();
   if (!validEmail(email)) return { error: 'Enter a valid email address.', link: '' };

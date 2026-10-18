@@ -11,6 +11,7 @@ import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, typ
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
+import { saveEmployeeAssignment } from '@/app/workspace/employees/actions';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -310,6 +311,32 @@ export function JobDialog({ booking, lead, close, act, busy, org, bookings, now 
   );
 }
 
+type JobCrewEmployee = { user_id: string; display_name: string; active: boolean };
+type JobCrewAssignment = { booking_id: string; employee_id: string; employee_name: string; commission_percent: number; instructions: string; checklist: unknown };
+
+function JobAssignmentDialog({ booking, lead, close, act, busy, org, employees, assignment, onSaved }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; employees: JobCrewEmployee[]; assignment?: JobCrewAssignment; onSaved: () => void }) {
+  const active = employees.filter(employee => employee.active);
+  return <Modal title={`Assign job${lead?.service_requested ? ` · ${lead.service_requested}` : ''}`} open={!!booking} onClose={close}>
+    {booking && <>
+      <p className="quiet job-assignment-context">{day(booking.date)} · {blockLabel(booking.time_block)}{lead?.address ? ` · ${lead.address}` : ''}</p>
+      {active.length ? <form onSubmit={event => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        const employeeName = active.find(person => person.user_id === form.get('employee'))?.display_name ?? 'employee';
+        act(async () => { await saveEmployeeAssignment(org, booking.id, form); return { ok: true }; }, () => `Assigned to ${employeeName}.`).then(ok => { if (ok) { close(); onSaved(); } });
+      }}>
+        <div className="form-grid">
+          <label>Assign to<select name="employee" required defaultValue={assignment?.employee_id ?? ''} disabled={busy}><option value="" disabled>Select employee</option>{active.map(employee => <option key={employee.user_id} value={employee.user_id}>{employee.display_name}</option>)}</select></label>
+          <label>Commission for this job (%)<input name="commission_percent" type="number" min="0" max="100" step="0.01" required defaultValue={assignment?.commission_percent ?? ''} disabled={busy} placeholder="Enter rate" /></label>
+        </div>
+        <label>Instructions<textarea name="instructions" maxLength={2000} rows={2} defaultValue={assignment?.instructions ?? ''} disabled={busy} placeholder="Optional instructions only the assigned employee can see" /></label>
+        <label>Checklist<textarea name="checklist" maxLength={4000} rows={3} defaultValue={Array.isArray(assignment?.checklist) ? assignment.checklist.map((item: { text?: string }) => item.text ?? '').join('\n') : ''} disabled={busy} placeholder="Optional; one step per line" /></label>
+        <div className="dialog-actions"><span>Rate is required for each job. Earnings use payment collected, not the quote.</span><button className="primary" disabled={busy}>{busy ? 'Saving…' : assignment ? 'Save assignment' : 'Assign job'}</button></div>
+      </form> : <div className="empty"><p><b>No active employee account is available.</b> {employees.length ? 'Restore an employee in Employee work, then return here.' : 'Invite Edy first, then return here to assign this job.'}</p><Link className="primary" href="/workspace/employees">{employees.length ? 'Manage employee access' : 'Invite Edy'}</Link></div>}
+    </>}
+  </Modal>;
+}
+
 /**
  * The whole "book a job" path: pick who it is for (or add them), then pick the day and time.
  * `startDate` null means closed; '' opens it with no day chosen; a day opens it with that day chosen.
@@ -327,9 +354,10 @@ export function BookFlow({ startDate, close, data, act, busy, org, now }: { star
   </>;
 }
 
-export function BookingsManager({ data, act, busy, readOnly, org, now }: Common) {
+export function BookingsManager({ data, act, busy, readOnly, org, now, crew, refreshCrew }: Common & { crew?: { employees: JobCrewEmployee[]; assignments: JobCrewAssignment[] } | null; refreshCrew: () => void }) {
   const [moving, setMoving] = useState<ExtBooking | null>(null);
   const [editing, setEditing] = useState<ExtBooking | null>(null);
+  const [assigning, setAssigning] = useState<ExtBooking | null>(null);
   const [flow, setFlow] = useState<string | null>(null);
   const today = dayKey(now), month = today.slice(0, 7);
   const lead = new Map(data.leads.map(l => [l.id, l]));
@@ -353,6 +381,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now }: Common)
             <tr key={b.id}><td>{day(b.date)}</td><td>{blockLabel(b.time_block)}</td><td>{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td>{l?.service_requested || '-'}</td><td>{l?.address || '-'}</td><td className="num">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && title === 'Upcoming' && <td><div className="row-actions">
                 {l && <button className="secondary small" onClick={() => setEditing(b)}><Pencil size={13} aria-hidden="true" />Edit</button>}
+                {l && crew && <button className="secondary small" onClick={() => setAssigning(b)}>{crew.assignments.find(row => row.booking_id === b.id)?.employee_name ?? 'Assign'}</button>}
                 {l && <button className="secondary small" onClick={() => setMoving(b)}>Move</button>}
                 <button className="icon-button" aria-label={`Cancel booking for ${l?.name ?? 'lead'}`} disabled={busy} onClick={() => { if (window.confirm(`Cancel ${l?.name ?? 'this'} booking on ${day(b.date)}? The lead goes back to following up.`)) act(() => removeBooking(org, b.id), () => 'Booking cancelled.'); }}><Trash2 size={15} /></button>
               </div></td>}
@@ -364,6 +393,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now }: Common)
     <BookFlow startDate={flow} close={() => setFlow(null)} data={data} act={act} busy={busy} org={org} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <JobDialog booking={editing} lead={editing ? lead.get(editing.lead_id ?? '') : undefined} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    {crew && <JobAssignmentDialog booking={assigning} lead={assigning ? lead.get(assigning.lead_id ?? '') : undefined} close={() => setAssigning(null)} act={act} busy={busy} org={org} employees={crew.employees} assignment={crew.assignments.find(row => row.booking_id === assigning?.id)} onSaved={refreshCrew} />}
   </>;
 }
 

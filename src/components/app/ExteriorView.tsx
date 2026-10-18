@@ -14,6 +14,7 @@ import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, Sessions
 import { JobsCalendar } from './ExteriorCalendar';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
+import { loadJobCrew } from '@/app/workspace/employees/actions';
 
 const usd = { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } as const;
 const day = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -29,6 +30,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   const [shown, setShown] = useState(50);
   const [ticked, setTicked] = useState<Completed>({});
   const [notice, setNotice] = useState('');
+  const [crew, setCrew] = useState<Awaited<ReturnType<typeof loadJobCrew>> | null>(null);
   useEffect(() => {
     if (mode === 'preview') { const time = new Date(); setResult({ ok: true, data: sampleExterior(time) }); setNow(time); return; }
     let live = true;
@@ -37,8 +39,16 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
     return () => { live = false; };
   }, [org, mode, attempt]);
 
+  useEffect(() => {
+    if (mode !== 'live' || tab !== 'bookings') { setCrew(null); return; }
+    let live = true;
+    loadJobCrew(org).then(value => { if (live) setCrew(value); });
+    return () => { live = false; };
+  }, [org, mode, tab]);
+
   /** Reloads the records without blanking the screen. */
   const refresh = useCallback(() => loadExterior(org).then(r => { if (r.ok) { setResult(r); setNow(new Date()); } }), [org]);
+  const refreshCrew = useCallback(() => { loadJobCrew(org).then(setCrew); }, [org]);
   /** Runs one change, says what happened, and reloads on success. */
   const act = useCallback(async <T extends object>(work: () => Promise<Done<T>>, success: (r: T) => string) => {
     if (mode === 'preview') { setNotice('These Exterior Care records are read-only samples. Nothing was saved.'); return false; }
@@ -70,7 +80,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   const status = <p className="notice" role="status" aria-live="polite">{notice}</p>;
 
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
-  if (tab === 'bookings') return <>{status}<BookingsManager {...common} /></>;
+  if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;

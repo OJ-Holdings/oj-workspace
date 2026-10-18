@@ -168,6 +168,8 @@
 .row-actions { flex-wrap: nowrap; }
 .secondary.small { min-height: 32px; padding: 0 10px; font-size: var(--t-xs); gap: 5px; }
 .formactions.top { margin: 0 0 var(--s-4); }
+.job-assignment-context { margin: 0 0 var(--s-4); padding: var(--s-3); border-left: 2px solid var(--accent); background: var(--accent-soft); }
+.job-assignment-context + form .form-grid { margin-bottom: var(--s-3); }
 .banner-inline { margin: 0 0 var(--s-4); padding: var(--s-3) var(--s-4); border: 1px solid color-mix(in srgb, var(--watch) 45%, transparent); border-radius: var(--r); background: color-mix(in srgb, var(--watch) 10%, transparent); color: var(--ink); font-size: var(--t-sm); }
 .lead-tools { display: grid; gap: var(--s-3); margin-bottom: var(--s-4); }
 .filter-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
