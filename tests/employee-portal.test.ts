@@ -20,8 +20,9 @@ test('employee portal isolates access, invitations, closeouts and commission rec
     insert into auth.users values
       ('${owner}','owner@example.test',now()),('${edy}','edy@example.test',now()),
       ('${otherEmployee}','other@example.test',now()),('${viewer}','viewer@example.test',now());
-    create table public.leads(id uuid primary key default gen_random_uuid(),name text,address text,service_requested text,status text,job_revenue numeric);
-    create table public.bookings(id uuid primary key default gen_random_uuid(),lead_id uuid references public.leads(id),date date,time_block text,status text);
+    -- Match production's varchar columns so RPC return-type mismatches remain visible.
+    create table public.leads(id uuid primary key default gen_random_uuid(),name text,address text,service_requested varchar,status varchar,job_revenue numeric);
+    create table public.bookings(id uuid primary key default gen_random_uuid(),lead_id uuid references public.leads(id),date date,time_block varchar,status varchar);
     alter table public.leads enable row level security; alter table public.bookings enable row level security;
     revoke all on public.leads,public.bookings from public,anon,authenticated;
     grant select on public.leads,public.bookings to authenticated;`);
@@ -36,7 +37,7 @@ test('employee portal isolates access, invitations, closeouts and commission rec
     insert into public.bookings(id,lead_id,date,time_block,status) values
       ('${booking1}','00000000-0000-4000-8000-000000000031','2026-10-20','9:00 AM','confirmed'),
       ('${booking2}','00000000-0000-4000-8000-000000000032','2026-10-21','1:00 PM','confirmed');`);
-  await db.exec(await readFile(new URL('../supabase/pending/employee-portal.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/applied/2026-10-18-employee-portal.sql', import.meta.url), 'utf8'));
   await db.exec(`insert into oj_private.employees(organization_id,user_id,email,display_name) values('${org}','${otherEmployee}','other@example.test','Other');`);
   const as = async (id: string, role = 'authenticated') => db.exec(`reset role; set request.jwt.claim.sub='${id}'; set role ${role};`);
   const token = (n: number) => n.toString(16).padStart(64,'0');

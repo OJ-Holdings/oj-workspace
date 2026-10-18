@@ -185,7 +185,7 @@ returns table(assignment_id uuid,booking_id uuid,employee_id uuid,employee_name 
 language plpgsql security definer set search_path='' as $$
 begin
   if auth.uid() is null or oj_private.member_role(org) is distinct from 'owner' then raise exception 'Owner access required'; end if;
-  return query select a.id,b.id,a.employee_id,e.display_name,b.date,b.time_block,l.service_requested,l.address,l.status,a.commission_percent,a.instructions,a.checklist,c.status,c.checklist,c.notes,l.job_revenue,x.id,x.amount,x.status
+  return query select a.id,b.id,a.employee_id,e.display_name,b.date,b.time_block::text,l.service_requested::text,l.address,l.status::text,a.commission_percent,a.instructions,a.checklist,c.status,c.checklist,c.notes,l.job_revenue,x.id,x.amount,x.status
     from oj_private.employee_assignments a join oj_private.employees e on e.organization_id=a.organization_id and e.user_id=a.employee_id
     join public.bookings b on b.id=a.booking_id join public.leads l on l.id=b.lead_id
     left join oj_private.employee_closeouts c on c.assignment_id=a.id
@@ -240,7 +240,7 @@ returns table(assignment_id uuid,job_date date,time_block text,service text,addr
 language plpgsql stable security definer set search_path='' as $$
 begin
   if auth.uid() is null or not exists(select 1 from oj_private.employees where user_id=auth.uid() and active) then raise exception 'Employee access required'; end if;
-  return query select a.id,b.date,b.time_block,l.service_requested,l.address,a.instructions,a.commission_percent,l.status,c.status,c.checklist,c.notes,x.status,
+  return query select a.id,b.date,b.time_block::text,l.service_requested::text,l.address,a.instructions,a.commission_percent,l.status::text,c.status,c.checklist,c.notes,x.status,
     case when l.job_revenue is null or l.job_revenue<=0 then null else round(l.job_revenue*a.commission_percent/100,2) end
   from oj_private.employee_assignments a join oj_private.employees e on e.organization_id=a.organization_id and e.user_id=a.employee_id
   join public.bookings b on b.id=a.booking_id join public.leads l on l.id=b.lead_id
@@ -271,7 +271,7 @@ returns table(id uuid,assignment_id uuid,entry_type text,commission_percent nume
 language plpgsql stable security definer set search_path='' as $$
 begin
   if auth.uid() is null or not exists(select 1 from oj_private.employees where user_id=auth.uid() and active) then raise exception 'Employee access required'; end if;
-  return query select x.id,x.assignment_id,x.entry_type,x.commission_percent,x.amount,x.reason,x.status,x.approved_at,x.paid_at,b.date,l.service_requested
+  return query select x.id,x.assignment_id,x.entry_type,x.commission_percent,x.amount,x.reason,x.status,x.approved_at,x.paid_at,b.date,l.service_requested::text
   from oj_private.employee_earnings x join oj_private.employee_assignments a on a.id=x.assignment_id join public.bookings b on b.id=a.booking_id join public.leads l on l.id=b.lead_id
   where x.employee_id=auth.uid() order by x.created_at desc;
 end $$;
@@ -333,20 +333,40 @@ grant execute on function public.oj_create_employee_invitation(uuid,text,text),p
 
 -- Private, assignment-scoped job photos. Employees may add images before closeout
 -- submission; owner and assigned employee may view. Neither may rewrite an object.
+-- Storage evaluates policies as the authenticated caller, who deliberately has no
+-- SELECT on oj_private tables. Keep the ownership lookup behind narrow definer
+-- helpers instead of granting broad private-table access to make policy queries work.
+create function oj_private.can_read_employee_job_photo(folder text) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+declare v_assignment_id uuid;
+begin
+  if folder is null or folder !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return false; end if;
+  v_assignment_id:=folder::uuid;
+  return exists(select 1 from oj_private.employee_assignments a where a.id=v_assignment_id and
+    (oj_private.member_role(a.organization_id)='owner' or (a.employee_id=(select auth.uid()) and oj_private.is_employee(a.organization_id))));
+end $$;
+create function oj_private.can_add_employee_job_photo(folder text) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+declare v_assignment_id uuid;
+begin
+  if folder is null or folder !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return false; end if;
+  v_assignment_id:=folder::uuid;
+  return exists(select 1 from oj_private.employee_assignments a join oj_private.employee_closeouts c on c.assignment_id=a.id
+    where a.id=v_assignment_id and a.employee_id=(select auth.uid()) and oj_private.is_employee(a.organization_id) and c.status in ('assigned','accepted','in_progress'));
+end $$;
+revoke all on function oj_private.can_read_employee_job_photo(text),oj_private.can_add_employee_job_photo(text) from public,anon;
+grant execute on function oj_private.can_read_employee_job_photo(text),oj_private.can_add_employee_job_photo(text) to authenticated;
+
 do $$ begin
   if exists(select 1 from pg_namespace where nspname='storage') then
     insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
     values('oj-employee-jobs','oj-employee-jobs',false,10485760,array['image/jpeg','image/png','image/webp','image/heic'])
     on conflict(id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
+    execute 'drop policy if exists oj_employee_job_photo_read on storage.objects';
+    execute 'drop policy if exists oj_employee_job_photo_add on storage.objects';
     execute $p$create policy oj_employee_job_photo_read on storage.objects for select to authenticated
-      using(bucket_id='oj-employee-jobs' and (select exists(
-        select 1 from oj_private.employee_assignments a where a.id=case when (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then ((storage.foldername(name))[1])::uuid else null end and
-          (oj_private.member_role(a.organization_id)='owner' or (a.employee_id=(select auth.uid()) and oj_private.is_employee(a.organization_id)))
-      )))$p$;
+      using(bucket_id='oj-employee-jobs' and oj_private.can_read_employee_job_photo((storage.foldername(name))[1]))$p$;
     execute $p$create policy oj_employee_job_photo_add on storage.objects for insert to authenticated
-      with check(bucket_id='oj-employee-jobs' and (select exists(
-        select 1 from oj_private.employee_assignments a join oj_private.employee_closeouts c on c.assignment_id=a.id
-        where a.id=case when (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then ((storage.foldername(name))[1])::uuid else null end and a.employee_id=(select auth.uid()) and oj_private.is_employee(a.organization_id) and c.status in ('assigned','accepted','in_progress')
-      )))$p$;
+      with check(bucket_id='oj-employee-jobs' and oj_private.can_add_employee_job_photo((storage.foldername(name))[1]))$p$;
   end if;
 end $$;
