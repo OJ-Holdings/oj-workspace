@@ -14,7 +14,7 @@ export type Lead = { id: string; venture: VentureId; name: string; contact: stri
 /** `auto` names the connected system an entry came from (a paid Exterior Care job, a Shopify order); those are not stored in the workspace and cannot be removed here. */
 export type FinanceEntry = { id: string; venture: VentureId; kind: 'revenue' | 'cost'; amount: number; occurred_on: string; category: string; note: string; auto?: string };
 export type MetricEntry = { id: string; venture: VentureId; label: string; value: number; unit: string; measured_on: string; note: string };
-export type EventItem = { id: string; venture: VentureId | null; title: string; starts_at: string; ends_at: string | null; all_day: boolean; location: string; notes: string };
+export type EventItem = { id: string; venture: VentureId | null; title: string; starts_at: string; ends_at: string | null; all_day: boolean; location: string; notes: string; /** Set when an outside calendar owns the event: shown, but not editable here. */ source?: string | null };
 export type DocumentItem = { id: string; venture: VentureId | null; name: string; tag: DocumentTag; storage_path: string; size_bytes: number; mime: string; uploaded_by: string; created_at: string };
 export type Dashboard = { messages: Message[]; leads: Lead[]; finance: FinanceEntry[]; metricEntries: MetricEntry[]; events: EventItem[]; documents: DocumentItem[]; /** Open leads held in a connected system rather than in the workspace's own pipeline. */ openElsewhere?: Partial<Record<VentureId, number>> };
 export const emptyDashboard: Dashboard = { messages: [], leads: [], finance: [], metricEntries: [], events: [], documents: [] };
