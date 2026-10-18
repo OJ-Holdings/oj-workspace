@@ -14,6 +14,9 @@ import { CardDialog } from './CardDialog';
 import { useBoard } from './useBoard';
 import { useDashboard } from './useDashboard';
 import { useJobs } from './useJobs';
+import { useWork } from './useWork';
+import { WorkTimer } from './WorkTimer';
+import type { WorkData } from '@/lib/work';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
 export type AppProps = {
@@ -21,6 +24,10 @@ export type AppProps = {
   base: string; initial: BoardData; mode: 'preview' | 'live'; organizationId: string; members: string[];
   /** Live: the workspace's records, or null if those tables are not set up. Preview: leave out; sample records are built in the browser. */
   dashboard?: Dashboard | null; connections?: Connections;
+  /** Live: the work leaderboard's figures, or null. Preview: leave out; fictional figures are built in the browser. */
+  work?: WorkData | null;
+  /** An owner or member: has a work timer and sees the leaderboard. Viewers do not. */
+  partner?: boolean;
   readOnly?: boolean; owner?: boolean; displayName?: string; connectionStatus?: string; limited?: boolean;
 };
 
@@ -38,12 +45,13 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
 
 const noConnections: Connections = { shopify: false, ghl: false };
 
-export function App({ base, initial, mode, organizationId, members, dashboard, connections = noConnections, readOnly = false, owner = false, displayName = '', connectionStatus = '', limited = false }: AppProps) {
+export function App({ base, initial, mode, organizationId, members, dashboard, connections = noConnections, work: workData, partner = true, readOnly = false, owner = false, displayName = '', connectionStatus = '', limited = false }: AppProps) {
   const pathname = usePathname() ?? base;
   const parts = pathname.slice(base.length).split('/').filter(Boolean);
   const board = useBoard(initial, mode, organizationId, readOnly);
   const store = useDashboard(dashboard, mode, organizationId, displayName);
   const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
+  const work = useWork(workData, mode, organizationId, partner, readOnly);
   const metrics = store.data && store.now ? deriveMetrics(store.data, board.data.cards, store.now, jobSchedule) : null;
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
@@ -58,12 +66,12 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
 
   return (
     <Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
-      openTasks={open.length} cards={board.data.cards} activity={board.data.activity ?? []} status={status}
+      openTasks={open.length} cards={board.data.cards} activity={board.data.activity ?? []} status={status} timer={<WorkTimer work={work} />}
       onOpenCard={card => board.openCard(card)} onNewCard={() => board.openCard(undefined, venture ? { business: venture } : {})}>
       {venture ? (
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
-        <HomeView base={base} board={board} store={store} metrics={metrics} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
+        <HomeView base={base} board={board} store={store} work={work} metrics={metrics} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across all three businesses.</p></header>
@@ -100,7 +108,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}
           {current === 'messages' && <MessagesView store={store} readOnly={readOnly} />}
           {current === 'analytics' && <AnalyticsView store={store} readOnly={readOnly} cards={board.data.cards} />}
-          {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} />}
+          {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} workMissing={work.missing} />}
         </div>
       )}
       <CardDialog board={board} members={members} readOnly={readOnly} mode={mode} />

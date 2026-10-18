@@ -13,6 +13,8 @@ export type WorkspaceSnapshot = {
   data: BoardData; members: string[]; role: 'owner' | 'member' | 'viewer'; displayName: string; limited: boolean;
   /** Messages, leads, money, metrics, events and documents. `null` when those tables are not set up yet or could not be read. */
   dashboard: import('./dashboard').Dashboard | null;
+  /** The work leaderboard. `null` for viewers, and when its database update is not applied yet or it could not be read. */
+  work: import('./work').WorkData | null;
 };
 export function validateCard(input: unknown): Card {
   if (!input || typeof input !== 'object') throw new Error('Invalid card');

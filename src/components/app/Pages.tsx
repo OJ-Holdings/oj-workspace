@@ -406,9 +406,10 @@ export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
 
 /* ------------------------------ Settings and connections ------------------------------ */
 export type Connections = { shopify: boolean; ghl: boolean };
-export function SettingsView({ store, displayName, role, connections, mode }: { store: DashboardStore; displayName: string; role: string; connections: Connections; mode: 'preview' | 'live' }) {
+export function SettingsView({ store, displayName, role, connections, mode, workMissing = false }: { store: DashboardStore; displayName: string; role: string; connections: Connections; mode: 'preview' | 'live'; workMissing?: boolean }) {
   const rows: { name: string; what: string; on: boolean; next: string }[] = [
     { name: 'Workspace database', what: 'Tasks, messages, leads, money, calendar and documents.', on: !store.missing, next: 'A founder approves the one-time database update (supabase/schemas/dashboard.sql).' },
+    ...(workMissing ? [{ name: 'Work timer and leaderboard', what: 'The timer in the top bar and the weekly leaderboard on Home.', on: false, next: 'A founder approves the database update in supabase/pending/RUN-ME-work-leaderboard.sql.' }] : []),
     { name: 'Shopify (OJ Essentials)', what: 'Orders, revenue, products and stock from ojessentials.store.', on: connections.shopify, next: 'Create a read-only app in the Shopify Dev Dashboard, install it on the store, and add SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET to the host settings. Steps are in docs/CONNECTIONS.md.' },
     { name: 'GoHighLevel (OJ Solutions)', what: 'Clients, calls handled and pipeline.', on: connections.ghl, next: 'Create a read-only private integration in GoHighLevel and add GHL_ACCESS_TOKEN and GHL_LOCATION_ID. Steps are in docs/CONNECTIONS.md.' },
   ];

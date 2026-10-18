@@ -1,0 +1,135 @@
+/* The work timer in the top bar, the "Still working?" prompt, and the weekly leaderboard on Home. */
+
+/* --- timer --- */
+.timer { position: relative; display: flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
+.timer-start { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--t-sm); font-weight: 650; color: var(--ink); transition: border-color var(--fast) linear, background var(--fast) linear; }
+.timer-start:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.timer-start svg { color: var(--accent-hi); }
+.timer-running { display: inline-flex; align-items: center; gap: 9px; min-height: 36px; padding: 0 4px 0 12px; border: 1px solid color-mix(in srgb, var(--dot) 55%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--dot) 12%, var(--panel)); font-size: var(--t-sm); }
+.timer-running > i, .lb-live i { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--dot); animation: beat 2s ease-out infinite; }
+@keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dot) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+.timer-biz { font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.timer-running time { min-width: 4.4em; font-family: var(--display); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.timer-stop { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--panel-3); color: var(--ink); transition: background var(--fast) linear, color var(--fast) linear; }
+.timer-stop:hover:not(:disabled) { background: color-mix(in srgb, var(--bad) 22%, var(--panel-3)); color: var(--bad); }
+.timer-checkin { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: var(--t-xs); font-weight: 700; animation: pop var(--base) var(--ease); }
+.timer-checkin:hover:not(:disabled) { background: var(--accent-hi); }
+.timer-menu { width: 250px; white-space: normal; }
+.timer-menu .popover-row { align-items: center; color: var(--ink); }
+.timer-swatch { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; }
+.timer-notice { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; display: flex; align-items: flex-start; gap: 6px; width: max-content; max-width: min(340px, 86vw); padding: 10px 6px 10px 14px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 20px 40px -20px #000; font-size: var(--t-sm); color: var(--ink-2); white-space: normal; animation: pop var(--base) var(--ease); }
+.timer-notice p { margin: 4px 0 0; }
+.timer-notice .icon-button { width: 28px; height: 28px; }
+
+.still-working { width: 460px; }
+.still-working h2 { margin-bottom: 10px; }
+.still-working p { color: var(--ink-2); }
+.still-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
+.still-notice { margin: var(--s-4) 0 0; }
+
+/* --- leaderboard --- */
+.leaderboard { margin-bottom: var(--s-4); }
+.leaderboard.is-loading { min-height: 360px; }
+.leaderboard .panel-head { align-items: flex-start; }
+.leaderboard .panel-note { margin: 4px 0 0; }
+.lb-people { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: var(--s-4); }
+.lb-person { position: relative; display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; padding: var(--s-5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); transition: border-color var(--base) linear, box-shadow var(--base) linear; }
+.lb-person.is-leader { border-color: color-mix(in srgb, var(--win) 55%, transparent); background: radial-gradient(420px 220px at 100% 0%, var(--win-soft), transparent 70%), var(--bg-2); box-shadow: 0 0 0 1px color-mix(in srgb, var(--win) 18%, transparent), 0 26px 50px -32px color-mix(in srgb, var(--win) 70%, transparent); }
+.lb-person.is-leader::before { content: ''; position: absolute; inset: -1px -1px auto -1px; height: 3px; border-radius: var(--r-lg) var(--r-lg) 0 0; background: linear-gradient(90deg, var(--win), transparent); }
+.lb-who { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.lb-who > div { min-width: 0; }
+.lb-who h3 { margin: 0; font-size: var(--t-md); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-who h3 small { font-size: var(--t-xs); font-weight: 500; color: var(--ink-3); }
+.lb-live, .lb-idle { display: flex; align-items: center; gap: 7px; font-size: var(--t-xs); color: var(--ink-3); }
+.lb-live { color: var(--ink-2); }
+.lb-crown { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; margin-left: auto; border-radius: 12px; background: var(--win-soft); color: var(--win); animation: crown var(--slow) var(--ease); }
+@keyframes crown { from { opacity: 0; transform: translateY(-6px) rotate(-14deg) scale(0.7); } }
+.lb-points { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 4px 0 0; }
+.lb-figure { font-family: var(--display); font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 650; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.is-leader .lb-figure { color: var(--win); }
+.lb-points > span:last-child { font-size: var(--t-sm); color: var(--ink-3); }
+.lb-gap { margin: -4px 0 0; font-size: var(--t-sm); font-weight: 600; color: var(--ink-3); }
+.is-leader .lb-gap { color: var(--win); }
+.lb-split { display: flex; gap: 3px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--panel-2); }
+.lb-split b { display: block; flex-basis: 0; min-width: 0; border-radius: 999px; transition: flex-grow var(--slow) var(--ease); }
+.lb-split-hours, .lb-key-hours { background: var(--accent-hi); }
+.lb-split-tasks, .lb-key-tasks { background: var(--good); }
+.lb-split .lb-split-none { flex-grow: 1; background: transparent; }
+.lb-parts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin: 0; }
+.lb-parts dt { display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--ink-3); }
+.lb-parts dt i { width: 8px; height: 8px; border-radius: 2px; }
+.lb-parts dd { margin: 2px 0 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+.lb-parts small { font-size: var(--t-xs); font-weight: 500; color: var(--ink-3); }
+.lb-biz { list-style: none; display: grid; gap: 8px; margin: 0; padding: var(--s-3) 0 0; border-top: 1px solid var(--line); }
+.lb-biz li { display: grid; grid-template-columns: minmax(0, 7.5em) minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: var(--t-xs); color: var(--ink-2); }
+.lb-biz li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-biz i { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.lb-biz i b { display: block; height: 100%; border-radius: inherit; background: var(--tag); transition: width var(--slow) var(--ease); }
+.lb-biz-time { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.lb-biz-none { margin: 0; padding-top: var(--s-3); border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
+.lb-record { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: auto; padding-top: var(--s-2); font-size: var(--t-xs); color: var(--ink-3); }
+.lb-record span { display: inline-flex; align-items: center; gap: 6px; }
+.lb-record .is-hot { color: var(--watch); }
+.lb-last { margin: var(--s-4) 0 0; font-size: var(--t-sm); color: var(--ink-3); }
+.lb-last b { color: var(--ink); }
+.lb-last-crown { margin-right: 4px; color: var(--win); vertical-align: -2px; }
+
+/* --- sessions and history --- */
+.lb-dialog { width: 760px; }
+.lb-dialog .dialog-header h2 { margin: 0; }
+.lb-dialog .seg { flex-wrap: wrap; margin-bottom: var(--s-5); }
+.lb-detail-person { margin-bottom: var(--s-5); }
+.lb-dialog .lb-detail-person h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 6px; }
+.lb-detail-person h3 small { font-size: var(--t-xs); font-weight: 500; color: var(--ink-3); }
+.lb-detail-person h3 > span { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-sm); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.lb-sessions { list-style: none; margin: 0; padding: 0; }
+.lb-sessions > li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lb-session { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--t-sm); }
+.lb-session-when { color: var(--ink-2); }
+.lb-session b { font-variant-numeric: tabular-nums; }
+.lb-session .icon-button { width: 30px; height: 30px; margin-left: auto; }
+.badge { display: inline-flex; align-items: center; padding: 1px 8px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--t-xs); font-weight: 650; color: var(--ink-2); }
+.badge-edited { border-color: color-mix(in srgb, var(--watch) 50%, transparent); background: color-mix(in srgb, var(--watch) 12%, transparent); color: var(--watch); }
+.badge-live { border-color: color-mix(in srgb, var(--good) 50%, transparent); color: var(--good); }
+.lb-session-note { margin: 4px 0 0; font-size: var(--t-xs); color: var(--ink-3); }
+.lb-tasks { margin: 8px 0 0; font-size: var(--t-sm); color: var(--ink-2); }
+.lb-edit { margin-top: 10px; padding: var(--s-4); border: 1px solid var(--line-2); border-radius: var(--r); background: var(--bg-2); }
+.lb-edit label { display: flex; flex-direction: column; gap: 7px; margin-bottom: var(--s-3); font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); }
+.lb-edit input, .lb-edit select, .lb-edit textarea { font-weight: 400; }
+.lb-edit-actions { display: flex; justify-content: flex-end; gap: var(--s-3); }
+.lb-dialog .lb-history-h { margin-top: var(--s-6); }
+.lb-rules { margin: var(--s-5) 0 0; }
+
+/* The business name in the running timer needs room; below this the colour says it. */
+@media (max-width: 1200px) {
+  .timer-biz { display: none; }
+}
+/* With the rail showing, the search box gives up room before anything in the top bar wraps. */
+@media (min-width: 1001px) {
+  .search-trigger { min-width: 0; }
+  .search-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .who span { white-space: nowrap; }
+}
+@media (max-width: 520px) {
+  /* Narrow phones: the running timer drops its dot (its border keeps the business colour). */
+  .timer-running { gap: 6px; padding: 0 3px 0 10px; }
+  .timer-running > i { display: none; }
+}
+@media (max-width: 700px) {
+  /* Icon only; the words stay for screen readers. */
+  .timer-start { padding: 0 11px; }
+  .timer-start span, .timer-checkin span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .timer-checkin { padding: 0 8px; }
+  /* The menu and notices hang from the full-width top bar, not the small timer, so they stay on screen. */
+  .timer { position: static; }
+  .timer-menu, .timer-notice { left: var(--s-4); right: var(--s-4); top: calc(100% + 6px); width: auto; max-width: none; }
+  .leaderboard .panel-head { flex-direction: column; gap: 6px; }
+  .lb-people { gap: var(--s-3); }
+  .lb-person { gap: 10px; padding: var(--s-4) var(--s-3); }
+  .lb-who .avatar { display: none; }
+  .lb-crown { width: 30px; height: 30px; border-radius: 9px; }
+  .lb-crown svg { width: 17px; height: 17px; }
+  .lb-parts { grid-template-columns: 1fr; gap: 6px; }
+  .lb-biz li { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; }
+  .lb-biz i { grid-column: 1 / -1; grid-row: 2; }
+}

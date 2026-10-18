@@ -12,6 +12,8 @@ import { GhostChart, LineChart, Sparkline } from './Charts';
 import { HeroScene } from './Hero';
 import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
+import type { WorkStore } from './useWork';
+import { Leaderboard } from './Leaderboard';
 
 const color = (v: VentureId | 'shared') => `var(--c-${v})`;
 const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
@@ -19,9 +21,9 @@ const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: Fi
 /** The Home screen before any figures exist: every panel then says what to log or connect. */
 const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null }, pipeline: null, schedule: null, files: null, notes: null };
 
-type Props = { base: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
 
-export function HomeView({ base, board, store, metrics: derived, mode, displayName, members, readOnly }: Props) {
+export function HomeView({ base, board, store, work, metrics: derived, mode, displayName, members, readOnly }: Props) {
   const metrics = derived ?? nothingYet;
   // While the sample workspace is still working out today's date, hold the panels back so nothing flashes as empty.
   const loading = !derived && !store.missing && mode === 'preview';
@@ -89,6 +91,8 @@ export function HomeView({ base, board, store, metrics: derived, mode, displayNa
           );
         })}
       </section>
+
+      <Leaderboard work={work} cards={cards} />
 
       <div className="home-grid">
         <section className="panel panel-wide" aria-labelledby="rev-h">

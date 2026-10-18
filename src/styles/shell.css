@@ -128,3 +128,9 @@
   .banner { padding-inline: var(--s-4); }
   #main { padding: var(--s-4) var(--s-4) 96px; }
 }
+@media (max-width: 520px) {
+  /* Room for the work timer: search becomes an icon; its label stays for screen readers. */
+  .topbar-right { gap: 6px; }
+  .search-trigger { flex: 0 0 auto; width: 40px; padding: 0; justify-content: center; }
+  .search-trigger span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
