@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
-import { dayKey, documentTags, fileKind, fileSize, lastMonths, leadStages, monthlyTotals, relativeDay, type DocumentItem, type EventItem, type Lead, type LeadStage } from '@/lib/dashboard';
+import { dayKey, documentTags, fileKind, fileSize, lastMonths, leadStages, monthlyTotals, relativeDay, type Dashboard, type DocumentItem, type EventItem, type Lead, type LeadStage } from '@/lib/dashboard';
 import { dollars, money } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
 import { LineChart } from './Charts';
@@ -158,16 +158,16 @@ export function CrmView({ store, readOnly, venture }: Common) {
 }
 
 /* ------------------------------ Finance ------------------------------ */
-export function FinanceView({ store, readOnly, venture }: Common) {
+export function FinanceView({ store, readOnly, venture, owner = false }: Common & { owner?: boolean }) {
   const blank = () => ({ venture: venture ?? 'exterior' as VentureId, kind: 'revenue' as const, amount: '', occurred_on: store.now ? dayKey(store.now) : '', category: '', note: '' });
   const [form, setForm] = useState<{ venture: VentureId; kind: 'revenue' | 'cost'; amount: string; occurred_on: string; category: string; note: string } | null>(null);
   return (
     <Gate store={store} what="Finance">
-      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} form={form} setForm={setForm} blank={blank} />}
+      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} owner={owner} form={form} setForm={setForm} blank={blank} />}
     </Gate>
   );
 }
-function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common & { form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
+function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, blank }: Common & { owner?: boolean; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
   const now = store.now!, data = store.data!;
   const [shown, setShown] = useState(12);
   const query = useSearchParams();
@@ -191,6 +191,7 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
   const netKnown = entries.some(f => f.kind === 'revenue' && f.occurred_on.startsWith(month)) && entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month));
   const withRevenue = scope.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
   return <>
+    {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
       <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>
@@ -236,6 +237,24 @@ function FinanceBody({ store, readOnly, venture, form, setForm, blank }: Common 
       ) : <div className="empty"><p><b>Nothing logged.</b> A quote is not money in: log it when it is paid.</p></div>}
     </section>
   </>;
+}
+
+function MercuryBankPanel({ snapshot }: { snapshot: Dashboard['mercury'] }) {
+  const money = (value: number | null, currency: string) => value === null ? 'Not reported' : new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+  const stamp = snapshot?.checkedAt ? new Date(snapshot.checkedAt).toLocaleString() : null;
+  return <section className="panel" aria-labelledby="mercury-heading">
+    <header className="panel-head"><div><h2 id="mercury-heading">Mercury accounts</h2><p className="quiet">Private to the workspace owner · Read only</p></div>{snapshot?.state === 'available' && <span className="tag">Connected</span>}</header>
+    {!snapshot || snapshot.state === 'not-connected' ? <div className="empty"><p><b>Connect Mercury when you’re ready.</b> Create a read-only API token in Mercury and add it to the OJ Workspace’s Netlify server variables as <code>OJ_MERCURY_API_TOKEN</code>. Never paste the token into this page or chat.</p><p className="quiet">This panel will show cash balances and recent bank activity. Bank activity stays separate from recorded revenue and costs.</p></div>
+      : snapshot.state === 'unavailable' ? <div className="empty"><p><b>Mercury is temporarily unavailable.</b> {snapshot.detail}</p></div>
+      : <>
+        <p className="quiet">{snapshot.detail} Bank transfers and deposits are not counted as sales. Checked {stamp}.</p>
+        {snapshot.accounts.length ? <div className="kpis mercury-balances">{snapshot.accounts.map(account => <div key={account.id}><span>{account.name}</span><strong>{money(account.currentBalance, account.currency)}</strong><small className="quiet">Available {money(account.availableBalance, account.currency)} · {account.status}</small></div>)}</div> : <p className="quiet">No accounts were returned.</p>}
+        <h3>Recent activity</h3>
+        {snapshot.transactions.length ? <div className="tablewrap"><table className="table"><thead><tr><th>Posted</th><th>Account</th><th>Description</th><th>Status</th><th className="num">Amount</th></tr></thead><tbody>
+          {snapshot.transactions.slice(0, 15).map(row => <tr key={row.id}><td>{(row.postedAt || row.createdAt) ? new Date(row.postedAt || row.createdAt).toLocaleDateString() : 'Date unavailable'}</td><td>{row.accountName}</td><td>{row.description}</td><td>{row.status}</td><td className="num">{money(row.amount, row.currency)}</td></tr>)}
+        </tbody></table></div> : <p className="quiet">No recent transactions were returned.</p>}
+      </>}
+  </section>;
 }
 
 /* ------------------------------ Calendar ------------------------------ */

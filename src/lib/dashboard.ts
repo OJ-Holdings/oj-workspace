@@ -13,12 +13,16 @@ export type Message = { id: string; venture: VentureId | null; author: string; b
 export type Lead = { id: string; venture: VentureId; name: string; contact: string; stage: LeadStage; value: number | null; source: string; notes: string; created_at: string };
 /** `auto` names the connected system an entry came from (a paid Exterior Care job, a Shopify order); those are not stored in the workspace and cannot be removed here. */
 export type FinanceEntry = { id: string; venture: VentureId; kind: 'revenue' | 'cost'; amount: number; occurred_on: string; category: string; note: string; auto?: string; dateBasis?: 'completion' | 'updated-estimate' | 'created-estimate' | 'order-created' };
-export type ReportingSource = { id: 'exterior' | 'shopify' | 'ghl'; label: string; state: 'available' | 'partial' | 'unavailable' | 'not-connected'; detail: string };
+export type ReportingSource = { id: 'exterior' | 'shopify' | 'ghl' | 'mercury'; label: string; state: 'available' | 'partial' | 'unavailable' | 'not-connected'; detail: string };
 export type ReportingCoverage = { sources: ReportingSource[]; exterior: { jobs: number; revenueJobs: number; costJobs: number; matchedJobs: number; estimatedDateJobs: number } };
+export type MercuryAccount = { id: string; name: string; currentBalance: number | null; availableBalance: number | null; currency: string; status: string };
+export type MercuryTransaction = { id: string; accountName: string; amount: number; currency: string; status: string; description: string; postedAt: string | null; createdAt: string; kind: string };
+/** Private, read-only bank snapshot. Deliberately separate from finance entries: deposits and transfers are not necessarily revenue. */
+export type MercurySnapshot = { state: 'available' | 'partial' | 'unavailable' | 'not-connected'; detail: string; accounts: MercuryAccount[]; transactions: MercuryTransaction[]; checkedAt: string };
 export type MetricEntry = { id: string; venture: VentureId; label: string; value: number; unit: string; measured_on: string; note: string };
 export type EventItem = { id: string; venture: VentureId | null; title: string; starts_at: string; ends_at: string | null; all_day: boolean; location: string; notes: string; /** Set when an outside calendar owns the event: shown, but not editable here. */ source?: string | null };
 export type DocumentItem = { id: string; venture: VentureId | null; name: string; tag: DocumentTag; storage_path: string; size_bytes: number; mime: string; uploaded_by: string; created_at: string };
-export type Dashboard = { messages: Message[]; leads: Lead[]; finance: FinanceEntry[]; metricEntries: MetricEntry[]; events: EventItem[]; documents: DocumentItem[]; reporting?: ReportingCoverage; /** Open leads held in a connected system rather than in the workspace's own pipeline. */ openElsewhere?: Partial<Record<VentureId, number>> };
+export type Dashboard = { messages: Message[]; leads: Lead[]; finance: FinanceEntry[]; metricEntries: MetricEntry[]; events: EventItem[]; documents: DocumentItem[]; reporting?: ReportingCoverage; /** Present only in the owner-authenticated snapshot. */ mercury?: MercurySnapshot; /** Open leads held in a connected system rather than in the workspace's own pipeline. */ openElsewhere?: Partial<Record<VentureId, number>> };
 export const emptyDashboard: Dashboard = { messages: [], leads: [], finance: [], metricEntries: [], events: [], documents: [] };
 
 export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

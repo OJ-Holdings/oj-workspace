@@ -58,3 +58,11 @@ The live site runs on Netlify: keys go in Netlify -> Project configuration ->
 Environment variables, followed by a redeploy (see docs/DEPLOYMENT.md).
 `.env.local` is only for running the app on your own computer.
 Settings -> Connections in the workspace shows whether each connection is on.
+
+## Mercury bank accounts (owner-only, read-only)
+
+The Finance page can show Mercury account balances and the latest 50 transactions. It uses only Mercury's read endpoints and displays a reduced response that omits full account and routing numbers. Transactions are not added to recorded revenue or costs: transfers and deposits are not necessarily sales.
+
+To connect it, create an API token in Mercury with the **Read Only** role, then add it to the Netlify production environment as `OJ_MERCURY_API_TOKEN` and redeploy. For local testing, put the token in `.env.local`. Do not paste the token into the dashboard, source control, or chat. Only the workspace owner receives this bank snapshot; members with other roles and the separate employee portal do not.
+
+The integration calls Mercury's [Get all accounts](https://docs.mercury.com/reference/getaccounts) and [List all transactions](https://docs.mercury.com/reference/listtransactions) endpoints. It does not initiate payments, create recipients, or change transaction metadata.
