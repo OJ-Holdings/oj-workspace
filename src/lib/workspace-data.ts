@@ -51,7 +51,7 @@ export async function loadWorkspace(org: string): Promise<WorkspaceSnapshot> {
   return {
     members: [...names.values()], role: member.role as WorkspaceSnapshot['role'], displayName: member.display_name,
     limited: (cards.data?.length || 0) >= 1000 || (comments.data?.length || 0) >= 1000,
-    dashboard: dashboard && await addExternalFigures(client, dashboard),
+    dashboard: dashboard && await addExternalFigures(client, dashboard, member.role === 'owner'),
     work,
     data: {
       cards: (cards.data || []).map(c => ({ ...c, due_date: c.due_date || '' })) as Card[],
