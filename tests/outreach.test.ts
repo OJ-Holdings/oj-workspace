@@ -18,6 +18,24 @@ test('outreach rows map the real sheet headers, dates, owners and statuses', () 
   assert.deepEqual(result.skippedRows, []);
 });
 
+test('daily sync accepts the live Sender/Send To/Message/Trade sheet without inventing dates', () => {
+  const liveHeaders = ['Sender','Channel','Send To','Subject','Message','Status','Notes','Business Name','Decision Maker','Best Fit Service','The Leak','Instagram','Facebook','Email','Trade','City and State','Website URL','Phone Number'];
+  const result = parseOutreachRows([liveHeaders, [
+    'Jacob','Email','austinmedspa@gmail.com','your about page','A short outreach message','Not Sent','','Austin Med Spa',
+    'Suzette Smith, Owner','Website','Placeholder text on the about page.','https://instagram.com/austinmedspa','','austinmedspa@gmail.com',
+    'Med Spa','Austin, TX','https://www.austinmedspa.com/','(512) 479-9997',
+  ]]);
+  assert.equal(result.prospects.length, 1);
+  assert.equal(result.prospects[0].business_name, 'Austin Med Spa');
+  assert.equal(result.prospects[0].industry, 'Med Spa');
+  assert.equal(result.prospects[0].email, 'austinmedspa@gmail.com');
+  assert.equal(result.prospects[0].email_subject, 'your about page');
+  assert.equal(result.prospects[0].email_body, 'A short outreach message');
+  assert.equal(result.prospects[0].sent_by, 'Jacob');
+  assert.equal(result.prospects[0].date_added, null);
+  assert.equal(result.prospects[0].source_status, 'Not Sent');
+});
+
 test('identity keys survive URL scheme, www and path changes; repeated businesses are deduped', () => {
   assert.equal(outreachKey({ businessName: 'Example Co', websiteUrl: 'https://www.example.com/about' }), outreachKey({ businessName: 'Example Co', websiteUrl: 'http://example.com/another-page' }));
   const result = parseOutreachRows([headers,
