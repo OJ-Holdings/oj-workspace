@@ -2,12 +2,12 @@ import { createHash } from 'node:crypto';
 import { outreachStatuses, type OutreachSourceRow, type OutreachStatus } from './outreach';
 
 const headerAliases: Record<keyof Omit<OutreachSourceRow, 'source_key' | 'source_row'>, string[]> = {
-  business_name: ['business name'], industry: ['industry'], city_state: ['city and state', 'city/state', 'city, state'],
+  business_name: ['business name'], industry: ['industry', 'trade'], city_state: ['city and state', 'city/state', 'city, state'],
   website_url: ['website url', 'website', 'url'], phone_number: ['phone number', 'phone', 'phone #'],
   decision_maker: ['decision maker', 'contact'], best_fit_service: ['best fit service'], secondary_fit: ['secondary fit'],
-  leak: ['the leak', 'leak'], evidence: ['evidence'], email: ['email'], instagram: ['instagram'], facebook: ['facebook'],
-  email_subject: ['email subject'], email_body: ['email body'], dm: ['dm', 'direct message'], date_added: ['date added'],
-  sent_by: ['sent by', 'assigned to'], source_status: ['outreach status', 'status'], source_notes: ['notes', 'note'],
+  leak: ['the leak', 'leak'], evidence: ['evidence'], email: ['send to', 'email'], instagram: ['instagram'], facebook: ['facebook'],
+  email_subject: ['email subject', 'subject'], email_body: ['email body', 'message'], dm: ['dm', 'direct message'], date_added: ['date added'],
+  sent_by: ['sent by', 'assigned to', 'sender'], source_status: ['outreach status', 'status'], source_notes: ['notes', 'note'],
 };
 
 const cell = (row: string[], index: number | undefined) => index === undefined || index < 0 ? '' : (row[index] ?? '').trim();
@@ -37,7 +37,8 @@ export function parseOutreachRows(rows: string[][]) {
   if (!rows.length) throw new Error('The Outreach tab is empty; its header row is required.');
   const headers = rows[0].map(h => h.toLowerCase().trim().replace(/\s+/g, ' '));
   const columns = Object.fromEntries(Object.entries(headerAliases).map(([field, names]) => [field, headers.findIndex(h => names.includes(h))])) as Record<keyof typeof headerAliases, number>;
-  const required = ['business_name', 'best_fit_service', 'date_added', 'sent_by', 'source_status'] as const;
+  // Date Added is optional in the live outreach workbook; preserve it as null when absent.
+  const required = ['business_name', 'best_fit_service', 'sent_by', 'source_status'] as const;
   const missing = required.filter(field => columns[field] < 0);
   if (missing.length) throw new Error(`Missing required Outreach columns: ${missing.join(', ')}.`);
   const parsed: OutreachSourceRow[] = [];
