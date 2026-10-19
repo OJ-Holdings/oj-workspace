@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-19 -- Codex (outreach sync without a Google Cloud project)
+**Summary:** Replaced the Netlify Google service-account reader and cron with a bearer-authenticated Netlify receiver and a bound Apps Script sender. The sender reads only the private `Outreach` tab and supports a daily 10 PM trigger in the sheet's configured timezone. No separate Google Cloud project, service account, or Sheets API setup is needed. The Supabase server key remains on Netlify; the script uses a separate shared sync token. Updated setup docs and preview copy.
+**Files:** `netlify/functions/daily-outreach-sync.ts`, `scripts/google-apps-script/outreach-sync.gs`, `docs/OUTREACH_INGESTION.md`, `.env.example`, `src/components/app/OutreachView.tsx`, outreach schema comments, `tests/outreach-sync.test.ts`.
+**Verified:** 249 tests pass; `npm run typecheck` and `npm run build` pass. Endpoint tests cover method/auth gates, malformed JSON, and oversized requests. The live database schema was already installed. Production is not fully syncing until Netlify secrets are configured and the owner authorizes the bound script and installs its daily trigger.
+**Notes:** User asked to avoid Google Cloud. Do not create a GCP project or service account. Preserve pre-existing `.gitignore` and `.playwright-cli/` work.
+
 ## 2026-10-18 23:16 UTC -- Codex (private nightly OJ Solutions outreach pipeline)
 **Summary:** Connected the recovered private Google Sheet structure to a new OJ Solutions -> Outreach workspace page. A Netlify scheduled function reads only the Outreach tab through a file-scoped Google service account, normalizes/upserts prospects, and records sync runs. Oscar and Jacob can filter the queue and mark outreach progress in OJ; database RPC changes are workspace-member checked and append an activity record. Sheet source fields remain separate from OJ status overrides, and removed sheet rows are never deleted. No email or DM sending is automated. Imported website links are restricted to HTTP(S).
 **Files:** `netlify/functions/daily-outreach-sync.ts`, `src/components/app/OutreachView.tsx`, `src/app/workspace/outreach-actions.ts`, `src/lib/outreach.ts`, `src/lib/outreach-import.ts`, `supabase/schemas/outreach-pipeline.sql`, `supabase/pending/RUN-ME-2026-10-19-outreach-pipeline.sql`, `tests/outreach.test.ts`, `docs/OUTREACH_INGESTION.md`, nav styles and `.env.example`.

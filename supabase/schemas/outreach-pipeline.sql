@@ -1,6 +1,6 @@
 -- OJ Solutions prospecting pipeline fed from the private Google Sheets source.
--- The scheduled Netlify function reads the sheet with a file-scoped Google
--- service account and writes only source columns using the Supabase service
+-- A sheet-bound Apps Script pushes sheet values to Netlify, which writes only
+-- source columns using the Supabase service
 -- key held server-side. Browser actions use the member session and a narrow RPC.
 
 create table public.oj_outreach_prospects (

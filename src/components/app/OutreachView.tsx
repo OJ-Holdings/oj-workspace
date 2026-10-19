@@ -78,7 +78,7 @@ export function OutreachView({ organizationId, mode, readOnly }: { organizationI
       </span>}
     </header>
 
-    {mode === 'preview' && <p className="outreach-preview-note">Fictional records for preview. Live prospects only appear after the private Google Sheet sync is configured.</p>}
+    {mode === 'preview' && <p className="outreach-preview-note">Fictional records for preview. Live prospects appear after the private spreadsheet sync is configured.</p>}
     {error && <div className="outreach-error" role="alert"><b>Outreach data is not available.</b><span>{error}</span></div>}
     {lastSync?.status === 'failed' && <div className="outreach-error" role="status"><b>The latest import failed.</b><span>{lastSync.error_summary || 'Check the connection setup and Netlify function logs.'}</span></div>}
     {loading && <p className="quiet">Loading outreach…</p>}
@@ -121,7 +121,7 @@ export function OutreachView({ organizationId, mode, readOnly }: { organizationI
             {p.email_subject && <p><b>Email subject</b>{p.email_subject}</p>}{p.email_body && <p><b>Email draft</b>{p.email_body}</p>}{p.dm && <p><b>DM draft</b>{p.dm}</p>}{p.source_notes && <p><b>Sheet notes</b>{p.source_notes}</p>}
           </details>}
         </article>;
-      })}</div> : <div className="panel outreach-empty"><h2>{prospects.length ? 'No matching prospects' : 'No prospects imported yet'}</h2><p>{prospects.length ? 'Try changing the search or filters.' : mode === 'preview' ? 'Preview examples are shown above; the real sheet currently has its header row but no business rows.' : 'The scheduled import will add prospects after rows are added to the Google Sheet.'}</p></div>}
+      })}</div> : <div className="panel outreach-empty"><h2>{prospects.length ? 'No matching prospects' : 'No prospects imported yet'}</h2><p>{prospects.length ? 'Try changing the search or filters.' : mode === 'preview' ? 'Preview examples are shown above; the real sheet currently has its header row but no business rows.' : 'The daily spreadsheet sync will add prospects after rows are added to the Outreach tab.'}</p></div>}
     </>}
   </section>;
 }
