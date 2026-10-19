@@ -11,13 +11,14 @@ import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
 import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
+import { OutreachView } from './OutreachView';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
   exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
-  solutions: [['clients', 'Clients'], ['calls', 'Calls']],
+  solutions: [['clients', 'Clients'], ['outreach', 'Outreach'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
 };
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
@@ -68,6 +69,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
+      {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} />}
       {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
       {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} />}
       {isExtra(venture, active) && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
