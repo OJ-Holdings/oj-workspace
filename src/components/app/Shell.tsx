@@ -14,7 +14,7 @@ import { searchWorkspace } from '@/lib/workspace-search';
 export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings';
 
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home }[] = [
-  { key: 'home', label: 'Home', path: '', icon: Home },
+  { key: 'home', label: 'Today', path: '', icon: Home },
   { key: 'businesses', label: 'Businesses', path: '/businesses', icon: Building2 },
   { key: 'tasks', label: 'Tasks', path: '/tasks', icon: CheckSquare },
   { key: 'calendar', label: 'Calendar', path: '/calendar', icon: CalendarDays },
@@ -204,7 +204,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
           </div>
         </div>
       )}
-      {!readOnly && current !== 'tasks' && <button className="fab" inert={search} onClick={onNewCard} aria-label="New task"><Plus size={22} /></button>}
+      {!readOnly && current === 'home' && <button className="fab" inert={search} onClick={onNewCard} aria-label="New task"><Plus size={22} /></button>}
     </div>
   );
 }

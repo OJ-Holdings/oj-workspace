@@ -1,6 +1,7 @@
 import type { Card } from './board';
 import { ventureIds, type VentureId } from './ventures';
 import type { WorkspaceMetrics } from './metrics';
+import { workDay } from './task-workflows';
 
 // The records behind every page except the task board. Shapes match
 // supabase/schemas/dashboard.sql; dates are ISO strings.
@@ -51,7 +52,7 @@ export type ScheduleJob = { id: string; date: string; startMinutes: number; time
 
 export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date, jobs: ScheduleJob[] = []): WorkspaceMetrics {
   const months = lastMonths(now);
-  const today = dayKey(now);
+  const today = workDay(now);
   const ventures = Object.fromEntries(ventureIds.map(id => {
     const revenue = dashboard.finance.some(f => f.venture === id && f.kind === 'revenue');
     const leads = dashboard.leads.filter(l => l.venture === id);
@@ -68,10 +69,10 @@ export function deriveMetrics(dashboard: Dashboard, cards: Card[], now: Date, jo
   })) as WorkspaceMetrics['ventures'];
 
   const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Won'] as const;
-  const todaysEvents = dashboard.events.filter(e => dayKey(new Date(e.starts_at)) === today).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const todaysEvents = dashboard.events.filter(e => (e.all_day ? e.starts_at.slice(0, 10) : workDay(new Date(e.starts_at))) === today).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const dueToday = cards.filter(c => c.due_date === today && c.stage !== 'Done');
   const todaysJobs = jobs.filter(j => j.date === today);
-  const eventRows = todaysEvents.map(e => ({ id: e.id, time: e.all_day ? 'All day' : new Date(e.starts_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), title: e.title, detail: e.location || e.notes || 'Event', venture: e.venture ?? 'shared' as const }));
+  const eventRows = todaysEvents.map(e => ({ id: e.id, time: e.all_day ? 'All day' : new Date(e.starts_at).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false }), title: e.title, detail: e.location || e.notes || 'Event', venture: e.venture ?? 'shared' as const }));
   const jobRows = todaysJobs.map(j => ({ id: `job-${j.id}`, time: `${String(Math.floor(j.startMinutes / 60)).padStart(2, '0')}:${String(j.startMinutes % 60).padStart(2, '0')}`, title: j.name, detail: `${j.service || 'Job'} / ${j.timeLabel}`, venture: 'exterior' as const }));
   // All-day items first, then everything with a time in order.
   const dayRows = [...eventRows, ...jobRows].sort((a, b) => (a.time === 'All day' ? -1 : 0) - (b.time === 'All day' ? -1 : 0) || a.time.localeCompare(b.time));

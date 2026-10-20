@@ -46,7 +46,7 @@ test('pipeline, active leads and today\'s schedule come from real rows', () => {
 });
 
 test('booked Exterior Care jobs join the schedule for today, in time order, and nothing from other days', () => {
-  const event = { id: 'e1', venture: null, title: 'Sync', starts_at: new Date(2026, 9, 2, 16, 0).toISOString(), ends_at: null, all_day: false, location: '', notes: '' };
+  const event = { id: 'e1', venture: null, title: 'Sync', starts_at: '2026-10-02T21:00:00.000Z', ends_at: null, all_day: false, location: '', notes: '' };
   const allDay = { id: 'e0', venture: null, title: 'Offsite', starts_at: new Date(2026, 9, 2, 0, 0).toISOString(), ends_at: null, all_day: true, location: '', notes: '' };
   const d: Dashboard = { ...emptyDashboard, events: [event, allDay] };
   const jobs = [

@@ -284,6 +284,9 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
   const gridStart = new Date(first.getFullYear(), first.getMonth(), 1 - first.getDay());
   const days = Array.from({ length: 42 }, (_, i) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i));
   const today = dayKey(now);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const agendaHeading = useRef<HTMLHeadingElement>(null);
+  function openDay(day: string) { setSelectedDay(day); requestAnimationFrame(() => { agendaHeading.current?.focus(); agendaHeading.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' }); }); }
   type Item = { id: string; title: string; venture: VentureId | null; time: string; event?: EventItem; href?: string };
   const byDay = useMemo(() => {
     const map = new Map<string, Item[]>();
@@ -326,14 +329,18 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
           const k = dayKey(d), items = byDay.get(k) ?? [];
           return (
             <div key={k} role="gridcell" className={`month-day${d.getMonth() !== first.getMonth() ? ' is-other' : ''}${k === today ? ' is-today' : ''}`}>
-              <button className="month-num" disabled={readOnly} aria-label={`Add an event on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`} onClick={() => setDraft({ ...blankEvent(k), isNew: true })}>{d.getDate()}</button>
+              <button className="month-num" aria-pressed={selectedDay === k} aria-label={`View agenda for ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`} onClick={() => openDay(k)}>{d.getDate()}</button>
               {items.slice(0, 3).map(item => item.href ? <Link key={item.id} className="month-item" style={{ '--dot': color(item.venture) } as React.CSSProperties} href={item.href} title={`${item.time}: ${item.title}`}>{item.title}</Link> : <button key={item.id} className="month-item" style={{ '--dot': color(item.venture) } as React.CSSProperties} disabled={!item.event || readOnly || Boolean(item.event.source)} onClick={() => item.event && !item.event.source && setDraft({ ...item.event, starts_at: toLocalInput(item.event.starts_at), ends_at: item.event.ends_at ? toLocalInput(item.event.ends_at) : null, isNew: false })} title={item.event?.source ? `${item.title}, from an outside calendar (read-only)` : item.title}>{item.title}</button>)}
-              {items.length > 3 && <span className="month-more">+{items.length - 3} more</span>}
+              {items.length > 3 && <button className="month-more" aria-label={`View all ${items.length} items on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`} onClick={() => openDay(k)}>+{items.length - 3} more</button>}
             </div>
           );
         })}
       </div>
       <aside className="calendar-side">
+        <section className="panel day-agenda"><header className="panel-head"><h2 ref={agendaHeading} tabIndex={-1}>{new Date(`${selectedDay}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h2><span>{(byDay.get(selectedDay) ?? []).length} items</span></header>
+          {(byDay.get(selectedDay) ?? []).length ? <ol>{(byDay.get(selectedDay) ?? []).map(item => <li key={item.id}><span className="quiet">{item.time || 'All day'} / {short(item.venture)}</span>{item.href ? <Link href={item.href}>{item.title}</Link> : item.event && !readOnly && !item.event.source ? <button onClick={() => setDraft({ ...item.event!, starts_at: toLocalInput(item.event!.starts_at), ends_at: item.event!.ends_at ? toLocalInput(item.event!.ends_at) : null, isNew: false })}>{item.title}</button> : <b>{item.title}</b>}{item.event?.location && <p>{item.event.location}</p>}{item.event?.notes && <p>{item.event.notes}</p>}</li>)}</ol> : <p className="quiet">Nothing scheduled for this day.</p>}
+          {!readOnly && <button className="secondary" onClick={() => setDraft({ ...blankEvent(selectedDay), isNew: true })}>Add event on this day</button>}
+        </section>
         <section className="panel"><header className="panel-head"><h2>Coming up</h2></header>
           {upcoming.length ? <ol className="agenda">{upcoming.map(([k, items]) => <li key={k}><time>{new Date(`${k}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</time>{items.map(i => <p key={i.id} style={{ '--dot': color(i.venture) } as React.CSSProperties}><b>{i.title}</b><span>{[i.time, short(i.venture)].filter(Boolean).join(' / ')}</span></p>)}</li>)}</ol>
             : <div className="empty"><p><b>Nothing scheduled.</b> Add an event, or give a task a due date.</p></div>}

@@ -1,3 +1,5 @@
+import { workDay } from './task-workflows';
+
 export const outreachStatuses = ['Not Sent', 'Emailed', 'DMed', 'Emailed + DMed', 'Replied', 'Demo Booked', 'Not Interested', 'Dead'] as const;
 export type OutreachStatus = typeof outreachStatuses[number];
 export type OutreachSourceRow = {
@@ -15,6 +17,32 @@ export type OutreachActivity = { id: string; prospect_id: string; actor_id: stri
 
 export const effectiveOutreachStatus = (p: Pick<OutreachProspect, 'outreach_status' | 'source_status'>): OutreachStatus => p.outreach_status ?? p.source_status;
 export const isOutreachComplete = (status: OutreachStatus) => status !== 'Not Sent';
+
+export type OutreachQueue = 'all' | 'pending' | 'replies' | 'demos';
+export function selectProspects(prospects: OutreachProspect[], query: string, owner: string, status: string, queue: OutreachQueue) {
+  const q = query.trim().toLowerCase();
+  return prospects.filter(p => {
+    const current = effectiveOutreachStatus(p);
+    return (!q || [p.business_name, p.industry, p.city_state, p.best_fit_service, p.secondary_fit, p.decision_maker, p.email, p.sent_by].some(v => v?.toLowerCase().includes(q)))
+      && (!owner || p.sent_by === owner) && (!status || current === status)
+      && (queue === 'all' || (queue === 'pending' && current === 'Not Sent') || (queue === 'replies' && current === 'Replied') || (queue === 'demos' && current === 'Demo Booked'));
+  });
+}
+
+/** Manual contact markings are not proof of message delivery or distinct attempts. */
+export function contactsMarkedToday(activity: OutreachActivity[], now: Date) {
+  const today = workDay(now);
+  return new Set(activity.filter(a => ['Emailed', 'DMed', 'Emailed + DMed'].includes(a.new_status)
+    && Number.isFinite(Date.parse(a.created_at)) && workDay(new Date(a.created_at)) === today).map(a => a.prospect_id)).size;
+}
+
+export function outreachNextStep(status: OutreachStatus) {
+  if (status === 'Not Sent') return 'Review draft and contact';
+  if (status === 'Replied') return 'Respond and agree next step';
+  if (status === 'Demo Booked') return 'Prepare the demo';
+  if (status === 'Dead' || status === 'Not Interested') return 'Resolved';
+  return 'Check for a response';
+}
 
 export function safeOutreachUrl(value: string | null) {
   if (!value?.trim()) return null;

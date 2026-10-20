@@ -23,6 +23,12 @@ export function useDashboard(initial: Dashboard | null | undefined, mode: 'previ
   const [now, setNow] = useState<Date | null>(null);
   const [notice, setNotice] = useState('');
   const [pending, startTransition] = useTransition();
+  useEffect(() => {
+    const refreshClock = () => setNow(new Date());
+    const timer = window.setInterval(refreshClock, 60_000);
+    window.addEventListener('focus', refreshClock);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refreshClock); };
+  }, []);
 
   // The sample workspace is dated from the visitor's clock, so it is built after load.
   useEffect(() => {

@@ -69,10 +69,10 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
-      {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} />}
+      {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} displayName={displayName} />}
       {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
       {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} />}
-      {isExtra(venture, active) && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
+      {(active === 'clients' || active === 'calls') && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
     </div>
   );
 }
