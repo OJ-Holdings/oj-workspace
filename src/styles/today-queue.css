@@ -1,0 +1,108 @@
+/* OJ's daily desk: work before scorekeeping, copper prospect details. */
+.home .hero { min-height: 0; margin: 0 0 22px; padding: 12px 0 22px; }
+.today-work { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); border: 1px solid var(--line-2); border-radius: 16px; background: var(--panel); margin-bottom: 24px; overflow: hidden; }
+.today-work-main, .today-schedule { min-width: 0; padding: 22px; }
+.today-work-main { border-right: 1px solid var(--line); }
+.today-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.today-heading > div:first-child { display: flex; align-items: center; gap: 10px; }
+.today-heading svg { color: var(--accent-hi); }
+.today-heading h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+.today-heading > a, .today-work footer a, .today-schedule > a { color: var(--accent-hi); font-size: 12px; }
+.today-heading .seg button { min-height: 36px; padding: 5px 13px; }
+.today-heading .seg button[aria-pressed=true] { background: var(--panel-3); color: var(--ink); border-radius: 6px; }
+.today-task-list, .today-schedule ol { list-style: none; padding: 0; margin: 0; }
+.today-task-list li { display: flex; align-items: center; gap: 12px; min-height: 74px; border-top: 1px solid var(--line); }
+.today-task-list input { accent-color: var(--accent); width: 18px; height: 18px; flex-shrink: 0; }
+.today-task-list button { flex: 1; min-width: 0; padding: 12px 0; text-align: left; }
+.today-task-list b, .today-schedule b { display: block; font-size: 13px; line-height: 1.6; }
+.today-task-list button span { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 3px; color: var(--ink-3); font-size: 10px; }
+.today-task-list i { width: 5px; height: 5px; border-radius: 50%; }
+.today-task-list small { font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.today-work footer { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.today-work footer a { display: inline-flex; gap: 4px; align-items: center; }
+.today-schedule ol li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; border-top: 1px solid var(--line); padding: 13px 0; }
+.today-schedule time { color: var(--ink-3); font-size: 11px; padding-top: 4px; }
+.today-schedule li span { display: block; color: var(--ink-3); font-size: 11px; margin-top: 4px; }
+.today-work a:hover b, .today-task-list button:hover b { color: var(--accent-hi); }
+.today-empty { padding: 24px 0; color: var(--ink-2); font-size: 13px; }
+.today-empty p { font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.today-workflows { display: grid; gap: 8px; margin-top: 18px; }
+.today-workflows a { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px; padding: 10px 13px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 7px; font-size: 12px; }
+.today-workflows a:first-child { color: var(--c-solutions); }
+.today-workflows a:last-child { color: var(--c-exterior); }
+.home .venture-card { padding: 17px; gap: 12px; }
+.home .venture-card header { gap: 10px; }
+.home .venture-card header h2 { font-size: 15px; }
+.home .venture-card header p { font-size: 10px; }
+.home .venture-card .venture-mark { width: 38px; height: 38px; }
+.home .venture-card .venture-mark img { width: 36px; height: 36px; }
+.home .venture-stats dd { font-size: 22px; }
+.home .venture-card footer .primary, .home .venture-card footer .secondary { min-height: 38px; padding: 7px 10px; font-size: 11px; }
+.home .leaderboard { margin-top: 24px; }
+.venture-head .venture-logo { width: 56px; height: 56px; }
+.venture-head .venture-tagline { font-size: 12px; }
+.queue-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.queue-tabs button { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; color: var(--ink-2); }
+.queue-tabs button[aria-pressed=true] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.queue-result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-3); }
+.queue-result-head p { margin: 0; }
+.prospect-queue { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: var(--panel); }
+.prospect-queue li + li { border-top: 1px solid var(--line); }
+.prospect-queue li > button { width: 100%; display: grid; grid-template-columns: minmax(160px, 1.2fr) minmax(110px, .7fr) 70px minmax(150px, 1fr) 18px; align-items: center; gap: 18px; padding: 20px; text-align: left; min-height: 92px; }
+.prospect-queue li > button:hover { background: var(--accent-soft); }
+.prospect-company, .prospect-next { display: grid; gap: 6px; min-width: 0; }
+.prospect-company b { font-size: 14px; }
+.prospect-queue small, .prospect-fit, .prospect-owner { color: var(--ink-3); font-size: 11px; line-height: 1.6; }
+.prospect-next .service-chip { justify-self: start; }
+.prospect-queue svg { color: var(--accent); }
+.record-panel { position: fixed; inset: 0; margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(600px, 100%); max-width: 100%; border: 0; border-left: 1px solid var(--line-2); background: var(--panel); color: var(--ink); padding: 0; box-shadow: -24px 0 80px #0005; }
+.record-panel::backdrop { background: #020611a8; }
+.record-panel-body { min-height: 100%; padding: 26px; }
+.record-close { position: absolute; top: 19px; right: 18px; }
+.record-stepper { display: flex; align-items: center; gap: 12px; padding-right: 38px; margin-bottom: 22px; color: var(--ink-3); font-size: 12px; }
+.record-panel h2 { font-size: clamp(24px, 4vw, 32px); margin: 0 0 12px; max-width: 95%; overflow-wrap: anywhere; }
+.record-panel .outreach-controls { margin: 22px 0 16px; }
+.record-panel .outreach-notice { font-size: 11px; line-height: 1.7; }
+.prospect-details section { padding: 22px 0; border-bottom: 1px solid var(--line); }
+.prospect-details h3 { font-size: 16px; margin: 0 0 15px; }
+.prospect-details h4 { font-size: 12px; color: var(--ink-2); margin: 14px 0 8px; }
+.prospect-details p { color: var(--ink-2); font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.draft-block { margin-top: 16px; padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2); }
+.draft-block header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.draft-block h4 { margin: 0; }
+.draft-block .secondary { padding: 7px 9px; font-size: 11px; }
+.prospect-history { list-style: none; padding: 0; margin: 0; }
+.prospect-history li { display: grid; gap: 5px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.prospect-history time { color: var(--ink-3); font-size: 11px; }
+.month-num[aria-pressed=true] { outline: 1px solid var(--accent); outline-offset: 2px; }
+button.month-more { min-height: 28px; text-align: left; color: var(--accent-hi); text-decoration: underline; text-underline-offset: 3px; }
+.day-agenda { padding: 18px; }
+.day-agenda .panel-head { padding: 0 0 15px; flex-wrap: wrap; gap: 8px; }
+.day-agenda .panel-head span { font-size: 11px; color: var(--ink-3); }
+.day-agenda ol { padding: 0; list-style: none; }
+.day-agenda li { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.day-agenda li a, .day-agenda li button { text-align: left; font-weight: 600; color: var(--accent-hi); line-height: 1.6; }
+.day-agenda li p { margin: 0; font-size: 12px; color: var(--ink-2); white-space: pre-wrap; }
+@media (max-width: 1100px) {
+ .prospect-queue li > button { grid-template-columns: minmax(140px, 1fr) 75px minmax(140px, 1fr) 16px; gap: 12px; }
+ .prospect-fit { display: none; }
+}
+@media (max-width: 850px) {
+ .today-work { grid-template-columns: 1fr; }
+ .today-work-main { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 540px) {
+ .today-work-main, .today-schedule { padding: 16px; }
+ .today-task-list li > small { display: none; }
+ .prospect-queue li > button { grid-template-columns: minmax(0, 1fr) 16px; padding: 16px; }
+ .prospect-owner { display: none; }
+ .prospect-next { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; }
+ .prospect-queue li > button > svg { grid-column: 2; grid-row: 1 / 3; }
+ .record-panel-body { padding: 20px; }
+ .record-panel .outreach-controls { flex-direction: column; align-items: stretch; }
+ .draft-block header { flex-wrap: wrap; }
+ .outreach-summary { gap: 0; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+ .outreach-summary > div { border: 0; border-radius: 0; grid-template-columns: 1fr auto; gap: 8px; padding: 12px; }
+ .outreach-summary > div + div { border-top: 1px solid var(--line); }
+ .outreach-summary strong { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+}

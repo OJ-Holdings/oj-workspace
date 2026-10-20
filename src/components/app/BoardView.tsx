@@ -9,6 +9,7 @@ import { ventureList, ventures, type VentureId } from '@/lib/ventures';
 import type { Board } from './useBoard';
 import { selectTasks, taskMatchesFocus, workDay, type TaskFocus } from '@/lib/task-workflows';
 import './workflows.css';
+import { useViewParams } from './useViewParams';
 
 function dateLabel(value: string) {
   return value ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) : '';
@@ -18,10 +19,15 @@ type Props = { board: Board; members: string[]; readOnly: boolean; displayName: 
 
 /** The task board. With `lockVenture` it shows one business only and new cards default to it. */
 export function BoardView({ board, members, readOnly, displayName, lockVenture }: Props) {
-  const [business, setBusiness] = useState<string>(lockVenture ?? 'all');
-  const [query, setQuery] = useState('');
-  const [assignee, setAssignee] = useState('');
-  const [focus, setFocus] = useState<TaskFocus>('all');
+  const { params, update } = useViewParams();
+  const business = lockVenture ?? (ventureList.some(v => v.id === params.get('business')) ? params.get('business')! : 'all');
+  const query = (params.get('q') ?? '').slice(0, 200);
+  const assignee = members.includes(params.get('assignee') ?? '') ? params.get('assignee')! : '';
+  const focus = (['overdue', 'today', 'unassigned', 'review'].includes(params.get('focus') ?? '') ? params.get('focus') : 'all') as TaskFocus;
+  const setBusiness = (value: string) => update({ business: value === 'all' ? '' : value });
+  const setQuery = (value: string) => update({ q: value });
+  const setAssignee = (value: string) => update({ assignee: value });
+  const setFocus = (value: TaskFocus) => update({ focus: value === 'all' ? '' : value });
   const [today, setToday] = useState('');
   const [dragging, setDragging] = useState<string | null>(null);
   useEffect(() => { const refresh = () => setToday(workDay(new Date())); refresh(); const timer = window.setInterval(refresh, 60_000); return () => window.clearInterval(timer); }, []);

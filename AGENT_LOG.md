@@ -22,6 +22,18 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-19 02:51 UTC -- Codex (inferred upgrade priorities)
+**Summary:** At Oscar's instruction, replaced the roadmap's unanswered questionnaire with selected defaults: premium OJ design, Solutions then Exterior/Edy, Essentials maintenance, automated internal preparation, draft/manual-log outreach first, and capability-based operational parity for Jacob. Owner administration and initial Mercury visibility remain owner-controlled. Added a concrete first-release scope and behavioral acceptance examples.
+**Files:** docs/WORKSPACE_UPGRADE_ROADMAP.md. Documentation only.
+**Verified:** Main is current; reviewed the amended roadmap and diff whitespace. No runtime code, production access or business records changed, and no tests/build were needed for this documentation pass.
+**Notes:** Plan is ready to guide implementation. Authenticated live walkthrough and provider verification remain separate evidence tasks, not assumed completed.
+
+## 2026-10-19 02:41 UTC -- Codex (comprehensive workspace upgrade planning)
+**Summary:** Audited the current public preview and source, then documented an upgrade roadmap connecting Today, outreach/client delivery, Exterior jobs, employee closeouts/commissions, Mercury review, collaboration and scoped automation. Recorded concrete routing, calendar overflow, activity-date, search-coverage and notification gaps. Priorities, visual direction, outreach sending authority, Jacob's access and Essentials scope are pending Oscar's answers.
+**Files:** docs/WORKSPACE_UPGRADE_ROADMAP.md. Planning only; no runtime code, business records, access settings or deployment changed in this pass.
+**Verified:** Browser walkthrough of Home, Tasks, Exterior overview/Bookings, Solutions overview/Outreach, Finance and Calendar in the public preview; source review of the corresponding loaders, views and role boundaries. Git main was current. No tests/build rerun for documentation-only changes.
+**Notes:** The actual owner session remains at sign-in; authenticated founder/employee flows, real device checks and actual Mercury responses were not verified. Existing .gitignore changes and .playwright-cli files were preserved.
+
 ## 2026-10-19 -- Codex (outreach sync without a Google Cloud project)
 **Summary:** Replaced the Netlify Google service-account reader and cron with a bearer-authenticated Netlify receiver and a bound Apps Script sender. The sender reads only the private `Outreach` tab and supports a daily 10 PM trigger in the sheet's configured timezone. No separate Google Cloud project, service account, or Sheets API setup is needed. The Supabase server key remains on Netlify; the script uses a separate shared sync token. Updated setup docs and preview copy.
 **Files:** `netlify/functions/daily-outreach-sync.ts`, `scripts/google-apps-script/outreach-sync.gs`, `docs/OUTREACH_INGESTION.md`, `.env.example`, `src/components/app/OutreachView.tsx`, outreach schema comments, `tests/outreach-sync.test.ts`.

@@ -7,12 +7,14 @@ import NumberFlow from '@number-flow/react';
 import { ArrowUpRight, FileArchive, FileSpreadsheet, FileText, Plus, Send } from 'lucide-react';
 import { ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { money, type WorkspaceMetrics } from '@/lib/metrics';
-import type { Card } from '@/lib/board';
+
 import { GhostChart, LineChart, Sparkline } from './Charts';
 import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
 import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
+import { TodayWork } from './TodayWork';
+import { workDay } from '@/lib/task-workflows';
 
 const color = (v: VentureId | 'shared') => `var(--c-${v})`;
 const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
@@ -31,10 +33,8 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
   const [greeting, setGreeting] = useState('Welcome back');
   const [todayKey, setTodayKey] = useState('');
   useEffect(() => {
-    const now = new Date();
-    const hour = now.getHours();
-    setGreeting(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
-    setTodayKey(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+    const refresh = () => { const now = new Date(); const hour = now.getHours(); setGreeting(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'); setTodayKey(workDay(now)); };
+    refresh(); const timer = window.setInterval(refresh, 60_000); return () => window.clearInterval(timer);
   }, []);
 
   const cards = board.data.cards;
@@ -43,7 +43,7 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
   const total = connected.reduce((sum, v) => sum + (metrics.ventures[v.id]?.revenueMtd ?? 0), 0);
   // Today's tasks: anything due today or earlier and not done, then high priority work.
   const due = open.filter(c => c.due_date && todayKey && c.due_date <= todayKey);
-  const focus = [...due, ...open.filter(c => c.priority === 'high' && !due.includes(c))].slice(0, 5);
+
   const who = mode === 'preview' ? 'Oscar and Jacob' : displayName || members[0] || '';
   const pipelineMax = Math.max(1, ...(metrics.pipeline ?? []).map(p => p.count));
 
@@ -52,11 +52,13 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
       <section className="hero">
         <div className="hero-copy">
           <p>{greeting}{who ? `, ${who}` : ''}</p>
-          <h1>Let’s move the work forward.</h1>
+          <h1>Today at OJ.</h1>
           <p className="hero-sub">{open.length} open tasks across your three businesses. {due.length ? `${due.length} due today or overdue.` : 'Nothing due today.'}</p>
         </div>
         <div className="home-actions"><Link className="primary" href={`${base}/tasks`}>Plan today’s work</Link><Link className="secondary" href={`${base}/calendar`}>View schedule</Link></div>
       </section>
+
+      <TodayWork base={base} board={board} metrics={metrics} today={todayKey} displayName={mode === 'preview' ? 'Oscar' : displayName} members={members} readOnly={readOnly} />
 
       <section className="venture-cards" aria-label="Businesses">
         {ventureList.map(v => {
@@ -90,7 +92,6 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
         })}
       </section>
 
-      <Leaderboard work={work} cards={cards} />
       {store.data?.reporting?.sources.some(source => source.state === 'partial' || source.state === 'unavailable') && <p className="banner-inline">Some connected figures are incomplete or unavailable. Totals include only the records loaded. <Link href={`${base}/analytics`}>Review source coverage</Link> before comparing results.</p>}
 
       <div className="home-grid">
@@ -139,28 +140,6 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
           ) : <div className="empty"><p><b>No workspace leads yet.</b> Add one on Leads and CRM. Exterior Care and GoHighLevel keep their own pipelines in their business screens.</p></div>}
         </section>
 
-        <section className="panel" aria-labelledby="tasks-h">
-          <header className="panel-head"><h2 id="tasks-h">Today's tasks</h2><Link className="panel-link" href={`${base}/tasks`}>View all</Link></header>
-          {focus.length ? (
-            <ul className="tasklist">
-              {focus.map(card => <TaskRow key={card.id} card={card} board={board} readOnly={readOnly} overdue={!!todayKey && !!card.due_date && card.due_date < todayKey} />)}
-            </ul>
-          ) : <div className="empty"><p><b>Nothing due today.</b> Tasks with a due date of today, and anything marked high priority, show up here.</p></div>}
-        </section>
-
-        <section className="panel" aria-labelledby="sched-h">
-          <header className="panel-head"><h2 id="sched-h">Schedule</h2><Link className="panel-link" href={`${base}/calendar`}>Calendar</Link></header>
-          {metrics.schedule ? (
-            <ol className="schedule">
-              {metrics.schedule.map(item => (
-                <li key={item.id} style={{ '--dot': color(item.venture) } as React.CSSProperties}>
-                  <time>{item.time}</time><div><b>{item.title}</b><span>{item.venture === 'shared' ? 'Shared' : ventures[item.venture].short} / {item.detail}</span></div>
-                </li>
-              ))}
-            </ol>
-          ) : <div className="empty"><p><b>Nothing on today.</b> Calendar events and tasks due today line up here.</p></div>}
-        </section>
-
         <section className="panel" aria-labelledby="files-h">
           <header className="panel-head"><h2 id="files-h">Recent files</h2><Link className="panel-link" href={`${base}/files`}>View all</Link></header>
           {metrics.files ? (
@@ -188,19 +167,8 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
           )}
         </section>
       </div>
+      <Leaderboard work={work} cards={cards} />
     </div>
   );
 }
 
-function TaskRow({ card, board, readOnly, overdue }: { card: Card; board: Board; readOnly: boolean; overdue: boolean }) {
-  return (
-    <li>
-      <input type="checkbox" aria-label={`Mark "${card.title}" done`} disabled={readOnly || board.pending} checked={false} onChange={() => board.move(card, 'Done')} />
-      <button onClick={() => board.openCard(card)}>
-        <b>{card.title}</b>
-        <span><i style={{ background: color(card.business) }} />{ventures[card.business].short}{card.priority === 'high' && ' / High priority'}{overdue && ' / Overdue'}</span>
-      </button>
-      {card.assignee && <span className="avatar" title={card.assignee}>{card.assignee.charAt(0).toUpperCase()}</span>}
-    </li>
-  );
-}
