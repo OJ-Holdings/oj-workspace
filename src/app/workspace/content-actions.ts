@@ -1,6 +1,7 @@
 'use server';
 
 import { requireMember } from '@/lib/supabase';
+import { contentPersistenceEnabled } from '@/lib/ventures';
 import {
   validateContentDraft,
   type ContentProject, type ContentDraft, type ContentSnapshot,
@@ -11,6 +12,7 @@ const projectFields = 'id,organization_id,title,kind,stage,platforms,summary,scr
 const activityFields = 'id,project_id,actor_id,action,previous_stage,new_stage,changed_at';
 
 export async function loadContentStudio(org: string): Promise<ContentSnapshot> {
+  if (!contentPersistenceEnabled) throw new Error('Oscar Jacob storage is not enabled until the supervised database migration is verified.');
   const { client } = await requireMember(org);
   const [projects, members, activity] = await Promise.all([
     client.from('oj_content_projects').select(projectFields)
@@ -32,6 +34,7 @@ export async function loadContentStudio(org: string): Promise<ContentSnapshot> {
 }
 
 export async function saveContentStudioProject(org: string, raw: ContentDraft): Promise<ContentProject> {
+  if (!contentPersistenceEnabled) throw new Error('Oscar Jacob storage is not enabled until the supervised database migration is verified.');
   const { client, user } = await requireMember(org, true);
   const fields = validateContentDraft(raw);
   const { id, revision, ...details } = fields;
