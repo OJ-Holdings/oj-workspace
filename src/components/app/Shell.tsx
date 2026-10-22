@@ -4,19 +4,21 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
 import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
 import type { Dashboard } from '@/lib/dashboard';
 import { searchWorkspace } from '@/lib/workspace-search';
+import type { JobItem } from '@/app/workspace/exterior-actions';
 import { searchActiveTools } from '@/lib/corporate-tools';
 
-export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet';
+export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations';
 
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Command', path: '', icon: Home },
   { key: 'businesses', label: 'Businesses', path: '/businesses', icon: Building2 },
+  { key: 'operations', label: 'Connected Operations', path: '/tools/operations', icon: Network },
   { key: 'fleet', label: 'Fleet Command', path: '/tools/fleet', icon: Truck },
   { key: 'tools', label: 'All Tools', path: '/tools', icon: Wrench },
   { key: 'tasks', label: 'Tasks', path: '/tasks', icon: CheckSquare },
@@ -39,11 +41,12 @@ type Props = {
   onOpenCard: (card: Card) => void; onNewCard: () => void; children: ReactNode;
   dashboard?: Dashboard | null; presence?: ReactNode;
   toolConnections: { shopify: boolean; ghl: boolean };
+  jobs?: JobItem[];
 };
 
 const actionWord = { card_created: 'created', card_updated: 'updated', comment_added: 'commented on' } as const;
 
-export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence, toolConnections }: Props) {
+export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence, toolConnections, jobs = [] }: Props) {
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
@@ -95,7 +98,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
       if (restoreFocus.current) (previousFocus.current?.isConnected ? previousFocus.current : trigger.current)?.focus();
     };
   }, [search]);
-  const records = useMemo(() => searchWorkspace(query, cards, dashboard), [query, cards, dashboard]);
+  const records = useMemo(() => searchWorkspace(query, cards, dashboard, jobs), [query, cards, dashboard, jobs]);
   const toolMatches = useMemo(() => searchActiveTools(query, { owner, connections: toolConnections }), [query, owner, toolConnections]);
 
   const results = useMemo(() => {
