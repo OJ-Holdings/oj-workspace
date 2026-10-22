@@ -85,7 +85,7 @@ create table public.oj_work_sessions (
   -- 'general', or one of the businesses in src/lib/ventures.ts. A business added
   -- there has to be added here too; tests/work-leaderboard.test.ts fails until
   -- the two lists match.
-  business text not null check (business in ('general','exterior','solutions','essentials','content')),
+  business text not null check (business in ('general','exterior','solutions','essentials')),
   started_at timestamptz not null default now(),
   ended_at timestamptz,
   -- The last time the owner confirmed they were still working (the start counts).
