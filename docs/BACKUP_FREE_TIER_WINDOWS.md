@@ -19,7 +19,7 @@ cd C:\STRATHOS\apps\oj-workspace-deploy-test
 .\scripts\backup-supabase-windows.ps1 -Action Configure
 ~~~
 
-Enter the hostname, session pooler username and database password in the prompts. The password is stored as **Windows DPAPI-encrypted ciphertext**, decryptable only by the same Windows user. Settings and credentials go under %APPDATA%\OJWorkspace\supabase-backup; backups are written to the user's Documents\OJWorkspacePrivateBackups\supabase folder by default, **outside the repository**.
+Enter the hostname, session pooler username and database password in the prompts. The password is stored as **Windows DPAPI-encrypted ciphertext**, decryptable only by the same Windows user. Settings and credentials go under %APPDATA%\OJWorkspace\supabase-backup; backups are written under %LOCALAPPDATA%\OJWorkspace\PrivateBackups\supabase by default (avoiding potentially cloud-synced Documents folders), **outside the repository**.
 
 4. Take and verify a backup:
 
