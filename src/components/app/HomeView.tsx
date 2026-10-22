@@ -22,7 +22,7 @@ const color = (v: VentureId | 'shared') => `var(--c-${v})`;
 const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive };
 
 /** The Home screen before any figures exist: every panel then says what to log or connect. */
-const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null }, pipeline: null, schedule: null, files: null, notes: null };
+const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null, content: null }, pipeline: null, schedule: null, files: null, notes: null };
 
 type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; jobs: JobItem[]; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
 

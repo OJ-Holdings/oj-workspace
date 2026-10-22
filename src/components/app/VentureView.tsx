@@ -12,6 +12,7 @@ import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
 import { OutreachView } from './OutreachView';
+import { ContentStudio } from './ContentStudio';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
@@ -20,12 +21,15 @@ const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
   exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
   solutions: [['clients', 'Clients'], ['outreach', 'Outreach'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
+  content: [['studio', 'Production Studio']],
 };
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
 const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'exterior'
   ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 5), coreTabs[3], ...extraTabs.exterior.slice(5), coreTabs[4], coreTabs[5]]
-  : [...coreTabs, ...extraTabs[venture]];
+  : venture === 'content'
+    ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4], coreTabs[5]]
+    : [...coreTabs, ...extraTabs[venture]];
 
 type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };
 
@@ -49,7 +53,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
 
       <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
 
-      {active === 'overview' && (
+      {active === 'overview' && venture !== 'content' && (
         <div className="venture-overview">
           <div className="kpis">
             {m ? <>
@@ -64,6 +68,8 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
           <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />
         </div>
       )}
+      {venture === 'content' && (active === 'overview' || active === 'studio') &&
+        <ContentStudio base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />}
       {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
       {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}

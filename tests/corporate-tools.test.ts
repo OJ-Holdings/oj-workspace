@@ -21,8 +21,8 @@ test('planned tools never advertise a navigable action', () => {
   }
   const creator = corporateTools.find(tool => tool.id === 'content-studio');
   assert.ok(creator);
-  assert.equal(creator.href, undefined);
-  assert.equal(toolStatus(creator, ready), 'planned');
+  assert.equal(creator.href, '/b/content');
+  assert.equal(toolStatus(creator, ready), 'available');
 });
 
 test('connected source tools surface missing integrations without claiming their data is live', () => {
@@ -36,7 +36,7 @@ test('connected source tools surface missing integrations without claiming their
 });
 
 test('global command search only links usable registered tools', () => {
-  assert.deepEqual(searchActiveTools('video', ready).map(tool => tool.id), []);
+  assert.deepEqual(searchActiveTools('video', ready).map(tool => tool.id), ['content-studio']);
   assert.deepEqual(searchActiveTools('shopify', disconnected).map(tool => tool.id), []);
   assert.ok(searchActiveTools('commercial', ready).some(tool => tool.id === 'commercial-desk'));
   assert.ok(searchActiveTools('tasks', ready).some(tool => tool.id === 'tasks'));
