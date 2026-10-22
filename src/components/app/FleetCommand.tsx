@@ -30,7 +30,11 @@ const statusNames: Record<FleetStatus,string> = {
 const usd=(v:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(v);
 const numberOrNull=(raw:string):number|null=>raw.trim()?Number(raw):null;
 const newId=()=>crypto.randomUUID().replace(/-/g,'');
-const todayLocal=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Chicago'});
+const todayLocal=()=>{
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const get=(key:string)=>parts.find(p=>p.type===key)?.value??'';
+  return get('year')+'-'+get('month')+'-'+get('day');
+};
 const emptyAsset=():FleetAsset=>({
   id:newId(),name:'',kind:'vehicle',model:'',status:'ready',unit:'miles',
   reading:null,nextServiceReading:null,nextServiceDate:null,notes:'',createdAt:new Date().toISOString(),
@@ -74,6 +78,9 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
     if(preview){
       setWorkbook(demoWorkbook(organizationId));setReady(true);return;
     }
+    if(readOnly){
+      setWorkbook(emptyFleet(organizationId));setReady(true);return;
+    }
     try{
       const saved=window.localStorage.getItem(storageKey);
       setWorkbook(saved?decodeFleet(saved,organizationId):emptyFleet(organizationId));
@@ -82,7 +89,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       setError('Saved Fleet Command data could not be read. The browser draft was not overwritten; export or inspect it before adding records.');
     }
     setReady(true);
-  },[organizationId,mode,storageKey,preview]);
+  },[organizationId,mode,storageKey,preview,readOnly]);
 
   function persist(next:FleetWorkbook,message:string) {
     if(!canEdit || !ready)return;
@@ -150,6 +157,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       'Rig planning assumptions updated locally.');
   }
   function exportFile(){
+    if(!canEdit){setError('Your current role cannot export local Fleet Command drafts.');return;}
     try{
       const text=encodeFleet(workbook,organizationId);
       const url=URL.createObjectURL(new Blob([text],{type:'application/json;charset=utf-8'}));
@@ -226,7 +234,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       <section className="fleet-panel">
         <div className="fleet-panel-heading"><div><p className="fleet-section-kicker">PRIVATE WORKBOOK</p><h2>Transfer and backup</h2></div><Download size={20}/></div>
         <p className="fleet-muted">To share this working inventory with Jacob, export it and transfer the file through a private trusted channel. Importing replaces all records on the other device.</p>
-        <div className="fleet-button-row"><button className="fleet-outline" onClick={exportFile} type="button"><Download size={15}/>Export private JSON</button>
+        <div className="fleet-button-row"><button className="fleet-outline" onClick={exportFile} type="button" disabled={!canEdit}><Download size={15}/>Export private JSON</button>
         <button className="fleet-outline" type="button" disabled={!canEdit} onClick={()=>fileRef.current?.click()}><FileUp size={15}/>Import private JSON</button></div>
       </section>
     </div>}
