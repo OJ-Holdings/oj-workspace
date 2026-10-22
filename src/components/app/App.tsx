@@ -7,12 +7,13 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { PresencePanel } from './PresencePanel';
 import { SuggestedWork } from './SuggestedWork';
 import type { BoardData } from '@/lib/board';
-import { isVenture, ventureList, type VentureId } from '@/lib/ventures';
+import { contentPersistenceEnabled, isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
 import { CorporateToolsView } from './CorporateTools';
 import { ScenarioLab } from './ScenarioLab';
+import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
 import { CardDialog } from './CardDialog';
@@ -142,16 +143,16 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
       ) : current === 'tools' ? (
-        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
+        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
         <div className="page">
-          <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across all four businesses.</p></header>
+          <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across your active businesses.</p></header>
           <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} />
           <SuggestedWork board={board} dashboard={store.data} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
         </div>
       ) : current === 'businesses' ? (
         <div className="page">
-          <header className="page-head"><h1>Businesses</h1><p>Four businesses, each with its own dashboard.</p></header>
+          <header className="page-head"><h1>Businesses</h1><p>Manage the active businesses and explore the Oscar Jacob production studio preview.</p></header>
           <div className="business-index">
             {ventureList.map(v => (
               <Link key={v.id} href={`${base}/b/${v.id}`} className="business-tile" data-venture={v.id}>
@@ -160,6 +161,11 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
                 <span className="business-tile-foot">{open.filter(c => c.business === v.id).length} open tasks</span>
               </Link>
             ))}
+            {!contentPersistenceEnabled && <Link href={`${base}/tools/content-preview`} className="business-tile" data-venture="content">
+              <span className="venture-logo"><Image src={ventures.content.mark} alt="" width={96} height={96} /></span>
+              <h2>Oscar Jacob</h2><p>Production Studio · read-only sample</p>
+              <span className="business-tile-foot">Preview only — no company records are stored</span>
+            </Link>}
           </div>
         </div>
       ) : current === 'team' ? (
