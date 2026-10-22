@@ -14,6 +14,7 @@ import { HomeView } from './HomeView';
 import { CorporateToolsView } from './CorporateTools';
 import { CorporateIntelligenceDesk } from './CorporateIntelligence';
 import { FounderWeeklyReview } from './FounderWeeklyReview';
+import { SystemsHealthDesk } from './SystemsHealthDesk';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
@@ -149,7 +150,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'fleet' ? (
         <FleetCommand base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
       ) : current === 'tools' ? (
-        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'weekly-review' ? <FounderWeeklyReview base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
+        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'weekly-review' ? <FounderWeeklyReview base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} /> : parts[1] === 'systems' ? <SystemsHealthDesk mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across your active businesses.</p></header>

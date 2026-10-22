@@ -68,7 +68,7 @@ export const corporateTools: readonly CorporateTool[] = [
   { id: 'decisions', title: 'Founder Decision Log', description: 'Planned auditable options, approvals, and strategic commitments.', category: 'People', keywords: 'strategy policy meeting governance oscar jacob' },
   { id: 'contracts', title: 'Contracts & Obligations', description: 'Planned expirations, service terms, insurance, and obligation tracking.', category: 'Control', keywords: 'legal document risk compliance renewals' },
   { id: 'automation', title: 'Automation Studio', description: 'Planned reviewable internal workflows with receipts, limits, and pause controls.', category: 'Control', keywords: 'ai agents workflow rule notification' },
-  { id: 'systems', title: 'System Health & Releases', description: 'Planned authorized view of deployment, integration, and incident health.', category: 'Control', keywords: 'github tailscale monitoring server backups security' },
+  { id: 'systems', title: 'System Health & Releases', description: 'Read-only current-app release SHA comparison with GitHub main and links to CI and Windows deployment verification. No host control or backup certification.', category: 'Control', keywords: 'github ci deploy windows tailscale monitoring server backups security', href: '/tools/systems' },
 ];
 
 /** Avoid showing privileged tool destinations to non-owners. */
