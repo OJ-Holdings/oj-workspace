@@ -7,3 +7,8 @@ test-results/
 
 # Local Netlify folder
 .netlify
+
+# Never commit customer database backup archives or their manifests
+supabase-*.dump
+supabase-*.dump.partial
+supabase-*.dump.manifest.json
