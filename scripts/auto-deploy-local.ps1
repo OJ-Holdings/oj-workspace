@@ -138,12 +138,12 @@ try {
     # Accept PR CI ONLY when GitHub verifies the merge relationship and the
     # squash-merge commit has exactly the same source tree as the CI-tested PR head.
     $prs=@(Invoke-RestMethod -Uri "$baseUri/commits/$sha/pulls?per_page=30" -TimeoutSec 20 -Headers $headers)
-    $matches=@($prs | Where-Object {
+    $mergedPrs=@($prs | Where-Object {
       $_.merged_at -and $_.merge_commit_sha -eq $sha -and $_.base.ref -eq 'main' -and
       $_.head.repo.full_name -eq 'OJ-Holdings/oj-workspace'
     })
-    if($matches.Count -eq 1){
-      $head=[string]$matches[0].head.sha
+    if($mergedPrs.Count -eq 1){
+      $head=[string]$mergedPrs[0].head.sha
       if($head -match '^[a-f0-9]{40}$'){
         $merged=Invoke-RestMethod -Uri "$baseUri/git/commits/$sha" -TimeoutSec 20 -Headers $headers
         $tested=Invoke-RestMethod -Uri "$baseUri/git/commits/$head" -TimeoutSec 20 -Headers $headers
