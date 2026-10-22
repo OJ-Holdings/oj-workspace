@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, X } from 'lucide-react';
 import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
@@ -15,21 +15,21 @@ import { searchActiveTools } from '@/lib/corporate-tools';
 
 export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations';
 
-const nav: { key: NavKey; label: string; path: string; icon: typeof Home }[] = [
-  { key: 'home', label: 'Command', path: '', icon: Home },
-  { key: 'businesses', label: 'Businesses', path: '/businesses', icon: Building2 },
-  { key: 'operations', label: 'Connected Operations', path: '/tools/operations', icon: Network },
-  { key: 'fleet', label: 'Fleet Command', path: '/tools/fleet', icon: Truck },
-  { key: 'tools', label: 'All Tools', path: '/tools', icon: Wrench },
-  { key: 'tasks', label: 'Tasks', path: '/tasks', icon: CheckSquare },
-  { key: 'calendar', label: 'Calendar', path: '/calendar', icon: CalendarDays },
-  { key: 'crm', label: 'Leads & CRM', path: '/crm', icon: UsersRound },
-  { key: 'finance', label: 'Finance', path: '/finance', icon: Wallet },
-  { key: 'files', label: 'Files', path: '/files', icon: FileText },
-  { key: 'messages', label: 'Messages', path: '/messages', icon: MessageSquare },
-  { key: 'analytics', label: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { key: 'team', label: 'Team', path: '/team', icon: Users },
-  { key: 'settings', label: 'Settings', path: '/settings', icon: Settings },
+type NavGroup='COMMAND'|'WORKBENCH'|'INTELLIGENCE'|'SYSTEM';
+const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group: NavGroup }[] = [
+  { key:'home', label:'Executive HQ', path:'', icon:Home, group:'COMMAND' },
+  { key:'businesses', label:'Business Divisions', path:'/businesses', icon:Building2, group:'COMMAND' },
+  { key:'fleet', label:'Fleet Command', path:'/tools/fleet', icon:Truck, group:'COMMAND' },
+  { key:'tasks', label:'Missions & Tasks', path:'/tasks', icon:CheckSquare, group:'WORKBENCH' },
+  { key:'calendar', label:'Chronos / Calendar', path:'/calendar', icon:CalendarDays, group:'WORKBENCH' },
+  { key:'crm', label:'Clients & CRM', path:'/crm', icon:UsersRound, group:'WORKBENCH' },
+  { key:'finance', label:'Treasury / Finance', path:'/finance', icon:Wallet, group:'WORKBENCH' },
+  { key:'analytics', label:'Intelligence', path:'/analytics', icon:BarChart3, group:'INTELLIGENCE' },
+  { key:'files', label:'Company Vault', path:'/files', icon:FileText, group:'INTELLIGENCE' },
+  { key:'messages', label:'Founder Messages', path:'/messages', icon:MessageSquare, group:'INTELLIGENCE' },
+  { key:'team', label:'People & Team', path:'/team', icon:Users, group:'INTELLIGENCE' },
+  { key:'tools', label:'Capability Library', path:'/tools', icon:Wrench, group:'SYSTEM' },
+  { key:'settings', label:'Control & Settings', path:'/settings', icon:Settings, group:'SYSTEM' },
 ];
 
 type Props = {
@@ -57,6 +57,8 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const trigger = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const restoreFocus = useRef(true);
+  const currentName=venture?ventureList.find(v=>v.id===venture)?.short??'Business Division':
+    nav.find(item=>item.key===current)?.label??'Corporate Workspace';
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
   const openSearch = useCallback(() => {
@@ -112,18 +114,19 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const go = (path: string) => { restoreFocus.current = false; setSearch(false); setDrawer(false); router.push(base + path); };
 
   return (
-    <div className="shell" data-venture={venture ?? undefined}>
+    <div className="shell atlas-shell" data-venture={venture ?? undefined}>
       <a className="skip-link" href="#main">Skip to content</a>
       {drawer && <button className="rail-scrim" aria-label="Close menu" onClick={() => setDrawer(false)} />}
 
       <aside className={drawer ? 'rail is-open' : 'rail'} aria-label="Main navigation" inert={search}>
         <Link className="rail-brand" href={base || '/'} onClick={() => setDrawer(false)}>
           <span className="rail-logo" aria-hidden="true">OJ</span>
-          <span>Workspace</span>
+          <span className="atlas-brand-text"><strong>ATLAS</strong><small>OJ HOLDINGS</small></span>
         </Link>
         <nav>
-          {nav.map(item => (
+          {nav.map((item,i) => (
             <div key={item.key}>
+              {(i===0||nav[i-1].group!==item.group)&&<p className="atlas-rail-heading">{item.group}</p>}
               <Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
                 <item.icon size={18} aria-hidden="true" /><span>{item.label}</span>
                 {item.key === 'tasks' && openTasks > 0 && <b className="rail-count">{openTasks}</b>}
@@ -156,6 +159,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
       <div className="stage" inert={search}>
         <header className="topbar">
           <button className="icon-button topbar-menu" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}><Menu size={20} /></button>
+          <div className="atlas-crumb"><small>OJ HOLDINGS / ATLAS</small><strong>{currentName}</strong></div>
           <button ref={trigger} className="search-trigger" aria-haspopup="dialog" aria-expanded={search} onClick={openSearch}>
             <Search size={16} aria-hidden="true" /><span>Search anything</span><kbd>Ctrl K</kbd>
           </button>
@@ -194,6 +198,13 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         <main id="main">{children}</main>
       </div>
 
+      <nav className="atlas-mobile-nav" aria-label="Mobile navigation" inert={search}>
+        <Link href={base} className={current==='home'?'is-current':''} aria-current={current==='home'?'page':undefined}><Home size={19}/>Today</Link>
+        <Link href={base+'/tasks'} className={current==='tasks'?'is-current':''} aria-current={current==='tasks'?'page':undefined}><CheckSquare size={19}/>Tasks</Link>
+        <Link href={base+'/tools/fleet'} className={current==='fleet'?'is-current':''} aria-current={current==='fleet'?'page':undefined}><Truck size={19}/>Fleet</Link>
+        <button type="button" onClick={openSearch} aria-label="Search ATLAS"><Search size={19}/>Search</button>
+        <button type="button" onClick={()=>{setDrawer(true);setBell(false)}} aria-label="Open all sections"><Menu size={19}/>More</button>
+      </nav>
       {search && (
         <div className="palette-scrim" onClick={() => setSearch(false)}>
           <div ref={palette} className="palette" role="dialog" aria-modal="true" aria-label="Search" onClick={e => e.stopPropagation()}>
