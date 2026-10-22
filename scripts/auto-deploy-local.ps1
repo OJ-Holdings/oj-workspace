@@ -120,16 +120,48 @@ try {
   if($ref[0] -match '^([0-9a-f]{40})\s'){$sha=$Matches[1]}
   else{throw 'Unable to parse GitHub main HEAD'}
   if($state -and $state.sha -eq $sha -and (Health 3011 $sha $true)){return}
-  $checkUri="https://api.github.com/repos/OJ-Holdings/oj-workspace/commits/$sha/check-runs?per_page=100"
-  $checks=Invoke-RestMethod -Uri $checkUri -TimeoutSec 20 -Headers @{
+  $headers=@{
     Accept='application/vnd.github+json'
     'X-GitHub-Api-Version'='2022-11-28'
     'User-Agent'='OJ-Workspace-Local-Deploy'
   }
+  $baseUri='https://api.github.com/repos/OJ-Holdings/oj-workspace'
+  $checks=Invoke-RestMethod -Uri "$baseUri/commits/$sha/check-runs?per_page=100" -TimeoutSec 20 -Headers $headers
   $required=@($checks.check_runs | Where-Object {$_.name -eq 'check' -and $_.head_sha -eq $sha} |
     Sort-Object started_at -Descending)
-  if($required.Count -eq 0 -or $required[0].status -ne 'completed' -or $required[0].conclusion -ne 'success'){
-    Log ('WAIT: CI not green for ' + $sha.Substring(0,12))
+  $approved=$false
+  if($required.Count -gt 0){
+    # When this commit has its own CI result, it is authoritative even if it failed.
+    $approved=($required[0].status -eq 'completed' -and $required[0].conclusion -eq 'success')
+  }else{
+    # Some app-initiated squash merges do not create a new push CI run.
+    # Accept PR CI ONLY when GitHub verifies the merge relationship and the
+    # squash-merge commit has exactly the same source tree as the CI-tested PR head.
+    $prs=@(Invoke-RestMethod -Uri "$baseUri/commits/$sha/pulls?per_page=30" -TimeoutSec 20 -Headers $headers)
+    $matches=@($prs | Where-Object {
+      $_.merged_at -and $_.merge_commit_sha -eq $sha -and $_.base.ref -eq 'main' -and
+      $_.head.repo.full_name -eq 'OJ-Holdings/oj-workspace'
+    })
+    if($matches.Count -eq 1){
+      $head=[string]$matches[0].head.sha
+      if($head -match '^[a-f0-9]{40}$'){
+        $merged=Invoke-RestMethod -Uri "$baseUri/git/commits/$sha" -TimeoutSec 20 -Headers $headers
+        $tested=Invoke-RestMethod -Uri "$baseUri/git/commits/$head" -TimeoutSec 20 -Headers $headers
+        if($merged.tree.sha -and $merged.tree.sha -eq $tested.tree.sha){
+          $prChecks=Invoke-RestMethod -Uri "$baseUri/commits/$head/check-runs?per_page=100" -TimeoutSec 20 -Headers $headers
+          $prRequired=@($prChecks.check_runs | Where-Object {
+            $_.name -eq 'check' -and $_.head_sha -eq $head
+          } | Sort-Object started_at -Descending)
+          if($prRequired.Count -gt 0 -and $prRequired[0].status -eq 'completed' -and $prRequired[0].conclusion -eq 'success'){
+            $approved=$true
+            Log ('VERIFIED: squash merge has identical Git tree to green PR head ' + $head.Substring(0,12))
+          }
+        }
+      }
+    }
+  }
+  if(-not $approved){
+    Log ('WAIT: no valid green CI evidence for main ' + $sha.Substring(0,12))
     return
   }
   if(-not $Apply){Log ('READY to deploy ' + $sha.Substring(0,12) + ' (no changes made)');return}
