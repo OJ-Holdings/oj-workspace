@@ -4,18 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, X } from 'lucide-react';
 import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
 import type { Dashboard } from '@/lib/dashboard';
 import { searchWorkspace } from '@/lib/workspace-search';
+import { searchActiveTools } from '@/lib/corporate-tools';
 
-export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings';
+export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools';
 
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Command', path: '', icon: Home },
   { key: 'businesses', label: 'Businesses', path: '/businesses', icon: Building2 },
+  { key: 'tools', label: 'All Tools', path: '/tools', icon: Wrench },
   { key: 'tasks', label: 'Tasks', path: '/tasks', icon: CheckSquare },
   { key: 'calendar', label: 'Calendar', path: '/calendar', icon: CalendarDays },
   { key: 'crm', label: 'Leads & CRM', path: '/crm', icon: UsersRound },
@@ -35,11 +37,12 @@ type Props = {
   timer?: ReactNode;
   onOpenCard: (card: Card) => void; onNewCard: () => void; children: ReactNode;
   dashboard?: Dashboard | null; presence?: ReactNode;
+  toolConnections: { shopify: boolean; ghl: boolean };
 };
 
 const actionWord = { card_created: 'created', card_updated: 'updated', comment_added: 'commented on' } as const;
 
-export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence }: Props) {
+export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence, toolConnections }: Props) {
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
@@ -92,6 +95,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
     };
   }, [search]);
   const records = useMemo(() => searchWorkspace(query, cards, dashboard), [query, cards, dashboard]);
+  const toolMatches = useMemo(() => searchActiveTools(query, { owner, connections: toolConnections }), [query, owner, toolConnections]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -197,9 +201,11 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
             <div className="palette-results">
               {results.pages.length > 0 && <p>Pages</p>}
               {results.pages.map(p => <button key={p.path + p.label} onClick={() => go(p.path)}><p.icon size={16} aria-hidden="true" />{p.label}</button>)}
+              {toolMatches.length > 0 && <p>Corporate tools</p>}
+              {toolMatches.map(tool => <button key={tool.id} onClick={() => go(tool.href === '/' ? '' : tool.href!)}><Wrench size={16} aria-hidden="true" />{tool.title}</button>)}
               {records.length > 0 && <p>Workspace records</p>}
               {records.map(record => <button key={`${record.kind}-${record.id}`} className="search-record" onClick={() => go(record.path)}><span className="search-kind">{record.kind}</span><span><b>{record.title}</b><small>{record.detail}</small></span></button>)}
-              {query.trim() && results.pages.length + records.length === 0 && <p className="quiet" role="status">No loaded records match “{query}”. Try a name, task, or document. Connected business records also have search inside their business section.</p>}
+              {query.trim() && results.pages.length + toolMatches.length + records.length === 0 && <p className="quiet" role="status">No loaded records match “{query}”. Try a name, task, or document. Connected business records also have search inside their business section.</p>}
             </div>
           </div>
         </div>
