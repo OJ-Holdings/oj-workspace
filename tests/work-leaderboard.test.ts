@@ -140,13 +140,18 @@ test('Work sessions: partners only, own timer only, the database keeps the time'
     assert.deepEqual([...workBusinessIds], ['general', ...ventureIds]);
     await as(db, jacob);
     await db.exec(`update public.oj_work_sessions set ended_reason='manual' where user_id='${jacob}' and ended_at is null`);
-    for (const business of workBusinessIds) {
+    // This fixture loads the historical pre-V2 SQL; 'content' must remain
+    // unavailable until the separately tested supervised registry migration.
+    for (const business of workBusinessIds.filter(value => value !== 'content')) {
       await db.exec(`insert into public.oj_work_sessions(organization_id,business) values ('${org}','${business}')`);
       await db.exec(`update public.oj_work_sessions set ended_reason='manual' where user_id='${jacob}' and ended_at is null`);
     }
+    await assert.rejects(db.exec(`insert into public.oj_work_sessions(organization_id,business) values ('${org}','content')`));
     await assert.rejects(db.exec(`insert into public.oj_work_sessions(organization_id,business) values ('${org}','unknown')`));
-    // Task cards accept the same businesses (less "general"), so a business added to one is added to all.
-    for (const business of ventureIds) await db.exec(`insert into public.oj_cards(organization_id,title,business) values ('${org}','Business check','${business}')`);
+    for (const business of ventureIds.filter(value => value !== 'content')) {
+      await db.exec(`insert into public.oj_cards(organization_id,title,business) values ('${org}','Business check','${business}')`);
+    }
+    await assert.rejects(db.exec(`insert into public.oj_cards(organization_id,title,business) values ('${org}','Pre-migration content','content')`));
   });
   await db.close();
 });
