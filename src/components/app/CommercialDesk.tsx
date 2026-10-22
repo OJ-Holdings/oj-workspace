@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Building2, Check, ChevronRight, ClipboardCopy, Download, FileInput, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Building2, Check, ChevronRight, ClipboardCheck, ClipboardCopy, Download, FileInput, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
 import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialEstimate } from '@/lib/commercial-transfer';
+import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -15,7 +16,7 @@ const checklist=[
   'Crew-hours and all direct costs reviewed',
   'Exclusions, schedule, site permission and client terms documented',
 ];
-type Tab = 'scope'|'costs'|'records';
+type Tab = 'scope'|'costs'|'warroom'|'records';
 const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,step=1)=>
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
@@ -31,6 +32,8 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   const [ready,setReady]=useState(false);
   const estimate=useMemo(()=>calculateEstimate(input),[input]);
   const text=useMemo(()=>brief(name,input),[name,input]);
+  const warRoom=useMemo(()=>buildBidWarRoom(name,input,review),[name,input,review]);
+  const warRoomText=useMemo(()=>warRoomBrief(name,input,review),[name,input,review]);
   const key='oj-commercial-estimate-v2:'+org;
 
   useEffect(()=>{
@@ -74,6 +77,16 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
     const a=document.createElement('a');a.href=u;a.download='oj-commercial-internal-estimate.txt';a.click();
     setTimeout(()=>URL.revokeObjectURL(u),1000);
     setNotice('Internal scoping document exported. Not an invoice or quote.');
+  };
+  const downloadWarRoom=()=>{
+    const url=URL.createObjectURL(new Blob([warRoomText],{type:'text/plain;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='oj-internal-commercial-bid-review.txt';a.click();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setNotice('Internal bid review exported. It is NOT a client proposal, bid approval or invoice.');
+  };
+  const copyWarRoom=async()=>{
+    try{await navigator.clipboard.writeText(warRoomText);setNotice('Internal review pack copied. No client was contacted or contract approved.');}
+    catch{setNotice('Clipboard access unavailable. Use Download review pack instead.');}
   };
   const exportEditable=()=>{
     try {
@@ -146,7 +159,8 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
         <div className="com-tabs" role="group" aria-label="Commercial desk sections">
           <button aria-pressed={tab==='scope'} onClick={()=>setTab('scope')}>01 / Property scope</button>
           <button aria-pressed={tab==='costs'} onClick={()=>setTab('costs')}>02 / Cost engineering</button>
-          <button aria-pressed={tab==='records'} onClick={()=>setTab('records')}>03 / Existing leads</button>
+          <button aria-pressed={tab==='warroom'} onClick={()=>setTab('warroom')}>03 / Bid War Room</button>
+          <button aria-pressed={tab==='records'} onClick={()=>setTab('records')}>04 / Existing leads</button>
         </div>
         {tab==='scope'&&<section className="com-panel">
           <div className="com-heading"><div><p className="exec-kicker">FIELD INTELLIGENCE</p><h3>Building-by-building scope</h3><p>Enter separate access, labor and site assumptions for each building. Pane counts are descriptive; labor is priced by entered crew-hours.</p></div><span>{input.sites.length} / 12</span></div>
@@ -179,6 +193,44 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
             {field('Proposed deposit (%)',input.deposit,n=>patch({deposit:n}),100,1)}
           </div>
           <div className="com-explainer"><b>Margin is not markup.</b> A 30% target contribution margin means estimated cost is 70% of the suggested price. This is not business net profit: overhead, taxes, financing and unknown costs may remain.</div>
+        </section>}
+        {tab==='warroom'&&<section className="com-panel com-war-room">
+          <div className="com-heading"><div><p className="exec-kicker"><BarChart3 size={15}/> COMMERCIAL BID WAR ROOM</p><h3>Price strategy & operational exposure</h3><p>Compare internal margin targets, model cost pressure, and flag property-survey gaps before either founder reviews an offer. None of these scenarios is an approved customer price.</p></div></div>
+          <div className="com-war-status" data-state={warRoom.status}>
+            {warRoom.status==='scope-incomplete'?<AlertTriangle size={19}/>:<ClipboardCheck size={19}/>}
+            <div><strong>{warRoom.status==='scope-incomplete'?'Inspection and review gaps remain':'Ready for independent founder review'}</strong>
+            <p>{warRoom.findings.length} unresolved review item{warRoom.findings.length===1?'':'s'}. All technical assumptions, access and terms still require actual verification and explicit approval.</p></div>
+          </div>
+          <div className="com-war-subhead"><h4>Three pricing strategies</h4><span>Same estimated direct cost · Different target contribution margins</span></div>
+          <div className="com-war-cases">{warRoom.pricing.map(item=><article key={item.key} data-case={item.key}>
+            <span>{item.label}</span><strong>{dollars(item.price)}</strong>
+            <dl><div><dt>Target margin</dt><dd>{item.targetMargin}%</dd></div>
+            <div><dt>Estimated contribution</dt><dd>{dollars(item.estimatedContribution)}</dd></div></dl>
+            <p>{item.description}</p>
+            <button type="button" onClick={()=>{patch({margin:item.targetMargin});setNotice('Target margin changed for this local draft only; no proposal was sent.');}}
+              disabled={input.margin===item.targetMargin}>Use {item.targetMargin}% target <ArrowUpRight size={14}/></button>
+          </article>)}</div>
+          <section className="com-war-stress">
+            <div className="com-war-subhead"><h4><AlertTriangle size={17}/> What if costs run higher?</h4><span>Fixed sensitivity test; not a prediction</span></div>
+            <p className="com-war-assumptions">Assume +25% paid crew-hours, one extra rental day for each lift-access building, +15% materials, and +20% travel/mobilization. Same contingency percentage.</p>
+            <div className="com-war-stress-numbers">
+              <div><span>Base cost with contingency</span><strong>{dollars(warRoom.baseline.totalCost)}</strong></div>
+              <div><span>Stressed cost with contingency</span><strong>{dollars(warRoom.stress.stressedCost)}</strong></div>
+              <div><span>Contribution at current proposed price</span><strong className={warRoom.stress.contributionAtCurrentPrice<0?'com-war-negative':undefined}>{dollars(warRoom.stress.contributionAtCurrentPrice)}</strong></div>
+              <div><span>Margin at current proposed price</span><strong>{warRoom.stress.marginAtCurrentPrice===null?'Undefined':warRoom.stress.marginAtCurrentPrice+'%'}</strong></div>
+              <div className="com-war-key"><span>Price required to preserve entered target margin</span><strong>{dollars(warRoom.stress.priceToHoldTargetMargin)}</strong></div>
+            </div>
+          </section>
+          <div className="com-war-subhead"><h4>Building-level cost exposure</h4><span>Labor + lift rental only; shared costs not allocated</span></div>
+          <div className="com-war-table"><table><thead><tr><th>Building</th><th>Paid hours</th><th>Labor</th><th>Lift rental</th><th>Subtotal</th></tr></thead><tbody>
+            {warRoom.siteExposure.map(site=><tr key={site.id}><td>{site.name}</td><td>{site.crewHours}</td><td>{dollars(site.labor)}</td><td>{dollars(site.equipment)}</td><td><b>{dollars(site.directSubtotal)}</b></td></tr>)}
+          </tbody></table></div>
+          <div className="com-war-subhead"><h4>Pre-proposal exceptions</h4><span>Site evidence and founder sign-off required</span></div>
+          {warRoom.findings.length?<div className="com-war-findings">{warRoom.findings.map(item=><div key={item.id} data-severity={item.severity}>
+            <span>{item.severity==='critical'?'Scope gap':'Review'}</span><div><strong>{item.subject}: {item.issue}</strong><p>{item.nextAction}</p></div>
+          </div>)}</div>:<p className="com-explainer">No missing scope fields detected by this limited checklist. This is NOT permission to work, evidence of insurance, or an approved bid.</p>}
+          <div className="com-war-actions"><button className="secondary" onClick={()=>void copyWarRoom()}><ClipboardCopy size={16}/> Copy internal review pack</button>
+          <button className="secondary" onClick={downloadWarRoom}><Download size={16}/> Download review pack</button></div>
         </section>}
         {tab==='records'&&<section className="com-panel">
           <div className="com-heading"><div><p className="exec-kicker">SOURCE MATERIAL</p><h3>Potential commercial leads</h3><p>Matching is based only on the service-description text of records available to your role. No existing customer is automatically linked to this draft.</p></div></div>
