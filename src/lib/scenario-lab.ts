@@ -63,6 +63,7 @@ export function calculateScenario(inputs: ScenarioInputs): ScenarioResult {
   for (const value of [units, price, direct, fixed, upfront]) {
     if (!Number.isFinite(value) || value < 0 || value > 1_000_000) throw new RangeError('Amounts must be between 0 and 1,000,000.');
   }
+  if (!Number.isInteger(units)) throw new RangeError('Monthly unit count must be a whole number.');
   if (!Number.isInteger(months) || months < 1 || months > 36) throw new RangeError('Months must be between 1 and 36.');
   const monthlyRevenue = units * price;
   const monthlyDirectCost = units * direct;
@@ -90,7 +91,7 @@ export function scenarioSensitivity(inputs: ScenarioInputs) {
     { name: 'Higher volume', factor: 1.3 },
   ].map(({ name, factor }) => ({
     name,
-    units: Number((inputs.unitsPerMonth * factor).toFixed(1)),
-    result: calculateScenario({ ...inputs, unitsPerMonth: Number((inputs.unitsPerMonth * factor).toFixed(1)) }),
+    units: Math.round(inputs.unitsPerMonth * factor),
+    result: calculateScenario({ ...inputs, unitsPerMonth: Math.round(inputs.unitsPerMonth * factor) }),
   }));
 }
