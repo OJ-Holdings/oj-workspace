@@ -1,7 +1,7 @@
 # OJ Workspace V3 — ATLAS / The Ultimate Corporate Operating System
 
 > **Status:** TARGET ARCHITECTURE + IMPLEMENTATION ROADMAP, not a declaration of implemented functionality.
-> **Planning baseline:** 2026-10-22, OJ Workspace \`main\` \`04a077d340fe44c842cc005fe3d9d846aa938986\`.
+> **Planning baseline:** 2026-10-22, OJ Workspace `main` `04a077d340fe44c842cc005fe3d9d846aa938986`.
 > **Product owners:** OJ Holdings founders (Oscar and Jacob).
 > **Target operations:** OJ Exterior Care; OJ Solutions; OJ Essentials; Oscar Jacob (content); shared holdings-level functions.
 > **Project:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace).
@@ -24,7 +24,7 @@ Examples of natural flows, from any relevant screen:
 
 ## Non-negotiable product calls
 
-1. **Do not preserve a redundant Connected Operations tab as permanent top-level navigation.** Integration is a horizontal **record relationship layer**: shared entity panels, contextual actions, history, search, universal activity, related resources, and normal navigation inside every room. Existing \`/tools/operations\` may be used as temporary compatibility / diagnostics, then retire its sidebar entry after parity tests; do not delete existing code/data blindly.
+1. **Do not preserve a redundant Connected Operations tab as permanent top-level navigation.** Integration is a horizontal **record relationship layer**: shared entity panels, contextual actions, history, search, universal activity, related resources, and normal navigation inside every room. Existing `/tools/operations` may be used as temporary compatibility / diagnostics, then retire its sidebar entry after parity tests; do not delete existing code/data blindly.
 2. **HQ is the prime command deck.** No generic 80-widget homepage: one decisive high-density viewport with clear hierarchy, expandable layers and personalized tiles. Each meaningful alert either opens evidence or leads to an authorized next action.
 3. **Four distinct operating rooms, one design system.** Exterior is dispatch/production-first; Solutions is growth/client-delivery-first; Essentials is commerce/unit-economics-first; Oscar Jacob is production/media-first. Shared people, money, assets, companies and history are never duplicated.
 4. **A visually remarkable interface without sacrificing speed:** navy/graphite canvas; precise typography; custom venture accents; live-but-honest operational signals; immersive fleet map/rig viewer; dense desktop boards and true phone-first field interfaces. Accessibility, contrast and reduced-motion support are acceptance criteria.
@@ -69,7 +69,7 @@ These **new V3 planning files** supersede V2 documents for future product direct
 
 As of this planning snapshot, the repository already includes Executive Command, Corporate Tools, Scenario Lab, Corporate Intelligence, commercial estimator/transfer/Bid War Room, Fleet Command/Rig Lab (browser-local), Founder Weekly Review, Systems Health and the temporary Connected Operations index and task handoffs. These are partial products with real constraints, not the target ATLAS feature set. The actual user-hosted production SHA **has not been verified in this planning pass**.
 
-Specific gated state: \`contentPersistenceEnabled=false\` for Oscar Jacob; Supabase additive schema in draft PR #42 has not been authorized or applied; browser-local fleets/bids cannot be represented as synced founder records; source coverage and finance collection remain incomplete. Do not lose existing user records or pretend a proposed V3 module already exists.
+Specific gated state: `contentPersistenceEnabled=false` for Oscar Jacob; Supabase additive schema in draft PR #42 has not been authorized or applied; browser-local fleets/bids cannot be represented as synced founder records; source coverage and finance collection remain incomplete. Do not lose existing user records or pretend a proposed V3 module already exists.
 
 ## Definition of a successful V3
 
