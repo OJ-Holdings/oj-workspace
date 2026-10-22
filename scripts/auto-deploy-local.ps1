@@ -247,7 +247,7 @@ try {
       throw "First deployment requires initial-production-path.txt in $root; production untouched"
     }
     $previousPath=(Get-Content -LiteralPath $bootstrapFile -Raw).Trim()
-    if(-not([IO.Path]::IsPathFullyQualified($previousPath))){
+    if($previousPath -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\]+\\[^\\]+(?:\\|$))'){
       throw 'Initial production path must be absolute; production untouched'
     }
     if([IO.Path]::GetFullPath($previousPath).TrimEnd('\\') -eq $repo.TrimEnd('\\')){
