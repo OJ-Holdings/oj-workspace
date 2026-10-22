@@ -186,18 +186,16 @@ create policy content_activity_member_read on public.oj_content_activity
   for select to authenticated
   using (oj_private.member_role(organization_id) is not null);
 
-create function oj_private.guard_and_audit_content() returns trigger
-language plpgsql security definer set search_path = '' as $$
-declare
-  actor uuid;
-  audit_action text;
+-- Validate row identity and optimistic revisions before the update is written.
+create function oj_private.guard_content_project() returns trigger
+language plpgsql security invoker set search_path = '' as $$
+declare actor uuid;
 begin
   actor := (select auth.uid());
   if tg_op = 'INSERT' then
     if new.revision <> 0 then raise exception 'Invalid initial revision'; end if;
     if actor is not null and new.created_by is distinct from actor
       then raise exception 'Cannot forge creator'; end if;
-    audit_action := 'created';
   else
     if new.id is distinct from old.id
       or new.organization_id is distinct from old.organization_id
@@ -208,8 +206,6 @@ begin
       then raise exception 'Stale content revision'; end if;
     new.revision := old.revision + 1;
     new.updated_at := now();
-    audit_action := case when new.stage is distinct from old.stage
-      then 'stage_changed' else 'updated' end;
   end if;
 
   if new.assigned_to is not null and not exists (
@@ -221,17 +217,34 @@ begin
 
   if new.stage = 'Published' and (new.published_url = '' or new.published_at is null)
     then raise exception 'Published items require a recorded public link and date'; end if;
-
-  insert into public.oj_content_activity
-    (organization_id,project_id,actor_id,action,previous_stage,new_stage)
-  values (new.organization_id,new.id,actor,audit_action,
-    case when tg_op = 'UPDATE' then old.stage else null end,new.stage);
   return new;
 end $$;
-revoke all on function oj_private.guard_and_audit_content() from public,anon,authenticated;
+revoke all on function oj_private.guard_content_project() from public,anon,authenticated;
 create trigger guard_content_project
   before insert or update on public.oj_content_projects
-  for each row execute function oj_private.guard_and_audit_content();
+  for each row execute function oj_private.guard_content_project();
+
+-- AFTER INSERT is required because an audit event has a foreign key to the
+-- newly-created project. A BEFORE INSERT audit would violate that FK.
+create function oj_private.audit_content_project() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.oj_content_activity
+    (organization_id,project_id,actor_id,action,previous_stage,new_stage)
+  values (
+    new.organization_id,new.id,(select auth.uid()),
+    case when tg_op = 'INSERT' then 'created'
+         when new.stage is distinct from old.stage then 'stage_changed'
+         else 'updated' end,
+    case when tg_op = 'UPDATE' then old.stage else null end,
+    new.stage
+  );
+  return new;
+end $$;
+revoke all on function oj_private.audit_content_project() from public,anon,authenticated;
+create trigger audit_content_project
+  after insert or update on public.oj_content_projects
+  for each row execute function oj_private.audit_content_project();
 
 -- Historical verified data is not copied to the content studio. It starts empty.
 -- Future asset/version/analytics/sponsorship tables are separate releases.
