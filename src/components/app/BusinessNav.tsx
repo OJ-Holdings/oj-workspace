@@ -5,7 +5,7 @@ import { ventures, type VentureId } from '@/lib/ventures';
 
 export type BusinessSection = readonly [string, string];
 const groups = [
-  { label: 'Work', sections: ['overview', 'board', 'bookings', 'calendar', 'commercial'] },
+  { label: 'Work', sections: ['overview', 'studio', 'board', 'bookings', 'calendar', 'commercial'] },
   { label: 'Customers', sections: ['leads', 'clients', 'outreach', 'calls', 'quotes', 'door-knocking', 'orders'] },
   { label: 'Results', sections: ['jobs', 'money', 'metrics', 'products', 'inventory'] },
   { label: 'Workspace', sections: ['documents', 'activity', 'upgrades', 'settings'] },
