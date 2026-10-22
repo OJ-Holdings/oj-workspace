@@ -16,10 +16,10 @@ function Log([string]$value) {
   Write-Output $message
   Add-Content -LiteralPath (Join-Path $logs 'deploy.log') -Value $message
 }
-function Git([string[]]$args) {
+function Git([string[]]$gitArgs) {
   Push-Location $repo
   try {
-    $output = @(& git @args 2>&1 | Where-Object { $null -ne $_ })
+    $output = @(& git @gitArgs 2>&1 | Where-Object { $null -ne $_ })
     if ($LASTEXITCODE -ne 0) { throw ('git failed: ' + ($output | Out-String)) }
     return $output
   } finally { Pop-Location }
@@ -83,16 +83,16 @@ function StopPort([int]$port) {
   }
   throw "Port $port remained occupied after stopping the OJ process"
 }
-function Npm([string[]]$args,[string]$dir,[string]$sha) {
-  $file = Join-Path $logs (($sha.Substring(0,12)) + '-' + ($args -join '-') + '.log')
+function Npm([string[]]$npmArgs,[string]$dir,[string]$sha) {
+  $file = Join-Path $logs (($sha.Substring(0,12)) + '-' + ($npmArgs -join '-') + '.log')
   Push-Location $dir
   try {
-    & npm.cmd @args *> $file
+    & npm.cmd @npmArgs *> $file
     if($LASTEXITCODE -ne 0){
-      throw ('npm ' + ($args -join ' ') + ' failed. See ' + $file + ': ' + (Get-Content $file -Tail 12 | Out-String))
+      throw ('npm ' + ($npmArgs -join ' ') + ' failed. See ' + $file + ': ' + (Get-Content $file -Tail 12 | Out-String))
     }
   } finally {Pop-Location}
-  Log ('PASSED npm ' + ($args -join ' '))
+  Log ('PASSED npm ' + ($npmArgs -join ' '))
 }
 $lock = $null
 try {
