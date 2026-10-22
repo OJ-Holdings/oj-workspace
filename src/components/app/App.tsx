@@ -11,6 +11,7 @@ import { isVenture, ventureList, type VentureId } from '@/lib/ventures';
 import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
+import { CorporateToolsView } from './CorporateTools';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
 import { CardDialog } from './CardDialog';
@@ -123,7 +124,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   let current: NavKey = 'home';
   let venture: VentureId | null = null;
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) { current = 'businesses'; venture = parts[1]; }
-  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings'].includes(parts[0])) current = parts[0] as NavKey;
+  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
   const status = [connectionStatus && connectionStatus !== 'Live updates connected' ? connectionStatus : '', limited ? 'Showing the first 1,000 tasks and most recent 1,000 comments.' : ''].filter(Boolean).join(' ');
@@ -131,7 +132,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
 
   return (
     <Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
-      openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status}
+      openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status} toolConnections={connections}
       timer={<WorkTimer work={work} />}
       presence={<PresencePanel mode={mode} organizationId={organizationId} members={members} cards={board.data.cards} onOpenCard={board.openCard} />}
       onOpenCard={card => board.openCard(card)} onNewCard={() => board.openCard(undefined, venture ? { business: venture } : {})}>
@@ -139,6 +140,8 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
+      ) : current === 'tools' ? (
+        <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across all three businesses.</p></header>
