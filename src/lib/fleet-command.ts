@@ -9,7 +9,7 @@ export const FLEET_MAX_FILE_BYTES = 256 * 1024;
 
 export const fleetKinds = ['vehicle','pressure-washer','water-system','rig-component','tool','other'] as const;
 export type FleetKind = (typeof fleetKinds)[number];
-export const fleetStatuses = ['ready','needs-service','out-of-service'] as const;
+export const fleetStatuses = ['unverified','ready','needs-service','out-of-service'] as const;
 export type FleetStatus = (typeof fleetStatuses)[number];
 export const readingUnits = ['none','miles','hours'] as const;
 export type ReadingUnit = (typeof readingUnits)[number];
@@ -216,6 +216,7 @@ export function calculateRigLoad(data: RigLoadout) {
 }
 
 export function assetHealth(asset: FleetAsset, today: string): AssetHealth {
+  if (asset.status === 'unverified') return 'monitor';
   if (asset.status === 'out-of-service') return 'out-of-service';
   if (asset.status === 'needs-service') return 'needs-service';
   if (!validDay(today)) return 'monitor';
