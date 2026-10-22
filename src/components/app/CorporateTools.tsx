@@ -124,7 +124,7 @@ function ToolCard({ tool, context, base }: { tool: CorporateTool; context: ToolC
   return <Link href={href} className="tools-card tools-card--link">{body}</Link>;
 }
 
-const launchIds = ['tasks', 'calendar', 'commercial-desk', 'solutions-outreach', 'finance', 'files'];
+const launchIds = ['tasks', 'calendar', 'commercial-desk', 'solutions-outreach', 'finance', 'scenario-lab'];
 export function CorporateLaunchpad({ base }: { base: string }) {
   const pinned = launchIds.map(id => corporateLaunchTool(id));
   return <section className="corporate-launchpad" aria-label="Corporate tool launchpad">
