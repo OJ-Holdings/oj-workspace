@@ -67,7 +67,7 @@ test('lead stage follow-up signals are based on creation age, not invented conta
 
 test('booking signals exclude cancelled, denied, old and out-of-range records', () => {
   const jobs=[
-    job('today',today),job('seven','2026-10-29'),job('too-late','2026-10-30'),
+    job('today',today),job('seven','2026-10-28'),job('too-late','2026-10-29'),
     job('old','2026-10-21'),job('cancel','2026-10-23','cancelled'),
     job('denied','2026-10-24','denied'),
   ];
@@ -117,7 +117,7 @@ test('proposed actions route to authorized in-app records only', () => {
 });
 
 test('invalid reporting date fails rather than emitting misleading priorities', () => {
-  for(const invalid of ['', 'today','2026/10/22','garbage']) {
+  for(const invalid of ['', 'today','2026/10/22','garbage','2026-02-30']) {
     assert.throws(()=>buildIntelligence({cards:[],dashboard:dashboard(),jobs:[],today:invalid}));
   }
 });
