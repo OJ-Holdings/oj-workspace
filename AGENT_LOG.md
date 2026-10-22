@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-22 -- ChatGPT (Executive Command + Commercial Desk)
+**Summary:** Added an executive command center using live authorized task, booking and source-coverage data, plus a multi-building internal commercial estimating desk with browser-local drafts, site scoping, cost engineering, checklist, copy and export. Uses existing business branding, responsive CSS, direct record links and permissions.
+**Files:** src/components/app/{ExecutiveCommand,CommercialDesk,HomeView,App,VentureView,ExteriorView,BusinessNav,Shell}.tsx, src/lib/commercial-estimate.ts, src/styles/executive.css, src/app/globals.css, tests/commercial-estimate.test.ts, docs/EXECUTIVE_PHASE1_RELEASE.md.
+**Verified:** Feature branch created through authenticated OJ-Holdings GitHub installation; source writes completed; five pure estimator tests authored. GitHub Actions CI, full application build and signed-in UI acceptance still pending. No live database migrations or production records changed.
+**Notes:** Preserve external SMS sender, membership/RLS, owner-only Mercury, and open calendar PR #17. Commercial draft is local-browser only; not shared and not a paid quote. Review full CI before merging.
+
 ## 2026-10-19 02:51 UTC -- Codex (inferred upgrade priorities)
 **Summary:** At Oscar's instruction, replaced the roadmap's unanswered questionnaire with selected defaults: premium OJ design, Solutions then Exterior/Edy, Essentials maintenance, automated internal preparation, draft/manual-log outreach first, and capability-based operational parity for Jacob. Owner administration and initial Mercury visibility remain owner-controlled. Added a concrete first-release scope and behavioral acceptance examples.
 **Files:** docs/WORKSPACE_UPGRADE_ROADMAP.md. Documentation only.
