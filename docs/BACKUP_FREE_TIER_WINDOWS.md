@@ -1,0 +1,93 @@
+# OJ Workspace: Supabase Free backup and recovery gate
+
+**Project:** vgckpcktsfuithqggknd (PostgreSQL 17, Supabase Free). At the October 22 audit the database reported approximately **16 MB**. Size is not proof of a backup.
+
+Supabase Free does not include platform-managed automatic backups, but the project can be exported using PostgreSQL's pg_dump or the Supabase CLI. Official references:
+- https://supabase.com/docs/guides/platform/backups
+- https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore
+
+**No data is backed up just by merging this documentation or scripts.** An authorized founder must run the backup on a computer with database connectivity.
+
+## Prepare on your Windows host
+
+1. Install PostgreSQL 17 **command-line client utilities** (pg_dump.exe and pg_restore.exe). The app database uses PostgreSQL 17. Use the standard official PostgreSQL Windows installer and select the CLI utilities where supported.
+2. In the [Supabase dashboard](https://supabase.com/dashboard/project/vgckpcktsfuithqggknd), choose **Connect -> Session pooler**, port **5432**. Copy the exact hostname and username (typically postgres.vgckpcktsfuithqggknd). Do not share the URI/password in chat, GitHub, email or logs.
+3. On the same Windows user that runs OJ deployments, execute:
+
+~~~powershell
+cd C:\STRATHOS\apps\oj-workspace-deploy-test
+.\scripts\backup-supabase-windows.ps1 -Action Configure
+~~~
+
+Enter the hostname, session pooler username and database password in the prompts. The password is stored as **Windows DPAPI-encrypted ciphertext**, decryptable only by the same Windows user. Settings and credentials go under %APPDATA%\OJWorkspace\supabase-backup; backups are written under %LOCALAPPDATA%\OJWorkspace\PrivateBackups\supabase by default (avoiding potentially cloud-synced Documents folders), **outside the repository**.
+
+4. Take and verify a backup:
+
+~~~powershell
+.\scripts\backup-supabase-windows.ps1 -Action Backup
+.\scripts\backup-supabase-windows.ps1 -Action Verify
+~~~
+
+The tool creates a custom-format pg_dump archive, a SHA256 manifest and validates that pg_restore can enumerate the archive. It refuses to write into known OJ Workspace source/release paths. An incomplete backup is discarded.
+
+**Critical: The archive itself is NOT encrypted.** NTFS folder permissions alone are not disk encryption. Use BitLocker for the backup drive and make a second off-device copy onto a separately encrypted drive. To set that up, repeat Configure with an actual external-drive path:
+
+~~~powershell
+.\scripts\backup-supabase-windows.ps1 -Action Configure -OffsiteDirectory "E:\OJ-Holdings-Encrypted-Backups\Supabase"
+.\scripts\backup-supabase-windows.ps1 -Action Backup
+~~~
+
+Replace E: with your actual encrypted volume. Verify both archive and copy checksums. Do not put archives or secrets into GitHub, AI chat attachments, public cloud buckets, or unencrypted shared folders.
+
+## Optional Windows daily backup task
+
+Only after a successful manual backup:
+
+~~~powershell
+.\scripts\install-supabase-backup-task.ps1 -At "03:00"
+Get-ScheduledTaskInfo -TaskName "OJ Workspace - Supabase Backup"
+~~~
+
+This installs a daily **3:00 AM local Windows time** opt-in job. It runs under the configured Windows user, requires that user to be signed in and the computer awake, and does not silently deploy or modify your database. Inspect new archives and task LastTaskResult. Change the time if your PC is off overnight.
+
+## What the backup covers—and doesn't
+
+Custom-format pg_dump captures the accessible database's non-system schemas and content, including public business data, Auth tables and Storage **metadata** as database privileges permit. It does **not** save Storage API **object bytes** or global PostgreSQL roles. The archive alone is **not** a verified full-project restoration plan. Check whether any Storage buckets contain customer/document assets and back up the object bytes separately through the supported Storage API.
+
+A successful pg_restore --list and SHA256 comparison indicate a readable archive, **not** that you could recover a fully functioning Supabase project after a major error.
+
+## Required restore drill before Oscar Jacob schema migration
+
+A founder/database administrator must restore the archive into a **separate, disposable, Supabase-compatible PostgreSQL 17 environment**, never the live database. Prepare matching Supabase-managed schemas, roles and extensions. Reconcile table counts, historic record IDs, database RLS policies, functions, permission grants, authentication records, and application source compatibility. Keep all customer notification services disabled in the test environment. Test any separately downloaded Storage objects. Record the archive hash, restore timestamp and verifications privately.
+
+If the custom archive does not restore cleanly into that environment, use Supabase's officially documented CLI roles/schema/data export and import sequence and rerun the restore drill. Do not mistake a partial file export for a recoverable backup.
+
+## Release sequence
+
+The live Release 02A provides a **read-only** Oscar Jacob preview and has no new production database schema.
+
+1. Confirm recent, independently verified production backup and successful isolated restore.
+2. Confirm founder account access and exact production release SHA.
+3. Review migration in [PR #42](https://github.com/OJ-Holdings/oj-workspace/pull/42) at a pinned commit, compare existing constraints and records, inspect RLS/functions.
+4. Under supervision, apply **only the reviewed SQL** as a recorded migration; confirm original business records and access remain correct.
+5. Deploy a separate **code-only** PR to switch the Oscar Jacob persistence flag on; CI must be green and post-deploy health verified.
+6. Verify content creates/edits by both founders, outsider denial, plus unchanged Exterior/Solutions/Essentials operations.
+
+Never merge the mixed SQL+app PR #42 into main expecting the Windows updater to execute it. The updater intentionally blocks schema file changes.
+
+## Verify whether GitHub main is actually live on Windows
+
+~~~powershell
+cd C:\STRATHOS\apps\oj-workspace-deploy-test
+.\scripts\verify-production-windows.ps1
+# Or request a standard scheduled deployment attempt (same safety checks):
+.\scripts\verify-production-windows.ps1 -TriggerUpdater
+~~~
+
+Expect PASS: this Windows host is serving exactly GitHub main on port 3011. This is a local-host check; separately verify Tailscale Funnel and a real signed-in founder session.
+
+## CI notification changes
+
+CI now cancels **superseded pull-request runs for the same PR** while never cancelling main-branch production checks. This reduces stale failure notifications from rapid feature commits; current PR failures remain visible and block normal deployment.
+
+Keep all backup files and restore evidence in encrypted private storage. No destructive database SQL is authorized solely by successful CI or a readable backup archive.
