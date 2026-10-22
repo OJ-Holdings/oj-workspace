@@ -87,7 +87,8 @@ function providerSignals(source: ReportingSource): IntelligenceSignal | null {
  */
 export function buildIntelligence(input: IntelligenceInput): IntelligenceSnapshot {
   const { cards, dashboard, jobs, today } = input;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(today + 'T00:00:00Z'))) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(today + 'T00:00:00Z')) ||
+      new Date(today + 'T00:00:00Z').toISOString().slice(0,10) !== today) {
     throw new Error('A valid corporate reporting date is required.');
   }
   const signals: IntelligenceSignal[] = [];
@@ -152,7 +153,8 @@ export function buildIntelligence(input: IntelligenceInput): IntelligenceSnapsho
     });
   }
 
-  const inSeven = dayOffset(today,7);
+  // Exactly seven calendar dates: today through day six, not eight inclusive dates.
+  const inSeven = dayOffset(today,6);
   const upcoming = jobs.filter(job =>
     job.date >= today && job.date <= inSeven &&
     job.status !== 'denied' && job.status !== 'cancelled');
