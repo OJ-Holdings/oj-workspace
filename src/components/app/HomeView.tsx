@@ -15,6 +15,7 @@ import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
 import { ExecutiveCommand } from './ExecutiveCommand';
 import { CorporateLaunchpad } from './CorporateTools';
+import { ConnectedOperationsPulse } from './ConnectedOperations';
 import { CorporateIntelligencePulse } from './CorporateIntelligence';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { workDay } from '@/lib/task-workflows';
@@ -25,9 +26,9 @@ const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: Fi
 /** The Home screen before any figures exist: every panel then says what to log or connect. */
 const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null, content: null }, pipeline: null, schedule: null, files: null, notes: null };
 
-type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; jobs: JobItem[]; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; jobs: JobItem[]; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean; limited?: boolean };
 
-export function HomeView({ base, board, store, work, metrics: derived, jobs, mode, displayName, members, readOnly }: Props) {
+export function HomeView({ base, board, store, work, metrics: derived, jobs, mode, displayName, members, readOnly, limited = false }: Props) {
   const metrics = derived ?? nothingYet;
   // While the sample workspace is still working out today's date, hold the panels back so nothing flashes as empty.
   const loading = !derived && !store.missing && mode === 'preview';
@@ -51,6 +52,7 @@ export function HomeView({ base, board, store, work, metrics: derived, jobs, mod
     <div className={loading ? 'home is-loading' : 'home'}>
       <ExecutiveCommand base={base} board={board} store={store} metrics={metrics} jobs={jobs} mode={mode} today={todayKey} displayName={displayName} readOnly={readOnly} />
       <CorporateIntelligencePulse base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} today={todayKey} preview={mode === 'preview'} />
+      <ConnectedOperationsPulse base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} today={todayKey} limited={limited} preview={mode==='preview'} />
       <CorporateLaunchpad base={base} />
 
 
