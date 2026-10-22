@@ -110,14 +110,14 @@ alter table public.oj_documents
 -- Preserve the shared 'general' work-timer category while adding content.
 -- Some isolated schema tests intentionally do not install the optional work
 -- leaderboard table, so only touch it if it exists.
-do $
+do $ojv2$
 begin
   if to_regclass('public.oj_work_sessions') is not null then
     alter table public.oj_work_sessions drop constraint oj_work_sessions_business_check;
     alter table public.oj_work_sessions add constraint oj_work_sessions_business_check
       check (business in ('general','exterior','solutions','essentials','content'));
   end if;
-end $;
+end $ojv2$;
 
 -- Oscar Jacob's production entities. A planned publication is never marked
 -- "Published" without a user-recorded public link and recorded time. The
