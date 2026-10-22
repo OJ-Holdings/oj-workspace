@@ -15,6 +15,7 @@ import { CorporateToolsView } from './CorporateTools';
 import { CorporateIntelligenceDesk } from './CorporateIntelligence';
 import { FounderWeeklyReview } from './FounderWeeklyReview';
 import { SystemsHealthDesk } from './SystemsHealthDesk';
+import { ConnectedOperations } from './ConnectedOperations';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
@@ -131,6 +132,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   let venture: VentureId | null = null;
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) { current = 'businesses'; venture = parts[1]; }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
+  else if (parts[0] === 'tools' && parts[1] === 'operations') current = 'operations';
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
@@ -139,14 +141,16 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
 
   return (
     <Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
-      openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status} toolConnections={connections}
+      openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status} toolConnections={connections} jobs={jobs}
       timer={<WorkTimer work={work} />}
       presence={<PresencePanel mode={mode} organizationId={organizationId} members={members} cards={board.data.cards} onOpenCard={board.openCard} />}
       onOpenCard={card => board.openCard(card)} onNewCard={() => board.openCard(undefined, venture ? { business: venture } : {})}>
       {venture ? (
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
-        <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
+        <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
+      ) : current === 'operations' ? (
+        <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} />
       ) : current === 'fleet' ? (
         <FleetCommand base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
       ) : current === 'tools' ? (
