@@ -203,7 +203,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <div className="page">
           <header className="page-head"><h1>{info?.title}</h1><p>{info?.body}</p></header>
           {current === 'calendar' && <CalendarView store={store} readOnly={readOnly} cards={board.data.cards} jobs={jobs} base={base} />}
-          {current === 'crm' && <CrmView store={store} readOnly={readOnly} />}
+          {current === 'crm' && <CrmView store={store} readOnly={readOnly} cards={board.data.cards} />}
           {current === 'finance' && <FinanceView store={store} readOnly={readOnly} owner={owner} />}
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}
           {current === 'messages' && <MessagesView store={store} readOnly={readOnly} />}
@@ -211,7 +211,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} workMissing={work.missing} />}
         </div>
       )}
-      <CardDialog board={board} members={members} readOnly={readOnly} mode={mode} />
+      <CardDialog board={board} members={members} readOnly={readOnly} mode={mode} dashboard={store.data} jobs={jobs} base={base} />
     </Shell>
   );
 }
