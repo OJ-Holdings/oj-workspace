@@ -38,7 +38,7 @@ export function SystemsHealthDesk({mode}:{mode:'live'|'preview'}){
       readJson(githubApi,controller.signal),
     ]);
     clearTimeout(timeout);
-    if(current.current!==controller||controller.signal.aborted)return;
+    if(current.current!==controller)return;
     const h=host.status==='fulfilled'?host.value:null;
     const g=github.status==='fulfilled'?github.value:null;
     setInspection({
