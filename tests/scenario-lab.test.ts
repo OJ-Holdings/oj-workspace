@@ -48,7 +48,7 @@ test('sensitivity cases change only volume and never mutate source assumptions',
   const inputs = { ...scenarioTemplates.solutions.example };
   const cases = scenarioSensitivity(inputs);
   assert.equal(cases.length, 3);
-  assert.deepEqual(cases.map(c => c.units), [3.5, 5, 6.5]);
+  assert.deepEqual(cases.map(c => c.units), [4, 5, 7]);
   assert.ok(cases[0].result.monthlySurplus < cases[1].result.monthlySurplus);
   assert.ok(cases[1].result.monthlySurplus < cases[2].result.monthlySurplus);
   assert.deepEqual(inputs, scenarioTemplates.solutions.example);
@@ -59,6 +59,7 @@ test('unbounded, negative, NaN and invalid horizon inputs fail closed', () => {
   for (const amount of [-1, Number.NaN, Number.POSITIVE_INFINITY, 1_000_001]) {
     assert.throws(() => calculateScenario({ ...start, revenuePerUnit: amount }), RangeError);
   }
+  assert.throws(() => calculateScenario({ ...start, unitsPerMonth: 2.5 }), RangeError);
   for (const months of [0, -1, 1.5, 37, Number.NaN]) {
     assert.throws(() => calculateScenario({ ...start, months }), RangeError);
   }
