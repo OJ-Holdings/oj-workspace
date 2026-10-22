@@ -24,6 +24,25 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Validate PowerShell backup and deployment helpers parse
+        shell: pwsh
+        run: |
+          $scripts = @(
+            'scripts/backup-supabase-windows.ps1',
+            'scripts/install-supabase-backup-task.ps1',
+            'scripts/verify-production-windows.ps1'
+          )
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $script).Path, [ref]$tokens, [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -ne 0) {
+              $errors | ForEach-Object { Write-Error ("PowerShell parser: " + $_.Message) }
+              throw ("Invalid PowerShell syntax in " + $script)
+            }
+          }
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
