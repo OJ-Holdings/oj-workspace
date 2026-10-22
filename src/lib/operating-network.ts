@@ -175,7 +175,7 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
   const warnings=[
     'All results are from records this session already loaded and is authorized to view; this index does not synchronize external systems.',
     'Workspace CRM leads and Exterior source leads are different datasets. They are never joined by names or phone numbers.',
-    'Relationships require an exact loaded CRM ID, an active booking ID in a task, or a booking source lead_id. Unmatched entities remain unlinked.'
+    'Relationships require an exact loaded CRM ID, an active booking ID in a task, or a booking source lead_id. Unmatched entities remain unlinked.',
     'Financial entries are record labels, not verified collections, profit or bank transactions. Completed tasks do not establish payment.',
     'Bookings and provider views may be unavailable or incomplete; zero loaded items is not proof of no business activity.',
   ];
