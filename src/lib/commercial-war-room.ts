@@ -61,11 +61,12 @@ const dollars = (x: number) => x.toLocaleString('en-US', {
 export function buildBidWarRoom(name: string, input: EstimateInput, review: boolean[]): BidWarRoom {
   const baseline = calculateEstimate(input);
   const margin = boundedMargin(input.margin);
-  const pricing: PricingCase[] = [
+  const cases: Pick<PricingCase,'key'|'label'|'targetMargin'|'description'>[] = [
     {key:'competitive', label:'Competitive', targetMargin:boundedMargin(margin-7),description:'Lower contribution-margin scenario, not a market-rate recommendation.'},
     {key:'target', label:'Target', targetMargin:margin,description:'Current entered target contribution margin.'},
     {key:'protected', label:'Protected', targetMargin:boundedMargin(margin+7),description:'Higher contribution-margin scenario to compare price sensitivity.'},
-  ].map(candidate => {
+  ];
+  const pricing: PricingCase[] = cases.map(candidate => {
     const price = money(baseline.totalCost / (1-candidate.targetMargin/100));
     return {...candidate, estimatedDirectCost:baseline.totalCost, price,
       estimatedContribution:money(price-baseline.totalCost)};
