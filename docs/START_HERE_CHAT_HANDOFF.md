@@ -4,13 +4,13 @@
 
 ## Copy/paste into a new ChatGPT session
 
-> Continue **OJ Workspace V2** in **`OJ-Holdings/oj-workspace`**. First read this handoff, then independently check GitHub `main`, open PRs, exact-head CI and the Windows/Tailscale live release. Do **not** repeat already merged work: **Release 06** Commercial Bid War Room (#49, `e6274f43`), **Release 07** Founder Weekly Review (#50, `4f749b21`), and **Release 08** Systems Health & Releases (#51, `88dc16f9`) have merged to `main` after green PR-head CI. **Windows host deployment is NOT independently verified**; `/workspace/tools/systems` can compare the SHA of whichever app origin it is opened on, but it cannot establish scheduled task state, authentication, backups or separate hosts. The four-venture Supabase schema in draft PR #42 remains **unapplied/unmerged** pending a recoverable backup and isolated restore drill. Preserve all existing Auth identities and customer records; never bypass the CI/schema-guarded Windows updater, invent financial performance or trigger external messages, publishing, purchases, payments, or unsupervised migrations. Build genuinely useful OJ Holdings tools with isolated, reviewed PRs and green checks for Oscar and Jacob.
+> Continue **OJ Workspace V2** in **`OJ-Holdings/oj-workspace`**. First read this handoff, then independently check GitHub `main`, open PRs, exact-head CI and the Windows/Tailscale live release. Do **not** repeat already merged work: **Release 06** Commercial Bid War Room (#49, `e6274f43`), **Release 07** Founder Weekly Review (#50, `4f749b21`), and **Release 08** Systems Health & Releases (#51, `88dc16f9`), **Integration Pass 01** Connected Operations (#53, `74b2319a`), and **Integration Pass 02** source-linked CRM/booking task handoffs (#54, `482b22b7`) have merged to `main` after green PR-head CI. **Windows host deployment is NOT independently verified**; `/workspace/tools/systems` can compare the SHA of whichever app origin it is opened on, but it cannot establish scheduled task state, authentication, backups or separate hosts. The four-venture Supabase schema in draft PR #42 remains **unapplied/unmerged** pending a recoverable backup and isolated restore drill. Preserve all existing Auth identities and customer records; never bypass the CI/schema-guarded Windows updater, invent financial performance or trigger external messages, publishing, purchases, payments, or unsupervised migrations. Build genuinely useful OJ Holdings tools with isolated, reviewed PRs and green checks for Oscar and Jacob.
 
 ## 1. Repositories, stack and infrastructure
 
 - **Canonical GitHub repository:** https://github.com/OJ-Holdings/oj-workspace
 - **Canonical branch:** `main`.
-- **At this snapshot, latest merged feature:** Release 08 (Systems Health & Releases, PR #51), commit `88dc16f983cdbdb4614d60772b0fe33543ad337e`. GitHub merge is verified; current Windows-host release is unverified.
+- **At this snapshot, latest merged feature:** Integration Pass 02 (source-linked task handoffs, PR #54), commit `482b22b7f763da9af8d09f7d9f474fd04cd6e065`. GitHub merge is verified; current Windows-host release is unverified.
 - **Application:** Next.js 16 / React 19 / TypeScript; Supabase SSR, PostgreSQL with RLS; provider read views for GoHighLevel, Shopify and other authorized integrations.
 - **Host:** user's Windows 11 machine running the OJ app on localhost port **3011**. Candidate smoke port **3012**. Tailscale Funnel advertised at `https://desktop-lbi2ein.tail3f006f.ts.net:10000`. Host and private Tailscale reachability require verification **on the user's PC**; GitHub CI green alone does not prove the public site is serving the commit.
 - **Windows folders:** `C:\STRATHOS\apps\oj-workspace` (working source), `C:\STRATHOS\apps\oj-workspace-deploy-test` (updater checkout), `C:\STRATHOS\apps\oj-workspace-releases` (release worktrees/logs). Paths are as previously documented; verify before using. Keep other STRATHOS applications untouched.
@@ -34,6 +34,8 @@
 | #49 — Release 06 | `e6274f43` | **Commercial Bid War Room**: margin strategies, cost stress tests, site exposure and internal review export |
 | #50 — Release 07 | `4f749b21` | **Founder Weekly Review**: same-weekday comparisons, accountable open tasks, CRM record creation, recorded finance caveats, ranked source-linked decisions and internal brief |
 | #51 — Release 08 | `88dc16f9` | **Systems Health & Releases**: read-only same-origin release SHA versus public GitHub main, explicit unknown states, bounded polling, CI and Windows verification links |
+| #53 — Integration Pass 01 | `74b2319a` | **Connected Operations**: a unified index across seven record kinds, verified source relationships, sidebar/HQ/business navigation, and global booking search |
+| #54 — Integration Pass 02 | `482b22b7` | **Contextual task handoffs**: CRM lead and Exterior booking source IDs preserved into authorized task drafts and subsequently linked in the operating index |
 
 These describe **merged, CI-tested code**. Actual host deployment is a **separate receipt**. User has reported that previous releases were working and auto-deploying, but a fresh host SHA cannot be inferred for later commits.
 
@@ -137,7 +139,7 @@ These are **dated baseline counts** and must never be presented as fresh current
 
 ## 8. Suggested next engineering sequence
 
-1. **Verify live deployment of Releases 06–08**, not merely GitHub merges. From Windows OJ Workspace repo run `scripts/verify-production-windows.ps1`; invoke the existing guarded updater with `-TriggerUpdater` only as intended. Confirm actual returned `main` SHA, rollback state, founder sign-ins and mobile smoke. The newly added `/workspace/tools/systems` is useful after deployment but is not a substitute for Windows-local verification.
+1. **Verify live deployment of Releases 06–08 and Integration Passes 01–02**, not merely GitHub merges. From Windows OJ Workspace repo run `scripts/verify-production-windows.ps1`; invoke the existing guarded updater with `-TriggerUpdater` only as intended. Confirm actual returned `main` SHA, rollback state, founder sign-ins and mobile smoke. The newly added `/workspace/tools/systems` is useful after deployment but is not a substitute for Windows-local verification.
 2. **Resolve P0 Supabase Free backup/restore evidence** without weakening protection: manual private pg_dump/checksum, verify archive, independent restore rehearsal, limited role/RLS and record-count checks. No production SQL or Auth changes until this gate is satisfied.
 3. **Ship more founder-visible, code-only operating value** while migrations remain blocked: clearer daily action/inbox triage, booking/dispatch and commercial bid review, mobile workflow UX, and evidence/coverage gaps. Avoid duplicating Intelligence, Weekly Review, Fleet or Systems status.
 4. **After supervised additive migration**, enable secure four-business Oscar Jacob persistence and shared, versioned commercial bids/fleet records; prove two-founder concurrent editing and negative viewer/outsider access.
@@ -147,5 +149,36 @@ These are **dated baseline counts** and must never be presented as fresh current
 **Core user direction:** continue implementing *ambitiously*—create genuinely useful new corporate tools, not just cosmetic overhauls. Communicate major shipped milestones, next backlog, blockers and honest deploy status succinctly. User prefers tangible code and green deployments to endless planning.
 
 ---
+
+
+## 9. NEW HORIZONTAL INTEGRATION — 2026-10-22
+
+**Implementation direction:** Stop building disconnected tabs. Build horizontal operating passes that connect the same real data, records, and founder actions across existing modules. User explicitly prioritized broad, integrated implementation rather than more isolated feature pages.
+
+### Integration Pass 01 (#53, merged SHA `74b2319a74713c2c4badfd41994ecdf4ecb23b18`)
+
+- PR https://github.com/OJ-Holdings/oj-workspace/pull/53, CI run `39863685474` SUCCESS on reviewed head.
+- New `src/lib/operating-network.ts`: typed, read-only, authorized projection of open board tasks, workspace CRM leads, Exterior bookings, events, documents, finance metadata and team messages; accurate business-scope, status, due date, source link and missing-coverage warnings.
+- `src/components/app/ConnectedOperations.tsx`, `src/styles/connected-operations.css`, `tests/operating-network.test.ts`: unified filtering by source/business, drill-down, evidence-based relations and home pulse.
+- Cross-app wiring in `App.tsx`, `Shell.tsx`, `HomeView.tsx`, `VentureView.tsx`, `CorporateTools.tsx`, tool registry and global `workspace-search.ts`. Main nav, HQ, tools launcher, every business and Ctrl+K now connect to the same workstream.
+- **Important:** Existing Exterior leads are a separate dataset from workspace CRM leads. An exact `/crm?lead=ID` in a task description only creates a relation if the CRM record is already loaded and belongs to the same business. Exterior booking `lead_id` opens its own canonical Exterior source, not a false shared CRM join.
+
+### Integration Pass 02 (#54, merged SHA `482b22b7f763da9af8d09f7d9f474fd04cd6e065`)
+
+- PR https://github.com/OJ-Holdings/oj-workspace/pull/54, CI run `39864614115` SUCCESS on reviewed head. An earlier failed CI run `39864473311` was fixed; do not confuse it with the green final head.
+- `src/lib/operating-handoffs.ts` and `tests/operating-handoffs.test.ts`: CRM lead and active Exterior booking **task draft generators**. They carry only source ID, business, selected service/date and source URL; do not copy contact secrets, quoted amounts or claim revenue/payment.
+- `App.tsx` supports authenticated `sourceLead` and `sourceBooking` URL handoffs into the **existing normal task editor**. Opening a draft is **not a database write**. Viewers cannot initiate it, invalid/cancelled bookings are rejected, and later-loaded authorized bookings can still open a draft.
+- Connected Operations now offers record-context 'Create linked task draft' actions; after manual save, the common index recognizes exact task→CRM lead and task→Exterior booking IDs, without fuzzy customer inference.
+
+### Critical remaining gaps and next integration passes
+
+1. Verify current `main` CI and actual Windows host port 3011 release. The latest merged app SHA is **not** independently verified on the local production host.
+2. Cross-link existing commercial estimate drafts, Exterior booking/job scheduling, task assignments, Fleet readiness and closeout **without inventing shared persistence**. Local-only tools must remain labeled as local-only.
+3. Complete real Supabase Free logical backup with secure archive storage and **separate restore rehearsal**, audit RLS/tenant isolation, then carry out independently approved additive shared cross-domain schema migration. **PR #42 is still draft/unmerged and must never enter the auto-deploy SQL path.**
+4. After supervised schema: stable entity tables/foreign keys for customers, properties, jobs, estimates, schedules, tasks, assets, providers, invoices, payments, evidence files and audit receipts; idempotent external source mappings, optimistic revisions, owner/member/viewer access. Then make shared estimate and fleet records actually synchronized across both founders.
+5. End-to-end cross-department flows: lead → quote → approved commercial proposal → booking → crew/equipment/dispatch → closeout → invoice/payment reconciliation → review/recurring service; Solutions prospect → dated outreach evidence → demo → signed client → delivery/renewal; Essentials SKU/order → fulfillment/fees/COGS/ad spend → verified contribution and returns; Oscar Jacob idea → authorized production → review → manual publication receipt → sourced performance. No invented financial, outreach or publication outcomes.
+6. Prefer extending the shared `operating-network.ts` data contract to powering Home, search and contextual actions rather than creating competing dashboards. Maintain bounded rendering and explicit unknown coverage. Verify both founder roles on phone/desktop before claiming end-to-end production readiness.
+
+**Release note:** All work in #53–54 was code-only. CI success and GitHub merge do NOT establish that the Windows/Tailscale host is serving them; confirm using `scripts/verify-production-windows.ps1` on the host.
 
 **Handoff integrity check:** this document is a GitHub-persisted context aid only. It neither applies pending SQL, modifies customer data, nor verifies current Windows site availability. Verify every dated claim when resuming work.
