@@ -125,7 +125,7 @@ export function exportCommercialEstimate(
 
 /** Parses only the whitelisted fields. Never blindly spreads untrusted JSON. */
 export function importCommercialEstimate(json: string, organization: string): CommercialTransfer {
-  if (typeof json !== 'string' || json.length < 10 || json.length > commercialTransferMaxChars) {
+  if (typeof json !== 'string' || json.length === 0 || json.length > commercialTransferMaxChars) {
     throw new Error('The estimate file is empty or larger than the 256 KB limit.');
   }
   let data: unknown;
