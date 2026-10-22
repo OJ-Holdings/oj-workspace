@@ -47,7 +47,7 @@ export const corporateTools: readonly CorporateTool[] = [
   { id: 'team', title: 'Team Workspace', description: 'Review members and existing team administration links.', category: 'People', keywords: 'jacob oscar staff employees invites permissions', href: '/team' },
   { id: 'settings', title: 'Workspace Settings', description: 'Review account settings and configured connections.', category: 'Control', keywords: 'profile configuration integration connection', href: '/settings' },
 
-  { id: 'content-studio', title: 'Oscar Jacob Production Studio', description: 'Planned video pipeline, filming, editing, and publication records. Database support is not yet released.', category: 'Create', keywords: 'content media oscar jacob creator video filming editing' },
+  { id: 'content-studio', title: 'Oscar Jacob Production Studio', description: 'Manage private production projects, scripts, ownership, schedules and user-recorded releases.', category: 'Create', keywords: 'content media oscar jacob creator video filming editing', href: '/b/content' },
   { id: 'publishing', title: 'Publishing Calendar', description: 'Planned coordinated releases, approvals, and verified publication links.', category: 'Create', keywords: 'youtube tiktok shorts reels upload posting' },
   { id: 'creative-assets', title: 'Creative Asset Library', description: 'Planned footage, scripts, edit versions, and rights tracking.', category: 'Create', keywords: 'video thumbnail content footage music licensing' },
   { id: 'sponsors', title: 'Sponsorship & Brand Deals', description: 'Planned sponsor pipeline, deliverables, and revenue evidence.', category: 'Create', keywords: 'media kit brand partnership creator monetization' },
