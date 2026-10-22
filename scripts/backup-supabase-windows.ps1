@@ -173,7 +173,7 @@ try {
   # Custom-format PostgreSQL dumps are NOT ENCRYPTED. Restrict filesystem
   # permissions and copy to an encrypted off-device volume before relying on it.
   $args = @(
-    '--format=custom', '--no-owner', '--no-acl', '--verbose',
+    '--format=custom', '--no-owner', '--verbose',
     '--host', [string]$settings.host,
     '--port', [string]$settings.port,
     '--username', [string]$settings.user,
