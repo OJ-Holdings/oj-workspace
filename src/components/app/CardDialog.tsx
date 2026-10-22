@@ -6,11 +6,14 @@ import { Trash2, X } from 'lucide-react';
 import { stages, type Business, type Card, type Stage } from '@/lib/board';
 import { ventureList, ventures } from '@/lib/ventures';
 import type { Board } from './useBoard';
+import type { Dashboard } from '@/lib/dashboard';
+import type { JobItem } from '@/app/workspace/exterior-actions';
+import { AtlasTaskRelations } from './AtlasRelations';
 
-type Props = { board: Board; members: string[]; readOnly: boolean; mode: 'preview' | 'live' };
+type Props = { board: Board; members: string[]; readOnly: boolean; mode: 'preview' | 'live'; dashboard: Dashboard | null; jobs: JobItem[]; base: string };
 
 /** Create or edit one task, with its checklist and conversation. Mounted once for the whole app. */
-export function CardDialog({ board, members, readOnly, mode }: Props) {
+export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, base }: Props) {
   const { editing, setEditing, data, pending, notice } = board;
   const dialog = useRef<HTMLDialogElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -54,6 +57,7 @@ export function CardDialog({ board, members, readOnly, mode }: Props) {
           <label>Title<input autoFocus required maxLength={180} value={editing.title} disabled={locked} onChange={e => patch({ title: e.target.value })} placeholder="What needs to happen?" /></label>
           <label>Description<textarea rows={3} maxLength={8000} value={editing.description} disabled={locked} onChange={e => patch({ description: e.target.value })} placeholder="Add the context and what done looks like." /></label>
           {sourceLinks.map(link => <Link className="task-source-link" href={link} key={link} onClick={e => { if (!close()) e.preventDefault(); }}>Open linked {link.includes('/crm?') ? 'lead' : 'task'}</Link>)}
+          <AtlasTaskRelations card={editing} dashboard={dashboard} jobs={jobs} base={base} onNavigate={close} />
           <div className="form-grid">
             <label>Business<select disabled={locked} value={editing.business} onChange={e => patch({ business: e.target.value as Business })}>{ventureList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
             <label>Status<select disabled={locked} value={editing.stage} onChange={e => patch({ stage: e.target.value as Stage })}>{stages.map(s => <option key={s}>{s}</option>)}</select></label>
