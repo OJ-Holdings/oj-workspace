@@ -31,6 +31,6 @@ $trigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -Repetition
 $settings=New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 1) -StartWhenAvailable
 $principal=New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
 Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description 'Deploy green OJ Workspace main commits to localhost:3011 with staged build and rollback' | Out-Null
-Write-Output "Installed $name: checks every 5 minutes while this Windows user is logged in."
+Write-Output "Installed $($name): checks every 5 minutes while this Windows user is logged in."
 Write-Output 'The task never changes Tailscale, STRATHOS or SQL tables.'
 Write-Output ('Inspect status: Get-ScheduledTask -TaskName ' + $quotes + $name + $quotes)
