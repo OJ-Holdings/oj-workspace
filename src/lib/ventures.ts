@@ -51,5 +51,10 @@ export const ventures: Record<VentureId, Venture> = {
   },
 };
 
-export const ventureList = ventureIds.map(id => ventures[id]);
-export const isVenture = (value: string): value is VentureId => (ventureIds as readonly string[]).includes(value);
+/** Release gate: the live DB has no 'content' schema yet. Flip only in a post-migration release. */
+export const contentPersistenceEnabled = false;
+
+/** Visible and writable operating brands while the fourth business is a preview. */
+export const ventureList = ventureIds.filter(id => id !== 'content' || contentPersistenceEnabled).map(id => ventures[id]);
+export const isVenture = (value: string): value is VentureId =>
+  (ventureIds as readonly string[]).includes(value) && (value !== 'content' || contentPersistenceEnabled);
