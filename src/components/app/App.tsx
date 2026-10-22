@@ -16,6 +16,7 @@ import { CorporateIntelligenceDesk } from './CorporateIntelligence';
 import { FounderWeeklyReview } from './FounderWeeklyReview';
 import { SystemsHealthDesk } from './SystemsHealthDesk';
 import { ConnectedOperations } from './ConnectedOperations';
+import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
@@ -68,32 +69,34 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       if (args[0]) {
         const url = new URL(window.location.href);
         url.searchParams.set('task', args[0].id);
-        url.searchParams.delete('sourceLead');
+        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking');
         window.history.pushState(null, '', url.pathname + url.search);
       }
     },
     closeCard: (extraDraft = false) => {
       if (!rawBoard.closeCard(extraDraft)) return false;
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking');
       window.history.replaceState(null, '', url.pathname + url.search);
       return true;
     },
   };
   const store = useDashboard(dashboard, mode, organizationId, displayName);
+  const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
   const query = useSearchParams();
   const opened = useRef('');
   const taskId = query.get('task');
   const sourceLead = query.get('sourceLead');
+  const sourceBooking = query.get('sourceBooking');
   useEffect(() => {
     if (!board.ready) return;
-    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : '';
+    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : '';
     if (opened.current === key) return;
     if (rawBoard.editing && !rawBoard.closeCard()) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking');
       const [kind, ...value] = opened.current.split(':');
-      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : 'sourceLead', value.join(':'));
+      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : 'sourceLead', value.join(':'));
       window.history.replaceState(null, '', url.pathname + url.search);
       return;
     }
@@ -105,15 +108,24 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       const lead = store.data?.leads.find(l => l.id === sourceLead);
       if (lead) {
         opened.current = key;
-        rawBoard.openCard(undefined, { title: `Follow up with ${lead.name}`, business: lead.venture, description: `Follow up on ${lead.name}'s enquiry.\nSource: ${lead.name}\n${base}/crm?lead=${encodeURIComponent(lead.id)}` });
+        rawBoard.openCard(undefined, followUpFromCrmLead(lead,base));
+      }
+    } else if (sourceBooking && !readOnly && mode === 'live') {
+      const booking = jobs.find(j => j.id === sourceBooking);
+      if (booking) {
+        try {
+          const draft = followUpFromExteriorBooking(booking,base);
+          opened.current = key;
+          rawBoard.openCard(undefined,draft);
+        } catch { /* Rejected booking cannot create a task draft. */ }
       }
     }
-  }, [taskId, sourceLead, board.ready, board.data.cards, store.data, readOnly, base]);
+  }, [taskId, sourceLead, sourceBooking, board.ready, board.data.cards, store.data, jobs, mode, readOnly, base]);
   const wasEditing = useRef(false);
   useEffect(() => {
     if (wasEditing.current && !rawBoard.editing) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking');
       window.history.replaceState(null, '', url.pathname + url.search);
       opened.current = '';
     }
@@ -123,7 +135,6 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     const record = query.get('document') || query.get('message');
     if (record && store.data) document.getElementById(`record-${record}`)?.scrollIntoView({ block: 'center' });
   }, [query, store.data]);
-  const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
   const work = useWork(workData, mode, organizationId, partner, readOnly);
   const metrics = store.data && store.now ? deriveMetrics(store.data, board.data.cards, store.now, jobSchedule) : null;
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
@@ -150,7 +161,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
       ) : current === 'operations' ? (
-        <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} />
+        <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} readOnly={readOnly} />
       ) : current === 'fleet' ? (
         <FleetCommand base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
       ) : current === 'tools' ? (
