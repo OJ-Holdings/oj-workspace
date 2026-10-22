@@ -26,6 +26,17 @@ function InvokeGit([string[]]$gitArgs) {
     return $output
   } finally { $ErrorActionPreference = $priorPreference; Pop-Location }
 }
+function GitHubApi([string]$uri) {
+  $gh=Get-Command gh -ErrorAction SilentlyContinue
+  if(-not $gh){throw 'GitHub CLI (gh) is required for authenticated release checks'}
+  $priorPreference=$ErrorActionPreference
+  try {
+    $ErrorActionPreference='Continue'
+    $result=@(& $gh.Source api -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' $uri 2>&1)
+    if($LASTEXITCODE -ne 0){throw ('Authenticated GitHub API failed: ' + ($result | Out-String))}
+    return (($result | Out-String) | ConvertFrom-Json)
+  } finally {$ErrorActionPreference=$priorPreference}
+}
 function PortOwner([int]$port) {
   $list = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
   if ($list.Count -eq 0) { return $null }
@@ -120,13 +131,8 @@ try {
   if($ref[0] -match '^([0-9a-f]{40})\s'){$sha=$Matches[1]}
   else{throw 'Unable to parse GitHub main HEAD'}
   if($state -and $state.sha -eq $sha -and (Health 3011 $sha $true)){return}
-  $headers=@{
-    Accept='application/vnd.github+json'
-    'X-GitHub-Api-Version'='2022-11-28'
-    'User-Agent'='OJ-Workspace-Local-Deploy'
-  }
-  $baseUri='https://api.github.com/repos/OJ-Holdings/oj-workspace'
-  $checks=Invoke-RestMethod -Uri "$baseUri/commits/$sha/check-runs?per_page=100" -TimeoutSec 20 -Headers $headers
+  $baseUri='/repos/OJ-Holdings/oj-workspace'
+  $checks=GitHubApi "$baseUri/commits/$sha/check-runs?per_page=100"
   $required=@($checks.check_runs | Where-Object {$_.name -eq 'check' -and $_.head_sha -eq $sha} |
     Sort-Object started_at -Descending)
   $approved=$false
@@ -142,7 +148,7 @@ try {
     # Some app-initiated squash merges do not create a new push CI run.
     # Accept PR CI ONLY when GitHub verifies the merge relationship and the
     # squash-merge commit has exactly the same source tree as the CI-tested PR head.
-    $prs=@(Invoke-RestMethod -Uri "$baseUri/commits/$sha/pulls?per_page=30" -TimeoutSec 20 -Headers $headers)
+    $prs=@(GitHubApi "$baseUri/commits/$sha/pulls?per_page=30")
     $mergedPrs=@($prs | Where-Object {
       $_.merged_at -and $_.merge_commit_sha -eq $sha -and $_.base.ref -eq 'main' -and
       $_.head.repo.full_name -eq 'OJ-Holdings/oj-workspace'
@@ -150,10 +156,10 @@ try {
     if($mergedPrs.Count -eq 1){
       $head=[string]$mergedPrs[0].head.sha
       if($head -match '^[a-f0-9]{40}$'){
-        $merged=Invoke-RestMethod -Uri "$baseUri/git/commits/$sha" -TimeoutSec 20 -Headers $headers
-        $tested=Invoke-RestMethod -Uri "$baseUri/git/commits/$head" -TimeoutSec 20 -Headers $headers
+        $merged=GitHubApi "$baseUri/git/commits/$sha"
+        $tested=GitHubApi "$baseUri/git/commits/$head"
         if($merged.tree.sha -and $merged.tree.sha -eq $tested.tree.sha){
-          $prChecks=Invoke-RestMethod -Uri "$baseUri/commits/$head/check-runs?per_page=100" -TimeoutSec 20 -Headers $headers
+          $prChecks=GitHubApi "$baseUri/commits/$head/check-runs?per_page=100"
           $prRequired=@($prChecks.check_runs | Where-Object {
             $_.name -eq 'check' -and $_.head_sha -eq $head
           } | Sort-Object started_at -Descending)
