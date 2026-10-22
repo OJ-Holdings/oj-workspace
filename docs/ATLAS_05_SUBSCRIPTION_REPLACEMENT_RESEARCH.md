@@ -23,7 +23,7 @@ A paid subscription has five different cost components:
 Project: **REA — Reverse Engineer Anything**, GitHub [NabilRFG12/Reverse-Engineer-anything](https://github.com/NabilRFG12/Reverse-Engineer-anything); checked its published README/license on 2026-10-22.
 - It is an agent/MCP-assisted **investigation framework**, not a commercial SaaS clone generator and not access to a vendor's server or paid API.
 - Published capabilities include examining a target's front-end/browser behavior, static JavaScript/Electron code/maps/imports/IPC, .NET metadata, native binaries via Ghidra/Hopper/IDA configurations, permitted local runtime observations, and evidence/dossiers. Platform/provider support is specific and not universally available.
-- The README lists setup through \`npx rea-agents setup\`, and JavaScript inspection through \`npx -y rea-agents@latest analyze-javascript-application /absolute/path/to/app --json\`.
+- The README lists setup through `npx rea-agents setup`, and JavaScript inspection through `npx -y rea-agents@latest analyze-javascript-application /absolute/path/to/app --json`.
 - Documentation currently states Node.js 22.x (>=22.19), 24.x (>=24.11), or 26+ and npm for the base REA tooling; individual native targets may require licensed/distributed tools and host support. Windows Ghidra native support is described as experimental.
 - The repo is **MIT licensed** (license applies to REA itself, **not** to the proprietary targets inspected); its own disclaimer requires lawful authorization.
 - Analysis may run locally, but findings transmitted to a coding assistant remain subject to the assistant/provider's privacy terms. Never send OJ customer records, passwords or private app keys to arbitrary analysis targets.
@@ -36,7 +36,7 @@ Project: **REA — Reverse Engineer Anything**, GitHub [NabilRFG12/Reverse-Engin
 
 ### Safe ATLAS investigation procedure
 
-\`\`\`text
+```text
 1. Write feature hypothesis and record why OJ needs it.
 2. Inspect documentation, screenshots, accessible UX and published APIs first.
 3. Prefer OSS project with verified license, tests and supported deployment.
@@ -49,7 +49,7 @@ Project: **REA — Reverse Engineer Anything**, GitHub [NabilRFG12/Reverse-Engin
 7. Implement against OJ's typed domain API; test parity with our own fixtures.
 8. Add security, performance, licensing, data-retention and total-cost checks.
 9. Measure actual operating benefit; don't ship a clone because it looks cool.
-\`\`\`
+```
 
 **Do not:** bypass DRM/license checks or authentication, use stolen client binaries or private repos, extract subscriber-only assets, steal API keys or proprietary datasets, evade rate limits/anti-bot gates, impersonate a vendor, scrape private contacts, or deploy a decompiled proprietary component into OJ Workspace without appropriate rights. Legal research may be possible without any of those actions.
 
@@ -192,7 +192,7 @@ Every candidate gets a written answer to:
 
 ### Practical score model
 
-\`\`\`text
+```text
 annual_estimated_savings = verified_current_subscription_spend_that_is_replaced
   - new_hosting_cost - external_API_usage - backup/monitoring_cost
   - ongoing_maintenance_cost - transition_and_support_cost
@@ -203,7 +203,7 @@ capacity_value = independently_measured founder_hours_saved *
 build_only_if = reliability/security acceptance passes
   AND (annual_estimated_savings + capacity_value + cross_domain_value)
       justifies engineering opportunity cost versus other OJ work.
-\`\`\`
+```
 
 Never put “saves $500/month” on HQ without actual canceled subscription receipts and replacement quality evidence. Do not treat free OSS as free operations.
 
@@ -222,12 +222,12 @@ Never put “saves $500/month” on HQ without actual canceled subscription rece
 ## 7. Repo research registry specification
 
 Create future structured registry records with:
-- \`candidate_id\`, \`feature_ids\`, \`paid_benchmark\`, \`target_capability\`, \`reference_repo\`, \`observed_version\`
-- \`copyright_owner\`, \`license_url\`, \`license_type\`, \`copyleft_obligations\`, \`commercial_exclusions\`, \`trademark_notes\`
-- \`investigation_authority\`, \`target_hash\`, \`REA_version\`, \`evidence_urls\`, \`limitations\`
-- \`build_or_connect\`, \`authoritative_source\`, \`security_review\`, \`operational_cost\`, \`decision_owner\`, \`review_date\`, \`status\`.
+- `candidate_id`, `feature_ids`, `paid_benchmark`, `target_capability`, `reference_repo`, `observed_version`
+- `copyright_owner`, `license_url`, `license_type`, `copyleft_obligations`, `commercial_exclusions`, `trademark_notes`
+- `investigation_authority`, `target_hash`, `REA_version`, `evidence_urls`, `limitations`
+- `build_or_connect`, `authoritative_source`, `security_review`, `operational_cost`, `decision_owner`, `review_date`, `status`.
 
-Default \`status=research-only\`; no automatic package installation, decompilation, copying, account connection or SaaS signup.
+Default `status=research-only`; no automatic package installation, decompilation, copying, account connection or SaaS signup.
 
 ## 8. Immediate implementation philosophy
 
