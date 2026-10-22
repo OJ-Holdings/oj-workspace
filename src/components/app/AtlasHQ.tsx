@@ -116,11 +116,11 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
     <section className="atlas-section">
       <div className="atlas-section-heading"><div><p className="atlas-overline">COMPANY DIVISIONS / 04</p><h2>Four ventures. One command.</h2></div><Link href={base+'/businesses'}>Open business directory <ArrowRight size={15}/></Link></div>
       <div className="atlas-ventures">
-        {(snapshot?.ventures??(['exterior','solutions','essentials','content'] as const).map(id=>({id,active:id!=='content',openTasks:0,leads:null,upcomingBookings:null,primarySignal:null}))).map(v=>{
+        {(snapshot?.ventures??(['exterior','solutions','essentials','content'] as const).map(id=>({id,active:id!=='content',openTasks:null,leads:null,upcomingBookings:null,primarySignal:null}))).map(v=>{
           const meta=ventures[v.id];
           return <div key={v.id} className={'atlas-venture atlas-venture-'+v.id}>
             <div className="atlas-venture-head"><span className="atlas-venture-mark"><Image src={meta.mark} width={40} height={40} alt=""/></span><span className="atlas-venture-meta"><strong>{meta.name}</strong><small>{v.active?'Operating room':'Production studio · preview only'}</small></span></div>
-            <div className="atlas-venture-values"><div><strong>{v.openTasks}</strong><span>open tasks</span></div><div><strong>{v.leads===null?'—':v.leads}</strong><span>{v.leads===null?'CRM unknown':'shared CRM leads'}</span></div></div>
+            <div className="atlas-venture-values"><div><strong>{v.openTasks??'—'}</strong><span>open tasks</span></div><div><strong>{v.leads===null?'—':v.leads}</strong><span>{v.leads===null?'CRM unknown':'shared CRM leads'}</span></div></div>
             <p>{v.primarySignal?v.primarySignal.title:v.active?'No flagged source item in this snapshot. Not an all-clear.':'Persistence not enabled; no live studio data.'}</p>
             {v.active?<Link href={base+'/b/'+v.id}>Enter operating room <ArrowUpRight size={14}/></Link>:<Link href={base+'/tools/content-preview'}>View fictional preview <ArrowUpRight size={14}/></Link>}
           </div>;
