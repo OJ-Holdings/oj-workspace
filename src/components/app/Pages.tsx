@@ -9,6 +9,7 @@ import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures
 import { dayKey, documentTags, fileKind, fileSize, lastMonths, leadStages, monthlyTotals, relativeDay, type Dashboard, type DocumentItem, type EventItem, type Lead, type LeadStage } from '@/lib/dashboard';
 import { dollars, money } from '@/lib/metrics';
 import type { Card } from '@/lib/board';
+import { AtlasLeadRelations } from './AtlasRelations';
 import { LineChart } from './Charts';
 import type { DashboardStore } from './useDashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
@@ -85,7 +86,7 @@ export function MessagesView({ store, readOnly }: Common) {
 
 /* ------------------------------ Leads & CRM ------------------------------ */
 const blankLead = (venture: VentureId): Omit<Lead, 'created_at'> => ({ id: crypto.randomUUID(), venture, name: '', contact: '', stage: 'New', value: null, source: '', notes: '' });
-export function CrmView({ store, readOnly, venture }: Common) {
+export function CrmView({ store, readOnly, venture, cards = [] }: Common & { cards?: Card[] }) {
   const selected = useSearchParams().get('lead');
   const path = usePathname();
   const base = path.startsWith('/preview') ? '/preview' : '/workspace';
@@ -121,6 +122,7 @@ export function CrmView({ store, readOnly, venture }: Common) {
             <label>Source<input maxLength={120} value={draft.source} onChange={e => setDraft({ ...draft, source: e.target.value })} placeholder="Website, referral, door knocking" /></label>
             <label className="wide">Notes<textarea rows={2} maxLength={4000} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></label>
           </fieldset>
+          {!draft.isNew && <AtlasLeadRelations lead={draft} cards={cards} base={base} />}
           <div className="formactions">{!readOnly && !draft.isNew && <Link className="secondary" href={`${base}/tasks?sourceLead=${encodeURIComponent(draft.id)}`}>Create follow-up task</Link>}<button type="button" className="secondary" onClick={() => setDraft(null)}>Close</button><button className="primary" disabled={store.pending || readOnly}>Save lead</button></div>
         </form>
       )}
