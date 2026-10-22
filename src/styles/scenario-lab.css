@@ -1,0 +1,59 @@
+/* Hypothetical four-business scenario lab: calculations stay in browser, not the company ledger. */
+.scenario{max-width:1380px;margin-inline:auto}
+.scenario-back{margin:0 0 16px}
+.scenario-back a{display:inline-flex;gap:8px;align-items:center;color:var(--accent-hi);font-size:12px;font-weight:700}
+.scenario-hero{border:1px solid var(--line-2);border-radius:var(--r-xl);padding:clamp(22px,4vw,40px);background:radial-gradient(ellipse at 98% 10%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 56%),var(--panel);margin-bottom:18px}
+.scenario-hero h1{font-family:var(--font-display);font-weight:750;font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0 0 12px}
+.scenario-hero>p:not(.tools-eyebrow){max-width:65ch;font-size:13px;line-height:1.7;color:var(--ink-2)}
+.scenario-boundary{display:flex;align-items:flex-start;gap:12px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:10px;padding:14px 16px;max-width:800px;font-size:12px;line-height:1.6;color:var(--ink-2);margin-top:20px}
+.scenario-boundary svg{flex-shrink:0;color:var(--good);margin-top:2px}
+.scenario-boundary b{color:var(--ink)}
+.scenario-venture-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.scenario-venture-tabs button{padding:12px 17px;min-height:42px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px;font-weight:650;color:var(--ink-2)}
+.scenario-venture-tabs button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-hi)}
+.scenario-venture-tabs button:hover{border-color:var(--line-2);color:var(--ink)}
+.scenario-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.scenario-panel{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);padding:clamp(17px,2.2vw,25px);min-width:0}
+.scenario-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:17px}
+.scenario-panel-head .tools-eyebrow{margin:0 0 5px}
+.scenario-panel-head h2{font-family:var(--font-display);font-size:21px;letter-spacing:-.035em;margin:0}
+.scenario-panel-head>svg{color:var(--accent-hi)}
+.scenario-reset{display:flex;gap:6px;align-items:center;border:1px solid var(--line-2);border-radius:9px;padding:9px 12px;font-size:11px;font-weight:700;color:var(--ink-2)}
+.scenario-reset:hover{color:var(--accent-hi);border-color:var(--accent)}
+.scenario-explainer{font-size:12px;line-height:1.6;color:var(--ink-3);margin:0 0 18px}
+.scenario-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
+.scenario-fields label{display:flex;flex-direction:column;gap:7px;min-width:0}
+.scenario-fields label>span:first-child{font-size:12px;color:var(--ink-2);font-weight:700}
+.scenario-fields label>small{color:var(--ink-3);font-size:11px;line-height:1.5;min-height:32px}
+.scenario-input-wrap{display:flex;gap:7px;align-items:center;min-width:0;border:1px solid var(--line-2);border-radius:9px;background:var(--bg-2);padding:0 12px}
+.scenario-input-wrap em{font-size:13px;color:var(--ink-3);font-style:normal}
+.scenario-input-wrap input{min-width:0;width:100%;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink);border:0;background:transparent;padding:12px 0;box-shadow:none}
+.scenario-fields select{width:100%;min-height:43px;border:1px solid var(--line-2);border-radius:9px;background:var(--bg-2);color:var(--ink);padding:0 12px;font:inherit;font-size:12px}
+.scenario :is(button,input,select,a):focus-visible{outline:2px solid var(--accent-hi);outline-offset:3px}
+.scenario-primary-result{border-radius:13px;padding:22px;background:linear-gradient(130deg,color-mix(in srgb,var(--accent) 16%,var(--panel-2)),var(--bg-2));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line))}
+.scenario-primary-result>span,.scenario-period>span{display:block;font-size:12px;color:var(--ink-2);font-weight:700;margin-bottom:12px}
+.scenario-primary-result strong{display:block;font-size:clamp(32px,4.1vw,48px);font-family:var(--font-display);letter-spacing:-.06em;color:var(--good);font-variant-numeric:tabular-nums;line-height:1.1}
+.scenario-primary-result small,.scenario-period small{display:block;font-size:11px;line-height:1.6;color:var(--ink-3);margin-top:12px}
+.scenario-primary-result .scenario-negative,.scenario-period .scenario-negative{color:var(--bad)}
+.scenario-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 15px;margin:16px 0}
+.scenario-metrics>div{display:flex;flex-direction:column;gap:9px;min-width:0;border-bottom:1px solid var(--line);padding:13px 4px}
+.scenario-metrics span{font-size:11px;line-height:1.5;color:var(--ink-3)}
+.scenario-metrics strong{font-family:var(--font-display);font-size:18px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scenario-period{border:1px solid var(--line);border-radius:11px;padding:18px;background:var(--bg-2)}
+.scenario-period strong{font-size:28px;font-family:var(--font-display);letter-spacing:-.05em;color:var(--ink);font-variant-numeric:tabular-nums}
+.scenario-sensitivity{margin-top:16px}
+.scenario-method-label{font-size:11px;color:var(--ink-3)}
+.scenario-table-wrap{overflow-x:auto}
+.scenario-table-wrap table{width:100%;border-collapse:collapse;min-width:680px}
+.scenario-table-wrap :is(th,td){border-bottom:1px solid var(--line);padding:13px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+.scenario-table-wrap :is(th,td):first-child{text-align:left}
+.scenario-table-wrap thead th{font-weight:700;color:var(--ink-3);font-size:11px}
+.scenario-table-wrap tbody th{font-weight:650;color:var(--ink)}
+.scenario-table-wrap tbody td{color:var(--ink-2)}
+.scenario-method{display:flex;align-items:center;gap:7px;color:var(--accent-hi);font-size:12px;font-weight:700;margin-top:17px}
+.scenario-formula{padding:17px;border:1px dashed var(--line-2);border-radius:10px;background:var(--bg-2);margin-top:12px;font-size:11px;line-height:1.7;color:var(--ink-2)}
+.scenario-formula p{margin:0 0 10px}
+.scenario-formula p:last-child{margin-bottom:0}
+.scenario-disclaimer{margin:16px 0;font-size:11px;color:var(--ink-3);line-height:1.65}
+@media(max-width:980px){.scenario-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:610px){.scenario-fields{grid-template-columns:minmax(0,1fr)}.scenario-fields label>small{min-height:0}.scenario-reset{padding:8px}.scenario-primary-result strong{font-size:36px}.scenario-venture-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.scenario-venture-tabs button{padding:10px}.scenario-panel{padding:16px}}
