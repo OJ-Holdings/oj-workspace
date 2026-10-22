@@ -24,7 +24,7 @@ function ProtectDirectory([string]$path) {
   $acl = New-Object Security.AccessControl.DirectorySecurity
   $acl.SetAccessRuleProtection($true, $false)
   foreach ($entry in @($identity, 'NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators')) {
-    $rule = New-Object Security.AccessControl.FileSystemAccessRule(
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule -ArgumentList @(
       $entry, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'
     )
     $acl.AddAccessRule($rule)
@@ -72,7 +72,7 @@ function ReadSettings {
   }
   $settings = Get-Content -LiteralPath $settingsFile -Raw | ConvertFrom-Json
   if ($settings.project_ref -ne $defaultRef -or
-      $settings.host -notmatch '^[a-zA-Z0-9.-]+$' -or
+      $settings.host -notmatch '^[a-z0-9.-]+\.pooler\.supabase\.com$' -or
       $settings.user -notmatch '^[a-zA-Z0-9_.-]+$' -or
       [int]$settings.port -ne 5432) {
     throw 'Stored backup settings are invalid or target a different project'
@@ -88,9 +88,9 @@ if ($Action -eq 'Configure') {
   Write-Output 'Enter the hostname and username shown there. Do not paste a connection URI.'
   $hostName = (Read-Host 'Session pooler host').Trim()
   $userName = (Read-Host "Database user (usually postgres.$defaultRef)").Trim()
-  if ($hostName -notmatch '^[a-zA-Z0-9.-]+$' -or
+  if ($hostName -notmatch '^[a-z0-9.-]+\.pooler\.supabase\.com$' -or
       $userName -ne ('postgres.' + $defaultRef)) {
-    throw 'The host must be a DNS name and the user must match this project session-pooler username'
+    throw 'Enter the Supabase-managed session-pooler hostname and the exact username for this project'
   }
   $password = Read-Host 'Database password (hidden; never saved in plain text)' -AsSecureString
   if (-not $password -or $password.Length -eq 0) { throw 'A database password is required' }
