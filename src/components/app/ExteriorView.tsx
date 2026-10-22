@@ -12,6 +12,7 @@ import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type Jo
 import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { JobsCalendar } from './ExteriorCalendar';
+import { CommercialDesk } from './CommercialDesk';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { loadJobCrew } from '@/app/workspace/employees/actions';
@@ -82,6 +83,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
+  if (tab === 'commercial') return <CommercialDesk data={data} org={org} mode={mode} />;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
