@@ -1,6 +1,6 @@
-// The three OJ businesses: names, copy, and which brand assets and theme each one uses.
+// The four OJ operating brands: names, assets and theme metadata.
 // Colours live in src/styles/tokens.css under [data-venture]; nothing here invents data.
-export const ventureIds = ['exterior', 'solutions', 'essentials'] as const;
+export const ventureIds = ['exterior', 'solutions', 'essentials', 'content'] as const;
 export type VentureId = typeof ventureIds[number];
 
 export type Venture = {
@@ -40,6 +40,14 @@ export const ventures: Record<VentureId, Venture> = {
     chips: ['Beauty', 'Wellness', 'Tech', 'Car and travel'],
     mark: '/brand/essentials-mark.png',
     source: 'Shopify',
+  },
+  content: {
+    id: 'content', name: 'Oscar Jacob', short: 'Oscar Jacob',
+    tagline: 'Make something worth watching.',
+    description: 'Original video, editorial production, and audience building.',
+    chips: ['Ideas', 'Filming', 'Editing', 'Publishing'],
+    mark: '/brand/content-mark.svg',
+    source: 'the Oscar Jacob production records',
   },
 };
 
