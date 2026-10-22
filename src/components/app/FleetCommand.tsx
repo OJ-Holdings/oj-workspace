@@ -25,7 +25,7 @@ const kindNames: Record<FleetKind,string> = {
   'rig-component':'Rig component',tool:'Tool',other:'Other asset',
 };
 const statusNames: Record<FleetStatus,string> = {
-  ready:'Operational', 'needs-service':'Needs service', 'out-of-service':'Out of service',
+  unverified:'Not inspected', ready:'Operational', 'needs-service':'Needs service', 'out-of-service':'Out of service',
 };
 const usd=(v:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(v);
 const numberOrNull=(raw:string):number|null=>raw.trim()?Number(raw):null;
@@ -36,7 +36,7 @@ const todayLocal=()=>{
   return get('year')+'-'+get('month')+'-'+get('day');
 };
 const emptyAsset=():FleetAsset=>({
-  id:newId(),name:'',kind:'vehicle',model:'',status:'ready',unit:'miles',
+  id:newId(),name:'',kind:'vehicle',model:'',status:'unverified',unit:'miles',
   reading:null,nextServiceReading:null,nextServiceDate:null,notes:'',createdAt:new Date().toISOString(),
 });
 
