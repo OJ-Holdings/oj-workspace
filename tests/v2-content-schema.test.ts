@@ -31,6 +31,7 @@ test('V2 venture registry preserves historical OJ data and scopes Oscar Jacob to
            ('${orgA}','${jacob}','owner','Jacob'),
            ('${orgA}','${viewer}','viewer','Viewer'),
            ('${orgB}','${outsider}','owner','Outsider');
+    set request.jwt.claim.sub = '${oscar}';
     insert into public.oj_cards(organization_id,title,business,created_by)
       values ('${orgA}','Legacy Exterior task','exterior','${oscar}');
     insert into public.oj_leads(organization_id,name,venture,created_by)
