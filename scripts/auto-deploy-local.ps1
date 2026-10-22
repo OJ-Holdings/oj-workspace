@@ -177,8 +177,18 @@ try {
   }
   if(-not $Apply){Log ('READY to deploy ' + $sha.Substring(0,12) + ' (no changes made)');return}
   $priorLocal=@(InvokeGit @('rev-parse','HEAD'))[0].ToString().Trim()
-  $tracked=@(InvokeGit @('status','--porcelain','--untracked-files=no'))
-  if($tracked.Count -gt 0){throw 'Local tracked edits exist; no fast-forward or deployment allowed'}
+  # Windows can report a metadata-only porcelain M even when the file and index
+  # content match HEAD. Refresh the index and use Git's diff exit status.
+  InvokeGit @('update-index','--refresh') | Out-Null
+  foreach($diffArgs in @(@('diff','--quiet','--exit-code'),@('diff','--cached','--quiet','--exit-code'))){
+    Push-Location $repo
+    try {
+      & git @diffArgs
+      $diffExit=$LASTEXITCODE
+    } finally { Pop-Location }
+    if($diffExit -eq 1){throw 'Local tracked edits exist; no fast-forward or deployment allowed'}
+    if($diffExit -ne 0){throw ('Unable to verify tracked source cleanliness (git exit ' + $diffExit + ')')}
+  }
   if((@(InvokeGit @('branch','--show-current'))[0].ToString().Trim()) -ne 'main'){
     throw 'Local source checkout must be on main'
   }
