@@ -8,7 +8,7 @@ An operating system is not a series of unrelated tabs. Every object has a canoni
 
 ATLAS's common object model:
 
-\`\`\`text
+```text
 ORGANIZATION / legal entity (verified facts)
   |-- VENTURE / brand / operating segment
   |-- USER / MEMBERSHIP / capability / role
@@ -32,7 +32,7 @@ ORGANIZATION / legal entity (verified facts)
   |-- MEDIA PROJECT --> ASSET / REVIEW --> PUBLICATION RECEIPT / SPONSOR
   |-- CLIENT SERVICE --> CONFIG / DEPLOY / QA --> SLA / RENEWAL
   +-- SOURCE MAPPING / EVENT OUTBOX / AUDIT / METRIC DEFINITIONS
-\`\`\`
+```
 
 **Important:** the same person can relate to Exterior and Solutions, but record authorization still depends on organization membership, venture visibility, client/project grants, and field-level sensitivity. Sharing an identity does not authorize sharing every financial/client detail.
 
@@ -61,7 +61,7 @@ ORGANIZATION / legal entity (verified facts)
 
 ### Source identity invariants
 - Internal IDs are opaque UUIDs or rigorously validated legacy keys, scoped by organization; never join entities by *display names*, phone numbers or fuzzy similarity alone.
-- External source key is \`(organization, provider, source_type, external_id)\` with unique constraint, last seen, checksum, sync watermark, provider cursor and raw payload hash (sensitive raw payload retained only when lawful and needed).
+- External source key is `(organization, provider, source_type, external_id)` with unique constraint, last seen, checksum, sync watermark, provider cursor and raw payload hash (sensitive raw payload retained only when lawful and needed).
 - A record can be **local-authoritative**, **provider-authoritative**, **derived** or **proposal-only**. “Source of truth” is selected per field and action, not guessed once per integration.
 - Relationship proposals by fuzzy match are reviewable separate candidate rows; only a human-confirmed entity link becomes canonical.
 - Every row with financial semantics carries currency, type of amount, event date/time, verification state and coverage denominator.
@@ -71,53 +71,53 @@ ORGANIZATION / legal entity (verified facts)
 ## 3. Model states and transitions explicitly
 
 ### Exterior service lifecycle
-\`\`\`text
+```text
 INQUIRY -> QUALIFIED -> SURVEYED -> ESTIMATE_DRAFT -> IN_REVIEW
  -> PROPOSAL_SENT -> CUSTOMER_ACCEPTED -> SCHEDULED
  -> READY -> DISPATCHED -> IN_PROGRESS -> QA_PENDING -> FULFILLED
  -> INVOICED -> (PARTIALLY_PAID | SETTLED | OVERDUE | DISPUTED)
  -> RETENTION / REBOOK / WARRANTY
-\`\`\`
+```
 
 Record transitions must be supported by correct evidence:
-- \`CUSTOMER_ACCEPTED\` needs signature/confirmation or tracked customer acceptance evidence, **not** an internal founder review.
-- \`READY\` requires crew/vehicle/asset/resource checks; it is not a payment state.
-- \`FULFILLED\` means closeout accepted, **not** paid.
-- \`SETTLED\` requires payment-provider/bank or acknowledged externally verified collection receipt; a recorded manual amount remains **unverified manual** until corroborated.
+- `CUSTOMER_ACCEPTED` needs signature/confirmation or tracked customer acceptance evidence, **not** an internal founder review.
+- `READY` requires crew/vehicle/asset/resource checks; it is not a payment state.
+- `FULFILLED` means closeout accepted, **not** paid.
+- `SETTLED` requires payment-provider/bank or acknowledged externally verified collection receipt; a recorded manual amount remains **unverified manual** until corroborated.
 - Refunds, disputes, cancellations, partial completions, change orders and redo visits are independent exceptions—not silently rewritten totals.
 
 ### Solutions lifecycle
-\`\`\`text
+```text
 IMPORTED -> RESEARCHED -> CONTACTABLE -> DRAFT_READY -> SEND_APPROVED
  -> SENT_RECEIPT -> RESPONSE -> DEMO -> PROPOSAL -> CONTRACTED
  -> ONBOARDING -> QA_VERIFIED -> IN_SERVICE -> RENEWAL
  -> PAUSED / INCIDENT / CHURNED
-\`\`\`
+```
 A GHL imported prospect is never implicitly sent. Signed setup pricing, contract MRR and actual cash collection are distinct.
 
 ### Essentials lifecycle
-\`\`\`text
+```text
 SAMPLE -> TESTED -> ACTIVE_SKU -> INVENTORY_AVAILABLE
  -> ORDER_CREATED -> PAYMENT_AUTHORIZED/CAPTURED
  -> FULFILLMENT_PENDING -> SHIPPED -> DELIVERED
  -> RETURN_REQUESTED / REFUNDED / DISPUTED
  -> SETTLEMENT_RECONCILED
-\`\`\`
+```
 Profit only when fee/COGS/shipping/ad/returns coverage is sufficient for a clearly scoped period or order.
 
 ### Oscar Jacob lifecycle
-\`\`\`text
+```text
 IDEA -> APPROVED_PROJECT -> SCRIPT -> PREPRODUCTION -> SHOOT
  -> EDIT_V1..N -> REVIEW -> READY_TO_PUBLISH
  -> PUBLISHED_WITH_URL_RECEIPT -> PERFORMANCE_OBSERVED
-\`\`\`
+```
 A draft URL is not a published video; editing “approved” is not actual platform upload.
 
 ## 4. Shared command contract
 
 Every cross-module action is a typed, authorized, recorded transaction:
 
-\`\`\`text
+```text
 request(action, actor, organization, venture, targetId, expectedRevision, payload)
   -> permission + policy
   -> data/source preconditions
@@ -128,7 +128,7 @@ request(action, actor, organization, venture, targetId, expectedRevision, payloa
   -> optional idempotent outbox for provider action
   -> asynchronous attempt + result receipt
   -> source reconciliation and UI update
-\`\`\`
+```
 
 **UI labels must distinguish** Draft / Scheduled / Requested / Approved / Sent / Acknowledged / Failed / Retried / Reconciled. Buttons never show “Done” when only a message was queued.
 
@@ -136,7 +136,7 @@ Example: "Create a preparation task from a booking" requires an authorized activ
 
 ## 5. Platform layers
 
-\`\`\`text
+```text
 Presentation: ATLAS Shell / Entity Cockpit / Business Rooms / Field App
 Domain services: CRM, Operations, Estimates, Dispatch, Fleet, Treasury,
                  Commerce, Solutions Client Ops, Media, Control
@@ -150,7 +150,7 @@ Execution: Transaction + outbox, durable jobs, retry/dead-letter,
            rate limits, release guard and observability
 Infrastructure: Next.js/TypeScript, PostgreSQL/Supabase RLS, protected storage,
                 approved deployment host, encrypted backup/restores
-\`\`\`
+```
 
 Keep a **modular monolith** until actual throughput/reliability demands separated services. Premature microservices would multiply deployment and security problems for a two-founder team. Domain modules can have dedicated APIs/interfaces while sharing one permission and transaction kernel.
 
@@ -205,7 +205,7 @@ Every displayed monetary aggregation defines:
 - All outbound provider mutations use an outbox with idempotency key, actor and approval receipt, explicit retry/backoff, and a dead-letter queue.
 - Webhook signatures validated at ingestion; external IDs and event versions deduplicate replays; timestamps don't imply global ordering.
 - Concurrency: expected revision + database transaction; conflict resolution UI preserves both founder drafts.
-- Eventual-consistency badges for copied provider data: \`pending sync\`, \`observed at\`, \`reconciled\`, \`failed\`.
+- Eventual-consistency badges for copied provider data: `pending sync`, `observed at`, `reconciled`, `failed`.
 - Network and provider failure: core internal task work remains operable where authorized; outbound states don't magically advance.
 
 ## 11. Index/search architecture
