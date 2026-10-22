@@ -116,6 +116,7 @@ if ($Action -eq 'Configure') {
   $password | ConvertFrom-SecureString | Set-Content -LiteralPath $secretFile -Encoding UTF8
   Write-Output 'Configuration saved with a Windows user-bound DPAPI-encrypted password.'
   Write-Output "Private backup destination: $destination"
+  Write-Warning 'The database archive is NOT encrypted; store it on a BitLocker-encrypted volume and use encrypted offsite storage.'
   Write-Output 'NOTE: Scheduled backups must run as THIS SAME Windows user to decrypt DPAPI credentials.'
   Write-Output 'NEXT: Run this script with -Action Backup to create an actual backup.'
   return
@@ -157,7 +158,7 @@ $oldPw = $env:PGPASSWORD
 $oldSsl = $env:PGSSLMODE
 $oldTimeout = $env:PGCONNECT_TIMEOUT
 try {
-  $credential = Get-Content -LiteralPath $secretFile -Raw | ConvertTo-SecureString
+  $credential = ConvertTo-SecureString ((Get-Content -LiteralPath $secretFile -Raw).Trim())
   $passwordBuffer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential)
   $plaintext = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordBuffer)
   $env:PGPASSWORD = $plaintext
@@ -169,6 +170,8 @@ try {
   # A custom-format dump includes non-system database schemas such as auth
   # and storage metadata. It does not contain Storage API object bytes or
   # global Postgres roles; verify actual restore compatibility separately.
+  # Custom-format PostgreSQL dumps are NOT ENCRYPTED. Restrict filesystem
+  # permissions and copy to an encrypted off-device volume before relying on it.
   $args = @(
     '--format=custom', '--no-owner', '--no-acl', '--verbose',
     '--host', [string]$settings.host,
@@ -177,7 +180,7 @@ try {
     '--dbname', [string]$settings.database,
     '--file', $targetPartial
   )
-  Write-Output 'Creating encrypted-at-rest-location-dependent logical database backup (read-only source connection)...'
+  Write-Output 'Creating a PRIVATE, UNENCRYPTED logical database backup (read-only source connection)...'
   $priorErrorActionPreference = $ErrorActionPreference
   try {
     $ErrorActionPreference = 'Continue'
