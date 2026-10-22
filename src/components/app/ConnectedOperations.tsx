@@ -18,7 +18,7 @@ import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures
 import { workDay } from '@/lib/task-workflows';
 
 type Props={base:string;cards:Card[];dashboard:Dashboard|null;jobs:JobItem[];
-  mode:'live'|'preview';limited:boolean};
+  mode:'live'|'preview';limited:boolean;readOnly:boolean};
 const labels:Record<OperatingKind,string>={
   task:'Task',lead:'CRM lead',booking:'Exterior booking',event:'Calendar',
   document:'Document',finance:'Finance record',message:'Team message',
@@ -27,7 +27,7 @@ const kinds=new Set<string>(operatingKinds);
 const tasksFirst=(r:OperatingRecord)=>r.priority<=5&&r.kind==='task';
 const fragment=(base:string,path:string)=>base+path;
 
-export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited}:Props){
+export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited,readOnly}:Props){
   const params=useSearchParams();
   const businessParam=params.get('business');
   const [today,setToday]=useState('');
@@ -115,6 +115,8 @@ export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited}:Pro
             <Link href={fragment(base,record.href)} className="operations-record-title">{record.title}<ArrowUpRight size={16}/></Link>
             <p>{record.detail}</p>
             <small>{record.source} · {record.status}</small>
+            {!readOnly&&record.kind==='lead'&&<Link className="operations-handoff" href={base+'?sourceLead='+encodeURIComponent(record.key.slice(5))}>Create linked CRM follow-up task draft <ArrowUpRight size={13}/></Link>}
+            {!readOnly&&record.kind==='booking'&&mode==='live'&&<Link className="operations-handoff" href={base+'?sourceBooking='+encodeURIComponent(record.key.slice(8))}>Prepare this booking as a linked task draft <ArrowUpRight size={13}/></Link>}
             {(relations.get(record.key)??[]).length>0&&<div className="operations-relations"><GitBranchPlus size={14}/>
               {(relations.get(record.key)??[]).map(r=><Link key={r.key} href={fragment(base,r.href)} title={r.provenance}>{r.label}<ArrowUpRight size={12}/></Link>)}
             </div>}
@@ -127,9 +129,10 @@ export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited}:Pro
           <h2><GitBranchPlus size={19}/> Verified connections</h2>
           <p>Relationships are shown only when their identifiers actually match; a customer name or email similarity never creates a link.</p>
           <strong>{index.relations.length} identifier-backed links in loaded records</strong>
-          <div className="operations-mini-stat"><span>Task → CRM lead</span><b>{index.relations.filter(r=>r.toKey!==null).length}</b></div>
+          <div className="operations-mini-stat"><span>Task → CRM lead</span><b>{index.relations.filter(r=>r.toKey?.startsWith('lead:')).length}</b></div>
+          <div className="operations-mini-stat"><span>Task → Exterior booking</span><b>{index.relations.filter(r=>r.toKey?.startsWith('booking:')).length}</b></div>
           <div className="operations-mini-stat"><span>Exterior booking → source lead</span><b>{index.relations.filter(r=>r.toKey===null).length}</b></div>
-          <p>To connect a task to a workspace CRM lead now, include its actual <code>/crm?lead=…</code> record link in the task description. Links are verified against loaded records and the same business before display.</p>
+          <p>Use a record's “Create linked task draft” action to carry an exact source ID into the normal task editor. The draft is not saved until you submit it. Links are verified against loaded records; names never establish a match.</p>
           <Link href={base+'/tasks'} className="operations-aside-link">Open shared task board <ArrowUpRight size={15}/></Link>
         </section>
         <section className="operations-panel">
