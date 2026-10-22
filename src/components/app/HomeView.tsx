@@ -15,6 +15,7 @@ import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
 import { ExecutiveCommand } from './ExecutiveCommand';
 import { CorporateLaunchpad } from './CorporateTools';
+import { CorporateIntelligencePulse } from './CorporateIntelligence';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { workDay } from '@/lib/task-workflows';
 
@@ -49,6 +50,7 @@ export function HomeView({ base, board, store, work, metrics: derived, jobs, mod
   return (
     <div className={loading ? 'home is-loading' : 'home'}>
       <ExecutiveCommand base={base} board={board} store={store} metrics={metrics} jobs={jobs} mode={mode} today={todayKey} displayName={displayName} readOnly={readOnly} />
+      <CorporateIntelligencePulse base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} today={todayKey} preview={mode === 'preview'} />
       <CorporateLaunchpad base={base} />
 
 
