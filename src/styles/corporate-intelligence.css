@@ -74,3 +74,22 @@
 @media(max-width:750px){.intelligence-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.intelligence-aside{grid-template-columns:minmax(0,1fr)}.intelligence-section-head{flex-wrap:wrap}.intelligence-filterbar label{flex:1 1 130px}.intelligence-filterbar select{width:100%;min-width:0}.intelligence-filterbar .intelligence-search{flex-basis:100%}}
 @media(max-width:440px){.intelligence-hero,.intelligence-feed,.intelligence-panel{padding:15px}.intelligence-kpis strong{font-size:27px}.intelligence-signal{padding:12px;gap:9px}.intelligence-signal-icon{width:30px;height:30px}}
 @media(prefers-reduced-motion:reduce){.intelligence *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Actionable executive priorities in the existing HQ, no extra fetch or write. */
+.intelligence-pulse{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);padding:clamp(16px,2.5vw,24px);margin:16px 0}
+.intelligence-pulse-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:15px}
+.intelligence-pulse-head .tools-eyebrow{margin-bottom:8px}
+.intelligence-pulse-head h2{font-family:var(--font-display);font-size:21px;letter-spacing:-.035em;margin:0 0 5px}
+.intelligence-pulse-head p:not(.tools-eyebrow){font-size:12px;line-height:1.6;color:var(--ink-3);margin:0}
+.intelligence-pulse-head>a{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--accent-hi);white-space:nowrap}
+.intelligence-pulse-items{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.intelligence-pulse-items li{display:flex;flex-wrap:wrap;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg-2);padding:13px;border-radius:10px;min-width:0}
+.intelligence-pulse-text{display:flex;flex-direction:column;gap:7px;min-width:0;flex:1 1 100%}
+.intelligence-pulse-text strong{font-size:12px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.intelligence-pulse-text small{font-size:10px;color:var(--ink-3);line-height:1.4}
+.intelligence-pulse-items li>a{display:grid;place-items:center;margin-left:auto;width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;color:var(--accent-hi)}
+.intelligence-pulse-items li>a:hover{border-color:var(--accent)}
+.intelligence-pulse-empty{border:1px dashed var(--line-2);padding:14px;border-radius:9px;font-size:12px;color:var(--ink-3);line-height:1.5}
+.intelligence-pulse-note{font-size:10px;line-height:1.55;color:var(--ink-3);margin:13px 0 0}
+@media(max-width:960px){.intelligence-pulse-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.intelligence-pulse-head{align-items:flex-start;flex-wrap:wrap}.intelligence-pulse-items{grid-template-columns:minmax(0,1fr)}}
