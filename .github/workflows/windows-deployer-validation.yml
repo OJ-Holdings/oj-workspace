@@ -35,3 +35,12 @@ jobs:
             }
             Write-Host "Parsed $path"
           }
+      - name: Smoke-test read-only status and inert installer
+        shell: powershell
+        run: |
+          .\scripts\auto-deploy-local.ps1 -Status
+          if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw 'Read-only status failed' }
+          .\scripts\install-auto-deploy-task.ps1
+          if (Get-ScheduledTask -TaskName 'OJ Workspace - GitHub Auto Deploy' -ErrorAction SilentlyContinue) {
+            throw 'Installer must not register a task without -Install'
+          }
