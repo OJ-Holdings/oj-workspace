@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# When implementation pushes multiple revisions to the same PR, only the
+# newest PR commit matters. Cancel superseded PR runs (and their failure
+# notifications) but NEVER cancel a production/main check.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
