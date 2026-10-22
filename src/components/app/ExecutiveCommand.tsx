@@ -25,7 +25,6 @@ const future = (today: string, days: number) => {
   date.setDate(date.getDate()+days);
   return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
 };
-const badge = (label: string, value: number | string) => <span className="exec-card-pill"><span>{label}</span><b>{value}</b></span>;
 
 export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displayName,readOnly}:Props) {
   const [queue,setQueue]=useState<'focus'|'team'|'dispatch'>('focus');
@@ -39,7 +38,7 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
       return weight(a)-weight(b)||(a.due_date||'9999').localeCompare(b.due_date||'9999');
     }).slice(0,8),[board.data.cards,today]);
   const team=useMemo(()=>open.filter(c=>c.stage==='Review'||!c.assignee.trim()).slice(0,8),[board.data.cards]);
-  const upcoming=useMemo(()=>jobs.filter(j=>Boolean(today && j.date>=today && j.date<=future(today,14)))
+  const upcoming=useMemo(()=>jobs.filter(j=>Boolean(today && j.date>=today && j.date<=future(today,14) && j.status!=='cancelled' && j.status!=='denied'))
     .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8),[jobs,today]);
   const recorded=Object.values(metrics.ventures).reduce((sum,item)=>sum+(item?.revenueMtd??0),0);
   const hasFigures=Object.values(metrics.ventures).some(Boolean);
@@ -85,7 +84,7 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
         {queue!=='dispatch' ? (queue==='focus'?focus:team).length > 0 ?
           <ol className="exec-items">{(queue==='focus'?focus:team).map((task,index)=><li key={task.id}>
             <span className="exec-index">{String(index+1).padStart(2,'0')}</span>
-            <button onClick={()=>board.openCard(task)}><b>{task.title}</b><small><i style={{background:'var(--c-'+task.business}}/>{ventures[task.business].short} · {task.assignee||'Unassigned'} · {task.stage}</small></button>
+            <button onClick={()=>board.openCard(task)}><b>{task.title}</b><small><i style={{background:'var(--c-'+task.business+')'}}/>{ventures[task.business].short} · {task.assignee||'Unassigned'} · {task.stage}</small></button>
             <time>{task.due_date?shortDate(task.due_date):task.stage==='Review'?'Review':'Open'}</time><ArrowUpRight size={16}/>
           </li>)}</ol> : <div className="exec-empty">No matching tasks in the loaded workspace board.</div> :
           upcoming.length>0?<ol className="exec-items">{upcoming.map((job,index)=><li key={job.id}>
