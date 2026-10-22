@@ -69,7 +69,7 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
   const records:OperatingRecord[]=[];
   const relations:OperatingRelation[]=[];
   const coverage=new Map<VentureId|null,BusinessCoverage>(
-    [...ventureIds,null].map(id=>[id,empty(id)]));
+    [...ventureIds,null].map(id=>[id,empty(id)] as const));
   const add=(record:OperatingRecord)=>{
     records.push(record);
     const stat=coverage.get(record.business);
@@ -172,7 +172,8 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
   if(!dashboard)warnings.unshift('Workspace dashboard records unavailable: CRM, finance, documents, events and messages are unknown.');
   if(limited)warnings.unshift('Your authorized workspace snapshot was capped; counts may understate actual activity.');
   if(capped)warnings.unshift('The unified results list displays only its first 2,500 prioritized records; source pages contain more.');
-  return {records:shown,relations:relations.filter(r=>shown.some(x=>x.key===r.fromKey)),
+  const visibleKeys=new Set(shown.map(record=>record.key));
+  return {records:shown,relations:relations.filter(r=>visibleKeys.has(r.fromKey)),
     coverage:[...coverage.values()],loaded:records.length,shown:shown.length,capped,
     dashboardAvailable:Boolean(dashboard),warnings,
     counts:{overdue,review,unassigned,upcomingBookings,dueNextSeven}};
