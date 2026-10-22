@@ -18,11 +18,13 @@ function Log([string]$value) {
 }
 function InvokeGit([string[]]$gitArgs) {
   Push-Location $repo
+  $priorPreference = $ErrorActionPreference
   try {
+    $ErrorActionPreference = 'Continue'
     $output = @(& git @gitArgs 2>&1 | Where-Object { $null -ne $_ })
     if ($LASTEXITCODE -ne 0) { throw ('git failed: ' + ($output | Out-String)) }
     return $output
-  } finally { Pop-Location }
+  } finally { $ErrorActionPreference = $priorPreference; Pop-Location }
 }
 function PortOwner([int]$port) {
   $list = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
@@ -86,12 +88,14 @@ function StopPort([int]$port) {
 function Npm([string[]]$npmArgs,[string]$dir,[string]$sha) {
   $file = Join-Path $logs (($sha.Substring(0,12)) + '-' + ($npmArgs -join '-') + '.log')
   Push-Location $dir
+  $priorPreference = $ErrorActionPreference
   try {
+    $ErrorActionPreference = 'Continue'
     & npm.cmd @npmArgs *> $file
     if($LASTEXITCODE -ne 0){
       throw ('npm ' + ($npmArgs -join ' ') + ' failed. See ' + $file + ': ' + (Get-Content $file -Tail 12 | Out-String))
     }
-  } finally {Pop-Location}
+  } finally {$ErrorActionPreference = $priorPreference; Pop-Location}
   Log ('PASSED npm ' + ($npmArgs -join ' '))
 }
 $lock = $null
