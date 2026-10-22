@@ -1,0 +1,37 @@
+name: Windows Deploy Script Validation
+
+on:
+  pull_request:
+    paths:
+      - "scripts/*deploy*.ps1"
+      - ".github/workflows/windows-deployer-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/*deploy*.ps1"
+      - ".github/workflows/windows-deployer-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-parser:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse deployment scripts with Windows PowerShell
+        shell: powershell
+        run: |
+          $all = @('scripts/auto-deploy-local.ps1', 'scripts/install-auto-deploy-task.ps1')
+          foreach ($path in $all) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path).Path, [ref]$tokens, [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List | Out-String | Write-Error
+              throw "Invalid PowerShell syntax in $path"
+            }
+            Write-Host "Parsed $path"
+          }
