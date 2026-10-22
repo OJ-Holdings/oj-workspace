@@ -84,7 +84,7 @@ cd C:\STRATHOS\apps\oj-workspace-deploy-test
 .\scripts\verify-production-windows.ps1 -TriggerUpdater
 ~~~
 
-Expect PASS: this Windows host is serving exactly GitHub main on port 3011. This is a local-host check; separately verify Tailscale Funnel and a real signed-in founder session.
+With -TriggerUpdater, the verifier checks periodically for up to five minutes while the existing guarded updater builds. Expect PASS: this Windows host is serving exactly GitHub main on port 3011. This is a local-host check; separately verify Tailscale Funnel and a real signed-in founder session.
 
 ## CI notification changes
 
