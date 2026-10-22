@@ -193,3 +193,5 @@
 .atlas-legacy-heading span{font-size:9px;letter-spacing:.19em;font-weight:840;color:var(--ink-3)}
 .atlas-legacy-heading h2{margin:7px 0;font:790 22px/1.2 var(--font-display);letter-spacing:-.05em}
 .atlas-legacy-heading p{font-size:11px;line-height:1.6;color:var(--ink-3);margin:0}
+
+@media(max-width:1000px){.atlas-shell .fab{bottom:calc(78px + env(safe-area-inset-bottom));z-index:23}}
