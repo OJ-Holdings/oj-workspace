@@ -7,8 +7,8 @@
 ## ATLAS V3 / Release 01 — COMMAND REBORN
 
 **GitHub PR:** [#57](https://github.com/OJ-Holdings/oj-workspace/pull/57).
-**Merged SHA:** \`133f309fb6b7fdf2441f21076d16221772745581\`.
-**Reviewed PR-head CI:** \`39872873154\` — SUCCESS (PowerShell parser, npm ci, TypeScript, tests, production Next.js build).
+**Merged SHA:** `133f309fb6b7fdf2441f21076d16221772745581`.
+**Reviewed PR-head CI:** `39872873154` — SUCCESS (PowerShell parser, npm ci, TypeScript, tests, production Next.js build).
 **Deployment:** GitHub merge verified. Windows port 3011/Tailscale serving SHA **not independently verified**.
 
 ### Main-screen changes
@@ -20,37 +20,37 @@
 - Trust guardrails explicitly state that recorded finance tags are not verified cash, completed tasks are not payments, staff assignee text is not live presence, a preview is fictional, and incomplete sources are unknown.
 
 ### Navigation consolidation
-- The old standalone **Connected Operations** link is removed from primary rail, Tools Hub registry promotion, homepage pulse and business overview banners. Its already-implemented \`/workspace/tools/operations\` route remains accessible as a backwards-compatible destination while the underlying typed relationship layer is reused in HQ.
+- The old standalone **Connected Operations** link is removed from primary rail, Tools Hub registry promotion, homepage pulse and business overview banners. Its already-implemented `/workspace/tools/operations` route remains accessible as a backwards-compatible destination while the underlying typed relationship layer is reused in HQ.
 - This does **not** delete customers, tasks, source links or a legacy endpoint. Any future full route redirect/deprecation must be reviewed separately.
 - Existing Venture, Analytics, Fleet, Commercial and business screens remain in place and retain their current authorized data operations.
 
 ### Code map
-- \`src/components/app/AtlasHQ.tsx\`
-- \`src/lib/atlas-command.ts\`
-- \`src/styles/atlas-v3.css\`
-- \`tests/atlas-command.test.ts\`
-- Wiring: \`HomeView.tsx\`, \`Shell.tsx\`, \`VentureView.tsx\`, \`CorporateTools.tsx\`, \`corporate-tools.ts\`, \`globals.css\`.
+- `src/components/app/AtlasHQ.tsx`
+- `src/lib/atlas-command.ts`
+- `src/styles/atlas-v3.css`
+- `tests/atlas-command.test.ts`
+- Wiring: `HomeView.tsx`, `Shell.tsx`, `VentureView.tsx`, `CorporateTools.tsx`, `corporate-tools.ts`, `globals.css`.
 
 ## ATLAS V3 / Release 02 — ENTITY CONTEXT IN THE REAL WORK
 
 **GitHub PR:** [#58](https://github.com/OJ-Holdings/oj-workspace/pull/58).
-**Merged SHA:** \`88c43eb6ff798d6d8c446b1e07a71b941741f96c\`.
-**Reviewed PR-head CI:** \`39873486495\` — SUCCESS (PowerShell parser, npm ci, TypeScript, tests, production build).
+**Merged SHA:** `88c43eb6ff798d6d8c446b1e07a71b941741f96c`.
+**Reviewed PR-head CI:** `39873486495` — SUCCESS (PowerShell parser, npm ci, TypeScript, tests, production build).
 **Deployment:** GitHub merge verified. Exact Windows-host release **not independently verified**.
 
 ### Company work integration
 - Workspace CRM lead details now show a polished **Related workspace tasks** panel with the actual linked task status, assignee, due date and deep link.
 - Shared task editor now shows **Source relationships** panels for exact loaded CRM lead IDs and/or active Exterior booking IDs.
-- Source references in task handoff description (including \`Workspace CRM source: /workspace/crm?lead=ID\` and \`Booking record ID: ID\`) are recognized by the existing exact-ID selector. Same venture is required for CRM relations; booking relations require Exterior source and an active loaded booking.
+- Source references in task handoff description (including `Workspace CRM source: /workspace/crm?lead=ID` and `Booking record ID: ID`) are recognized by the existing exact-ID selector. Same venture is required for CRM relations; booking relations require Exterior source and an active loaded booking.
 - Missing/unloaded records and fuzzy names are not represented as confirmed matches; no artificial customer merge or cross-business data inference.
 - Parent task editor's existing unsaved-draft close safeguard controls relation navigation.
 - No new customer writes, schema, provider outreach, banking, contract, publishing or payment action.
 
 ### Code map
-- \`src/lib/atlas-relations.ts\`
-- \`src/components/app/AtlasRelations.tsx\`
-- \`tests/atlas-relations.test.ts\`
-- Wiring: \`App.tsx\`, \`VentureView.tsx\`, \`Pages.tsx\`, \`CardDialog.tsx\`, \`atlas-v3.css\`.
+- `src/lib/atlas-relations.ts`
+- `src/components/app/AtlasRelations.tsx`
+- `tests/atlas-relations.test.ts`
+- Wiring: `App.tsx`, `VentureView.tsx`, `Pages.tsx`, `CardDialog.tsx`, `atlas-v3.css`.
 
 ## What is STILL NOT built
 
@@ -73,11 +73,11 @@
 
 ## Exact host verification on Oscar's Windows machine
 
-\`\`\`powershell
+```powershell
 cd C:\STRATHOS\apps\oj-workspace
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-windows.ps1
-\`\`\`
+```
 
-Expected comparison is current \`main\` SHA to same-origin localhost \`http://127.0.0.1:3011/api/deploy-health\` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional \`-TriggerUpdater\` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
+Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
 **Bottom line:** the ATLAS V3 Shell + HQ + first authentic bidirectional CRM/task relationship integration now exist in merged, CI-tested code. The rest of the 413-feature atlas remains a prioritized, deliberately ambitious design and delivery program.
