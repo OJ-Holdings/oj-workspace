@@ -16,6 +16,7 @@ export const sampleData: BoardData = {
     { ...base, id: 'sample-6', title: 'Agree on our weekly planning routine', description: 'Sample completed task: one shared board, clear owners, and a weekly review.', business: 'solutions', stage: 'Done', assignee: 'Oscar' },
     { ...base, id: 'sample-7', title: 'Check stock levels for the new arrivals', description: 'Sample task: confirm supplier stock before the next product goes live.', business: 'essentials', stage: 'In progress', assignee: 'Jacob', due_date: today() },
     { ...base, id: 'sample-8', title: 'Reshoot product photos for the recovery range', description: 'Sample task: consistent background and lighting across the range.', business: 'essentials', stage: 'Backlog', assignee: 'Oscar' },
+    { ...base, id: 'sample-9', title: 'Write a script for our first channel episode', description: 'Fictional preview of Oscar Jacob editorial work; not a real business record.', business: 'content', stage: 'Ready', assignee: 'Jacob' },
   ], comments: [],
 };
 
@@ -29,8 +30,9 @@ export function sampleDashboard(now: Date): Dashboard {
     exterior: [900, 600, 400, 700, 2100, 4800, 7200, 9100, 9800, 9300, 8900, 8420],
     solutions: [1200, 1800, 2400, 3100, 3900, 4600, 5800, 6900, 7600, 8400, 9100, 9760],
     essentials: [2100, 5200, 2600, 2400, 2900, 3300, 3800, 4100, 4700, 5200, 5600, 6200],
+    content: Array(12).fill(0),
   };
-  const costs: Record<VentureId, number> = { exterior: 2140, solutions: 1830, essentials: 3620 };
+  const costs: Record<VentureId, number> = { exterior: 2140, solutions: 1830, essentials: 3620, content: 0 };
   const finance = (Object.keys(revenue) as VentureId[]).flatMap(venture => [
     ...revenue[venture].map((amount, i) => ({ id: `r-${venture}-${i}`, venture, kind: 'revenue' as const, amount, occurred_on: month(11 - i, 1), category: 'Sales', note: 'Sample' })),
     { id: `c-${venture}`, venture, kind: 'cost' as const, amount: costs[venture], occurred_on: month(0, 1), category: venture === 'essentials' ? 'Stock' : venture === 'solutions' ? 'Software' : 'Fuel and supplies', note: 'Sample' },
