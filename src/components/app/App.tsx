@@ -12,6 +12,7 @@ import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
 import { CorporateToolsView } from './CorporateTools';
+import { ScenarioLab } from './ScenarioLab';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
 import { CardDialog } from './CardDialog';
@@ -141,7 +142,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
       ) : current === 'tools' ? (
-        <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
+        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across all three businesses.</p></header>
