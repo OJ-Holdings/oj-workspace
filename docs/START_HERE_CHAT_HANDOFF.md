@@ -4,13 +4,13 @@
 
 ## Copy/paste into a new ChatGPT session
 
-> Continue **OJ Workspace V2** development from the GitHub repository **`OJ-Holdings/oj-workspace`**. **First read `docs/START_HERE_CHAT_HANDOFF.md` from `main`**, then inspect `main`, open PRs, recent GitHub Actions and the actual code. Preserve existing work; do not restart the project or repeat features already shipped. The latest feature under review at this snapshot is **PR #49 — Commercial Bid War Room**, branch `feat/v2-commercial-bid-war-room`, with **successful CI on head `c009c162dc4b49bd886c6eaef9efc9454ef7ecc7`**; it is **NOT merged as of this handoff**. Review the full diff, test gates and any concurrent changes before merging. The production `main` revision as of this snapshot is `7449250d1cf8c28bc4cfa315009b72f38899fc62` (Release 05 Fleet Command). Continue ambitious V2 implementation on reviewed branches, shipping safe code-only features after green CI. **Do not run an unbacked-up production Supabase schema migration, touch Auth users, bypass the Windows deployment guard, silently send messages/publish/pay, or falsely claim a live deployment was checked.** The broader plan is to make OJ Workspace the primary corporate headquarters for Oscar and Jacob across OJ Exterior Care, OJ Solutions, OJ Essentials, and Oscar Jacob.
+> Continue **OJ Workspace V2** development from the GitHub repository **`OJ-Holdings/oj-workspace`**. **First read `docs/START_HERE_CHAT_HANDOFF.md` from `main`**, then inspect `main`, open PRs, recent GitHub Actions and the actual code. Preserve existing work; do not restart the project or repeat features already shipped. The latest feature at this updated handoff is **Release 06, PR #49 — Commercial Bid War Room**, which was **merged into `main`** at `e6274f43b6160082ab9ce8e1daa3ad706c0e8343`. PR head `c009c162dc4b49bd886c6eaef9efc9454ef7ecc7` passed CI before merge; **recheck `main` CI and actual host release SHA** before asserting deployment. **Do not repeat or re-merge PR #49**. Continue ambitious V2 implementation on reviewed branches, shipping safe code-only features after green CI. **Do not run an unbacked-up production Supabase schema migration, touch Auth users, bypass the Windows deployment guard, silently send messages/publish/pay, or falsely claim a live deployment was checked.** The broader plan is to make OJ Workspace the primary corporate headquarters for Oscar and Jacob across OJ Exterior Care, OJ Solutions, OJ Essentials, and Oscar Jacob.
 
 ## 1. Repositories, stack and infrastructure
 
 - **Canonical GitHub repository:** https://github.com/OJ-Holdings/oj-workspace
 - **Canonical branch:** `main`.
-- **At handoff, last merged production feature:** Release 05, commit `7449250d1cf8c28bc4cfa315009b72f38899fc62`.
+- **At updated handoff, most recent merged feature:** Release 06 (Commercial Bid War Room, PR #49), commit `e6274f43b6160082ab9ce8e1daa3ad706c0e8343`. Its Windows-host deployment is not independently verified.
 - **Application:** Next.js 16 / React 19 / TypeScript; Supabase SSR, PostgreSQL with RLS; provider read views for GoHighLevel, Shopify and other authorized integrations.
 - **Host:** user's Windows 11 machine running the OJ app on localhost port **3011**. Candidate smoke port **3012**. Tailscale Funnel advertised at `https://desktop-lbi2ein.tail3f006f.ts.net:10000`. Host and private Tailscale reachability require verification **on the user's PC**; GitHub CI green alone does not prove the public site is serving the commit.
 - **Windows folders:** `C:\STRATHOS\apps\oj-workspace` (working source), `C:\STRATHOS\apps\oj-workspace-deploy-test` (updater checkout), `C:\STRATHOS\apps\oj-workspace-releases` (release worktrees/logs). Paths are as previously documented; verify before using. Keep other STRATHOS applications untouched.
@@ -31,10 +31,11 @@
 | #46 — Release 03 | `0dcc9571` | Corporate Intelligence Desk, source-linked risks/tasks and top-three HQ briefing |
 | #47 — Release 04 | `91b66ed7` | Validated, private, cross-device *file* transfer for commercial estimate drafts |
 | #48 — Release 05 | `7449250d` | **Fleet Command + Rig Lab**: local asset register, maintenance log, readiness checklist, estimated payload calculator and private file interchange |
+| #49 — Release 06 | `e6274f43` | **Commercial Bid War Room**, cost-stress/margin scenarios, survey exceptions and internal founder review pack — merged, post-merge main CI/host needs fresh verification |
 
 These describe **merged, CI-tested code**. Actual host deployment is a **separate receipt**. User has reported that previous releases were working and auto-deploying, but a fresh host SHA cannot be inferred for later commits.
 
-### Most recent pending feature — DO NOT REBUILD IT
+### Most recent merged feature — DO NOT REBUILD IT
 
 **PR #49 — V2 Release 06: Commercial Bid War Room**
 
@@ -42,11 +43,11 @@ These describe **merged, CI-tested code**. Actual host deployment is a **separat
 - Branch: `feat/v2-commercial-bid-war-room`
 - Snapshot head: `c009c162dc4b49bd886c6eaef9efc9454ef7ecc7`
 - GitHub Actions run **39858289172 completed SUCCESS** for this head. An earlier superseded head `7c4e65e...` failed; do not confuse it with current green CI.
-- **Status at snapshot: OPEN, NOT MERGED**; mergeable reported true. Recheck current state before action.
+- **Updated status: MERGED** on 2026-10-22 to `main` commit `e6274f43b6160082ab9ce8e1daa3ad706c0e8343`. Review latest CI and verify the Windows host before calling it live.
 - Changed files: `src/app/globals.css`, `src/components/app/CommercialDesk.tsx`, `src/lib/commercial-war-room.ts`, `src/styles/commercial-war-room.css`, `tests/commercial-war-room.test.ts`.
 - Adds **03 / Bid War Room** to the existing Exterior Care Commercial Desk: three margin-price scenarios (competitive, target, protected), stress assumptions (+25% crew-hours; +1 lift day per lift-access building; +15% materials; +20% travel), building-by-building labor/rental exposure, missing-survey and access warnings, readiness/review findings, downloadable/copied **internal-only founder review pack**.
 - **No external quote sending, real payment, contract authorization, or database write**. Formula outputs are *entered-data estimates*, not realized margin or market pricing.
-- **Suggested immediate engineering work:** re-read the PR diff, check the reviewed unit tests and updated GitHub Actions status at the exact current head. If appropriate, complete final review, merge with an expected-head SHA, confirm squash tree matches tested tree, verify `main` CI and request the Windows host health check. If the PR changed meanwhile, re-evaluate; do not auto-merge an uninspected update.
+- **Suggested immediate engineering work:** inspect the merged diff, verify the actual post-merge `main` CI run and the user-hosted release SHA, then continue on the next separate feature branch. Do not recreate or re-merge War Room.
 
 ## 3. The overarching V2 vision
 
@@ -128,7 +129,7 @@ These are **dated baseline counts** and must never be presented as fresh current
 - `src/components/app/ScenarioLab.tsx` — hypothetical business economics.
 - `src/components/app/FleetCommand.tsx`, `src/lib/fleet-command.ts`, `src/styles/fleet-command.css`, `tests/fleet-command.test.ts` — **live merged code**, local-only fleet and rig planning.
 - `src/components/app/CommercialDesk.tsx`, `src/lib/commercial-estimate.ts`, `src/lib/commercial-transfer.ts` — existing estimator and portable file workflow.
-- **PR #49 adds** `src/lib/commercial-war-room.ts`, `src/styles/commercial-war-room.css`, `tests/commercial-war-room.test.ts` and integrates them in `CommercialDesk.tsx`. These are **not on main** at snapshot.
+- **Merged PR #49 added** `src/lib/commercial-war-room.ts`, `src/styles/commercial-war-room.css`, `tests/commercial-war-room.test.ts` and integrates them in `CommercialDesk.tsx`. They are now on `main` as of commit `e6274f43`.
 - `src/components/app/ContentStudio.tsx`, `src/lib/content-studio.ts`, `src/app/workspace/content-actions.ts` — Oscar Jacob UI and gated write actions.
 - `scripts/auto-deploy-local.ps1`, `scripts/verify-production-windows.ps1`, `docs/DEPLOYMENT.md` — real Windows release sequence (some older docs may mention Netlify; verify actual host).
 - `docs/BACKUP_FREE_TIER_WINDOWS.md`, `docs/V2_CONTENT_SUPERVISED_RELEASE.md` (latter in PR #42) — backup/restore gate, supervised schema release.
@@ -139,7 +140,7 @@ These are **dated baseline counts** and must never be presented as fresh current
 
 ## 8. Suggested next engineering sequence
 
-1. **Handle PR #49 carefully**: verify current head + CI, inspect diff and review acceptance. Merge only if appropriate; then verify production `main` run and request host SHA confirmation. Do not duplicate War Room.
+1. **Verify merged Release 06**: check current `main` CI, ensure War Room's tests/build passed, check local Windows /api/deploy-health release SHA with the user, and do not duplicate PR #49.
 2. **Improve active operating workflows** while backup is pending: commercial property survey/checklist, clean estimate transfer, clearer estimate assumptions, testing and mobile ergonomics. All code-only and no external commitments.
 3. **Finish recoverable Supabase backup** with founder-side secure command execution, verified second copy, isolated restore and permission/recovery drills. Do not invent success.
 4. **Supervised additive four-business schema + code-only enablement**, then persistent Oscar Jacob projects and a central bid/fleet record store with robust owner/viewer RLS, audit trail, conflict handling and backward compatibility.
@@ -151,4 +152,4 @@ These are **dated baseline counts** and must never be presented as fresh current
 
 ---
 
-**Handoff integrity check:** this document is a GitHub-persisted context aid only. It neither applies pending SQL, merges PR #49, modifies customer data, nor verifies current Windows site availability. Verify every dated claim when resuming work.
+**Handoff integrity check:** this document is a GitHub-persisted context aid only. It neither applies pending SQL, modifies customer data, nor verifies current Windows site availability. Verify every dated claim when resuming work.
