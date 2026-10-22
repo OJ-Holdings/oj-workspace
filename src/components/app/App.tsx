@@ -14,6 +14,7 @@ import { HomeView } from './HomeView';
 import { CorporateToolsView } from './CorporateTools';
 import { CorporateIntelligenceDesk } from './CorporateIntelligence';
 import { ScenarioLab } from './ScenarioLab';
+import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
@@ -127,6 +128,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   let current: NavKey = 'home';
   let venture: VentureId | null = null;
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) { current = 'businesses'; venture = parts[1]; }
+  else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
@@ -143,6 +145,8 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
+      ) : current === 'fleet' ? (
+        <FleetCommand base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
       ) : current === 'tools' ? (
         parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
