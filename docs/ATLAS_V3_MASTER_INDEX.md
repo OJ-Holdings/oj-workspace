@@ -50,6 +50,10 @@ Examples of natural flows, from any relevant screen:
 | What's coming next for the company? | Portfolio, roadmap, capacity, capital allocation and dependency-aware approved initiatives |
 | Is the system itself healthy and backed up? | Actual deploy SHA, CI checks, source freshness, connector failures, backup evidence and restore-test receipt |
 
+## Already implemented ATLAS releases
+
+The ATLAS V3 **Shell and HQ** and the first source-linked **CRM/task/booking contextual panels** are now merged into GitHub main. See [exact, CI-verified Release 01–02 changelog](./ATLAS_V3_RELEASE_CHANGELOG.md). The full 413-feature vision remains proposed. Windows-host deployment has **not** been independently verified in this documentation pass.
+
 ## Package navigation
 
 | Document | Purpose |
