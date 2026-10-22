@@ -24,7 +24,7 @@
 
 Every new feature PR contains a compact contract:
 
-\`\`\`text
+```text
 Scenario ID:
 Actor / role / permission:
 Starting canonical record(s):
@@ -39,7 +39,7 @@ Network/provider failure scenario:
 Rollback/recovery:
 Known limitations:
 Owner signoff and measured outcome:
-\`\`\`
+```
 
 A pure list/table feature can use lighter tests; bank/payment/HR/auth/outward messaging must use stricter approval and evidence tests.
 
@@ -101,7 +101,7 @@ These tests are targets, not claimed CI cases. Production fixtures must use auth
 
 Before labeling company summary “Revenue,” decide which class it represents:
 
-\`\`\`text
+```text
 Quoted / Proposed
 Contracted / Accepted
 Invoiced / Accounts receivable
@@ -112,7 +112,7 @@ Manually recorded / not reconciled
 Recognized accounting revenue (accountant-defined policy)
 Estimated future performance
 Unknown / missing record
-\`\`\`
+```
 
 The UI must never silently roll these into one number. For cost, classify direct material/labor/fuel/rental/fees/fulfillment versus overhead, unallocated and missing coverage. Profit/ROAS require denominator and cost confidence. Investors, taxes and legal income reporting should be accountant-reviewed.
 
@@ -148,7 +148,7 @@ Each staged release has a 7/14/30-day **optional observed adoption** report when
 - ongoing maintenance and service costs; external subscription actually canceled where applicable
 - comments from Oscar/Jacob and whether they would go back to the previous workflow.
 
-If measurement is unavailable: \`not measured\`, never \`0 issues\`. Do not add invasive founder tracking simply to score productivity.
+If measurement is unavailable: `not measured`, never `0 issues`. Do not add invasive founder tracking simply to score productivity.
 
 ## 9. Program reality/status vocabulary
 
