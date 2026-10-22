@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 $privateSettings = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup'
 $settingsFile = Join-Path $privateSettings 'settings.json'
 $secretFile = Join-Path $privateSettings 'password.dpapi'
-$defaultBackup = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'OJWorkspacePrivateBackups\supabase'
+$defaultBackup = Join-Path $env:LOCALAPPDATA 'OJWorkspace\PrivateBackups\supabase'
 $defaultRef = 'vgckpcktsfuithqggknd'
 
 function ProtectDirectory([string]$path) {
