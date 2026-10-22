@@ -105,6 +105,7 @@ test('invalid calendar dates are never treated as valid service deadlines',()=>{
 
 test('fleet maintenance alerts derive from entered thresholds, not guessed intervals',()=>{
   const today='2026-10-22';
+  assert.equal(assetHealth(makeAsset({status:'unverified'}),today),'monitor');
   assert.equal(assetHealth(makeAsset({status:'out-of-service'}),today),'out-of-service');
   assert.equal(assetHealth(makeAsset({status:'needs-service'}),today),'needs-service');
   assert.equal(assetHealth(makeAsset({reading:100}),today),'due');
