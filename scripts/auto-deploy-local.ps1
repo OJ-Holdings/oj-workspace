@@ -16,7 +16,7 @@ function Log([string]$value) {
   Write-Output $message
   Add-Content -LiteralPath (Join-Path $logs 'deploy.log') -Value $message
 }
-function Git([string[]]$gitArgs) {
+function InvokeGit([string[]]$gitArgs) {
   Push-Location $repo
   try {
     $output = @(& git @gitArgs 2>&1 | Where-Object { $null -ne $_ })
@@ -111,9 +111,10 @@ try {
   $watchers = @(Get-CimInstance Win32_Process -Filter "name='powershell.exe' or name='pwsh.exe'" |
     Where-Object { $_.CommandLine -match '[\\/]host-loop\.ps1\b' })
   if($watchers.Count -gt 0){Log 'BLOCKED: existing host-loop.ps1 watchdog is running; coordinate its shutdown first';return}
-  $ref = @(Git @('ls-remote',$remote,'refs/heads/main'))
-  if($ref.Count -ne 1 -or $ref[0] -notmatch '^([0-9a-f]{40})\s'){throw 'Unable to verify GitHub main HEAD'}
-  $sha=$Matches[1]
+  $ref = @(InvokeGit @('ls-remote',$remote,'refs/heads/main'))
+  if($ref.Count -ne 1){throw 'Unable to verify GitHub main HEAD'}
+  if($ref[0] -match '^([0-9a-f]{40})\s'){$sha=$Matches[1]}
+  else{throw 'Unable to parse GitHub main HEAD'}
   if($state -and $state.sha -eq $sha -and (Health 3011 $sha $true)){return}
   $checkUri="https://api.github.com/repos/OJ-Holdings/oj-workspace/commits/$sha/check-runs?per_page=100"
   $checks=Invoke-RestMethod -Uri $checkUri -TimeoutSec 20 -Headers @{
@@ -128,25 +129,25 @@ try {
     return
   }
   if(-not $Apply){Log ('READY to deploy ' + $sha.Substring(0,12) + ' (no changes made)');return}
-  $priorLocal=@(Git @('rev-parse','HEAD'))[0].ToString().Trim()
-  $tracked=@(Git @('status','--porcelain','--untracked-files=no'))
+  $priorLocal=@(InvokeGit @('rev-parse','HEAD'))[0].ToString().Trim()
+  $tracked=@(InvokeGit @('status','--porcelain','--untracked-files=no'))
   if($tracked.Count -gt 0){throw 'Local tracked edits exist; no fast-forward or deployment allowed'}
-  if((@(Git @('branch','--show-current'))[0].ToString().Trim()) -ne 'main'){
+  if((@(InvokeGit @('branch','--show-current'))[0].ToString().Trim()) -ne 'main'){
     throw 'Local source checkout must be on main'
   }
-  Git @('fetch','--no-tags',$remote,'refs/heads/main') | Out-Null
-  $fetched=@(Git @('rev-parse','FETCH_HEAD'))[0].ToString().Trim()
+  InvokeGit @('fetch','--no-tags',$remote,'refs/heads/main') | Out-Null
+  $fetched=@(InvokeGit @('rev-parse','FETCH_HEAD'))[0].ToString().Trim()
   if($fetched -ne $sha){throw 'GitHub moved while fetching; retry next cycle'}
   $baseline=if($state -and $state.sha -match '^[0-9a-f]{40}$'){$state.sha}else{$priorLocal}
-  $changed=@(Git @('diff','--name-only',$baseline,$sha))
+  $changed=@(InvokeGit @('diff','--name-only',$baseline,$sha))
   if(@($changed | Where-Object {$_ -match '^(supabase/|\.env\.example$|src/lib/oj-connection\.ts$)'}).Count -gt 0){
     Log 'BLOCKED: SQL/schema or environment configuration changed; requires manual migration/review'
     return
   }
-  Git @('merge','--ff-only',$sha) | Out-Null
+  InvokeGit @('merge','--ff-only',$sha) | Out-Null
   $release=Join-Path $root $sha
   if(-not(Test-Path $release)){
-    Git @('worktree','add','--detach',$release,$sha) | Out-Null
+    InvokeGit @('worktree','add','--detach',$release,$sha) | Out-Null
   } else {
     $releaseSha=@(& git -C $release rev-parse HEAD)[0].ToString().Trim()
     if($releaseSha -ne $sha){throw 'Existing release folder belongs to another commit'}
