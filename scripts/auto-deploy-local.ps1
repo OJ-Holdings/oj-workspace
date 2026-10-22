@@ -211,8 +211,28 @@ try {
     if($staging -and -not $staging.HasExited){Stop-Process -Id $staging.Id -Force -ErrorAction SilentlyContinue}
     Start-Sleep -Seconds 1
   }
-  $previousPath=if($state){[string]$state.path}else{$repo}
+  $previousPath=if($state){[string]$state.path}else{$null}
   $previousSha=if($state){[string]$state.sha}else{$priorLocal}
+  if(-not $state){
+    $bootstrapFile=Join-Path $root 'initial-production-path.txt'
+    if(-not(Test-Path -LiteralPath $bootstrapFile)){
+      throw "First deployment requires initial-production-path.txt in $root; production untouched"
+    }
+    $previousPath=(Get-Content -LiteralPath $bootstrapFile -Raw).Trim()
+    if(-not([IO.Path]::IsPathFullyQualified($previousPath))){
+      throw 'Initial production path must be absolute; production untouched'
+    }
+    if([IO.Path]::GetFullPath($previousPath).TrimEnd('\\') -eq $repo.TrimEnd('\\')){
+      throw 'Initial production path cannot be the deployer source checkout'
+    }
+    if(-not(Test-Path -LiteralPath (Join-Path $previousPath '.next\\BUILD_ID'))){
+      throw 'Initial production build not found; production untouched'
+    }
+    if(-not(Test-Path -LiteralPath (Join-Path $previousPath 'node_modules\\next\\dist\\bin\\next'))){
+      throw 'Initial production Next.js runtime not found; production untouched'
+    }
+    Log ('Verified initial rollback build: ' + $previousPath)
+  }
   StopPort 3011
   $live=$null
   try {
