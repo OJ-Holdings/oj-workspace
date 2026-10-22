@@ -1,4 +1,4 @@
-import { ventureIds, ventures } from './ventures';
+import { contentPersistenceEnabled, ventureIds, ventures } from './ventures';
 
 // The weekly work leaderboard. Points are worked out by the database, in
 // oj_work_scores (supabase/schemas/work-leaderboard.sql): that is the record.
@@ -10,10 +10,10 @@ import { ventureIds, ventures } from './ventures';
 /** What a timer can be logged against: general work, or any business in ventures.ts. */
 export const workBusinessIds = ['general', ...ventureIds] as const;
 export type WorkBusiness = typeof workBusinessIds[number];
-export const isWorkBusiness = (value: unknown): value is WorkBusiness => typeof value === 'string' && (workBusinessIds as readonly string[]).includes(value);
+export const isWorkBusiness = (value: unknown): value is WorkBusiness => typeof value === 'string' && (workBusinessIds as readonly string[]).includes(value) && (value !== 'content' || contentPersistenceEnabled);
 export const workBusinessLabel = (b: WorkBusiness) => b === 'general' ? 'General' : ventures[b].short;
 export const workBusinessColor = (b: WorkBusiness) => `var(--c-${b === 'general' ? 'shared' : b})`;
-export const workBusinesses = workBusinessIds.map(id => ({ id, label: workBusinessLabel(id) }));
+export const workBusinesses = workBusinessIds.filter(id => id !== 'content' || contentPersistenceEnabled).map(id => ({ id, label: workBusinessLabel(id) }));
 
 /** "Still working?" is asked this long after the last check-in... */
 export const CHECKIN_MINUTES = 60;
