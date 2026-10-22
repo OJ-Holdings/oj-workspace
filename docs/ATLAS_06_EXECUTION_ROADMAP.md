@@ -1,6 +1,6 @@
 # ATLAS 06 — Execution Roadmap / Connected Release Train
 
-> **Planning only, no release dates or implementation are promised.** V2 baseline: \`main\` \`04a077d340fe44c842cc005fe3d9d846aa938986\` on 2026-10-22. The 413-feature atlas is deliberately larger than one executable season. See [master](./ATLAS_V3_MASTER_INDEX.md), [features](./ATLAS_03_FEATURE_ATLAS.md), [architecture](./ATLAS_04_CONNECTED_DATA_AND_WORKFLOWS.md).
+> **Planning only, no release dates or implementation are promised.** V2 baseline: `main` `04a077d340fe44c842cc005fe3d9d846aa938986` on 2026-10-22. The 413-feature atlas is deliberately larger than one executable season. See [master](./ATLAS_V3_MASTER_INDEX.md), [features](./ATLAS_03_FEATURE_ATLAS.md), [architecture](./ATLAS_04_CONNECTED_DATA_AND_WORKFLOWS.md).
 
 ## One program, four parallel tracks
 
@@ -13,7 +13,7 @@ Parallelize only independent work. A gorgeous rig UI can be prototyped without t
 
 ## Mandatory execution protocol
 
-1. Recheck latest \`main\`, competing PRs, actual Windows host SHA and current Supabase applied migrations.
+1. Recheck latest `main`, competing PRs, actual Windows host SHA and current Supabase applied migrations.
 2. Write actor → action → record → evidence → expected state → negative test acceptance scenarios.
 3. Ship **vertical slices** with source, domain mapping, related entities, UI, human action and receipt—never another isolated tab without linked value.
 4. Use isolated feature PRs, CI, browser/device tests, rollback plan and honest coverage.
@@ -102,7 +102,7 @@ No giant one-shot migration; each additive step has separate negative tests and 
 
 ## Dependency map
 
-\`\`\`text
+```text
 Host truth + backup/restore + RLS audit
          -> supervised schema + canonical identity
          -> relations + audit + approvals/outbox
@@ -120,7 +120,7 @@ Design tokens -> Shell -> HQ -> entity cockpit -> global search
 Future safe autonomy:
 Grounded data + explicit policy + restore confidence
          -> dry-run AI -> founder approval -> bounded action -> receipt
-\`\`\`
+```
 
 ## Design implementation sequence
 
