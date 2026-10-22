@@ -119,7 +119,7 @@ export function CorporateIntelligenceDesk({ base, cards, dashboard, jobs, mode }
 
         {entries.length ?
           <ol className="intelligence-signals">
-            {entries.map((signal,index)=>{
+            {entries.map(signal=>{
               const Icon=categoryIcons[signal.category];
               return <li key={signal.id} className={'intelligence-signal intelligence-signal--'+signal.severity}>
                 <div className="intelligence-signal-icon"><Icon size={17} aria-hidden="true"/></div>
@@ -172,4 +172,41 @@ export function CorporateIntelligenceDesk({ base, cards, dashboard, jobs, mode }
     </div>
     <p className="intelligence-footnote">This desk creates no new records, scores no customer automatically, and does not infer the state of integrations that failed to load. It is a triage aid, not a substitute for source-led financial or operational review.</p>
   </main>;
+}
+
+/** Compact executive readout on the actual HQ home page, using identical source rules. */
+export function CorporateIntelligencePulse({
+  base, cards, dashboard, jobs, today, preview,
+}: {
+  base: string; cards: Card[]; dashboard: Dashboard | null;
+  jobs: JobItem[]; today: string; preview: boolean;
+}) {
+  const report = useMemo(() => today ? buildIntelligence({ cards, dashboard, jobs, today }) : null,
+    [cards, dashboard, jobs, today]);
+  const priority = report?.signals.filter(signal => signal.severity !== 'informational').slice(0, 3) ?? [];
+  return <section className="intelligence-pulse" aria-label="Corporate intelligence briefing">
+    <div className="intelligence-pulse-head">
+      <div>
+        <p className="tools-eyebrow"><Radar size={14} aria-hidden="true" /> EXECUTIVE INTELLIGENCE</p>
+        <h2>Your next decisions, from the evidence.</h2>
+        <p>Prioritized from loaded tasks, CRM, bookings and source-coverage warnings.</p>
+      </div>
+      <Link href={base + '/tools/intelligence'}>Open Intelligence Desk <ArrowUpRight size={16} aria-hidden="true" /></Link>
+    </div>
+    {priority.length ? <ol className="intelligence-pulse-items">
+      {priority.map(signal => <li key={signal.id}>
+        <span className={'intelligence-pill intelligence-pill--' + signal.severity}>{severityNames[signal.severity]}</span>
+        <span className="intelligence-pulse-text">
+          <strong>{signal.title}</strong>
+          <small>{signal.source}</small>
+        </span>
+        <Link href={base + signal.destination} aria-label={'Open source for ' + signal.title}><ArrowUpRight size={16} aria-hidden="true" /></Link>
+      </li>)}
+    </ol> : <div className="intelligence-pulse-empty">
+      {report ? 'No priority signals in the loaded records. Unconnected sources or records not loaded may still require attention.' : 'Preparing a source-linked briefing…'}
+    </div>}
+    <p className="intelligence-pulse-note">{preview
+      ? 'Fictional preview records only — no real company status is represented.'
+      : 'Read-only decision support. No forecast, invented sales, or automatic external actions.'}</p>
+  </section>;
 }
