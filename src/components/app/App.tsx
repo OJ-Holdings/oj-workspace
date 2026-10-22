@@ -12,6 +12,7 @@ import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
 import { CorporateToolsView } from './CorporateTools';
+import { CorporateIntelligenceDesk } from './CorporateIntelligence';
 import { ScenarioLab } from './ScenarioLab';
 import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
@@ -143,7 +144,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} />
       ) : current === 'tools' ? (
-        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
+        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across your active businesses.</p></header>

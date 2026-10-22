@@ -55,7 +55,8 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
         <h1>Run the business.<br/><em>Own the outcome.</em></h1>
         <p className="exec-lead">A command view for the work, customers, decisions and recorded performance of your four businesses. Every action leads back to an actual workspace record.</p>
         <nav className="exec-quick" aria-label="Executive quick actions">
-          <Link className="primary" href={base+'/tasks'}>Work queue <ArrowRight size={16}/></Link>
+          <Link className="primary" href={base+'/tools/intelligence'}>Corporate briefing <Radar size={16}/></Link>
+          <Link className="secondary" href={base+'/tasks'}>Work queue <ArrowRight size={16}/></Link>
           <Link className="secondary" href={base+'/b/solutions/outreach'}>Solutions outreach <ArrowUpRight size={16}/></Link>
           <Link className="secondary" href={base+'/b/exterior/commercial'}>Commercial desk <BriefcaseBusiness size={16}/></Link>
         </nav>

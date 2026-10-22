@@ -1,0 +1,95 @@
+/* Corporate Intelligence Desk — read-only, evidence-linked operations review. */
+.intelligence{max-width:1450px;margin-inline:auto;color:var(--ink);min-width:0}
+.intelligence :is(a,button,input,select):focus-visible{outline:2px solid var(--accent-hi);outline-offset:3px}
+.intelligence-hero{padding:clamp(22px,4vw,38px);border:1px solid var(--line-2);border-radius:var(--r-xl);background:radial-gradient(ellipse at 90% 0%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 55%),linear-gradient(130deg,var(--panel-2),var(--bg-2));overflow:hidden}
+.intelligence-hero-row{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.intelligence-hero h1{font-family:var(--font-display);font-size:clamp(29px,3.8vw,51px);font-weight:800;letter-spacing:-.055em;line-height:1.1;margin:0 0 14px;text-wrap:balance}
+.intelligence-hero h1 em{font-style:normal;color:var(--accent-hi)}
+.intelligence-hero-row p{max-width:70ch;color:var(--ink-2);font-size:13px;line-height:1.7;margin:0}
+.intelligence-hero-mark{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--accent-hi);padding:30px 20px;min-width:170px;border:1px solid var(--line-2);border-radius:18px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.intelligence-hero-mark span{font-weight:800;letter-spacing:.2em;font-size:9px}
+.intelligence-evidence{display:flex;align-items:center;gap:9px;margin-top:22px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink-2);font-size:11px;line-height:1.55}
+.intelligence-evidence svg{color:var(--good);flex-shrink:0}
+.intelligence-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.intelligence-kpis>div{display:flex;flex-direction:column;gap:9px;padding:19px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0}
+.intelligence-kpis span{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-3);font-weight:750}
+.intelligence-kpis svg{color:var(--accent-hi)}
+.intelligence-kpis strong{font-size:33px;letter-spacing:-.05em;line-height:1.2;font-variant-numeric:tabular-nums}
+.intelligence-kpis small{font-size:10px;color:var(--ink-3);line-height:1.5}
+.intelligence-layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr);gap:16px;align-items:start}
+.intelligence-feed,.intelligence-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:21px;min-width:0}
+.intelligence-section-head{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:19px}
+.intelligence-section-head .tools-eyebrow{margin-bottom:7px}
+.intelligence-section-head h2,.intelligence-panel h2{font-size:24px;font-family:var(--font-display);letter-spacing:-.04em;margin:0}
+.intelligence-section-head p:not(.tools-eyebrow){font-size:11px;color:var(--ink-3);line-height:1.6;max-width:65ch;margin:6px 0 0}
+.intelligence-date{font-size:10px;font-weight:750;color:var(--ink-3);white-space:nowrap;align-self:center}
+.intelligence-filterbar{display:flex;gap:9px;align-items:end;flex-wrap:wrap}
+.intelligence-filterbar label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:10px;color:var(--ink-3);min-width:130px}
+.intelligence-filterbar .intelligence-search{position:relative;flex:1;min-width:210px;flex-direction:row;align-items:center;gap:9px;padding:0 11px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:8px}
+.intelligence-filterbar input,.intelligence-filterbar select{background:var(--bg-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);min-height:41px;padding:0 11px;font:inherit;font-size:11px}
+.intelligence-filterbar .intelligence-search input{width:100%;min-width:0;border:none;padding:0;background:transparent}
+.intelligence-filterbar select{min-width:155px}
+.intelligence-toggle{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-2);margin:17px 0 6px;cursor:pointer}
+.intelligence-toggle input{accent-color:var(--accent)}
+.intelligence-count{font-size:10px;color:var(--ink-3);margin:14px 0}
+.intelligence-signals{margin:0;padding:0;display:grid;gap:10px;list-style:none}
+.intelligence-signal{display:flex;align-items:flex-start;gap:14px;padding:18px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px}
+.intelligence-signal--urgent{border-left:3px solid var(--bad)}
+.intelligence-signal--attention{border-left:3px solid var(--watch)}
+.intelligence-signal--review{border-left:3px solid var(--accent-hi)}
+.intelligence-signal--informational{border-left:3px solid var(--line-2)}
+.intelligence-signal-icon{width:35px;height:35px;display:grid;place-items:center;flex-shrink:0;border-radius:8px;background:var(--panel-2);color:var(--accent-hi)}
+.intelligence-signal-body{flex:1;min-width:0}
+.intelligence-signal-meta,.intelligence-signal-bottom{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.intelligence-signal-meta{justify-content:flex-start;font-size:10px;font-weight:700;color:var(--ink-3)}
+.intelligence-pill{display:inline-flex;border:1px solid var(--line-2);border-radius:99px;padding:3px 8px;font-size:9px;font-weight:800}
+.intelligence-pill--urgent{color:var(--bad)}
+.intelligence-pill--attention{color:var(--watch)}
+.intelligence-pill--review{color:var(--accent-hi)}
+.intelligence-signal h3{font-family:var(--font-display);font-size:16px;line-height:1.35;letter-spacing:-.025em;margin:8px 0 6px;overflow-wrap:anywhere}
+.intelligence-signal-body>p{font-size:11px;line-height:1.55;color:var(--ink-3);margin:0 0 16px}
+.intelligence-signal-bottom{border-top:1px solid var(--line);padding-top:10px}
+.intelligence-signal-bottom small{font-size:10px;color:var(--ink-3)}
+.intelligence-signal-bottom a,.intelligence-panel>a{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--accent-hi)}
+.intelligence-empty{padding:30px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;min-height:170px;background:var(--bg-2);border:1px dashed var(--line-2);border-radius:10px;color:var(--ink-3)}
+.intelligence-empty svg{color:var(--accent-hi)}
+.intelligence-empty strong{color:var(--ink);font-size:14px}
+.intelligence-empty p{margin:0;max-width:65ch;font-size:11px;line-height:1.5}
+.intelligence-endnote{display:flex;gap:10px;align-items:flex-start;margin-top:15px;font-size:10px;line-height:1.6;color:var(--ink-3)}
+.intelligence-endnote svg{flex-shrink:0;color:var(--watch)}
+.intelligence-aside{display:grid;gap:16px}
+.intelligence-panel .tools-eyebrow{margin:9px 0 6px}
+.intelligence-panel-icon{width:37px;height:37px;display:grid;place-items:center;color:var(--accent-hi);background:var(--accent-soft);border-radius:10px}
+.intelligence-panel dl{margin:16px 0}
+.intelligence-panel dl>div{padding:12px 0;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);font-size:11px}
+.intelligence-panel dt{color:var(--ink-3)}
+.intelligence-panel dd{margin:0;font-weight:750;font-variant-numeric:tabular-nums;text-align:right}
+.intelligence-panel>p:not(.tools-eyebrow){color:var(--ink-3);font-size:10px;line-height:1.65;margin:15px 0}
+.intelligence-actions{display:grid;gap:8px;margin-top:18px}
+.intelligence-actions a{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--bg-2);padding:12px;font-size:11px;color:var(--ink-2);font-weight:700}
+.intelligence-actions a:hover{border-color:var(--accent);color:var(--accent-hi)}
+.intelligence-actions a svg:last-child{margin-left:auto}
+.intelligence-footnote{font-size:10px;color:var(--ink-3);line-height:1.7;margin:16px 0}
+@media(max-width:1090px){.intelligence-layout{grid-template-columns:minmax(0,1fr)}.intelligence-aside{grid-template-columns:repeat(2,minmax(0,1fr))}.intelligence-hero-mark{display:none}}
+@media(max-width:750px){.intelligence-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.intelligence-aside{grid-template-columns:minmax(0,1fr)}.intelligence-section-head{flex-wrap:wrap}.intelligence-filterbar label{flex:1 1 130px}.intelligence-filterbar select{width:100%;min-width:0}.intelligence-filterbar .intelligence-search{flex-basis:100%}}
+@media(max-width:440px){.intelligence-hero,.intelligence-feed,.intelligence-panel{padding:15px}.intelligence-kpis strong{font-size:27px}.intelligence-signal{padding:12px;gap:9px}.intelligence-signal-icon{width:30px;height:30px}}
+@media(prefers-reduced-motion:reduce){.intelligence *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Actionable executive priorities in the existing HQ, no extra fetch or write. */
+.intelligence-pulse{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);padding:clamp(16px,2.5vw,24px);margin:16px 0}
+.intelligence-pulse-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:15px}
+.intelligence-pulse-head .tools-eyebrow{margin-bottom:8px}
+.intelligence-pulse-head h2{font-family:var(--font-display);font-size:21px;letter-spacing:-.035em;margin:0 0 5px}
+.intelligence-pulse-head p:not(.tools-eyebrow){font-size:12px;line-height:1.6;color:var(--ink-3);margin:0}
+.intelligence-pulse-head>a{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--accent-hi);white-space:nowrap}
+.intelligence-pulse-items{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.intelligence-pulse-items li{display:flex;flex-wrap:wrap;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg-2);padding:13px;border-radius:10px;min-width:0}
+.intelligence-pulse-text{display:flex;flex-direction:column;gap:7px;min-width:0;flex:1 1 100%}
+.intelligence-pulse-text strong{font-size:12px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.intelligence-pulse-text small{font-size:10px;color:var(--ink-3);line-height:1.4}
+.intelligence-pulse-items li>a{display:grid;place-items:center;margin-left:auto;width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;color:var(--accent-hi)}
+.intelligence-pulse-items li>a:hover{border-color:var(--accent)}
+.intelligence-pulse-empty{border:1px dashed var(--line-2);padding:14px;border-radius:9px;font-size:12px;color:var(--ink-3);line-height:1.5}
+.intelligence-pulse-note{font-size:10px;line-height:1.55;color:var(--ink-3);margin:13px 0 0}
+@media(max-width:960px){.intelligence-pulse-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.intelligence-pulse-head{align-items:flex-start;flex-wrap:wrap}.intelligence-pulse-items{grid-template-columns:minmax(0,1fr)}}
