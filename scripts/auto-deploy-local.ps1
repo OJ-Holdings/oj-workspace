@@ -130,9 +130,14 @@ try {
   $required=@($checks.check_runs | Where-Object {$_.name -eq 'check' -and $_.head_sha -eq $sha} |
     Sort-Object started_at -Descending)
   $approved=$false
-  if($required.Count -gt 0){
-    # When this commit has its own CI result, it is authoritative even if it failed.
-    $approved=($required[0].status -eq 'completed' -and $required[0].conclusion -eq 'success')
+  if($checks.total_count -gt 0){
+    # When main has its own checks, all must be green. Never fall back to a PR
+    # to bypass a pending/failed main check or a missing required main check.
+    $notGreen=@($checks.check_runs | Where-Object {
+      $_.status -ne 'completed' -or $_.conclusion -ne 'success'
+    })
+    $approved=($required.Count -gt 0 -and $required[0].status -eq 'completed' -and
+      $required[0].conclusion -eq 'success' -and $notGreen.Count -eq 0)
   }else{
     # Some app-initiated squash merges do not create a new push CI run.
     # Accept PR CI ONLY when GitHub verifies the merge relationship and the
