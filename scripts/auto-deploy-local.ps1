@@ -179,7 +179,19 @@ try {
   $priorLocal=@(InvokeGit @('rev-parse','HEAD'))[0].ToString().Trim()
   # Windows can report a metadata-only porcelain M even when the file and index
   # content match HEAD. Refresh the index and use Git's diff exit status.
-  InvokeGit @('update-index','--refresh') | Out-Null
+  # A Windows checkout can return "needs update" for metadata-only index
+  # entries. Refresh best-effort; the content-based diff checks below are
+  # authoritative and still reject both staged and unstaged edits.
+  Push-Location $repo
+  try {
+    $priorPreference=$ErrorActionPreference
+    try {
+      $ErrorActionPreference='Continue'
+      $refreshOutput=@(& git update-index --refresh 2>&1)
+      $refreshExit=$LASTEXITCODE
+    } finally { $ErrorActionPreference=$priorPreference }
+  } finally { Pop-Location }
+  if($refreshExit -ne 0){Log ('Index refresh returned ' + $refreshExit + '; verifying content differences directly')}
   foreach($diffArgs in @(@('diff','--quiet','--exit-code'),@('diff','--cached','--quiet','--exit-code'))){
     Push-Location $repo
     try {
