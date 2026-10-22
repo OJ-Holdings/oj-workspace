@@ -2,6 +2,7 @@ import type { Card } from './board';
 import type { Dashboard } from './dashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { chicagoDay } from './founder-weekly-review';
+import { exactBookingReferences } from './operating-handoffs';
 import { ventureIds, type VentureId } from './ventures';
 
 export const operatingKinds = ['task','lead','booking','event','document','finance','message'] as const;
@@ -78,6 +79,7 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
       record.kind==='document'?'documents':record.kind==='finance'?'finance':'messages']++;
   };
   const leadsById=new Map((dashboard?.leads??[]).map(l=>[l.id,l]));
+  const bookingsById=new Map(jobs.filter(j=>j.status!=='cancelled'&&j.status!=='denied').map(j=>[j.id,j]));
   let overdue=0,review=0,unassigned=0,upcomingBookings=0,dueNextSeven=0;
   for(const task of cards){
     if(task.stage==='Done')continue;
@@ -93,6 +95,14 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
       (task.assignee.trim()||'Unassigned')+' · '+task.stage+
       (due?' · Due '+due:''),
       '/tasks?task='+enc(task.id),'Shared task board',due,task.stage,priority));
+    for(const id of exactBookingReferences(task.description)){
+      if(task.business!=='exterior'||!bookingsById.has(id))continue;
+      relations.push({
+        key:'task:'+task.id+'/booking:'+id,fromKey:'task:'+task.id,toKey:'booking:'+id,
+        label:'Linked Exterior booking',href:'/b/exterior/calendar',
+        provenance:'Exact booking record ID preserved in task description; source booking loaded and active',
+      });
+    }
     for(const id of explicitCrmLeadIds(task.description)){
       const lead=leadsById.get(id);
       if(!lead||lead.venture!==task.business)continue;
@@ -165,7 +175,7 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
   const warnings=[
     'All results are from records this session already loaded and is authorized to view; this index does not synchronize external systems.',
     'Workspace CRM leads and Exterior source leads are different datasets. They are never joined by names or phone numbers.',
-    'Only an exact loaded CRM ID in a task description and a booking source lead_id produce relationships. Unmatched entities remain unlinked.',
+    'Relationships require an exact loaded CRM ID, an active booking ID in a task, or a booking source lead_id. Unmatched entities remain unlinked.'
     'Financial entries are record labels, not verified collections, profit or bank transactions. Completed tasks do not establish payment.',
     'Bookings and provider views may be unavailable or incomplete; zero loaded items is not proof of no business activity.',
   ];
