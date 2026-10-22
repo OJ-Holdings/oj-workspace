@@ -28,7 +28,7 @@ export type ToolContext = {
 
 export const corporateTools: readonly CorporateTool[] = [
   { id: 'command', title: 'Executive Command', description: 'Priorities, work requiring review, and source-aware operating metrics.', category: 'Operate', keywords: 'headquarters home today dashboard executive', href: '/' },
-  { id: 'tasks', title: 'Shared Task Board', description: 'Create, assign, review, and complete company work.', category: 'Operate', keywords: 'kanban board projects work assignments', href: '/tasks' },
+  { id: 'tasks', title: 'Shared Task Board', description: 'Create, assign, review, and complete company work.', category: 'Operate', keywords: 'tasks kanban board projects work assignments', href: '/tasks' },
   { id: 'calendar', title: 'Company Calendar', description: 'View available schedules, events, and task deadlines.', category: 'Operate', keywords: 'appointments schedule dispatch meetings', href: '/calendar' },
   { id: 'exterior-bookings', title: 'Exterior Bookings', description: 'Inspect and manage exterior service bookings.', category: 'Operate', keywords: 'wash crew schedule job dispatch', href: '/b/exterior/bookings' },
   { id: 'exterior-jobs', title: 'Exterior Jobs & Income', description: 'Review recorded jobs and financial field coverage.', category: 'Operate', keywords: 'pressure washing completed service revenue cost', href: '/b/exterior/jobs' },
