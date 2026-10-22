@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Building2, Check, ChevronRight, ClipboardCopy, Download, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
+import { ArrowRight, Building2, Check, ChevronRight, ClipboardCopy, Download, FileInput, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
+import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialEstimate } from '@/lib/commercial-transfer';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -26,6 +27,7 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   const [input,setInput]=useState<EstimateInput>(newEstimate);
   const [review,setReview]=useState<boolean[]>(checklist.map(()=>false));
   const [notice,setNotice]=useState('');
+  const transferInput=useRef<HTMLInputElement>(null);
   const [ready,setReady]=useState(false);
   const estimate=useMemo(()=>calculateEstimate(input),[input]);
   const text=useMemo(()=>brief(name,input),[name,input]);
@@ -73,6 +75,41 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
     setTimeout(()=>URL.revokeObjectURL(u),1000);
     setNotice('Internal scoping document exported. Not an invoice or quote.');
   };
+  const exportEditable=()=>{
+    try {
+      const file=exportCommercialEstimate(org,name,input,review);
+      const url=URL.createObjectURL(new Blob([file],{type:'application/json;charset=utf-8'}));
+      const link=document.createElement('a');
+      const project=(name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'commercial-estimate');
+      link.href=url;
+      link.download='oj-internal-'+project+'.json';
+      link.click();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setNotice('Editable estimate exported. The JSON can include private property details and costs; share it only through a secure channel. No quote was sent.');
+    } catch(error) {
+      setNotice(error instanceof Error?error.message:'Could not export the estimate.');
+    }
+  };
+  const importEditable=async(file:File|undefined)=>{
+    if(!file)return;
+    if(preview){setNotice('Sample preview cannot import a real company estimate.');return;}
+    if(file.size>commercialTransferMaxChars){setNotice('Estimate file exceeds the 256 KB import limit.');return;}
+    try {
+      const imported=importCommercialEstimate(await file.text(),org);
+      if(!window.confirm('Replace the current draft with "'+imported.name+'"? Unsaved changes in this browser will be lost. No shared company records will change.')) {
+        setNotice('Import cancelled; your previous draft is unchanged.');return;
+      }
+      setName(imported.name);setInput(imported.input);setReview(imported.review);setTab('scope');
+      try {
+        window.localStorage.setItem(key,JSON.stringify({name:imported.name,input:imported.input,review:imported.review}));
+        setNotice('Editable estimate imported and saved in this browser. It is not automatically synchronized with Jacob or the shared database.');
+      } catch {
+        setNotice('Editable estimate imported into this page, but browser storage is unavailable. Export a copy before leaving.');
+      }
+    } catch(error) {
+      setNotice(error instanceof Error?error.message:'The selected file could not be imported.');
+    }
+  };
   const maybeCommercial=useMemo(()=>data.leads.filter(lead=>
     /commercial|office|property|retail|apartment|building|storefront|condo|multi.unit|warehouse|campus/i.test(lead.service_requested||'')
   ).slice(0,12),[data.leads]);
@@ -84,11 +121,20 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
         <p className="exec-kicker"><Building2 size={16}/> OJ EXTERIOR CARE / COMMERCIAL OPERATIONS</p>
         <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
         <p>Develop multi-building scope, model true direct costs, and prepare an internal proposal brief. Nothing here is treated as booked, paid, or contractually approved.</p>
-        <div className="com-actions"><button className="primary" onClick={save}><Save size={16}/> Save local draft</button><button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button><button className="secondary" onClick={download}><Download size={16}/> Export</button></div>
+        <div className="com-actions">
+          <button className="primary" onClick={save}><Save size={16}/> Save local draft</button>
+          <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
+          <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
+          <button className="secondary" onClick={exportEditable}><Download size={16}/> Export editable</button>
+          <button className="secondary" disabled={preview} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
+          <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{
+            const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importEditable(file);
+          }}/>
+        </div>
       </div>
       <div className="com-seal" aria-hidden="true"><strong>OJ</strong><span>FIELD / OPERATIONS</span></div>
     </header>
-    <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
+    <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
     <div className="com-snapshot">
       <div><span>BUILDINGS</span><strong>{estimate.sites}</strong><small>{estimate.floors} floors · {estimate.panes} panes (estimated)</small></div>
       <div><span>CREW-HOURS</span><strong>{estimate.crewHours}</strong><small>Total paid crew-hours, not elapsed hours</small></div>
