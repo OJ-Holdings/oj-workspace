@@ -2,6 +2,13 @@
 
 **Snapshot:** 2026-10-22 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
+## ATLAS V3 releases now MERGED (code; host still unverified)
+
+- **Release 01 — ATLAS Shell / Executive HQ:** PR #57, merge `133f309fb6b7fdf2441f21076d16221772745581`, reviewed PR-head CI `39872873154` SUCCESS. Premium grouped ATLAS shell/mobile navigation, five-mode source-aware HQ, four ventures, evidence dock, direct mission paths, no redundant Connected Operations rail/promo.
+- **Release 02 — contextual CRM/task/booking relations:** PR #58, merge `88c43eb6ff798d6d8c446b1e07a71b941741f96c`, reviewed CI `39873486495` SUCCESS. Exact-ID, same-business CRM → tasks and task → CRM/Exterior booking relationship panels in actual source editors.
+- **Detailed engineering release map and gaps:** [ATLAS V3 Release Changelog](./ATLAS_V3_RELEASE_CHANGELOG.md).
+- Both releases are code-only; no schema, Auth, provider outreach or financial mutation. **Windows port 3011/Tailscale live SHA remains unverified; check with `scripts/verify-production-windows.ps1` on the user's PC.** Draft PR #42 still blocked pending private backup/isolated restore. Legacy `/tools/operations` remains for compatibility even though its menu entry is removed.
+
 ## ATLAS V3 planning initiative — proposed, NOT built
 
 **New planning direction, 2026-10-22:** The founders want the ultimate visually striking, deeply integrated corporate operating system, with **broad horizontal execution rather than disconnected standalone tabs**. They explicitly said the standalone **Connected Operations** tab is redundant; use its underlying record index/relationship capability inside HQ, CRM, tasks, bookings, fleet, estimates, finance, search and entity drawers, and de-emphasize/remove its navigation **in a future reviewed code release with compatibility redirects**. Do **not** remove it merely by reading these docs.
