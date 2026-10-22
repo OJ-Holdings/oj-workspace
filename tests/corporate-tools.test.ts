@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { corporateTools, searchActiveTools, toolCategories, toolStatus, visibleTools } from '../src/lib/corporate-tools';
+import { contentPersistenceEnabled, isVenture, ventureList } from '../src/lib/ventures';
 
 const ready = { owner: true, connections: { shopify: true, ghl: true } };
 const disconnected = { owner: true, connections: { shopify: false, ghl: false } };
@@ -21,8 +22,8 @@ test('planned tools never advertise a navigable action', () => {
   }
   const creator = corporateTools.find(tool => tool.id === 'content-studio');
   assert.ok(creator);
-  assert.equal(creator.href, undefined);
-  assert.equal(toolStatus(creator, ready), 'planned');
+  assert.equal(creator.href, '/tools/content-preview');
+  assert.equal(toolStatus(creator, ready), 'preview');
 });
 
 test('connected source tools surface missing integrations without claiming their data is live', () => {
@@ -53,4 +54,16 @@ test('tool visibility respects owner-only permission metadata', () => {
   assert.equal(visibleTools({ owner: false, connections: ready.connections }).some(tool => tool.ownerOnly), false);
   assert.equal(visibleTools({ owner: true, connections: ready.connections }).length, corporateTools.length);
   assert.ok(privateTool.ownerOnly && !visibleTools({ owner: false, connections: ready.connections }).includes(privateTool));
+});
+
+
+test('Free-tier database gate keeps the fourth business read-only until supervised migration', () => {
+  assert.equal(contentPersistenceEnabled, false);
+  assert.equal(isVenture('content'), false, 'generic forms must not accept unsaved content venture writes');
+  assert.deepEqual(ventureList.map(v => v.id), ['exterior','solutions','essentials']);
+  const creator = corporateTools.find(tool => tool.id === 'content-studio');
+  assert.ok(creator);
+  assert.equal(creator.previewOnly, true);
+  assert.equal(creator.href, '/tools/content-preview');
+  assert.equal(toolStatus(creator, ready), 'preview');
 });

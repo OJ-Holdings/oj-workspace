@@ -30,6 +30,7 @@
 .tools-card-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:10px;background:var(--accent-soft);color:var(--accent-hi)}
 .tools-card-status{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid var(--line-2);border-radius:999px;font-size:10px;font-weight:750;white-space:nowrap;color:var(--ink-3)}
 .tools-card-status--available{color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,var(--line))}
+.tools-card-status--preview{color:var(--watch);border-color:color-mix(in srgb,var(--watch) 35%,var(--line));background:color-mix(in srgb,var(--watch) 7%,transparent)}
 .tools-card-status--connection-required{color:var(--watch);border-color:color-mix(in srgb,var(--watch) 35%,var(--line))}
 .tools-card h2{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:-.025em;margin:0 0 7px}
 .tools-card p{font-size:12px;line-height:1.6;color:var(--ink-3);margin:0 0 18px}

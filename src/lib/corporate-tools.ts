@@ -1,3 +1,5 @@
+import { contentPersistenceEnabled } from './ventures';
+
 /**
  * OJ Holdings V2 capability registry.
  *
@@ -8,7 +10,7 @@
 export const toolCategories = ['Operate', 'Grow', 'Finance', 'Create', 'People', 'Control'] as const;
 export type ToolCategory = typeof toolCategories[number];
 export type ToolIntegration = 'shopify' | 'ghl';
-export type ToolStatus = 'available' | 'connection-required' | 'planned';
+export type ToolStatus = 'available' | 'connection-required' | 'preview' | 'planned';
 
 export type CorporateTool = {
   id: string;
@@ -19,6 +21,7 @@ export type CorporateTool = {
   href?: `/${string}`;
   integration?: ToolIntegration;
   ownerOnly?: boolean;
+  previewOnly?: boolean;
 };
 
 export type ToolContext = {
@@ -47,7 +50,7 @@ export const corporateTools: readonly CorporateTool[] = [
   { id: 'team', title: 'Team Workspace', description: 'Review members and existing team administration links.', category: 'People', keywords: 'jacob oscar staff employees invites permissions', href: '/team' },
   { id: 'settings', title: 'Workspace Settings', description: 'Review account settings and configured connections.', category: 'Control', keywords: 'profile configuration integration connection', href: '/settings' },
 
-  { id: 'content-studio', title: 'Oscar Jacob Production Studio', description: 'Planned video pipeline, filming, editing, and publication records. Database support is not yet released.', category: 'Create', keywords: 'content media oscar jacob creator video filming editing' },
+  { id: 'content-studio', title: contentPersistenceEnabled ? 'Oscar Jacob Production Studio' : 'Oscar Jacob Studio Preview', description: contentPersistenceEnabled ? 'Manage private production projects, scripts, ownership, schedules and user-recorded releases.' : 'Explore the read-only Oscar Jacob studio with fictional sample records. Persistent company data is not enabled.', category: 'Create', keywords: 'content media oscar jacob creator video filming editing', href: contentPersistenceEnabled ? '/b/content' : '/tools/content-preview', previewOnly: !contentPersistenceEnabled },
   { id: 'publishing', title: 'Publishing Calendar', description: 'Planned coordinated releases, approvals, and verified publication links.', category: 'Create', keywords: 'youtube tiktok shorts reels upload posting' },
   { id: 'creative-assets', title: 'Creative Asset Library', description: 'Planned footage, scripts, edit versions, and rights tracking.', category: 'Create', keywords: 'video thumbnail content footage music licensing' },
   { id: 'sponsors', title: 'Sponsorship & Brand Deals', description: 'Planned sponsor pipeline, deliverables, and revenue evidence.', category: 'Create', keywords: 'media kit brand partnership creator monetization' },
@@ -73,6 +76,7 @@ export function visibleTools(context: ToolContext): CorporateTool[] {
 
 export function toolStatus(tool: CorporateTool, context: ToolContext): ToolStatus {
   if (!tool.href) return 'planned';
+  if (tool.previewOnly) return 'preview';
   if (tool.integration && !context.connections[tool.integration]) return 'connection-required';
   return 'available';
 }

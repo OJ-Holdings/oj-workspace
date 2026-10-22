@@ -23,6 +23,7 @@ const categoryIcon = {
 const statusCopy: Record<ToolStatus, string> = {
   available: 'Available',
   'connection-required': 'Needs connection',
+  preview: 'Preview only',
   planned: 'On the roadmap',
 };
 
@@ -42,6 +43,7 @@ export function CorporateToolsView({ base, owner, connections, mode }: Props) {
   const totals = {
     available: tools.filter(tool => toolStatus(tool, context) === 'available').length,
     connected: tools.filter(tool => toolStatus(tool, context) === 'connection-required').length,
+    preview: tools.filter(tool => toolStatus(tool, context) === 'preview').length,
     planned: tools.filter(tool => toolStatus(tool, context) === 'planned').length,
   };
   const filtered = useMemo(() => {
@@ -52,7 +54,7 @@ export function CorporateToolsView({ base, owner, connections, mode }: Props) {
       (!needle || [tool.title, tool.description, tool.category, tool.keywords]
         .some(value => value.toLocaleLowerCase('en-US').includes(needle))),
     ).sort((a, b) => {
-      const order: Record<ToolStatus, number> = { available: 0, 'connection-required': 1, planned: 2 };
+      const order: Record<ToolStatus, number> = { available: 0, 'connection-required': 1, preview: 2, planned: 3 };
       return order[toolStatus(a, context)] - order[toolStatus(b, context)] || a.title.localeCompare(b.title);
     });
   }, [tools, context, category, status, query]);
@@ -65,6 +67,7 @@ export function CorporateToolsView({ base, owner, connections, mode }: Props) {
       <div className="tools-statline" aria-label="Tool availability">
         <span><CheckCircle2 size={16} aria-hidden="true" /> <b>{totals.available}</b> available</span>
         <span><LockKeyhole size={16} aria-hidden="true" /> <b>{totals.connected}</b> need connection</span>
+        <span><Clapperboard size={16} aria-hidden="true" /> <b>{totals.preview}</b> preview</span>
         <span><CircleDashed size={16} aria-hidden="true" /> <b>{totals.planned}</b> on the roadmap</span>
       </div>
       {mode === 'preview' && <p className="tools-demo-notice">Preview mode uses fictional workspace records. Provider connection indicators describe configured integrations, not demonstrated live account access.</p>}
@@ -77,6 +80,7 @@ export function CorporateToolsView({ base, owner, connections, mode }: Props) {
           <option value="all">All statuses</option>
           <option value="available">Available now</option>
           <option value="connection-required">Needs connection</option>
+          <option value="preview">Preview only</option>
           <option value="planned">Roadmap</option>
         </select>
       </label>
@@ -113,7 +117,7 @@ function ToolCard({ tool, context, base }: { tool: CorporateTool; context: ToolC
     <h2>{tool.title}</h2>
     <p>{tool.description}</p>
     <div className="tools-card-bottom"><small>{tool.category}</small>
-      {state !== 'planned' && <span>{state === 'available' ? 'Open tool' : 'Review connections'} <ArrowUpRight size={15} aria-hidden="true" /></span>}
+      {state !== 'planned' && <span>{state === 'preview' ? 'Open read-only preview' : state === 'available' ? 'Open tool' : 'Review connections'} <ArrowUpRight size={15} aria-hidden="true" /></span>}
       {state === 'planned' && <span>Not available yet</span>}
     </div>
   </>;
@@ -124,7 +128,7 @@ function ToolCard({ tool, context, base }: { tool: CorporateTool; context: ToolC
   return <Link href={href} className="tools-card tools-card--link">{body}</Link>;
 }
 
-const launchIds = ['tasks', 'calendar', 'commercial-desk', 'solutions-outreach', 'finance', 'scenario-lab'];
+const launchIds = ['tasks', 'calendar', 'commercial-desk', 'solutions-outreach', 'content-studio', 'scenario-lab'];
 export function CorporateLaunchpad({ base }: { base: string }) {
   const pinned = launchIds.map(id => corporateLaunchTool(id));
   return <section className="corporate-launchpad" aria-label="Corporate tool launchpad">

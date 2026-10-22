@@ -8,7 +8,7 @@ const card = (over: Partial<Card>): Card => ({ id: 'c1', organization_id: 'o', t
 
 test('a workspace with no records reports nothing, never zeros dressed up as data', () => {
   const m = deriveMetrics(emptyDashboard, [], now);
-  assert.deepEqual(m.ventures, { exterior: null, solutions: null, essentials: null });
+  assert.deepEqual(m.ventures, { exterior: null, solutions: null, essentials: null, content: null });
   assert.equal(m.pipeline, null); assert.equal(m.schedule, null); assert.equal(m.files, null); assert.equal(m.notes, null);
   assert.equal(m.months.length, 12); assert.equal(m.months[11], 'Oct');
 });

@@ -1,6 +1,6 @@
-// The three OJ businesses: names, copy, and which brand assets and theme each one uses.
+// The four OJ operating brands: names, assets and theme metadata.
 // Colours live in src/styles/tokens.css under [data-venture]; nothing here invents data.
-export const ventureIds = ['exterior', 'solutions', 'essentials'] as const;
+export const ventureIds = ['exterior', 'solutions', 'essentials', 'content'] as const;
 export type VentureId = typeof ventureIds[number];
 
 export type Venture = {
@@ -41,7 +41,20 @@ export const ventures: Record<VentureId, Venture> = {
     mark: '/brand/essentials-mark.png',
     source: 'Shopify',
   },
+  content: {
+    id: 'content', name: 'Oscar Jacob', short: 'Oscar Jacob',
+    tagline: 'Make something worth watching.',
+    description: 'Original video, editorial production, and audience building.',
+    chips: ['Ideas', 'Filming', 'Editing', 'Publishing'],
+    mark: '/brand/content-mark.svg',
+    source: 'the Oscar Jacob production records',
+  },
 };
 
-export const ventureList = ventureIds.map(id => ventures[id]);
-export const isVenture = (value: string): value is VentureId => (ventureIds as readonly string[]).includes(value);
+/** Release gate: the live DB has no 'content' schema yet. Flip only in a post-migration release. */
+export const contentPersistenceEnabled = false;
+
+/** Visible and writable operating brands while the fourth business is a preview. */
+export const ventureList = ventureIds.filter(id => id !== 'content' || contentPersistenceEnabled).map(id => ventures[id]);
+export const isVenture = (value: string): value is VentureId =>
+  (ventureIds as readonly string[]).includes(value) && (value !== 'content' || contentPersistenceEnabled);

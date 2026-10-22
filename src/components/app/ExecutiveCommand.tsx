@@ -53,7 +53,7 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
         <p className="exec-kicker"><span className="exec-beacon"/> OJ HOLDINGS <span className="exec-rule"/> EXECUTIVE OPERATIONS</p>
         <p className="exec-date">{dateLabel(today)} <span>· Central time</span></p>
         <h1>Run the business.<br/><em>Own the outcome.</em></h1>
-        <p className="exec-lead">A command view for the work, customers, decisions and recorded performance of your three ventures. Every action leads back to an actual workspace record.</p>
+        <p className="exec-lead">A command view for the work, customers, decisions and recorded performance of your four businesses. Every action leads back to an actual workspace record.</p>
         <nav className="exec-quick" aria-label="Executive quick actions">
           <Link className="primary" href={base+'/tasks'}>Work queue <ArrowRight size={16}/></Link>
           <Link className="secondary" href={base+'/b/solutions/outreach'}>Solutions outreach <ArrowUpRight size={16}/></Link>
