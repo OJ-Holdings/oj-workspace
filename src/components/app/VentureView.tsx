@@ -52,7 +52,6 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       </header>
 
       <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
-      <div className="venture-operations-link"><Link className="secondary" href={`${base}/tools/operations?business=${encodeURIComponent(venture)}`}>View {v.short} across company operations →</Link></div>
 
       {active === 'overview' && venture !== 'content' && (
         <div className="venture-overview">

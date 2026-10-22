@@ -13,10 +13,7 @@ import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
 import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
-import { ExecutiveCommand } from './ExecutiveCommand';
-import { CorporateLaunchpad } from './CorporateTools';
-import { ConnectedOperationsPulse } from './ConnectedOperations';
-import { CorporateIntelligencePulse } from './CorporateIntelligence';
+import { AtlasHQ } from './AtlasHQ';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { workDay } from '@/lib/task-workflows';
 
@@ -50,43 +47,10 @@ export function HomeView({ base, board, store, work, metrics: derived, jobs, mod
 
   return (
     <div className={loading ? 'home is-loading' : 'home'}>
-      <ExecutiveCommand base={base} board={board} store={store} metrics={metrics} jobs={jobs} mode={mode} today={todayKey} displayName={displayName} readOnly={readOnly} />
-      <CorporateIntelligencePulse base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} today={todayKey} preview={mode === 'preview'} />
-      <ConnectedOperationsPulse base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} today={todayKey} limited={limited} preview={mode==='preview'} />
-      <CorporateLaunchpad base={base} />
+      <AtlasHQ base={base} board={board} store={store} metrics={metrics} jobs={jobs} mode={mode} today={todayKey} displayName={displayName} readOnly={readOnly} limited={limited} />
 
 
-      <section className="venture-cards" aria-label="Businesses">
-        {ventureList.map(v => {
-          const m = metrics.ventures[v.id];
-          const tasks = open.filter(c => c.business === v.id).length;
-          return (
-            <article key={v.id} className="venture-card" data-venture={v.id}>
-              <header>
-                <span className="venture-mark"><Image src={v.mark} alt="" width={52} height={52} /></span>
-                <div><h2>{v.name}</h2><p>{v.description}</p></div>
-                <Link className="icon-button" href={`${base}/b/${v.id}`} aria-label={`Open ${v.name}`}><ArrowUpRight size={18} /></Link>
-              </header>
-              {m ? (
-                <dl className="venture-stats">
-                  <div><dd><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: m.revenueMtd >= 10000 ? 'compact' : 'standard' }} /></dd><dt>Recorded revenue this month</dt></div>
-                  <div><dd><NumberFlow value={m.activeLeads} /></dd><dt>Active leads</dt></div>
-                  <div><dd><NumberFlow value={tasks} /></dd><dt>Open tasks</dt></div>
-                </dl>
-              ) : (
-                <div className="venture-unconnected">
-                  <p><b>{tasks}</b> open {tasks === 1 ? 'task' : 'tasks'}</p>
-                  <p className="quiet">Log money or leads for this business, or connect {v.source}, and its figures appear here.</p>
-                </div>
-              )}
-              <footer>
-                <Link className="primary" href={`${base}/b/${v.id}`}>Open dashboard</Link>
-                {!readOnly && <button className="secondary" onClick={() => board.openCard(undefined, { business: v.id, title: '' })}><Plus size={15} aria-hidden="true" />New task</button>}
-              </footer>
-            </article>
-          );
-        })}
-      </section>
+      <div className="atlas-legacy-heading"><span>OPERATING DETAIL / SOURCE REPORTS</span><h2>Deeper company reporting</h2><p>Explore the existing record-level views below. Financial records are not automatically verified cash or profit.</p></div>
 
       {store.data?.reporting?.sources.some(source => source.state === 'partial' || source.state === 'unavailable') && <p className="banner-inline">Some connected figures are incomplete or unavailable. Totals include only the records loaded. <Link href={`${base}/analytics`}>Review source coverage</Link> before comparing results.</p>}
 
