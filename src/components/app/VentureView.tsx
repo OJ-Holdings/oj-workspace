@@ -71,7 +71,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {venture === 'content' && (active === 'overview' || active === 'studio') &&
         <ContentStudio base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />}
       {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
-      {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} />}
+      {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} />}
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
