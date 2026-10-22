@@ -34,7 +34,7 @@ export function ScenarioLab({ base }: { base: string }) {
     const numeric = raw === '' ? 0 : Number(raw);
     if (!Number.isFinite(numeric)) return;
     const bounded = Math.max(0, Math.min(key === 'months' ? 36 : 1_000_000, numeric));
-    setInputs(previous => ({ ...previous, [key]: key === 'months' ? Math.max(1, Math.round(bounded)) : bounded }));
+    setInputs(previous => ({ ...previous, [key]: key === 'months' ? Math.max(1, Math.round(bounded)) : key === 'unitsPerMonth' ? Math.round(bounded) : bounded }));
   }
 
   return <div className="scenario page">
