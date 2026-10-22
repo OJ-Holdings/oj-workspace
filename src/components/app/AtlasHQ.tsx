@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   Activity, ArrowRight, ArrowUpRight, BriefcaseBusiness, CalendarClock, ChartNoAxesCombined,
   CheckCheck, ChevronRight, CircleAlert, Command, Compass, Database, FileText,
-  GitBranch2, LayoutDashboard, LockKeyhole, Network, Plus, Radar, ShieldCheck,
+  GitBranch, LayoutDashboard, LockKeyhole, Network, Plus, Radar, ShieldCheck,
   Sparkles, Target, Truck, Users, Wallet, X,
 } from 'lucide-react';
 import type { Board } from './useBoard';
@@ -164,7 +164,7 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
           <span className={'atlas-severity atlas-severity-'+selectedSignal.severity}>{sevLabel[selectedSignal.severity]}</span>
           <h3>{selectedSignal.title}</h3><p>{selectedSignal.explanation}</p>
           <dl><div><dt>Business</dt><dd>{chip(selectedSignal.business)}</dd></div><div><dt>Evidence</dt><dd>{selectedSignal.source}</dd></div>{selectedSignal.date&&<div><dt>Recorded date</dt><dd>{selectedSignal.date}</dd></div>}</dl>
-          {attached.length>0&&<div className="atlas-relations"><b><GitBranch2 size={14}/> Exact identifier links</b>{attached.map(link=><Link key={link.key} href={base+link.href} title={link.provenance}>{link.label}<ArrowUpRight size={13}/></Link>)}</div>}
+          {attached.length>0&&<div className="atlas-relations"><b><GitBranch size={14}/> Exact identifier links</b>{attached.map(link=><Link key={link.key} href={base+link.href} title={link.provenance}>{link.label}<ArrowUpRight size={13}/></Link>)}</div>}
           <Link href={base+selectedSignal.destination} className="atlas-context-cta">Open authoritative record <ArrowUpRight size={15}/></Link>
           {!readOnly&&selectedSignal.id.startsWith('lead:')&&<Link href={base+'?sourceLead='+encodeURIComponent(selectedSignal.recordId||'')} className="atlas-context-secondary">Prepare linked follow-up task <Plus size={14}/></Link>}
           {!readOnly&&mode==='live'&&selectedSignal.id.startsWith('booking:')&&<Link href={base+'?sourceBooking='+encodeURIComponent(selectedSignal.recordId||'')} className="atlas-context-secondary">Prepare linked booking task <Plus size={14}/></Link>}
