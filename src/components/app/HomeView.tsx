@@ -13,7 +13,8 @@ import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
 import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
-import { TodayWork } from './TodayWork';
+import { ExecutiveCommand } from './ExecutiveCommand';
+import type { JobItem } from '@/app/workspace/exterior-actions';
 import { workDay } from '@/lib/task-workflows';
 
 const color = (v: VentureId | 'shared') => `var(--c-${v})`;
@@ -22,18 +23,17 @@ const fileIcon = { pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: Fi
 /** The Home screen before any figures exist: every panel then says what to log or connect. */
 const nothingYet: WorkspaceMetrics = { months: [], ventures: { exterior: null, solutions: null, essentials: null }, pipeline: null, schedule: null, files: null, notes: null };
 
-type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
+type Props = { base: string; board: Board; store: DashboardStore; work: WorkStore; metrics: WorkspaceMetrics | null; jobs: JobItem[]; mode: 'preview' | 'live'; displayName: string; members: string[]; readOnly: boolean };
 
-export function HomeView({ base, board, store, work, metrics: derived, mode, displayName, members, readOnly }: Props) {
+export function HomeView({ base, board, store, work, metrics: derived, jobs, mode, displayName, members, readOnly }: Props) {
   const metrics = derived ?? nothingYet;
   // While the sample workspace is still working out today's date, hold the panels back so nothing flashes as empty.
   const loading = !derived && !store.missing && mode === 'preview';
   const [note, setNote] = useState('');
   // The greeting depends on the visitor's clock, so it is set after load to keep server and browser output identical.
-  const [greeting, setGreeting] = useState('Welcome back');
   const [todayKey, setTodayKey] = useState('');
   useEffect(() => {
-    const refresh = () => { const now = new Date(); const hour = now.getHours(); setGreeting(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'); setTodayKey(workDay(now)); };
+    const refresh = () => { setTodayKey(workDay(new Date())); };
     refresh(); const timer = window.setInterval(refresh, 60_000); return () => window.clearInterval(timer);
   }, []);
 
@@ -42,23 +42,13 @@ export function HomeView({ base, board, store, work, metrics: derived, mode, dis
   const connected = ventureList.filter(v => metrics.ventures[v.id]);
   const total = connected.reduce((sum, v) => sum + (metrics.ventures[v.id]?.revenueMtd ?? 0), 0);
   // Today's tasks: anything due today or earlier and not done, then high priority work.
-  const due = open.filter(c => c.due_date && todayKey && c.due_date <= todayKey);
 
-  const who = mode === 'preview' ? 'Oscar and Jacob' : displayName || members[0] || '';
   const pipelineMax = Math.max(1, ...(metrics.pipeline ?? []).map(p => p.count));
 
   return (
     <div className={loading ? 'home is-loading' : 'home'}>
-      <section className="hero">
-        <div className="hero-copy">
-          <p>{greeting}{who ? `, ${who}` : ''}</p>
-          <h1>Today at OJ.</h1>
-          <p className="hero-sub">{open.length} open tasks across your three businesses. {due.length ? `${due.length} due today or overdue.` : 'Nothing due today.'}</p>
-        </div>
-        <div className="home-actions"><Link className="primary" href={`${base}/tasks`}>Plan today’s work</Link><Link className="secondary" href={`${base}/calendar`}>View schedule</Link></div>
-      </section>
+      <ExecutiveCommand base={base} board={board} store={store} metrics={metrics} jobs={jobs} mode={mode} today={todayKey} displayName={displayName} readOnly={readOnly} />
 
-      <TodayWork base={base} board={board} metrics={metrics} today={todayKey} displayName={mode === 'preview' ? 'Oscar' : displayName} members={members} readOnly={readOnly} />
 
       <section className="venture-cards" aria-label="Businesses">
         {ventureList.map(v => {

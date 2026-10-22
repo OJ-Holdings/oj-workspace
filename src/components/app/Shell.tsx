@@ -14,7 +14,7 @@ import { searchWorkspace } from '@/lib/workspace-search';
 export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings';
 
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home }[] = [
-  { key: 'home', label: 'Today', path: '', icon: Home },
+  { key: 'home', label: 'Command', path: '', icon: Home },
   { key: 'businesses', label: 'Businesses', path: '/businesses', icon: Building2 },
   { key: 'tasks', label: 'Tasks', path: '/tasks', icon: CheckSquare },
   { key: 'calendar', label: 'Calendar', path: '/calendar', icon: CalendarDays },
