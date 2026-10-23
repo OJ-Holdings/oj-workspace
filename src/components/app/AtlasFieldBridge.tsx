@@ -64,9 +64,11 @@ export function AtlasFieldBridge({
     const onStorage = (event: StorageEvent) => { if (event.key === key || event.key === null) refresh(); };
     window.addEventListener('storage', onStorage);
     window.addEventListener('focus', refresh);
+    const timer=window.setInterval(refresh,60_000);
     return () => {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('focus', refresh);
+      window.clearInterval(timer);
     };
   }, [organizationId, mode, view, disabled]);
 
