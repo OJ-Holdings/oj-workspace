@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
 import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
@@ -13,11 +13,12 @@ import { searchWorkspace } from '@/lib/workspace-search';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { searchActiveTools } from '@/lib/corporate-tools';
 
-export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations';
+export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations' | 'nexus';
 
 type NavGroup='COMMAND'|'WORKBENCH'|'INTELLIGENCE'|'SYSTEM';
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group: NavGroup }[] = [
   { key:'home', label:'Executive HQ', path:'', icon:Home, group:'COMMAND' },
+  { key:'nexus', label:'NEXUS / Project 360', path:'/tools/nexus', icon:Network, group:'COMMAND' },
   { key:'businesses', label:'Business Divisions', path:'/businesses', icon:Building2, group:'COMMAND' },
   { key:'fleet', label:'Fleet Command', path:'/tools/fleet', icon:Truck, group:'COMMAND' },
   { key:'tasks', label:'Missions & Tasks', path:'/tasks', icon:CheckSquare, group:'WORKBENCH' },
