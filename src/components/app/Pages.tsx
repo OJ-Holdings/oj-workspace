@@ -227,7 +227,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
           <div className="fields">
             <label>Type<select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })}><option value="revenue">Money in</option><option value="cost">Money out</option></select></label>
             <label>Business<VentureSelect value={form.venture} disabled={!!venture} onChange={v => v && setForm({ ...form, venture: v })} /></label>
-            <label>Amount in dollars<input required type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
+            <label>Amount in dollars<input required autoFocus type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
             <label>Date<input required type="date" value={form.occurred_on} onChange={e => setForm({ ...form, occurred_on: e.target.value })} /></label>
             <label>Category<input maxLength={80} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Job, subscription, stock, fuel" /></label>
             <label>Note<input maxLength={500} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
