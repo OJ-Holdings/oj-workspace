@@ -179,7 +179,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       const next=deletePortfolioProject(currentState,org,selectedId,expectedRevision);
       persist(next,currentState.revision,'Only the selected local project was deleted. The open estimator is unchanged.');
       setSelectedId(null);setExpectedRevision(null);setBookingId(null);
-      setPlannedAssetIds([]);setPhase('scoping');setFieldCrewPlan(emptyFieldCrewPlan());setFieldCrewPlan(emptyFieldCrewPlan());
+      setPlannedAssetIds([]);setPhase('scoping');setFieldCrewPlan(emptyFieldCrewPlan());
     }catch(error){setNotice(error instanceof Error?error.message:'Delete failed.');}
   }
   function exportPortfolio(){
@@ -202,7 +202,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       if(currentState.revision!==portfolio.revision)throw new Error('Portfolio changed in another tab. Reload before replacing.');
       const importedNext={...imported,revision:currentState.revision+1};
       persist(importedNext,currentState.revision,'Private portfolio imported. Select a project to load it into the estimator; it is not synced to Jacob.');
-      setSelectedId(null);setExpectedRevision(null);setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);
+      setSelectedId(null);setExpectedRevision(null);setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
     }catch(error){setNotice(error instanceof Error?error.message:'Import rejected. Existing portfolio was not modified.');}
   }
   if(!canEdit)return <section className="atlas-project-portfolio"><header><div><small>ATLAS / PROJECT PORTFOLIO</small><h3>Commercial project register</h3></div></header><p>Private device-local project management is unavailable in preview or read-only mode. Nothing was read from local browser project storage.</p></section>;
