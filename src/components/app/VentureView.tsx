@@ -13,6 +13,7 @@ import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
 import { OutreachView } from './OutreachView';
 import { ContentStudio } from './ContentStudio';
+import { OperatorLaunchpad } from './OperatorLaunchpad';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
@@ -52,6 +53,9 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       </header>
 
       <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
+      {venture==='exterior'&&<OperatorLaunchpad base={base as '/workspace'|'/preview'}
+        mode={mode} readOnly={readOnly} venture="exterior" compact
+        onNewTask={()=>board.openCard(undefined,{business:'exterior'})} />}
 
       {active === 'overview' && venture !== 'content' && (
         <div className="venture-overview">
