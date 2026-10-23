@@ -2,6 +2,13 @@
 
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
+## CURRENT ACCOUNTING STATUS (2026-10-23)
+
+- **R20 Treasury Command:** PR #85, merge `98a52b586`, exact PR CI `39985983629` SUCCESS and merged-main CI `39986203721` SUCCESS. Live source-scoped Finance cockpit, expense drivers, partial-cash provenance, material exception cues and separate pure, **non-posting** double-entry trial-balance core. NO new ledger tables, reconciliation or bank operations.
+- **R21 Accountant-review CSV:** PR #86, merge `8cbdc7d1d`, exact PR CI `39986712315` SUCCESS. Export existing permission-scoped/filtered Finance rows with source/date-basis and clearly marked unreconciled/non-posted provenance, spreadsheet formula neutralization and user confirmation. Not a financial statement, tax return or true bookkeeping close.
+- **Mandatory next gates:** independent Windows port 3011/Tailscale exact SHA + founder desktop/iPhone UX checks; restore-capable private production backup, isolated restore, RLS and approved additive accounting schema before ANY live double-entry posting. Draft database PR #42 remains unmerged. See `docs/ATLAS_ACCOUNTING_ENGINEERING.md`.
+- **Future accounting roadmap:** canonical legal entities/chart of accounts/approved immutable journal postings, bank and merchant reconciliation, actual AR/AP and invoices, month-end close, job cost allocation, partner capital accounts, tax workpapers, explicit user-approved filing interfaces. Never silently convert legacy money-in/out rows into posted GAAP records.
+
 ## ATLAS V3 releases now MERGED (GitHub code; host still unverified)
 
 - **R01 HQ / Shell:** PR #57, merge `133f309`, CI `39872873154` SUCCESS. Five-mode source-aware headquarters, visual ATLAS shell and de-emphasis of redundant Connected Operations navigation.
