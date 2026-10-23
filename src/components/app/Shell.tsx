@@ -57,7 +57,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
-  const [expandedGroups,setExpandedGroups]=useState<Record<'MANAGEMENT'|'MORE',boolean>>({MANAGEMENT:false,MORE:false});
+  const [expandedGroups,setExpandedGroups]=useState<Record<'MANAGEMENT'|'MORE',boolean|null>>({MANAGEMENT:null,MORE:null});
   const searchInput = useRef<HTMLInputElement>(null);
   const palette = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -132,12 +132,12 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         <nav>
           {nav.map((item,i) => {
             const expandable=item.group==='MANAGEMENT'||item.group==='MORE';
-            const groupOpen=!expandable||expandedGroups[item.group as 'MANAGEMENT'|'MORE']||nav.some(n=>n.group===item.group&&n.key===current);
+            const groupOpen=!expandable||(expandedGroups[item.group as 'MANAGEMENT'|'MORE']??nav.some(n=>n.group===item.group&&n.key===current));
             return <div key={item.key}>
               {(i===0||nav[i-1].group!==item.group)&&(expandable
                 ? <button type="button" className="atlas-rail-heading atlas-nav-group-toggle"
                   aria-expanded={groupOpen}
-                  onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!prev[item.group as 'MANAGEMENT'|'MORE']}))}>
+                  onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!groupOpen}))}>
                     {item.group==='MANAGEMENT'?'MANAGEMENT / ANALYTICS':'MORE / SETTINGS'}
                     <span aria-hidden="true">{groupOpen?'−':'+'}</span>
                   </button>
