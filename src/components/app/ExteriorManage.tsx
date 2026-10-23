@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFocuses, matchesLeadWorkFocus, sortLeadsForWork, type LeadWorkFocus } from '@/lib/exterior-lead-workflow';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -44,6 +45,8 @@ const blankLead: LeadInput = { name: '', phone: '', address: '', service_request
 
 export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [filter, setFilter] = useState('all');
+  const [workFocus,setWorkFocus]=useState<LeadWorkFocus>('all');
+  const [view,setView]=useState<'cards'|'table'>('cards');
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(50);
   const [editing, setEditing] = useState<LeadInput | null>(null);
@@ -61,13 +64,14 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   },[readOnly,launchNewLead]);
   useEffect(() => {
     const lead = data.leads.find(l => l.id === selected);
-    if (lead) { setFilter('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
+    if (lead) { setFilter('all'); setWorkFocus('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
   }, [selected, data.leads]);
 
   const counts = useMemo(() => Object.fromEntries(leadStatuses.map(s => [s, data.leads.filter(l => l.status === s).length])), [data.leads]);
+  const workCounts=useMemo(()=>countLeadWorkFocuses(data.leads),[data.leads]);
   const pipeline = data.leads.filter(l => openStatuses.includes(l.status ?? '')).reduce((s, l) => s + (l.quote_amount ?? 0), 0);
   const q = search.trim().toLowerCase();
-  const rows = data.leads.filter(l => (filter === 'all' || l.status === filter) && (!q || [l.name, l.phone, l.address].some(v => (v ?? '').toLowerCase().includes(q))));
+  const rows = sortLeadsForWork(data.leads.filter(l => (filter === 'all' || l.status === filter) && matchesLeadWorkFocus(l,workFocus) && (!q || [l.name, l.phone, l.address, l.service_requested].some(v => (v ?? '').toLowerCase().includes(q)))));
 
   return <>
     <div className="kpis many">
@@ -76,13 +80,13 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
     </div>
     <section className="panel">
       <header className="panel-head">
-        <h2>Leads</h2>
+        <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
         {!readOnly && <button className="primary" disabled={busy} onClick={() => setEditing({ ...blankLead })}><Plus size={15} aria-hidden="true" />New lead</button>}
       </header>
       <div className="lead-tools">
         <input type="search" aria-label="Search leads" placeholder="Search by name, phone or address" value={search} onChange={e => { setSearch(e.target.value); setShown(50); }} />
         <div className="filter-chips" role="group" aria-label="Filter by status">
-          {['all', ...leadStatuses].map(s => <button key={s} type="button" aria-pressed={filter === s} onClick={() => { setFilter(s); setShown(50); }}>{s === 'all' ? 'All' : statusLabel(s)}<span>{s === 'all' ? data.leads.length : counts[s]}</span></button>)}
+          {['all', ...leadStatuses].map(s => <button key={s} type="button" aria-pressed={filter === s} onClick={() => { setFilter(s); setWorkFocus('all'); setShown(50); }}>{s === 'all' ? 'All' : statusLabel(s)}<span>{s === 'all' ? data.leads.length : counts[s]}</span></button>)}
         </div>
       </div>
       {rows.length ? <div className="tablewrap"><table className="table lead-table">
