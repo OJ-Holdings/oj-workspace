@@ -333,21 +333,18 @@ function ClientPicker({ open, leads, close, pick, fresh }: { open: boolean; lead
   const [q, setQ] = useState('');
   useEffect(() => { if (open) setQ(''); }, [open]);
   const term = q.trim().toLowerCase();
-  // One row per person: the most recent record for each phone number or name.
-  const people = useMemo(() => {
-    const seen = new Set<string>();
-    return [...leads].sort((a, b) => (b.updated_at ?? b.created_at).localeCompare(a.updated_at ?? a.created_at)).filter(l => {
-      const key = isRealPhone(l.phone) ? l.phone! : `${l.name}|${l.address}`;
-      if (seen.has(key)) return false;
-      seen.add(key); return true;
-    });
-  }, [leads]);
+  // Book the exact saved record. Shared phone/address is NOT verified common identity;
+  // collapsing by contact values can hide different owners, tenants or opportunities.
+  const people = useMemo(
+    () => [...leads].sort((a, b) => (b.updated_at ?? b.created_at).localeCompare(a.updated_at ?? a.created_at) || a.id.localeCompare(b.id)),
+    [leads],
+  );
   const matches = people.filter(l => !term || [l.name, l.phone, l.address].some(v => (v ?? '').toLowerCase().includes(term))).slice(0, 8);
   return (
     <Modal title="Book a job" open={open} onClose={close}>
       <div className="fields"><label className="wide">Who is it for?<input type="search" autoFocus placeholder="Search by name, phone or address" value={q} onChange={e => setQ(e.target.value)} /></label></div>
       <ul className="client-list">{matches.map(l => (
-        <li key={l.id}><button type="button" onClick={() => pick(l)}><b>{l.name || 'Unnamed'}</b><span>{[l.address, isRealPhone(l.phone) ? shownPhone(l.phone) : null].filter(Boolean).join(', ')}</span><small>{isDone(l) ? 'Returning client' : statusLabel(l.status)}</small></button></li>
+        <li key={l.id}><button type="button" onClick={() => pick(l)}><b>{l.name || 'Unnamed'}</b><span>{[l.address, isRealPhone(l.phone) ? shownPhone(l.phone) : null].filter(Boolean).join(', ')}</span><small>{isDone(l) ? 'Completed source record' : statusLabel(l.status)} · {sourceLabel(l.source)} · select exact record</small></button></li>
       ))}</ul>
       {!matches.length && <p className="quiet">Nobody matches. Add them as a new client.</p>}
       <div className="dialog-actions"><span>Not on record yet?</span><button type="button" className="primary" onClick={fresh}><Plus size={15} aria-hidden="true" />New client</button></div>
