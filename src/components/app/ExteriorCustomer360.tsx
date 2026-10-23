@@ -105,7 +105,7 @@ export function ExteriorCustomer360({data,act,busy,readOnly,org,now,base}:Props)
          {bookings.length?<div className="ecc-booking-list">{bookings.map(b=><article key={b.id} className="ecc-booking">
            <div className="ecc-booking-date"><CalendarDays size={17}/><strong>{day(b.date)}</strong><small>{b.time_block??'Time not entered'}</small></div>
            <div><span className="ecc-booking-tag">{statusLabel(b.status)}</span><p>Linked to this exact source lead. Scheduled status and date do not prove service completion or payment.</p></div>
-           <Link href={root+'/bookings'} aria-label={`Open the booking workbench for ${day(b.date)}`}><ArrowUpRight size={16}/></Link>
+           <Link href={`${root}/field?booking=${encodeURIComponent(b.id)}`} aria-label={`Open field log for booked job ${day(b.date)}`}><ArrowUpRight size={16}/></Link>
          </article>)}</div>:<div className="ecc-empty"><CalendarDays size={22}/><strong>No booking linked to this source ID.</strong><p>The customer could still have work recorded under a separate lead; no other identity is assumed.</p></div>}
          {completed&&<div className="ecc-completion"><ShieldCheck size={17}/>
            <p>Lead is marked completed. {lead.completed_at?'A completion timestamp exists in the source.':'Its completion date is estimated from a later source field.'} Recorded job amounts belong to this lead, not to each booking separately.</p>
