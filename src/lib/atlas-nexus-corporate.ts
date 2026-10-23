@@ -38,6 +38,8 @@ export function buildCorporateNexusOverlay(input:{
 }):CorporateNexusOverlay{
   if(input.portfolio.organizationId!==input.org)
     throw new Error('Corporate overlay source belongs to another organization.');
+  if(input.fleet!==null && input.fleet.organizationId!==input.org)
+    throw new Error('Corporate overlay Fleet source belongs to another organization.');
   const jobs=input.jobState==='ready'?input.jobs:[];
   const authorizedCards=input.cards.filter(c=>c.organization_id===input.org);
   const taskIdSet=new Set(authorizedCards.map(c=>c.id));
