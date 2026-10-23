@@ -256,6 +256,9 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         persist(importedNext,currentState.revision,'Private portfolio REPLACED from explicit file. It remains only on this device.');
         setSelectedId(null);setExpectedRevision(null);setPhase('scoping');setBookingId(null);
         setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
+        // Do not leave an old removed project's unsaved scope in the estimator
+        // under a misleading 'new project' label after destructive replacement.
+        onLoad({name:'New commercial opportunity',input:newEstimate(),review:[false,false,false,false,false]});
       }
       setPendingImport(null);
     }catch(error){
