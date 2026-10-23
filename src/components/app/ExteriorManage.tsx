@@ -78,6 +78,22 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
       {(['new', 'contacted', 'following_up', 'booked', 'completed'] as const).map(s => <div key={s}><span>{statusLabel(s)}</span><strong><NumberFlow value={counts[s]} /></strong></div>)}
       <div><span>Open pipeline</span><strong><NumberFlow value={pipeline} format={usd} /></strong><small className="quiet">Quotes on open leads, not money in</small></div>
     </div>
+    <section className="atlas-lead-priority" aria-label="Customer work queues">
+      <header><div><span>EXTERIOR CARE / CUSTOMER OPERATIONS</span><h2>Move customers toward booked work.</h2></div>
+        <small>Queues reflect recorded status and fields only. No inferred response deadlines or client acceptance.</small>
+      </header>
+      <div className="atlas-lead-focuses">
+        {leadWorkFocuses.filter(focus=>focus!=='all').map(focus=><button key={focus} type="button"
+          aria-pressed={workFocus===focus} onClick={()=>{setWorkFocus(focus);setFilter('all');setSearch('');setShown(50);}}>
+          <strong>{workCounts[focus]}</strong><span>{leadWorkLabels[focus]}</span>
+          <small>{leadWorkDescriptions[focus]}</small>
+        </button>)}
+      </div>
+      {workFocus!=='all'&&<div className="atlas-lead-focus-notice" role="status">
+        <span><b>{leadWorkLabels[workFocus]}:</b> {leadWorkDescriptions[workFocus]}</span>
+        <button type="button" className="secondary small" onClick={()=>{setWorkFocus('all');setFilter('all');setShown(50);}}>Show all customers</button>
+      </div>}
+    </section>
     <section className="panel">
       <header className="panel-head">
         <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
@@ -89,7 +105,53 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
           {['all', ...leadStatuses].map(s => <button key={s} type="button" aria-pressed={filter === s} onClick={() => { setFilter(s); setWorkFocus('all'); setShown(50); }}>{s === 'all' ? 'All' : statusLabel(s)}<span>{s === 'all' ? data.leads.length : counts[s]}</span></button>)}
         </div>
       </div>
-      {rows.length ? <div className="tablewrap"><table className="table lead-table">
+      <div className="atlas-lead-view-toggle" role="group" aria-label="Customer display">
+        <span>Showing {rows.length} matching record{rows.length===1?'':'s'} · latest source creation date first</span>
+        <button type="button" aria-pressed={view==='cards'} onClick={()=>setView('cards')}>Customer cards</button>
+        <button type="button" aria-pressed={view==='table'} onClick={()=>setView('table')}>Compact table</button>
+      </div>
+      {view==='cards'&&(rows.length ? <>
+        <div className="atlas-customer-grid" aria-label="Accessible customer cards">
+          {rows.slice(0,shown).map(l=><article key={l.id} className="atlas-customer-card" data-status={l.status??'unknown'}>
+            <header>
+              <span className="atlas-customer-avatar" aria-hidden="true">{(l.name??'?').trim().charAt(0).toUpperCase()||'?'}</span>
+              <div><h3>{l.name||'Unnamed customer'}</h3>
+                <small>Added {day(l.created_at)} · {sourceLabel(l.source)}</small></div>
+              <span className="atlas-customer-stage">{statusLabel(l.status)}</span>
+            </header>
+            <div className="atlas-customer-description">
+              <div><small>Requested service</small><strong>{l.service_requested||'Not entered'}</strong></div>
+              <div><small>Entered quote, not paid</small><strong>{cash(l.quote_amount)}</strong></div>
+            </div>
+            <div className="atlas-customer-contact">
+              {isRealPhone(l.phone)?<a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a>:<span>{shownPhone(l.phone)}</span>}
+              {l.address&&<small>{l.address}</small>}
+            </div>
+            <footer>
+              {!readOnly&&<label>Customer status<select aria-label={`Status of ${l.name??'customer'}`}
+                value={l.status??'new'} disabled={busy}
+                onChange={e=>{const status=e.target.value;act(()=>setLeadStatus(org,l.id,status),()=>`${l.name} marked ${statusLabel(status).toLowerCase()}.`);}}>
+                {leadStatuses.map(status=><option key={status} value={status}>{statusLabel(status)}</option>)}
+              </select></label>}
+              <div className="atlas-customer-card-actions">
+                {!readOnly&&l.status==='completed'&&<button type="button" className="secondary small"
+                  onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Record payment/cost':'Review payment/cost'}</button>}
+                {!readOnly&&l.status!=='booked'&&<button type="button" className="primary small" onClick={()=>setBooking(l)}>
+                  <CalendarPlus size={14}/>{isDone(l)?'Book again':'Book job'}</button>}
+                {!readOnly&&<button type="button" className="secondary small" onClick={()=>setEditing({
+                  id:l.id,name:l.name??'',phone:l.phone??'',address:l.address??'',
+                  service_requested:l.service_requested??'',quote_amount:l.quote_amount??'',
+                  notes:l.notes??'',source:l.source??'',
+                })}><Pencil size={14}/>Edit details</button>}
+              </div>
+            </footer>
+          </article>)}
+        </div>
+        {rows.length>shown&&<button className="secondary showmore" onClick={()=>setShown(shown+50)}>
+          Show {Math.min(50,rows.length-shown)} more customers
+        </button>}
+      </>:<div className="empty"><p><b>No customers in this view.</b> Change the work queue, status or search to see other loaded records.</p></div>)}
+      {view==='table'&&(rows.length ? <div className="tablewrap"><table className="table lead-table">
         <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
           <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
@@ -111,7 +173,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
           </tr>
         ))}</tbody></table>
         {rows.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, rows.length - shown)} more of {rows.length}</button>}</div>
-        : <div className="empty"><p><b>No leads match.</b> Change the filter or search.</p></div>}
+        : <div className="empty"><p><b>No leads match.</b> Change the filter or search.</p></div>)}
     </section>
 
     <LeadDialog lead={editing} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
