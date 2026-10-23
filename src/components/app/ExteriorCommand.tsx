@@ -73,6 +73,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
           {!readOnly&&<Link className="excmd-primary" href={parent+'/bookings?new=1'}><Plus size={16}/> Book a job</Link>}
           {!readOnly&&<Link className="excmd-outline" href={parent+'/leads?new=1'}><UsersRound size={15}/> Capture a lead</Link>}
           <Link className="excmd-text-link" href={parent+'/estimate'}>Estimate workbench <ArrowUpRight size={15}/></Link>
+          <Link className="excmd-text-link" href={parent+'/field'}>Mobile Field Command <ArrowUpRight size={15}/></Link>
           <Link className="excmd-text-link" href={parent+'/intake'}>Website intake <ArrowUpRight size={15}/></Link>
           <Link className="excmd-text-link" href={parent+'/commercial'}>Bid War Room <ArrowUpRight size={15}/></Link>
         </div>
@@ -180,7 +181,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
       <div className="excmd-app-grid">
         {[
           {title:'Customer Command',body:'Records, inquiries, status, history and booking handoff.',href:parent+'/leads',icon:UsersRound},
-          {title:'Field Operations',body:'Scheduling, job editing, crew assignment and calendar.',href:parent+'/bookings',icon:Truck},
+          {title:'Field Operations',body:'Dispatch plus on-site crew hours, material usage, rig readiness and local job evidence.',href:parent+'/field',icon:Truck},
           {title:'Commercial War Room',body:'Multi-building scope, pricing and project portfolio.',href:parent+'/commercial',icon:BriefcaseBusiness},
           {title:'Fleet Engineering',body:'Assets, service, readiness and rig planning.',href:base+'/tools/fleet',icon:Layers3},
           {title:'Finance & Accounting',body:'Source-labeled money, exceptions and accounting preparation.',href:base+'/finance',icon:Wallet},
