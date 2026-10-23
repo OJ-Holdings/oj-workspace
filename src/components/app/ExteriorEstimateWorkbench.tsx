@@ -1,12 +1,12 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {
   AlertTriangle,ArrowLeft,ArrowRight,ArrowUpRight,BookOpen,CalendarPlus,Check,
   ClipboardCheck,ClipboardCopy,FileCheck2,FileClock,FilePlus2,HardHat,
-  Plus,RefreshCcw,Save,ShieldCheck,SlidersHorizontal,Trash2,Wallet,
+  Plus,RefreshCcw,Save,ShieldCheck,SlidersHorizontal,Trash2,Wallet,Download,FileUp,
 } from 'lucide-react';
 import {recordExteriorEstimatedPrice} from '@/app/workspace/exterior-actions';
 import {
@@ -15,6 +15,7 @@ import {
   type ExteriorEstimate,type EstimateLine,type EstimateUnit,type LocalEstimateBook,
 } from '@/lib/exterior-estimate';
 import {sourceLabel,statusLabel,type ExteriorData} from '@/lib/exterior';
+import {exportQuoteHandoff,importQuoteHandoff,quoteHandoffMaxChars,quoteHandoffPreflight} from '@/lib/exterior-quote-handoff';
 import {BookDialog,type Act} from './ExteriorManage';
 
 type Props={data:ExteriorData;act:Act;busy:boolean;readOnly:boolean;org:string;now:Date;base:string;mode:'live'|'preview'};
@@ -40,6 +41,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [notice,setNotice]=useState('');
  const [checks,setChecks]=useState([false,false,false]);
  const [booking,setBooking]=useState(false);
+ const uploadRef=useRef<HTMLInputElement|null>(null);
  const [filter,setFilter]=useState('');
  const [recentOnly,setRecentOnly]=useState(true);
  const readonly=readOnly||mode!=='live';
@@ -78,6 +80,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    catch(error){return {ok:false as const,message:error instanceof Error?error.message:'Invalid quote figures'};}
  },[book]);
  const sourceFresh=Boolean(book&&lead&&sourceStillMatches(book.current,lead));
+ const handoff=useMemo(()=>book&&lead&&calculated?.ok?quoteHandoffPreflight(book.current,lead,data.bookings):null,[book,lead,calculated,data.bookings]);
  const allowedStatus=Boolean(lead&&['new','contacted','following_up'].includes(lead.status??''));
  const patch=(change:(v:ExteriorEstimate)=>ExteriorEstimate)=>{
    if(!canModify||storageFailure)return;
@@ -115,6 +118,39 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    if(!book||!lead||!calculated?.ok)return;
    try{await navigator.clipboard.writeText(estimateBrief(book.current,lead));setNotice('Internal estimate review copied. No message or proposal was sent.');}
    catch{setNotice('Clipboard permission denied; no customer was contacted.');}
+ };
+ const exportPortable=()=>{
+   if(!book||!lead||!calculated?.ok)return;
+   try{
+     const json=exportQuoteHandoff(org,book);
+     const u=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+     const a=document.createElement('a');a.href=u;
+     a.download='oj-internal-estimate-'+lead.id.slice(0,8)+'.json';
+     a.click();window.setTimeout(()=>URL.revokeObjectURL(u),1000);
+     setNotice('Internal estimate package exported. Transfer privately; it contains cost assumptions and is NOT a customer proposal or shared database version.');
+   }catch(error){setNotice(error instanceof Error?error.message:'Could not export the quote package.');}
+ };
+ const importPortable=async(file:File|undefined)=>{
+   if(!file||!canModify||storageFailure||!lead)return;
+   if(file.size>quoteHandoffMaxChars*4){setNotice('Internal quote file exceeds the 120 KB character limit.');return;}
+   try{
+     const transfer=importQuoteHandoff(await file.text(),org,lead.id);
+     const proposed=computeExteriorEstimate(transfer.book.current);
+     const differentSource=!sourceStillMatches(transfer.book.current,lead);
+     if(!window.confirm(
+       'Replace your CURRENT browser-local estimate and revision history with this imported internal package? '+
+       'The existing local draft will be lost; no shared lead value or booking will change. '+
+       (differentSource?'WARNING: the imported source baseline is stale and must be reviewed before price recording.':'')+
+       ' Proposed internal amount: '+usd(proposed.price)+'.'
+     ))return;
+     try{
+       window.localStorage.setItem(storageKey(org,lead.id),JSON.stringify(transfer.book));
+     }catch{setNotice('Browser storage rejected the imported package. Current local draft was not replaced.');return;}
+     setBook(transfer.book);setChecks([false,false,false]);
+     setNotice('Imported '+transfer.book.revisions.length+' local revisions for this exact customer. '+
+       (differentSource?'Source stamp differs; review and rebase before recording.':'Original source stamp matches.')+
+       ' No customer approval or booking was imported.');
+   }catch(error){setNotice(error instanceof Error?error.message:'Quote file could not be verified. Existing local draft was not replaced.');}
  };
  const publish=async()=>{
    if(!lead||!book||!calculated?.ok||!canModify||!sourceFresh||!checks.every(Boolean)||!allowedStatus)return;
@@ -155,6 +191,10 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
        <div className="ecest-toolbar">
          <button type="button" onClick={saveRevision} disabled={!canModify||!!storageFailure||!totals}><Save size={15}/> Save local revision</button>
          <button type="button" onClick={copy} disabled={!totals}><ClipboardCopy size={15}/> Copy internal brief</button>
+         <button type="button" onClick={exportPortable} disabled={!totals}><Download size={15}/> Export quote package</button>
+         {canModify&&<button type="button" onClick={()=>uploadRef.current?.click()} disabled={!!storageFailure}><FileUp size={15}/> Import private package</button>}
+         <input ref={uploadRef} type="file" accept=".json,application/json" aria-label="Import validated internal quote file"
+           hidden onChange={async e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';await importPortable(file);}}/>
          {!readonly&&<button type="button" onClick={reset}><RefreshCcw size={15}/> Reset local</button>}
        </div>
      </div>
@@ -218,8 +258,20 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
          <button className="ecest-record" type="button" disabled={!canModify||!allowedStatus||!sourceFresh||!totals||totals.price<=0||!checks.every(Boolean)||busy||!!storageFailure} onClick={publish}><Check size={16}/> Record reviewed amount <ArrowRight size={15}/></button>
          <small>Source timestamp + existing quote value are checked again by the server. Another founder's edit cannot silently be overwritten.</small>
        </section>
+       <section className="ecest-panel ecest-portable">
+         <header className="ecest-section-title"><div><span className="ecest-eyebrow">04 / FOUNDER HANDOFF</span><h2>Quote readiness</h2></div><FileCheck2 size={19}/></header>
+         <p>Export a validated private file for Jacob or Oscar to import into the <strong>same original customer record</strong>. This transfers internal calculations manually, not a synchronized or accepted quote.</p>
+         <div className="ecest-handoff-flags">
+           <div><span>Original source unchanged</span><strong>{handoff?.sourceMatch?'Verified':'Needs review'}</strong></div>
+           <div><span>Internal price equals lead quote</span><strong>{handoff?.sourcePriceMatch?'Yes':'Not established'}</strong></div>
+           <div><span>Existing linked appointments</span><strong>{handoff?.linkedBookingCount??0}</strong></div>
+           <div><span>Customer acceptance evidence</span><strong>Unverified</strong></div>
+         </div>
+         {handoff&&<ul className="ecest-handoff-warnings">{handoff.warnings.map(w=><li key={w}>{w}</li>)}</ul>}
+         <small>Importing and exporting do not update shared pricing or send anything to the customer. Review the actual conversation and scope before manual booking.</small>
+       </section>
        <section className="ecest-panel ecest-revisions">
-         <header className="ecest-section-title"><div><span className="ecest-eyebrow">04 / LOCAL REVISIONS</span><h2>Pricing history</h2></div><BookOpen size={18}/></header>
+         <header className="ecest-section-title"><div><span className="ecest-eyebrow">05 / LOCAL REVISIONS</span><h2>Pricing history</h2></div><BookOpen size={18}/></header>
          <p>Up to eight saved revisions retained on this device. Restoring affects your internal draft, never the shared customer source.</p>
          {book.revisions.length?<div>{book.revisions.map((revision,i)=><article key={revision.id}>
            <div><strong>Local v{book.revisions.length-i}</strong><small>{new Date(revision.savedAt).toLocaleString('en-US')}</small></div>
@@ -227,7 +279,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
          </article>)}</div>:<div className="ecest-no-history"><FileClock size={19}/> No local revision saved yet.</div>}
        </section>
        <section className="ecest-panel ecest-handoff">
-         <span className="ecest-eyebrow">05 / DISPATCH HANDOFF</span><h2>Ready to schedule?</h2>
+         <span className="ecest-eyebrow">06 / DISPATCH HANDOFF</span><h2>Ready to schedule?</h2>
          <p>Use the current guarded booking workflow after confirming scope and price with the customer. Scheduling a job is not proof that a quote was accepted.</p>
          {!readonly&&<button type="button" disabled={busy||lead.status==='booked'} onClick={()=>setBooking(true)}><CalendarPlus size={17}/> {lead.status==='booked'?'Already booked':'Open booking workbench'} <ArrowRight size={14}/></button>}
          <Link href={root+'/customer?lead='+encodeURIComponent(lead.id)}>Return to Customer 360 <ArrowUpRight size={15}/></Link>
