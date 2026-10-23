@@ -4,6 +4,17 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 32 — BOOKING-BOUND FLEET READINESS
+
+**PR:** [#107](https://github.com/OJ-Holdings/oj-workspace/pull/107). **Merged SHA:** `03cfbdbac8e13c4540bd8e6df1138144b827cd2b`. **Final exact-head CI:** `40041648800` SUCCESS.
+
+- Field Command now integrates existing device-local Fleet Command asset and maintenance facts, avoiding a duplicate rig inventory. Select equipment for a specific real booking, with original lead/org/booking ID preserved and separately scoped browser-local assignment.
+- Automatic reason-coded warnings for service due/overdue, out-of-service equipment, missing/unknown assets, previous-day departure checks, manually calculated vehicle payload overage, stale booking source and potential same-day asset reuse among other **visible same-browser** booking plans.
+- Optional same-day manual operator review with explicit source-change rebase and protection against stamping an empty/missing asset plan or an asset with recorded stop-work condition. No assertion of actual physical inspection, verified crew availability or company-wide reservation.
+- Mobile industrial panel with tagged candidate assets, issue severity, capacity and checklist counts, keyboard accessible controls and reduced motion. Tests verify company/job isolation, source drift, forged fields, payload math, maintenance states, same-day overlap limitations and fail-closed missing records.
+- Production Supabase database and quote/job/asset schema untouched. No multiuser reservations, synchronized operating logs or confirmed job-completion/collection events. Existing backup instructions require independent private restore proof.
+- **Full Exterior Command program: 24% weighted engineering completion**, W7 equipment slice earns 2 points. Windows-hosted served commit and real founder mobile UAT remain separate and unverified.
+
 ## ATLAS V3 / Exterior Command Release 31 — MOBILE FIELD COMMAND
 
 **PR:** [#105](https://github.com/OJ-Holdings/oj-workspace/pull/105). **Merged SHA:** 9b93a7f3743e05fca3b851124dd34129a75b40ea. **Exact feature-head CI:** 40034470435 SUCCESS.
