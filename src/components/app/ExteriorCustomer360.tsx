@@ -62,6 +62,7 @@ export function ExteriorCustomer360({data,act,busy,readOnly,org,now,base}:Props)
        <p className="ecc-head-desc">A single operational view of this exact source record, its jobs and dates. Same-name, same-phone or same-address records are never merged automatically.</p>
        <div className="ecc-actions">
          {!readOnly&&<button type="button" className="ecc-primary" onClick={()=>setBooking(true)}><CalendarDays size={16}/> Book service</button>}
+         <Link className="ecc-secondary" href={`${root}/estimate?lead=${encodeURIComponent(lead.id)}`}><FileSearch size={15}/> Build estimate</Link>
          {!readOnly&&<button type="button" className="ecc-secondary" onClick={()=>setEditing(true)}><Pencil size={15}/> Update customer</button>}
          {!readOnly&&completed&&<button type="button" className="ecc-secondary" onClick={()=>setPaying(true)}><DollarSign size={15}/> Review job figures</button>}
          {phone&&<a className="ecc-secondary" href={`tel:${phone}`}><Phone size={15}/> Call customer</a>}
