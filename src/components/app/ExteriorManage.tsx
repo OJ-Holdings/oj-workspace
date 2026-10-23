@@ -140,6 +140,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
               <div className="atlas-customer-card-actions">
                 {!readOnly&&l.status==='completed'&&<button type="button" className="secondary small"
                   onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Record payment/cost':'Review payment/cost'}</button>}
+                <Link className="secondary small" href={`${usePathname().startsWith('/preview')?'/preview':'/workspace'}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer 360</Link>
                 {!readOnly&&l.status!=='booked'&&<button type="button" className="primary small" onClick={()=>setBooking(l)}>
                   <CalendarPlus size={14}/>{isDone(l)?'Book again':'Book job'}</button>}
                 {!readOnly&&<button type="button" className="secondary small" onClick={()=>setEditing({
@@ -173,6 +174,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             {!readOnly && <td data-label="Actions"><div className="row-actions">
               {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
               {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
+              <Link className="secondary small" href={`${usePathname().startsWith('/preview')?'/preview':'/workspace'}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Profile</Link>
               <button className="icon-button" aria-label={`Edit ${l.name}`} onClick={() => setEditing({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' })}><Pencil size={15} /></button>
             </div></td>}
           </tr>
@@ -188,7 +190,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
 }
 
 /** Adds or edits a lead. A new lead can be booked in the same step. */
-function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = false, presetDate = '' }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; bookNow?: boolean; presetDate?: string }) {
+export function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = false, presetDate = '' }: { lead: LeadInput | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; bookNow?: boolean; presetDate?: string }) {
   const [f, setF] = useState<LeadInput>(blankLead);
   const [booking, setBooking] = useState(false);
   const [date, setDate] = useState('');
@@ -226,26 +228,26 @@ function LeadDialog({ lead, close, act, busy, org, bookings, now, bookNow = fals
   );
 }
 
-function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string }) {
+export function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string }) {
   const [f, setF] = useState({ job_revenue: '', job_cost: '', notes: '' });
   useEffect(() => { if (lead) setF({ job_revenue: lead.job_revenue?.toString() ?? '', job_cost: lead.job_cost?.toString() ?? '', notes: lead.notes ?? '' }); }, [lead]);
   const revenue = f.job_revenue.trim() === '' ? null : Number(f.job_revenue), cost = f.job_cost.trim() === '' ? null : Number(f.job_cost);
   const contribution = revenue === null || cost === null ? null : revenue - cost;
   return (
-    <Modal title={`Payment for ${lead?.name ?? ''}`} open={!!lead} onClose={close}>
+    <Modal title={`Review recorded job figures: ${lead?.name ?? ''}`} open={!!lead} onClose={close}>
       {lead && <form onSubmit={e => { e.preventDefault(); act(() => saveFinancials(org, lead.id, f), () => 'Payment saved.').then(ok => ok && close()); }}>
         <p className="quiet">{[lead.service_requested, lead.address].filter(Boolean).join(', ')}. Quoted {cash(lead.quote_amount)}.</p>
         <div className="form-grid">
-          <label>What the customer paid<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_revenue} onChange={e => setF({ ...f, job_revenue: e.target.value })} /></label>
-          <label>Job expenses<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={e => setF({ ...f, job_cost: e.target.value })} placeholder="Labour, supplies, gas" /></label>
+          <label>Source-recorded job revenue<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_revenue} onChange={e => setF({ ...f, job_revenue: e.target.value })} /></label>
+          <label>Recorded job costs<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={e => setF({ ...f, job_cost: e.target.value })} placeholder="Labour, supplies, gas" /></label>
         </div>
         <div className="kpis compact">
-            <div><span>Recorded payment</span><strong>{revenue === null ? 'Not recorded' : dollars(revenue)}</strong></div>
+            <div><span>Recorded job revenue</span><strong>{revenue === null ? 'Not recorded' : dollars(revenue)}</strong></div>
             <div><span>Expenses</span><strong>{cost === null ? 'Not recorded' : dollars(cost)}</strong></div>
             <div><span>Contribution</span><strong className={contribution !== null && contribution < 0 ? 'neg' : ''}>{contribution === null ? 'Incomplete' : dollars(contribution)}</strong>{revenue !== null && revenue > 0 && contribution !== null && <small className="quiet">{Math.round((contribution / revenue) * 100)}% margin</small>}</div>
         </div>
         <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} /></label>
-          <div className="dialog-actions"><span>Reports group this by job date, not collection date. Leave unknown amounts blank; enter 0 only when confirmed.</span><button className="primary" disabled={busy}>{busy ? 'Saving' : 'Save payment'}</button></div>
+          <div className="dialog-actions"><span>These are historical lead-level amounts, not bank-verified customer payments. Reports group them by job date, not collection date. Leave unknown amounts blank; enter 0 only when confirmed.</span><button className="primary" disabled={busy}>{busy ? 'Saving' : 'Save recorded figures'}</button></div>
       </form>}
     </Modal>
   );
@@ -304,7 +306,7 @@ function SlotPicker({ bookings, now, date, slot, setDate, setSlot, ignoreId }: {
 
 const isDone = (l: ExtLead) => l.status === 'completed' || l.status === 'closed';
 
-function BookDialog({ lead, close, act, busy, org, bookings, now, booking, presetDate = '' }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; booking?: ExtBooking; presetDate?: string }) {
+export function BookDialog({ lead, close, act, busy, org, bookings, now, booking, presetDate = '' }: { lead: ExtLead | null; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; now: Date; booking?: ExtBooking; presetDate?: string }) {
   const [date, setDate] = useState('');
   const [slot, setSlot] = useState('');
   const open = !!lead;
@@ -535,7 +537,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               </div>
               <footer>
                 <div className="atlas-booking-contact-actions">
-                  {l && <Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
+                  {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
                   {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
                   {l?.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`}>Directions</a>}
                 </div>
@@ -559,7 +561,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               <td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td>
               <td className="num" data-label="Quoted, not paid">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && <td data-label="Actions"><div className="row-actions">
-                {l && <Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
+                {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
                 {actionable(b) && <>
                   {l && <button className="secondary small" disabled={busy} onClick={() => setEditing(b)}>Edit</button>}
                   {l && <button className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Move</button>}
