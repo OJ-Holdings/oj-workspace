@@ -222,7 +222,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
       <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
     </section>
     <AtlasFieldBridge base={base} organizationId={organizationId} mode={mode} view="fleet" fleet={workbook} disabled={readOnly} />
-    <AtlasFleetProjectAssignments org={organizationId} base={base} mode={mode} readOnly={readOnly} fleet={workbook} day={day} />
+    <AtlasFleetProjectAssignments org={organizationId} base={base} mode={mode} readOnly={readOnly} fleet={workbook} day={day} bookings={bookings} bookingsState={bookingsState} cards={cards} />
     <section className="fleet-kpis" aria-label="Fleet status overview">
       <div><span><Truck size={17}/> Logged assets</span><strong>{workbook.assets.length}</strong><small>Local inventory entries</small></div>
       <div><span><AlertTriangle size={17}/> Attention now</span><strong>{attention}</strong><small>Manually flagged or service due</small></div>
