@@ -86,5 +86,6 @@ test('reverse asset link recognizes only exact bounded source ID lines, not name
   ].join('\n')),['washer-12','vehicle_7']);
   assert.deepEqual(exactLocalFleetAssetIds('Local fleet asset ID: washer-12 or another asset'),[]);
   assert.deepEqual(exactLocalFleetAssetIds('asset washer-12'),[]);
+  assert.deepEqual(exactLocalFleetAssetIds('Local fleet asset ID:\nwasher-12'),[]);
   assert.deepEqual(exactLocalFleetAssetIds('Local fleet asset ID: '+('A'.repeat(81))),[]);
 });
