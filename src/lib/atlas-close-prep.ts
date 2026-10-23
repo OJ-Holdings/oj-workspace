@@ -47,8 +47,15 @@ export function buildClosePrep(
     actionable.push({id:'missing-revenue',kind:'source-review',title:'Verify receipts for this period',detail:'No incoming money was recorded in this selected period. This is not evidence of zero collections.'});
   if (totals.outflow===null)
     actionable.push({id:'missing-costs',kind:'source-review',title:'Verify expenses for this period',detail:'No outgoing money was recorded in this selected period. This is not evidence of zero costs.'});
+  // Do not ask Exterior operators to repair unrelated Shopify/GHL feeds.
+  const relevantSources=(dashboard.reporting?.sources ?? []).filter(source =>
+    source.id==='mercury' ||
+    (source.id==='exterior' && ventures.includes('exterior')) ||
+    (source.id==='ghl' && ventures.includes('solutions')) ||
+    (source.id==='shopify' && ventures.includes('essentials'))
+  );
   if (dashboard.reporting) {
-    for(const source of dashboard.reporting.sources){
+    for(const source of relevantSources){
       if(source.state!=='available'){
         actionable.push({id:`source-${source.id}`,kind:'source-review',title:`Check ${source.label} coverage`,detail:`${source.state}: ${source.detail}`});
       }
@@ -66,7 +73,7 @@ export function buildClosePrep(
   ];
   return {
     month,ventures:[...ventures],recordedIn:totals.inflow,recordedOut:totals.outflow,
-    sourceStates:(dashboard.reporting?.sources ?? []).map(s=>({name:s.label,state:s.state,note:s.detail})),
+    sourceStates:relevantSources.map(s=>({name:s.label,state:s.state,note:s.detail})),
     actionable,blockers,canClose:false,
     sourceNote:'Preparation packet from authorized operational records only. No verified bank reconciliation, posted ledger, accountant approval, tax return or final financial statements.',
   };
