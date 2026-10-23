@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
-import { ventureList, discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
+import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
@@ -112,7 +112,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
     const q = query.trim().toLowerCase();
     if (!q) return { pages: nav.slice(0, 5) };
     return {
-      pages: [...nav, ...discoverableVentures.map(v => ({ key: 'businesses' as NavKey, label: v.name+(v.id==='content'&&!contentPersistenceEnabled?' · Preview':''), path: visibleBusinessRoute(base as '/workspace'|'/preview',v.id,contentPersistenceEnabled).slice(base.length), icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
+      pages: [...nav, ...discoverableVentures.map(v => ({ key: 'businesses' as NavKey, label: v.name+(v.id==='content'&&!contentPersistenceEnabled?' · Preview':''), path: v.id==='content'&&!contentPersistenceEnabled?'/tools/content-preview':`/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
     };
   }, [query]);
 
