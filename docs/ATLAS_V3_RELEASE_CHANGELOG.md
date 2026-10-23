@@ -4,6 +4,17 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 29 — LINE-ITEM ESTIMATE ENGINE
+
+**PR:** [#101](https://github.com/OJ-Holdings/oj-workspace/pull/101). **Merged SHA:** `ef2ed0c440bbea75e807e82115405161ec3c5f2a`. **Exact-head PR CI:** `40030364222` SUCCESS.
+
+- Introduced integrated `/b/exterior/estimate?lead=<exact ID>` for genuine Exterior customer quoting analysis: per-service quantity/unit/price, optional cost per unit, descriptions/exclusions, discount, travel expense, direct-cost contingency, and real-time revenue-minus-cost contribution/margin only when all source costs are recorded.
+- Source-verified, client-readable review workflow preserves current lead ID and existing phone/address/status; no customer data re-entry. Local draft autosaves in the current browser, plus 8 recoverable local revisions with restore, reset and internal brief copy. This is **not** shared/authorized corporate backup or customer-approved proposal.
+- Added `recordExteriorEstimatedPrice`, which performs member-gated, versioned original-source checks (old price + updated timestamp and eligible lead status), marks manual price edit and logs an **internal** quote amount change. It does not change any other lead business fields, reach customers, accept/sign proposal, create billing, book work or collect money.
+- One-click handoff into the existing guarded booking dialog but booking remains a separate manual confirmation; no atomic proposal-to-work order yet.
+- Responsive graphite/amber service-engineering design, animated KPI entry, source provenance and keyboard/reduced-motion controls. New pure tests cover pricing, incomplete costs, discounts, corruption-safe revision history and stale-source guards.
+- **Full Exterior Command plan: estimated 17%** (W1=5%, W2=3%, W3=5%, W4=4%, remaining waves=0). Production Windows serving SHA, real founder iPhone acceptance, authenticated durable quote versioning and isolated database backup/restore remain unverified.
+
 ## ATLAS V3 / Exterior Command Release 28 — WEBSITE INTAKE COMMAND
 
 **PR:** [#99](https://github.com/OJ-Holdings/oj-workspace/pull/99). **Merged SHA:** `d0baf7bdb5b5387f5ba6c49b7b8409956979c486`. **Exact-head PR CI:** `40026458399` SUCCESS.
