@@ -70,6 +70,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
   const [query,setQuery]=useState('');
   const [statusFilter,setStatusFilter]=useState<'all'|FleetStatus>('all');
   const [day,setDay]=useState('');
+  useEffect(()=>{const timer=window.setInterval(()=>setDay(todayLocal()),60_000);return ()=>window.clearInterval(timer);},[]);
   const fileRef=useRef<HTMLInputElement>(null);
 
   useEffect(()=>{
