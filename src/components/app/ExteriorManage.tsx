@@ -146,6 +146,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
                 {!readOnly&&l.status==='completed'&&<button type="button" className="secondary small"
                   onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Record payment/cost':'Review payment/cost'}</button>}
                 <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer 360</Link>
+                <Link className="secondary small" href={`${base}/b/exterior/estimate?lead=${encodeURIComponent(l.id)}`}>Estimate</Link>
                 {!readOnly&&l.status!=='booked'&&<button type="button" className="primary small" onClick={()=>setBooking(l)}>
                   <CalendarPlus size={14}/>{isDone(l)?'Book again':'Book job'}</button>}
                 {!readOnly&&<button type="button" className="secondary small" onClick={()=>setEditing({
@@ -180,6 +181,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
               {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
               {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
               <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Profile</Link>
+              <Link className="secondary small" href={`${base}/b/exterior/estimate?lead=${encodeURIComponent(l.id)}`}>Estimate</Link>
               <button className="icon-button" aria-label={`Edit ${l.name}`} onClick={() => setEditing({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' })}><Pencil size={15} /></button>
             </div></td>}
           </tr>
