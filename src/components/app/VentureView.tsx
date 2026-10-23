@@ -26,7 +26,7 @@ const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
 const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'exterior'
-  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 5), coreTabs[3], ...extraTabs.exterior.slice(5), coreTabs[4], coreTabs[5]]
+  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 6), coreTabs[3], ...extraTabs.exterior.slice(6), coreTabs[4], coreTabs[5]]
   : venture === 'content'
     ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4], coreTabs[5]]
     : [...coreTabs, ...extraTabs[venture]];
