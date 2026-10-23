@@ -63,11 +63,12 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  useEffect(()=>{
    if(!loaded||!book||!canModify||storageFailure)return;
    const h=window.setTimeout(()=>{
-     try{
-       if(!isExteriorEstimate(book.current,book.current.leadId))throw Error('Invalid estimate');
-       computeExteriorEstimate(book.current);
-       window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(book));
-     }catch{setStorageFailure('Browser autosave failed. The draft may only exist in this tab; save an internal brief before navigating away.');}
+     // Temporary invalid input (e.g. a cleared quantity field) is an editing state,
+     // not a storage failure. Don't overwrite the last good draft or lock the editor.
+     if(!isExteriorEstimate(book.current,book.current.leadId))return;
+     try{computeExteriorEstimate(book.current);}catch{return;}
+     try{window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(book));}
+     catch{setStorageFailure('Browser autosave failed. The draft may only exist in this tab; copy an internal brief before navigating away.');}
    },450);
    return ()=>window.clearTimeout(h);
  },[book,loaded,canModify,org,storageFailure]);
@@ -95,11 +96,13 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  };
  const saveRevision=()=>{
    if(!canModify||!book||storageFailure)return;
+   if(!isExteriorEstimate(book.current,book.current.leadId)){setNotice('Complete valid quantities and service lines before saving a revision. Your earlier local draft remains intact.');return;}
+   try{computeExteriorEstimate(book.current);}catch(error){setNotice(error instanceof Error?error.message:'Review the quote values.');return;}
+   const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
    try{
-     const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
      window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(revised));
      setBook(revised);setNotice('Local revision saved on this browser only. Oscar and Jacob will not see it on their other devices.');
-   }catch{setStorageFailure('This browser could not save a validated revision. Existing data has not been removed.');}
+   }catch{setStorageFailure('This browser could not save the validated revision. Existing storage has not been removed.');}
  };
  const reset=()=>{
    if(!lead||readonly)return;
