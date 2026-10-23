@@ -1,6 +1,6 @@
 # START HERE — OJ Workspace V2 Engineering Handoff
 
-**Snapshot:** 2026-10-22 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
+**Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 ## ATLAS V3 releases now MERGED (GitHub code; host still unverified)
 
@@ -18,10 +18,18 @@
 - **R12 Asset-specific Fleet maintenance task handoffs:** PR #71, merge `dbbfeb7`, CI `39890565690` SUCCESS. Exact saved local Fleet asset → authorized shared task **draft**; reverse exact-ID task display in Fleet Asset Registry; private maintenance notes/repair costs omitted. Explicit user Save required; no repair, order or dispatch executed.
 - **R13 NEXUS Project 360:** PR #74, merge `e034b19`, exact-head CI `39906488281` SUCCESS. Working Exterior Projects source graph: local project/estimate, exact source booking→lead/customer relationship, candidate Fleet/equipment, source-visible task-text receipts, real task events and evidence-labeled exception queue. Protected preview/viewer local reads.
 - **R13.1 Corporate NEXUS entry:** PR #75, merge `397243c`, CI `39907267432` SUCCESS. Promoted that same screen into COMMAND sidebar/tool search, linked Fleet timeline and Commercial register to Project 360, strengthened org-mismatched Fleet validation, improved semantic navigation. Parallel #73 closed unmerged to prevent duplicate NEXUS code.
+
+- **R14 Corporate NEXUS command:** PR #78, merge `0a3d527`. Preserves Project 360 and unified corporate command through authorized existing source links; local overlays remain planning only.
+- **R15 Commercial file merge review:** PR #79, merge `063eefa`. Explicit device-local dry-run, conflict detection and non-destructive project-only import; NOT shared database syncing.
+- **R16 Daily operator launchpad:** PR #80, merge `840defd`. First-class add lead/book job/expense/task launch intents, mobile navigation, customer cards and clearly labeled Oscar Jacob preview.
+- **R17 Customer action queues:** PR #81, merge `01d8204`. Actual lead status queues, quote vs. payment truth, customer cards, existing customer actions and manual/table alternative. CI `39927033907` SUCCESS.
+- **R18 Booking operator workbench:** PR #82, merge `14f7903`, exact-head CI `39938060774` SUCCESS. Responsive live booking cards, recorded-date/stage queues, source-safe customer/contact/directions, editable job/reschedule/crew/cancel actions and compact table. Denied booking records are separately reviewable; scheduled != completed and pending != confirmed.
+- **R19 Money operator workbench:** PR #83, merge `8f0ca67`, exact-head CI `39938744120` SUCCESS. One-tap existing authorized expense/income forms, five source-truth ledger queues, search, mobile cards, manual/source provenance and preserved private bank panel and trend reports. Recorded difference is NOT verified profit.
+
 - **Source-grounded Supabase check:** Existing main OJ database workspace memberships, cards, activity and legacy booking tables have RLS enabled. Canonical shared Fleet/project tables are NOT present among reviewed public tables. Security advisor privileged-function warning categories need a private review; no SQL/grant changes or backup claims.
 - **Exact details and limits:** [ATLAS V3 Release Changelog](./ATLAS_V3_RELEASE_CHANGELOG.md), [Founder Acceptance 13](./ATLAS_V3_FOUNDER_ACCEPTANCE_13.md), earlier [03–07](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md), [08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md), [11–12](./ATLAS_V3_FOUNDER_ACCEPTANCE_11_12.md), and [Protected Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md).
 
-**Important:** GitHub `main` has passed CI for Releases 01–13 including R13.1. The exact Windows port 3011/Tailscale release SHA, iPhone UX and founders' end-to-end acceptance **have not been independently verified**. Use `scripts/verify-production-windows.ps1` on the host. Fleet/Commercial source workbooks and the versioned portfolio remain browser-local; only explicitly user-saved task *snapshots* are shared. R11 crew scenarios and R12 per-asset maintenance task drafts are manual planning aids, **not actual staffing, safety clearance, equipment booking, repair or dispatch**. Supabase PR #42 is still draft/unmerged pending private backup, isolated restore and RLS/security signoff.
+**Important:** GitHub code merges through **Release 19** are verified; R18 and R19 each passed exact-head CI. The exact Windows port 3011/Tailscale release SHA, iPhone UX and founders' end-to-end acceptance **have not been independently verified**. Use `scripts/verify-production-windows.ps1` on the host. Fleet/Commercial source workbooks and the versioned portfolio remain browser-local; only explicitly user-saved task *snapshots* are shared. R11 crew scenarios and R12 per-asset maintenance task drafts are manual planning aids, **not actual staffing, safety clearance, equipment booking, repair or dispatch**. Supabase PR #42 is still draft/unmerged pending private backup, isolated restore and RLS/security signoff.
 
 ## ATLAS V3 planning initiative — proposed, NOT built
 
@@ -32,6 +40,14 @@
 **Build philosophy:** gorgeous HQ, spectacular Fleet/Commercial signature experiences, excellent two-founder UX, native workflows comparable to selected paid subscriptions, verifiable ROI, source provenance, permission safety and a shared customer→job→asset→invoice graph. REA reference: https://github.com/NabilRFG12/Reverse-Engineer-anything (lawful authorized inspection, MIT applies to REA itself, NOT proprietary targets). Never interpret the plan as permission to clone protected vendor code, bypass licenses, auto-contact customers or run an unbacked-up schema migration.
 
 **Resume instruction for a future engineer:** inspect actual `main`, PRs and current host SHA; read ATLAS V3 index/docs before creating a new feature. Use V2 handoff for **verified historical state**, V3 blueprint for **desired product**. Implement in horizontally connected reviewed slices, not 413 isolated tabs or an unsupervised rewrite.
+
+
+## Immediate next engineer's operating plan — after R19
+
+1. **Check current main and Windows host separately:** GitHub's successful CI does not establish what port 3011 serves. From the Windows machine, run the existing `scripts/verify-production-windows.ps1`, or use its guarded `-TriggerUpdater` option if authorized and appropriate. Confirm the actual health SHA and rollback before claiming the founder can use R19.
+2. **Oscar and Jacob mobile acceptance:** independently open HQ Today, Customers, Jobs, Money, Tasks; create a synthetic test lead only in an isolated test context, never in live customer history without permission; confirm booking actions and expense form save pathways with non-production fixtures or an operator-approved real entry. Verify viewer can inspect without mutation controls, and missing/partial sources stay visibly unknown.
+3. **Next code-only slice:** make the actual shared task board as action-first and navigable as Customers/Jobs/Money, improving assignee-visible daily queues and source-linked tasks. No duplicate task storage or imaginary automated delegation.
+4. **Longer-term protected gate:** shared Fleet/project persistence remains browser-local until verified Supabase backup, an isolated restore exercise and reviewed RLS/schema migration. Draft PR #42 stays UNMERGED.
 
 ## Copy/paste into a new ChatGPT session
 
