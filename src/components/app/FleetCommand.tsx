@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasFleetProjectAssignments } from './AtlasFleetProjectAssignments';
+import type { Card } from '@/lib/board';
+import type { JobItem } from '@/app/workspace/exterior-actions';
+import type { LoadedBookingState } from '@/lib/atlas-fleet-dispatch-plan';
 import { chicagoDateOf } from '@/lib/atlas-field-bridge';
 import {
   assetHealth, calculateRigLoad, decodeFleet, emptyFleet, encodeFleet,
