@@ -80,6 +80,7 @@ test('unverified equipment and omitted vehicle payload remain unknown even with 
   assert.equal(report.fleet?.checklistChecked,readinessItems.length);
   assert.equal(report.fleet?.payloadRemainingLb,null);
   assert.equal(report.findings.some(x=>x.id==='capacity-unknown'),true);
+  assert.equal(report.findings.some(x=>x.id==='no-assets'),true);
 });
 
 test('portable validated commercial transfer and legacy local draft share accepted contract', () => {
