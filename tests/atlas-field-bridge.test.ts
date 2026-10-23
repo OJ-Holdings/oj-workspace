@@ -22,7 +22,7 @@ test('local commercial parsing preserves intended fields and enforces transfer v
   assert.equal(value.input.sites.length, 2);
   assert.deepEqual(value.review, [true,false,false,false,false]);
   assert.throws(() => parseLocalCommercialDraft('{bad', org), /JSON/);
-  assert.throws(() => parseLocalCommercialDraft(JSON.stringify({name:'bad',input:{sites:[]},review:[]}), org), /between 1 and 12/);
+  assert.throws(() => parseLocalCommercialDraft(JSON.stringify({name:'bad',input:{sites:[]},review:[false,false,false,false,false]}), org), /between 1 and 12/);
   assert.throws(() => parseLocalCommercialDraft(JSON.stringify({...JSON.parse(local),organization_id:other}), org), /another organization/);
   assert.throws(() => parseLocalCommercialDraft('x'.repeat(270000), org), /too large/);
   assert.throws(() => parseLocalCommercialDraft(JSON.stringify({...JSON.parse(local), input:{...estimate,laborRate:Infinity}}), org), /Hourly labor rate/);
