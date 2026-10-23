@@ -89,17 +89,17 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
           <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
-            <td><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
-            <td>{l.service_requested || '-'}</td>
-            <td className="num">{cash(l.quote_amount)}</td>
-            <td><span className="tag">{sourceLabel(l.source)}</span></td>
-            <td>{readOnly ? statusLabel(l.status) : (
+            <td data-label="Customer"><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
+            <td data-label="Service">{l.service_requested || '-'}</td>
+            <td className="num" data-label="Quote">{cash(l.quote_amount)}</td>
+            <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
+            <td data-label="Status">{readOnly ? statusLabel(l.status) : (
               <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? 'new'} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
                 {leadStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
             )}</td>
-            <td>{day(l.created_at)}</td>
-            {!readOnly && <td><div className="row-actions">
+            <td data-label="Added">{day(l.created_at)}</td>
+            {!readOnly && <td data-label="Actions"><div className="row-actions">
               {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
               {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
               <button className="icon-button" aria-label={`Edit ${l.name}`} onClick={() => setEditing({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' })}><Pencil size={15} /></button>
