@@ -8,6 +8,7 @@ import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWork
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import { AtlasBankReview } from './AtlasBankReview';
 import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
+import { AtlasStatementInspector } from './AtlasStatementInspector';
 import { accountingReviewCsv, accountingReviewFilename } from '@/lib/atlas-accounting-export';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
@@ -243,6 +244,12 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
       {filterMonth && <button className="secondary" onClick={() => pick('month', '')}>All dates</button>}
     </div>
     {owner && <AtlasBankReview bank={data.mercury} entries={entries} month={filterMonth||null}
+      entryHref={(id) => {
+        const params=new URLSearchParams(query.toString());
+        params.set('entry',id);
+        return `${pathname}?${params.toString()}`;
+      }} />}
+    {owner && <AtlasStatementInspector entries={entries} period={filterMonth||null}
       entryHref={(id) => {
         const params=new URLSearchParams(query.toString());
         params.set('entry',id);
