@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Activity, ArrowUpRight, Building2, CalendarClock, CircleAlert, Database, GitBranch, Network, ShieldAlert, Truck } from 'lucide-react';
+import { Activity, ArrowUpRight, Building2, CircleAlert, Database, GitBranch, Network, ShieldAlert, Truck } from 'lucide-react';
 import type { Card, Activity as BoardActivity } from '@/lib/board';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { decodeCommercialPortfolio, type CommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
@@ -82,7 +82,7 @@ export function NexusCorporateExtension({base,org,mode,readOnly,cards,activity,j
           <h3><Building2 size={16}/> Local commercial missions</h3>
           <span>{overlay?overlay.activeLocalProjects+' active local':'Source unverified'}</span>
         </div>
-        {!canInspectLocal&&<p className="nexus-corporate-placeholder">Preview or read-only mode never loads a founder's private local projects. The authenticated task activity feed is still based on your authorized workspace permissions.</p>}
+        {!canInspectLocal&&<p className="nexus-corporate-placeholder">Preview or read-only mode never loads a founder's private local projects. The task activity feed uses only this session's available task records; preview uses fictional demonstration data.</p>}
         {canInspectLocal&&localState==='loading'&&<p className="nexus-corporate-placeholder">Validating this device’s private commercial portfolio…</p>}
         {canInspectLocal&&localState==='missing'&&<p className="nexus-corporate-placeholder">No commercial portfolio saved on this device. This does not mean the company has no commercial work. <Link href={base+'/b/exterior/commercial'}>Create or import an estimate <ArrowUpRight size={13}/></Link></p>}
         {canInspectLocal&&localState==='invalid'&&<p role="alert" className="nexus-corporate-warning"><ShieldAlert size={15}/> {localError} The original local data was not overwritten.</p>}
@@ -118,7 +118,7 @@ export function NexusCorporateExtension({base,org,mode,readOnly,cards,activity,j
         <div className="nexus-corporate-section-head"><h3><Activity size={16}/> Shared task activity</h3>
           <span>{sharedEvents.length} recent loaded events</span>
         </div>
-        <p className="nexus-corporate-ledger-note">From authorized organization task activity only. Does not audit device-local projects, Fleet workbooks, customer payments or external systems.</p>
+        <p className="nexus-corporate-ledger-note">{mode==='preview'?'Fictional sample task activity. ':'From authorized organization task activity only. '}No audit trail is claimed for device-local projects, Fleet workbooks, customer payments or external systems.</p>
         <div className="nexus-corporate-events">
           {sharedEvents.length===0&&<p className="nexus-corporate-placeholder">No shared task changes in the loaded activity window. This does not prove there were no changes elsewhere.</p>}
           {sharedEvents.map(e=>{
