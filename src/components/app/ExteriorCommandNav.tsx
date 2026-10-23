@@ -6,7 +6,7 @@ import {ArrowUpRight,ChartNoAxesCombined,ChevronDown,Compass,HardHat,LayoutDashb
 
 const primary=[
   {id:'command',title:'Command',short:'Command',href:'',icon:LayoutDashboard,paths:['overview']},
-  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','customer','quotes']},
+  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','customer','quotes','intake']},
   {id:'operations',title:'Field Operations',short:'Operations',href:'/bookings',icon:HardHat,paths:['bookings','calendar','board']},
   {id:'commercial',title:'Commercial Projects',short:'Commercial',href:'/commercial',icon:Compass,paths:['commercial','projects']},
   {id:'intelligence',title:'Intelligence',short:'Intelligence',href:'/jobs',icon:ChartNoAxesCombined,paths:['jobs','money','metrics','door-knocking']},
@@ -16,7 +16,7 @@ const other=[
   {title:'Company board',path:'/board'},
   {title:'Operations calendar',path:'/calendar'},
   {title:'Project 360',path:'/projects'},
-  {title:'Quote requests',path:'/quotes'},
+  {title:'Website intake command',path:'/intake'},
   {title:'Acquisition history',path:'/door-knocking'},
   {title:'Exterior Finance',path:'/money'},
   {title:'Service metrics',path:'/metrics'},

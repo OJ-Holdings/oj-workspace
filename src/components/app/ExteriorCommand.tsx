@@ -72,7 +72,8 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
         <div className="excmd-hero-actions">
           {!readOnly&&<Link className="excmd-primary" href={parent+'/bookings?new=1'}><Plus size={16}/> Book a job</Link>}
           {!readOnly&&<Link className="excmd-outline" href={parent+'/leads?new=1'}><UsersRound size={15}/> Capture a lead</Link>}
-          <Link className="excmd-text-link" href={parent+'/commercial'}>Open Bid War Room <ArrowUpRight size={15}/></Link>
+          <Link className="excmd-text-link" href={parent+'/intake'}>Website intake <ArrowUpRight size={15}/></Link>
+          <Link className="excmd-text-link" href={parent+'/commercial'}>Bid War Room <ArrowUpRight size={15}/></Link>
         </div>
       </div>
       <div className="excmd-hero-side">

@@ -13,6 +13,7 @@ import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { JobsCalendar } from './ExteriorCalendar';
 import { ExteriorCustomer360 } from './ExteriorCustomer360';
+import { ExteriorIntakeDesk } from './ExteriorIntakeDesk';
 import { CommercialDesk } from './CommercialDesk';
 import { AtlasNexusProjects } from './AtlasNexusProjects';
 import { dayKey } from '@/lib/dashboard';
@@ -93,7 +94,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
 
   if (tab === 'jobs') return <ExteriorJobReport data={data} now={now} mode={mode} />;
 
-  if ((tab === 'upgrades' || tab === 'quotes') && !data.extras) return (
+  if ((tab === 'upgrades' || tab === 'quotes' || tab === 'intake') && !data.extras) return (
     <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update.</p></div>
   );
 
@@ -132,28 +133,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
     </>;
   }
 
-  if (tab === 'quotes') {
-    const quotes = data.extras!.quotes;
-    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29).toISOString();
-    return <>
-      <div className="kpis">
-        <div><span>Website quote requests</span><strong><NumberFlow value={quotes.length} /></strong></div>
-        <div><span>Last 30 days</span><strong><NumberFlow value={quotes.filter(q => q.created_at >= from).length} /></strong></div>
-        <div><span>Want regular service</span><strong><NumberFlow value={quotes.filter(q => q.recurring_interest).length} /></strong></div>
-      </div>
-      <section className="panel">
-        <header className="panel-head"><h2>Requests</h2></header>
-        {quotes.length ? <div className="tablewrap"><table className="table">
-          <thead><tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>Service</th><th>Details</th></tr></thead>
-          <tbody>{quotes.slice(0, shown).map(q => (
-            <tr key={q.id}><td>{day(q.created_at)}</td><td>{q.name || '-'}{q.business_name ? ` (${q.business_name})` : ''}</td><td>{q.phone ? <a href={`tel:${q.phone}`}>{q.phone}</a> : '-'}</td><td>{q.email ? <a href={`mailto:${q.email}`}>{q.email}</a> : '-'}</td>
-              <td>{q.address || '-'}</td><td>{[q.service_needed, q.property_type].filter(Boolean).join(', ') || '-'}</td><td>{q.description || '-'}</td></tr>
-          ))}</tbody></table>{quotes.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, quotes.length - shown)} more of {quotes.length}</button>}</div>
-          : <div className="empty"><p><b>No quote requests yet.</b> Requests sent from the website form appear here.</p></div>}
-        <p className="quiet">Sent through the quote form on the Exterior Care website.</p>
-      </section>
-    </>;
-  }
+  if (tab === 'quotes' || tab === 'intake') return <>{status}<ExteriorIntakeDesk {...common} base={mode === 'preview' ? '/preview' : '/workspace'} /></>;
 
   if (tab === 'door-knocking') {
     const s = summariseSessions(data.sessions);

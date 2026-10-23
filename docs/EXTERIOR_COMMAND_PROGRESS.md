@@ -6,12 +6,12 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R27 estimate earned | Not yet done |
+| Plan wave | Weight | R28 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
-| W3 Customer 360 | 14% | **3%** | R27 exact-lead dossier and booking/history links shipped; canonical identity/property, dedup approval, source receipts and contact lifecycle still need shared persistence |
-| W4 Quote & booking | 12% | 0% | Approval versioning, conflict-safe quote → job handoff |
+| W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
+| W4 Quote & booking | 12% | **1%** | R28 website request-to-lead draft workflow; quote versioning, approvals, duplicate-safe intake disposition and conflict-safe estimate → booked-job handoff not yet built |
 | W5 Field operations | 12% | 0% | Offline field sheet, jobs, labor, media, materials and issue capture |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | 0% | Durable rig/asset linkage to job readiness |
@@ -20,7 +20,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **11% (conditional on R27 merge CI)** | |
+| **TOTAL** | **100%** | **14% (conditional on R28 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -43,15 +43,26 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Adds a responsive premium property/operations timeline, source provenance, financial instruments, identity review and evidence gaps, with reduced-motion support and source-truth tests.
 - Still no canonical property IDs, invoice/payment settlement, communication receipts, file uploads, automatic capture, sync/offline writes or legal accounting system. Full W3 is not done.
 
+### R28 Website Intake Command (+2 points W3 and +1 point W4, conditional on merge)
+
+- Replaces the website request raw table (both legacy /quotes and new /intake aliases) with a searchable, operational two-panel intake command.
+- Original quote_requests source data includes incoming name, phone, email, property, service, description, recurring interest and received date, without pretending the submission contains an approved quote, booking or payment.
+- Pure source review detects **unverified** US-phone/long-address matches to loaded Exterior leads. Existing exact-ID Customer 360 dossiers are one click away. Creation of an additional lead when matches exist requires explicit "distinct lead" review acknowledgement.
+- "Review pre-filled lead" opens the existing authorized LeadDialog with copied website facts, source='website', quote_amount=null and readable original request ID/context in notes (not a real foreign key). Operator must submit the existing guarded saveLead form; read-only users cannot write.
+- New HQ and customer workbench launchers; deep link `/b/exterior/intake?request=<id>` opens **only** the original exact source request or an explicit unavailable state.
+- Responsive industrial design and reduced-motion/focus behavior; tests prove no automatic identity matching, payment guesses, or manufactured processed status.
+- Important: quote_requests has no disposition/processed status in the loaded source, no durable request-to-lead FK and may be capped at latest 1,000. This release makes review/use faster but **does not** claim completed real-time LSA intake, idempotent conversions, or a complete booking/estimate ledger.
+
 ### Release gates and the next update rule
 
-R26 earned **8%** when its PR and main CI completed successfully; separate Windows serving SHA and founder-device acceptance are still missing. Count R27's incremental **3 percentage points** only after its exact-head CI (typecheck, tests and production build) passes and its PR is merged. If R27 fails, keep the verified total at **8%**.
+R26 (8%) and R27 (+3%) earned a total **11%** after exact PR-head and merged-main CI. R28 contributes only **3 additional points** (W3 2, W4 1) after exact-head CI succeeds and PR merges. GitHub CI/merge verifies repository code only; Windows-served SHA and founder iPhone acceptance are separate required checks. Preserve 11% if R28 does not pass.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. Complete R27 acceptance: run source-bound end-to-end on founder iPhones and verify live serving SHA; conduct keyboard/screenreader and mobile longitudinal inspections.
-2. Build the canonical customer/property identity review layer and evidence-backed estimate/booking transitions (W3 and W4), with explicit manual choice when multiple lead IDs might represent the same person/site.
-3. Reuse loaded Exterior data across customer and booking routes instead of a fresh complete source download for each navigation; preserve RLS and freshness/partial-source states.
-4. Safely enable durable schema only after a real private backup + isolated restore + RLS role tests. Add source-linked invoices and payment collection only with receipts.
+1. Complete request-to-lead durable source mapping with idempotency, user-approved merges and verified backup+restore / RLS before any production migration.
+2. Build structured quote revisions, itemized scope, customer acceptance evidence, and the explicit quote → work order → booking lifecycle (W4).
+3. Refactor repeated `loadExterior` full-source reads into one authenticated shared cache with bounded invalidation and source coverage.
+4. Add field time/expenses/material capture and offline write queue with encrypted local recovery after source-of-truth and permission design.
+5. Founder mobile/browser UAT; no claim of Windows port 3011 running merged SHA until deployment receipt.
