@@ -52,7 +52,7 @@ Examples of natural flows, from any relevant screen:
 
 ## Already implemented ATLAS releases
 
-The ATLAS V3 **Shell and HQ** and the first source-linked **CRM/task/booking contextual panels** are now merged into GitHub main. See [exact, CI-verified Release 01–02 changelog](./ATLAS_V3_RELEASE_CHANGELOG.md). The full 413-feature vision remains proposed. Windows-host deployment has **not** been independently verified in this documentation pass.
+ATLAS V3 **Releases 01–07** are merged and CI-validated: source-aware HQ/shell; CRM/task/booking exact-ID panels; CRM and Mission workbenches; Fleet Dispatch; Commercial Bid Command; read-only, **same-browser** Commercial↔Fleet field context; and explicit founder-reviewed snapshots prepared as drafts in the **shared** task board. See the [verified Release 01–07 changelog](./ATLAS_V3_RELEASE_CHANGELOG.md) and [founder acceptance plan](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md). This is not full multiuser Fleet/Commercial sync; most of the 413-feature atlas is proposed. Windows-host deployment and phone-based founder acceptance remain **unverified**.
 
 ## Package navigation
 
@@ -66,6 +66,7 @@ The ATLAS V3 **Shell and HQ** and the first source-linked **CRM/task/booking con
 | [06 — Release Train & Dependencies](./ATLAS_06_EXECUTION_ROADMAP.md) | Cohesive release waves, foundational migration gates, explicit exit criteria, concurrency and priorities |
 | [07 — Design QA, Scores & Realistic Adoption](./ATLAS_07_ACCEPTANCE_AND_METRICS.md) | Acceptance scenarios, release safety, performance, accessibility, observational measurement, stakeholder sign-off |
 | [08 — Vision Lab: Signature “Cool Shit”](./ATLAS_08_SIGNATURE_CONCEPTS.md) | Differentiated experimental 2.5D/3D, fleet simulator, what-if world, founder desk and intelligent command surfaces |
+| [Founder Acceptance / Releases 03–07](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md) | Windows, role, preview, Fleet, Commercial, handoff and iPhone manual verification |
 
 These **new V3 planning files** supersede V2 documents for future product direction, but **not** for truth about implemented features, historical migrations or current deployment. Always use [the live-engineering handoff](./START_HERE_CHAT_HANDOFF.md) for the latter.
 

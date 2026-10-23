@@ -2,12 +2,18 @@
 
 **Snapshot:** 2026-10-22 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
-## ATLAS V3 releases now MERGED (code; host still unverified)
+## ATLAS V3 releases now MERGED (GitHub code; host still unverified)
 
-- **Release 01 — ATLAS Shell / Executive HQ:** PR #57, merge `133f309fb6b7fdf2441f21076d16221772745581`, reviewed PR-head CI `39872873154` SUCCESS. Premium grouped ATLAS shell/mobile navigation, five-mode source-aware HQ, four ventures, evidence dock, direct mission paths, no redundant Connected Operations rail/promo.
-- **Release 02 — contextual CRM/task/booking relations:** PR #58, merge `88c43eb6ff798d6d8c446b1e07a71b941741f96c`, reviewed CI `39873486495` SUCCESS. Exact-ID, same-business CRM → tasks and task → CRM/Exterior booking relationship panels in actual source editors.
-- **Detailed engineering release map and gaps:** [ATLAS V3 Release Changelog](./ATLAS_V3_RELEASE_CHANGELOG.md).
-- Both releases are code-only; no schema, Auth, provider outreach or financial mutation. **Windows port 3011/Tailscale live SHA remains unverified; check with `scripts/verify-production-windows.ps1` on the user's PC.** Draft PR #42 still blocked pending private backup/isolated restore. Legacy `/tools/operations` remains for compatibility even though its menu entry is removed.
+- **R01 HQ / Shell:** PR #57, merge `133f309`, CI `39872873154` SUCCESS. Five-mode source-aware headquarters, visual ATLAS shell and de-emphasis of redundant Connected Operations navigation.
+- **R02 CRM/task/booking relations:** PR #58, merge `88c43eb`, CI `39873486495` SUCCESS. Exact-ID, permission-aware source context in real editors.
+- **R03 CRM/Mission workbench:** PR #60, merge `8b5f74a`, CI `39874726844` SUCCESS. Redesigned actual task and pipeline source screens, honest stage indicators.
+- **R04 Fleet Dispatch:** PR #61, merge `b1ca315`, CI `39876277202` SUCCESS. Local equipment dispatch cockpit and readiness links.
+- **R05 Commercial Bid Command:** PR #62, merge `29e4cb6`, CI `39880281415` SUCCESS. Integrated property scope, estimate costs and Bid War Room navigation.
+- **R06 Field Operations Bridge + audit fixes:** PR #63, merge `59318f6`, CI `39882424202` SUCCESS. Validated local Commercial↔Fleet projections and internal brief, timestamped safety checks, source/role isolation, preview-link correction and no misleading readiness from past days.
+- **R07 Founder task handoffs:** PR #64, merge `10bfcda`, CI `39883530696` SUCCESS. Explicit local commercial/fleet summary → existing shared task DRAFT → user manually saves; no auto assignment/outreach, no fabricated shared bid/fleet attachment.
+- **Exact details and outstanding limitations:** [ATLAS V3 Release Changelog](./ATLAS_V3_RELEASE_CHANGELOG.md) and [Founder Acceptance Test Plan](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md).
+
+**Important:** GitHub `main` has passed CI for Releases 01–07. The exact Windows port 3011/Tailscale release SHA, iPhone UX and founders' end-to-end acceptance **have not been independently verified**. Use `scripts/verify-production-windows.ps1` on the host. Fleet/Commercial source workbooks remain browser-local; only user-saved task *snapshots* are shared. Supabase PR #42 is still draft/unmerged pending private backup, isolated restore and RLS/security signoff.
 
 ## ATLAS V3 planning initiative — proposed, NOT built
 
@@ -190,7 +196,7 @@ These are **dated baseline counts** and must never be presented as fresh current
 ### Critical remaining gaps and next integration passes
 
 1. Verify current `main` CI and actual Windows host port 3011 release. The latest merged app SHA is **not** independently verified on the local production host.
-2. Cross-link existing commercial estimate drafts, Exterior booking/job scheduling, task assignments, Fleet readiness and closeout **without inventing shared persistence**. Local-only tools must remain labeled as local-only.
+2. Build on the new **read-only, same-device Commercial↔Fleet bridge and explicit shared-task snapshots**. Next connect actual booking/job scheduling, permissions, equipment assignments and closeout with verified stable identities **without inventing shared Fleet/Commercial persistence**. Existing local-only sources must remain labeled.
 3. Complete real Supabase Free logical backup with secure archive storage and **separate restore rehearsal**, audit RLS/tenant isolation, then carry out independently approved additive shared cross-domain schema migration. **PR #42 is still draft/unmerged and must never enter the auto-deploy SQL path.**
 4. After supervised schema: stable entity tables/foreign keys for customers, properties, jobs, estimates, schedules, tasks, assets, providers, invoices, payments, evidence files and audit receipts; idempotent external source mappings, optimistic revisions, owner/member/viewer access. Then make shared estimate and fleet records actually synchronized across both founders.
 5. End-to-end cross-department flows: lead → quote → approved commercial proposal → booking → crew/equipment/dispatch → closeout → invoice/payment reconciliation → review/recurring service; Solutions prospect → dated outreach evidence → demo → signed client → delivery/renewal; Essentials SKU/order → fulfillment/fees/COGS/ad spend → verified contribution and returns; Oscar Jacob idea → authorized production → review → manual publication receipt → sourced performance. No invented financial, outreach or publication outcomes.
