@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (Exterior Command R26 - bespoke division HQ)
+**Summary:** Replaced generic Exterior Care venture overview with source-honest native Command screen, five-domain operating navigation (Command, Customers, Operations, Commercial, Intelligence), mission timeline/decision queue, KPI instruments, financial/data completeness indicators, acquisition source breakdown and six-month recorded-job history. Preserved all existing Exterior specialist source routes, authenticated editing workflows, and preview isolation. Added industrial graphite/amber/sea-glass styling, responsive motion and reduced-motion behavior.
+**Files:** src/components/app/ExteriorCommand.tsx, ExteriorCommandNav.tsx, VentureView.tsx, src/lib/exterior-command.ts, src/styles/exterior-command.css, src/app/globals.css, tests/exterior-command.test.ts, docs/EXTERIOR_COMMAND_PROGRESS.md.
+**Verified:** PR #95 merged main at efddc6d57fc4b8e0ffe025f8a3b6100fc252def4. Exact-head PR CI run 40020624041 SUCCESS: npm ci, typecheck, full tests, production build. Live production Windows/Tailscale serving SHA and real founder iPhone/desktop acceptance NOT checked. Check post-merge main CI separately.
+**Progress:** Exterior redesign master plan weighted estimate 8%: W1 ~5/8 and W2 ~3/10. No W3-W12 completion claimed. See docs/EXTERIOR_COMMAND_PROGRESS.md. No source mutations or Supabase schema changes; protected backup/restore gate remains.
+**Next:** Founder-facing navigation/mobile/evidence QA, then full customer-property-quote-booking data flow. Preserve old routes until parity, protect true status distinctions (quoted != completed != collected != reconciled).
+
+
 ## 2026-10-23 -- ChatGPT (ATLAS V3 R25 ledger posting preflight)
 **Summary:** Added in-memory, all-or-nothing journal batch review for duplicate journal and legal-entity-scoped source IDs, duplicate account IDs/codes, valid locked periods and journal/approval structure; only validated full batches produce per-entity trial balances. Added explicit immutable reversal draft preparation and prototype-safe entity key/period-lock handling. No persistence or automatic posting.
 **Files:** src/lib/atlas-posting-preflight.ts, tests/atlas-posting-preflight.test.ts, docs/ATLAS_ACCOUNTING_POSTING_INVARIANTS.md.
