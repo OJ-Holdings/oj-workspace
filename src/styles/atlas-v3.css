@@ -993,3 +993,48 @@
 .atlas-accounting-export-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:35px}
 .atlas-accounting-export-note{font-size:10px;line-height:1.6;color:var(--ink-3);max-width:860px;margin:0 0 12px}
 @media(max-width:600px){.atlas-accounting-export-actions{width:100%}.atlas-accounting-export-actions button{flex:1}}
+
+
+/* ATLAS R22 — bank review: comparison evidence, not imaginary reconciliations. */
+.atlas-bank-review{display:grid;gap:16px;min-width:0;margin:18px 0;padding:clamp(15px,2.2vw,23px);border:1px solid var(--line);background:linear-gradient(145deg,var(--panel-2),var(--panel));border-radius:13px}
+.atlas-bank-review-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.atlas-bank-review-top>div{min-width:0}
+.atlas-bank-review-top h2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:800 clamp(20px,2.7vw,26px)/1.2 var(--font-display);letter-spacing:-.03em;margin:6px 0 9px}
+.atlas-bank-review-top h2>svg{color:var(--atlas-teal)}
+.atlas-bank-review-top h2 small{font:750 10px/1 var(--font-ui);padding:6px 8px;border:1px solid var(--line);border-radius:99px;color:var(--ink-3);letter-spacing:0}
+.atlas-bank-review-top p{font-size:11px;color:var(--ink-3);line-height:1.6;max-width:700px;margin:0}
+.atlas-bank-review-source{font-size:10px;color:var(--ink-3);padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg-2);white-space:normal;max-width:210px}
+.atlas-bank-review-intro{font-size:11px;color:var(--ink-3);line-height:1.65;max-width:900px;margin:0}
+.atlas-bank-review-unknown{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);padding:16px;border-radius:10px;background:var(--bg-2)}
+.atlas-bank-review-unknown svg{flex-shrink:0;color:var(--c-exterior)}
+.atlas-bank-review-unknown b{font-size:13px}
+.atlas-bank-review-unknown p{font-size:11px;line-height:1.6;color:var(--ink-3);margin:5px 0 0}
+.atlas-bank-review-controls{display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap}
+.atlas-bank-review-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.atlas-bank-review-chips button{padding:9px 12px;background:var(--bg-2);color:var(--ink-3);border:1px solid var(--line);font-size:11px;font-weight:750;border-radius:8px;cursor:pointer}
+.atlas-bank-review-chips button[aria-pressed="true"]{color:var(--ink);border-color:var(--atlas-teal);background:color-mix(in srgb,var(--atlas-teal) 10%,var(--bg-2))}
+.atlas-bank-review-chips button:focus-visible{outline:2px solid var(--accent-hi);outline-offset:2px}
+.atlas-bank-review-controls input{width:min(330px,100%);min-width:0;min-height:40px}
+.atlas-bank-review-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-bank-review-item{min-width:0;display:grid;align-content:start;gap:13px;padding:16px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px}
+.atlas-bank-review-item>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.atlas-bank-review-item>header>div{min-width:0}
+.atlas-bank-review-item header small{display:block;font-size:10px;line-height:1.45;color:var(--ink-3);margin-bottom:6px;overflow-wrap:anywhere}
+.atlas-bank-review-item header h3{font:800 16px/1.25 var(--font-display);margin:0 0 7px;overflow-wrap:anywhere}
+.atlas-bank-review-item header span{display:block;color:var(--ink-3);font-size:10px;overflow-wrap:anywhere}
+.atlas-bank-review-item header strong{font:800 clamp(16px,1.7vw,22px)/1.2 var(--font-display);white-space:nowrap}
+.atlas-bank-review-limitation{font-size:10px;line-height:1.5;color:var(--c-exterior);margin:0}
+.atlas-bank-review-candidates{display:grid;gap:9px;padding-top:10px;border-top:1px solid var(--line)}
+.atlas-bank-review-candidates>b{display:flex;gap:7px;align-items:center;font-size:11px;line-height:1.4}
+.atlas-bank-review-candidates>b svg{color:var(--atlas-teal);flex-shrink:0}
+.atlas-bank-review-candidates>div{display:grid;gap:6px}
+.atlas-bank-review-candidate{position:relative;display:grid;gap:3px;padding:10px 31px 10px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;text-decoration:none}
+.atlas-bank-review-candidate:hover,.atlas-bank-review-candidate:focus-visible{border-color:var(--atlas-teal)}
+.atlas-bank-review-candidate span{font-size:11px;color:var(--ink);font-weight:750;overflow-wrap:anywhere}
+.atlas-bank-review-candidate small{font-size:10px;color:var(--ink-3);line-height:1.4}
+.atlas-bank-review-candidate svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--atlas-teal)}
+.atlas-bank-review-candidates>p,.atlas-bank-review-empty{font-size:11px;line-height:1.6;color:var(--ink-3);margin:0}
+.atlas-bank-review-more{justify-self:center}
+.atlas-bank-review-foot{font-size:10px;line-height:1.7;color:var(--ink-3);border-top:1px solid var(--line);padding-top:12px;margin:0}
+@media(max-width:1050px){.atlas-bank-review-list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.atlas-bank-review-top{flex-direction:column}.atlas-bank-review-source{max-width:none;width:100%}.atlas-bank-review-controls input{max-width:none;width:100%}.atlas-bank-review-item>header{flex-wrap:wrap}.atlas-bank-review-chips button{flex:1}}
