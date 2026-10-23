@@ -57,7 +57,7 @@ export function preflightPostingBatch(
   if(!journals.length)issues.push({code:'journal-invalid',id:'batch',detail:'No approved journal drafts were supplied.'});
   let byEntity:Record<string,TrialBalance>|null=null;
   if(!issues.length){
-    const result:Record<string,TrialBalance>={};
+    const result:Record<string,TrialBalance>=Object.create(null) as Record<string,TrialBalance>;
     for(const entityId of [...new Set(journals.map(j=>j.entityId))].sort()){
       try{
         const relevantAccounts=accounts.filter(a=>a.entityId===entityId);
