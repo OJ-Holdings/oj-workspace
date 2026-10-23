@@ -4,7 +4,7 @@ import type {ExtLead} from '../src/lib/exterior';
 import {
  addLocalRevision,computeExteriorEstimate,estimateBrief,isExteriorEstimate,newEstimateLine,
  newExteriorEstimate,parseLocalEstimateBook,rebaseEstimateOnLead,sourceStillMatches,
- type ExteriorEstimate,
+ type ExteriorEstimate,type LocalEstimateBook,
 } from '../src/lib/exterior-estimate';
 
 const lead=(extra:Partial<ExtLead>={}):ExtLead=>({
@@ -69,7 +69,7 @@ test('cannot reduce below zero via discount or pass infinite/negative/malformed 
  assert.equal(isExteriorEstimate(extra),false);
 });
 test('revisions validate, freeze values, retain eight and stay scoped to original lead ID',()=>{
- let book={schema:1 as const,current:scenario(),revisions:[]};
+ let book:LocalEstimateBook={schema:1,current:scenario(),revisions:[]};
  for(let i=0;i<11;i++){
   book=addLocalRevision(book,'2026-10-23T12:00:00Z','r-'+i);
   book.current={...book.current,discount:i};
