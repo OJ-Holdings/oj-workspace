@@ -12,6 +12,7 @@ import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type Jo
 import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { JobsCalendar } from './ExteriorCalendar';
+import { ExteriorCustomer360 } from './ExteriorCustomer360';
 import { CommercialDesk } from './CommercialDesk';
 import { AtlasNexusProjects } from './AtlasNexusProjects';
 import { dayKey } from '@/lib/dashboard';
@@ -81,6 +82,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   const common = { data, act, busy, readOnly: readOnly || mode === 'preview', org, now };
   const status = <p className="notice" role="status" aria-live="polite">{notice}</p>;
 
+  if (tab === 'customer') return <>{status}<ExteriorCustomer360 {...common} base={mode === 'preview' ? '/preview' : '/workspace'} /></>;
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
