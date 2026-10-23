@@ -56,7 +56,7 @@ test('unavailable phone/name is not silently treated as a valid saved lead',()=>
  assert.equal(row.readyForLeadDraft,false);
  assert.equal(row.draft.name,'');
  assert.equal(row.draft.phone,'');
- assert.equal(row.matches.length,1); // address may still be a possible match
+ assert.equal(row.matches.length,2); // exact-address candidates remain, despite missing phone
 });
 test('truncated lengthy notes retain source reference and clearly refer to complete request',()=>{
  const huge=makeRequest('big-web',{description:'X'.repeat(12_000)});
