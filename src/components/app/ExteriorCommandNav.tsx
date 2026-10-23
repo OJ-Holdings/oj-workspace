@@ -6,13 +6,14 @@ import {ArrowUpRight,ChartNoAxesCombined,ChevronDown,Compass,HardHat,LayoutDashb
 
 const primary=[
   {id:'command',title:'Command',short:'Command',href:'',icon:LayoutDashboard,paths:['overview']},
-  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','customer','quotes','intake']},
+  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','customer','estimate','quotes','intake']},
   {id:'operations',title:'Field Operations',short:'Operations',href:'/bookings',icon:HardHat,paths:['bookings','calendar','board']},
   {id:'commercial',title:'Commercial Projects',short:'Commercial',href:'/commercial',icon:Compass,paths:['commercial','projects']},
   {id:'intelligence',title:'Intelligence',short:'Intelligence',href:'/jobs',icon:ChartNoAxesCombined,paths:['jobs','money','metrics','door-knocking']},
 ] as const;
 const other=[
   {title:'Customer dossier',path:'/customer'},
+  {title:'Estimate workbench',path:'/estimate'},
   {title:'Company board',path:'/board'},
   {title:'Operations calendar',path:'/calendar'},
   {title:'Project 360',path:'/projects'},
