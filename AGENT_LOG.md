@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (ATLAS V3 R22-R23 bank review and books preparation)
+**Summary:** Added the real, owner-only Finance bank comparison desk with Mercury source-row statuses/dates and read-only equal-amount nearby-date candidate suggestions; ambiguous rows and missing/partial/non-USD source evidence remain explicit. Added scoped month-end preparation with direct links to source-entry exceptions, source-relevant provider gaps, permanent unclosed-book warnings and downloadable nonfinal TXT preparation brief.
+**Files:** src/components/app/{AtlasBankReview,AtlasMonthEndPrep,Pages}.tsx, src/lib/{atlas-bank-review,atlas-close-prep}.ts, src/styles/atlas-v3.css, tests/{atlas-bank-review,atlas-close-prep}.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.
+**Verified:** R22 PR #88 merged `f2cffd5f9` after exact-head CI `39989291018` SUCCESS; post-merge main CI `39989499380` SUCCESS. R23 PR #89 merged `e7741575a` after exact-head CI `39990285027` SUCCESS. No signed-in device/browser acceptance or actual Windows host SHA verification performed. R23 post-merge main CI must be independently checked.
+**Notes:** Neither release changes bank accounts, files tax forms, reconciles any bank transaction, posts a journal, saves a closed accounting period or modifies protected Supabase schema; full bank statements are NOT supplied by the present 50-transaction Mercury read-only feed. Draft migration PR #42 remains UNMERGED. Next core dependency is protected backup/restore and accountant-reviewed chart of accounts + immutable exact-source postings.
+
+
 ## 2026-10-23 -- ChatGPT (ATLAS V3 R20-R21 Treasury + accountant review)
 **Summary:** Replaced Finance's lead record-count command tiles with the live, scoped Treasury cockpit: recorded inflows/outflows and difference, prior-period context, category spending, venture breakdown, carefully restricted Mercury linked-balance evidence, source coverage and Exterior job-cost exceptions. Added a pure non-posting double-entry accounting journal/trial balance core with approval, entity and locked-period guards. Added an explicit accountant-review CSV from currently authorized and filtered finance entries; safe against formula execution with clear unverified/never-posted fields.
 **Files:** src/components/app/{AtlasTreasuryCommand,Pages}.tsx, src/lib/{atlas-treasury,atlas-accounting-core,atlas-accounting-export}.ts, src/styles/atlas-v3.css, tests/{atlas-treasury,atlas-accounting-core,atlas-accounting-export}.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.

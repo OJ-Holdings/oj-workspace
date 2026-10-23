@@ -6,8 +6,13 @@
 
 - **R20 Treasury Command:** PR #85, merge `98a52b586`, exact PR CI `39985983629` SUCCESS and merged-main CI `39986203721` SUCCESS. Live source-scoped Finance cockpit, expense drivers, partial-cash provenance, material exception cues and separate pure, **non-posting** double-entry trial-balance core. NO new ledger tables, reconciliation or bank operations.
 - **R21 Accountant-review CSV:** PR #86, merge `8cbdc7d1d`, exact PR CI `39986712315` SUCCESS. Export existing permission-scoped/filtered Finance rows with source/date-basis and clearly marked unreconciled/non-posted provenance, spreadsheet formula neutralization and user confirmation. Not a financial statement, tax return or true bookkeeping close.
+- **R22 Bank Review:** PR #88, merge `f2cffd5f9`, exact-head CI `39989291018` SUCCESS, post-merge CI `39989499380` SUCCESS. Actual owner-only Mercury review of latest bank feed (at most 50), with explainable same-amount/date candidate suggestions linked to actual finance entries; never automatic matching, settlement or bank reconciliation. Non-owners get no bank-detail review.
+- **R23 Month-end preparation:** PR #89, merge `e7741575a`, exact-head CI `39990285027` SUCCESS. Real month/venture-scoped review actions (uncategorized/estimated dates/incomplete receipts and source coverage) with TXT prep packet and explicit missing ledger, full bank statement, receipts and AR/AP gates. It CANNOT mark a month closed.
 - **Mandatory next gates:** independent Windows port 3011/Tailscale exact SHA + founder desktop/iPhone UX checks; restore-capable private production backup, isolated restore, RLS and approved additive accounting schema before ANY live double-entry posting. Draft database PR #42 remains unmerged. See `docs/ATLAS_ACCOUNTING_ENGINEERING.md`.
 - **Future accounting roadmap:** canonical legal entities/chart of accounts/approved immutable journal postings, bank and merchant reconciliation, actual AR/AP and invoices, month-end close, job cost allocation, partner capital accounts, tax workpapers, explicit user-approved filing interfaces. Never silently convert legacy money-in/out rows into posted GAAP records.
+
+
+**Immediate next accounting milestone:** verified backup/isolated restore and RLS evidence, actual legal entity and book classification, reviewed immutable posted journal schema, complete bank statement imports and approved reconciliations. If protected production migration remains blocked, only add source-honest code-only reporting and accounting prep—not imaginary settlements or final tax figures.
 
 ## ATLAS V3 releases now MERGED (GitHub code; host still unverified)
 
