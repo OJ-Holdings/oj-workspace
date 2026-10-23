@@ -20,7 +20,7 @@ import {
   type FleetWorkbook, type ReadingUnit,
 } from '@/lib/fleet-command';
 
-type Props = { base: string; organizationId: string; mode: 'live' | 'preview'; readOnly: boolean };
+type Props = { base: string; organizationId: string; mode: 'live' | 'preview'; readOnly: boolean; bookings:JobItem[]; bookingsState:LoadedBookingState; cards:Card[] };
 type Tab = 'overview'|'assets'|'maintenance'|'readiness'|'rig';
 const tabNames: Record<Tab, string> = {
   overview: 'Command', assets: 'Asset Registry', maintenance: 'Maintenance',
