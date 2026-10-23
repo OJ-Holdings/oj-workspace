@@ -23,6 +23,7 @@ import { fleetServiceTask } from '@/lib/atlas-fleet-service-handoff';
 import { decodeCommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
+import { AtlasNexusDesk } from './AtlasNexusDesk';
 import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
@@ -213,6 +214,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   let venture: VentureId | null = null;
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) { current = 'businesses'; venture = parts[1]; }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
+  else if (parts[0] === 'tools' && parts[1] === 'nexus') current = 'nexus';
   else if (parts[0] === 'tools' && parts[1] === 'operations') current = 'operations';
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
@@ -230,6 +232,9 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
+      ) : current === 'nexus' ? (
+        <AtlasNexusDesk base={base} organizationId={organizationId} mode={mode} readOnly={readOnly}
+          bookings={jobs} bookingsState={jobsState} cards={board.data.cards} activity={board.data.activity??[]} />
       ) : current === 'operations' ? (
         <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} readOnly={readOnly} />
       ) : current === 'fleet' ? (
