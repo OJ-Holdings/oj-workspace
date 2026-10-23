@@ -7,6 +7,7 @@ import {
   Download, Droplets, FileUp, Gauge, HardHat, PackagePlus, Plus, RotateCcw,
   Save, Settings2, ShieldAlert, ShieldCheck, Trash2, Truck, Wrench, X,
 } from 'lucide-react';
+import { AtlasFieldBridge } from './AtlasFieldBridge';
 import {
   assetHealth, calculateRigLoad, decodeFleet, emptyFleet, encodeFleet,
   fleetKinds, fleetStatuses, readingUnits, readinessItems, validateFleet,
@@ -208,6 +209,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       <span><b>{readinessItems.length-completed}</b> checklist items unchecked</span>
       <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
     </section>
+    <AtlasFieldBridge base={base} organizationId={organizationId} mode={mode} view="fleet" fleet={workbook} disabled={readOnly} />
     <section className="fleet-kpis" aria-label="Fleet status overview">
       <div><span><Truck size={17}/> Logged assets</span><strong>{workbook.assets.length}</strong><small>Local inventory entries</small></div>
       <div><span><AlertTriangle size={17}/> Attention now</span><strong>{attention}</strong><small>Manually flagged or service due</small></div>
