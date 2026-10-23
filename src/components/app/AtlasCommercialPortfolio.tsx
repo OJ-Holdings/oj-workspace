@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Card } from '@/lib/board';
 import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
+import { emptyFieldCrewPlan, type FieldCrewPlan } from '@/lib/atlas-field-mission';
+import { AtlasFieldMissionPanel } from './AtlasFieldMissionPanel';
 import type { ExtBooking } from '@/lib/exterior';
 import type { EstimateInput } from '@/lib/commercial-estimate';
 import { newEstimate } from '@/lib/commercial-estimate';
@@ -53,6 +55,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   const [phase,setPhase]=useState<ProjectPhase>('scoping');
   const [bookingId,setBookingId]=useState<string|null>(null);
   const [plannedAssetIds,setPlannedAssetIds]=useState<string[]>([]);
+  const [fieldCrewPlan,setFieldCrewPlan]=useState<FieldCrewPlan>(emptyFieldCrewPlan);
   const [addAsset,setAddAsset]=useState('');
   const [notice,setNotice]=useState('');
   const [day,setDay]=useState('');
@@ -83,7 +86,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   },[canEdit,fleetKey,org]);
   useEffect(()=>{
     setReady(false);setSelectedId(null);setExpectedRevision(null);setPortfolio(emptyCommercialPortfolio(org));
-    setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);
+    setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
     setFleet(null);setNotice('');setDay(dateChicago());
     if(!canEdit){setReady(true);return;}
     reload();reloadFleet();
@@ -102,7 +105,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   },[org,canEdit,reload,reloadFleet,key,fleetKey]);
 
   const current=portfolio.projects.find(p=>p.id===selectedId);
-  const draft:ProjectDraft={name,input,review,phase,bookingId,plannedAssetIds};
+  const draft:ProjectDraft={name,input,review,phase,bookingId,plannedAssetIds,fieldCrewPlan};
   const simulated:CommercialProject={
     id:selectedId??'unsaved',revision:expectedRevision??0,
     createdAt:current?.createdAt??'2026-01-01T00:00:00.000Z',
@@ -125,13 +128,14 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     if(!window.confirm('Load "'+project.name+'"? This replaces unsaved scope and pricing edits in the current editor. It does not modify the shared OJ database.'))return;
     setSelectedId(project.id);setExpectedRevision(project.revision);setPhase(project.phase);
     setBookingId(project.bookingId);setPlannedAssetIds([...project.plannedAssetIds]);
+    setFieldCrewPlan({...project.fieldCrewPlan??emptyFieldCrewPlan()});
     onLoad({name:project.name,input:structuredClone(project.input),review:[...project.review]});
     setNotice('Project loaded into the local estimator. Changes are NOT automatically saved or shared.');
   }
   function newProject(){
     if(!window.confirm('Begin a new project? Unsaved changes to the currently open estimate will be discarded. Previously saved portfolio entries remain.'))return;
     setSelectedId(null);setExpectedRevision(null);setPhase('scoping');
-    setBookingId(null);setPlannedAssetIds([]);
+    setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
     onLoad({name:'New commercial opportunity',input:newEstimate(),review:[false,false,false,false,false]});
     setNotice('New unsaved project started. Save it into the local portfolio to preserve it.');
   }
@@ -175,7 +179,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       const next=deletePortfolioProject(currentState,org,selectedId,expectedRevision);
       persist(next,currentState.revision,'Only the selected local project was deleted. The open estimator is unchanged.');
       setSelectedId(null);setExpectedRevision(null);setBookingId(null);
-      setPlannedAssetIds([]);setPhase('scoping');
+      setPlannedAssetIds([]);setPhase('scoping');setFieldCrewPlan(emptyFieldCrewPlan());setFieldCrewPlan(emptyFieldCrewPlan());
     }catch(error){setNotice(error instanceof Error?error.message:'Delete failed.');}
   }
   function exportPortfolio(){
@@ -253,6 +257,9 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
           {evidence.map(item=><div key={item.id}><span><strong>{item.name}</strong><small>{item.state==='recorded-ready'?'Manually marked ready; verify on site':item.state.replaceAll('-',' ')} · {knownIds.has(item.id)?'Local asset ID '+short(item.id):'Missing local asset '+short(item.id)}</small></span><button type="button" onClick={()=>setPlannedAssetIds(v=>v.filter(id=>id!==item.id))}>Remove</button></div>)}
           {plannedAssetIds.length===0&&<p>There are no candidate assets on this unsaved plan. Add one from the validated Fleet workbook when available.</p>}
         </div>
+        <AtlasFieldMissionPanel org={org} base={base} project={simulated} isSaved={selectedId!==null}
+          day={day} plan={fieldCrewPlan} onChange={setFieldCrewPlan}
+          fleet={fleet} bookings={bookings} cards={cards} />
         <div className="atlas-project-findings"><strong>Planning exceptions · {findings.length}</strong>
           {findings.map(issue=><p key={issue.id} data-severity={issue.severity}><span>{issue.severity}</span>{issue.text}</p>)}
         </div>
