@@ -4,6 +4,19 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 27 — VERIFIED-SOURCE CUSTOMER 360
+
+**PR:** [#97](https://github.com/OJ-Holdings/oj-workspace/pull/97). **Merged SHA:** `04edc152f498c2cf81498cbd83dcaaa0fb7af760`. **Exact PR-head CI:** `40022388450` SUCCESS.
+
+- New Customer 360 dossier from a legacy lead's unchanged source ID. Real service address/contact, requested work, notes, quote, booking timeline, job-financial evidence and source-coverage limits appear in a single responsive, animated, provenance-aware interface.
+- Booking relationships use exact `lead_id` values. Other leads and website requests sharing normalized phone or address are marked as **unverified identity candidates**; names alone never imply identity. Booking picker no longer hides separate source records sharing contact information.
+- Customer dossier actions call the same authenticated customer edit, booking and recorded financial forms as existing Exterior operations. No new parallel source tables, CRM mutation endpoints or payment collection operations were created.
+- Historical source job revenue and costs remain **lead-level fields**; repeat bookings never multiply them, and neither is bank-confirmed settlement or finalized accounting. Dates derived from updates are flagged as estimates.
+- Customer cards, booking cards/tables and HQ mission timeline deep-link to the exact dossier; old routes remain available.
+- CSS adds card surfaces, timeline, founder work actions, accessible focus and phone responsiveness with reduced motion; tests exercise source linkage, duplicate candidate isolation, null costs, incomplete history and date uncertainty.
+- **Full 12-wave Exterior Command program:** estimated **11% complete** (5 points W1 experience, 3 W2 HQ, 3 W3 Customer 360). Detailed progress and remaining acceptance scope: [Exterior progress ledger](./EXTERIOR_COMMAND_PROGRESS.md).
+- **Still unverified:** exact Windows production served SHA, mobile founder acceptance, real bank/communication source capture and protected schema backup/restore/recovery gate.
+
 ## ATLAS V3 / Exterior Command Release 26 — NATIVE FIELD-SERVICES HQ
 
 **PR:** [#95](https://github.com/OJ-Holdings/oj-workspace/pull/95). **Merged SHA:** `efddc6d57fc4b8e0ffe025f8a3b6100fc252def4`. **Exact PR-head CI:** `40020624041` SUCCESS.
