@@ -169,6 +169,32 @@ The above PR head checks are verifiable GitHub CI events, not independent proof 
 
 [Founder Acceptance 11–12](./ATLAS_V3_FOUNDER_ACCEPTANCE_11_12.md) extends the earlier manual Windows/iPhone/editor/viewer/Jacob acceptance plan. GitHub CI is **not** evidence that the guarded Windows host has pulled these commits or that the full founder flows work with actual customer, Fleet and booking records.
 
+
+## ATLAS V3 / Release 13 — NEXUS SOURCE-LINKED PROJECT 360
+
+**PR:** [#74](https://github.com/OJ-Holdings/oj-workspace/pull/74). **Merged SHA:** `e034b19f64eb6b2bdce40cd2817f40c09ed4841d`. **Exact-head CI:** `39906488281` — SUCCESS.
+
+- Embedded a substantial NEXUS Project 360 cockpit into the **actual Exterior business division** (`/b/exterior/projects`). Source inputs: validated, organization-keyed local commercial projects/estimates and Fleet workbook plus independently loaded, already-authorized Exterior bookings/leads, existing workspace tasks and recorded task activity.
+- Added typed nodes/edges with explicit evidence: **verified source record**, **device-local planning assertion**, **exact textual task receipt**, or **unverified**. Customer source identity is joined through the exact `booking.lead_id`, NEVER similar property/customer names, phone numbers or financial amounts.
+- Included a searchable local project register, per-project internal estimate economics, buildings and pane scope, crew-day capacity, source booking and customer evidence, candidate equipment status, loaded shared tasks, recorded task events and a site/crew/equipment verification queue.
+- Source coverage is allowed to be incomplete. A missing or cancelled source booking, unknown Fleet asset, absent linked task or incomplete staffing scenario is **not** a confirmed cancellation of all work, verified resource availability, approved quote or collected payment.
+- NEXUS is a **read-only projection**; it does not write new canonical projects, perform supplier/customer actions, submit quotes, synchronize local project files or certify dispatch/safety. Preview and read-only roles do not inspect device-local workbooks.
+- Hardened task text receipt matching against multiline forged local project IDs; extensive graph/tenant/source evidence regression tests added.
+
+## ATLAS V3 / Release 13.1 — ONE CANONICAL CORPORATE ENTRY + SOURCE INTEGRITY
+
+**PR:** [#75](https://github.com/OJ-Holdings/oj-workspace/pull/75). **Merged SHA:** `397243c283e092a16bff5c49696234b849816f96`. **Exact-head CI:** `39907267432` — SUCCESS.
+
+- Exposed the **same**, already-working Exterior NEXUS screen as a first-class COMMAND navigation item and searchable capability; did not build a second competing corporate project graph.
+- Added explicit links from Fleet's 7/30/90-day project cards and the commercial project portfolio to the relevant last-saved local Project 360.
+- Strengthened pure graph authorization boundaries: a Fleet workbook with a different `organizationId` is rejected, including when the portfolio is empty. Added two focused regression tests.
+- Fixed nested main landmark semantics within the existing app shell.
+- A separately developed PR #73 passed CI but was deliberately **closed without merging** when the canonical R13 PR #74 landed concurrently. Do not merge or cherry-pick that duplicate component/graph without auditing conflicts.
+
+## NEXUS Founder QA & Protected Database Gate
+
+[Founder Acceptance 13](./ATLAS_V3_FOUNDER_ACCEPTANCE_13.md) details the unperformed manual Windows/iPhone, Oscar/Jacob, exact booking/customer and cross-organization tests. Read-only Supabase metadata inspection found the existing workspace and Exterior legacy source tables with RLS enabled, but **not** canonical shared Commercial/Fleet tables. Current security advisories include privileged-function execution checks requiring private review before any schema/grant changes. The real private backup and independently isolated restore drill remain unverified, and migration PR #42 remains draft. Consult [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md).
+
 ## What is STILL NOT built
 
 - Full replacement redesign of every vertical business screen; most deeper tabs retain V2 styling and flows.
@@ -192,4 +218,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–12 are merged into GitHub main with passing exact-head CI, including a versioned browser-local commercial portfolio, tentative Fleet resource planning, actual paid crew-hour scenario warnings, reviewed Field Mission Packs, exact booking/task handoffs and per-asset Fleet maintenance task drafts. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
+**Bottom line:** Releases 01–13 (including integration 13.1) are merged into GitHub main with passing exact-head CI: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
