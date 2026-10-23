@@ -52,6 +52,18 @@ export function parseLocalCommercialDraft(json: string, org: string): Commercial
   return { name: validated.name, input: validated.input, review: validated.review };
 }
 
+/** Convert a trusted ISO timestamp to the same Chicago calendar day used by the field UI. */
+export function chicagoDateOf(iso: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const part = (name: string) => parts.find(item => item.type === name)?.value ?? '';
+  return part('year') + '-' + part('month') + '-' + part('day');
+}
+
 /** Use the original Fleet Command validator; never trust arbitrary local JSON. */
 export function parseLocalFleetDraft(json: string, org: string): FleetWorkbook {
   return decodeFleet(json, org);
@@ -101,7 +113,7 @@ export function fieldBridgeReport(
   } else {
     const conditions = fleet.assets.map(asset => assetHealth(asset, validToday ? day : ''));
     const load = calculateRigLoad(fleet.rig);
-    const checklistDate = fleet.readiness.updatedAt?.slice(0, 10) ?? null;
+    const checklistDate = chicagoDateOf(fleet.readiness.updatedAt);
     const checklistFresh = validToday && checklistDate === day;
     fleetSummary = {
       assets: fleet.assets.length,
