@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type {ExteriorData,ExtBooking} from '@/lib/exterior';
 import {statusLabel} from '@/lib/exterior';
+import {ExteriorJobEquipment} from './ExteriorJobEquipment';
 import {
   fieldCheckLabels,fieldSourceMatches,isFieldLog,newFieldLog,parseFieldPackage,
   reviewFieldLog,serializeFieldPackage,fieldLogMaxChars,
@@ -287,7 +288,8 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
       placeholder="Site access, observed work, limitations, customer conversations, photos to upload later…"/>
      <p className="ecfield-disclaimer">No photographs or signatures are uploaded in this release. Sensitive customer content stays on this device and in explicitly exported private files only.</p>
     </section>
-    <section className="ecfield-panel ecfield-closeout">
+    <ExteriorJobEquipment org={org} booking={booking} data={data} readOnly={readOnly} mode={mode} base={base}/>
+        <section className="ecfield-panel ecfield-closeout">
      <span className="ecfield-overline">08 / COMPLETENESS REVIEW</span><h2>What's still unknown?</h2>
      {result?<ul>{result.flags.map(f=><li key={f}>{f}</li>)}</ul>:<p>The local entries need correction before any calculated review is displayed.</p>}
      <div className="ecfield-costs"><span>Labor estimate</span><strong>{usd(result?.knownLaborCost??null)}</strong>
