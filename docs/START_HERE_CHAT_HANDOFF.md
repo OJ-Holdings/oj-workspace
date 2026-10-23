@@ -2,6 +2,14 @@
 
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
+## CURRENT EXTERIOR COMMAND IMPLEMENTATION (2026-10-23)
+
+- **New implementation plan:** Exterior Command master plan created October 23, covering 12 implementation waves. Engineering progress definition / weights in `docs/EXTERIOR_COMMAND_PROGRESS.md`.
+- **R26 Bespoke Exterior Command:** [PR #95](https://github.com/OJ-Holdings/oj-workspace/pull/95), merged `efddc6d57fc4b8e0ffe025f8a3b6100fc252def4`, exact-head CI `40020624041` SUCCESS. New true source-bound 4-KPI command homepage, confirmed-job timeline, founder decision queue, six-month historical job-revenue visualization (unknown != zero), acquisition source bars, seasonal planning mode, responsive industrial visual system and keyboard/reduced-motion treatment.
+- **Five destinations:** Command, Customers, Operations, Commercial, Intelligence. Existing Exterior Care management, commercial, NEXUS, Fleet and reports remain operational at their old URLs; new division nav includes legacy route directory. Existing real source stays owner/member-gated; preview stays fictional.
+- **Estimated progress: 8%** of the FULL 12-wave redesigned product (not percentage of code compiled, nor all existing historical features). W1 5/8, W2 3/10; W3-W12 not done. No canonical customer migration, LSA sync expansion, offline outbox, durable equipment/company archive or verified bank payments shipped in R26.
+- **Gates:** Exact Windows port 3011 deployed/serving commit and founder desktop/iPhone acceptance not independently verified. Do not confuse CI success with installed runtime. Schema-changing waves require private backup+isolated restore, authenticated role/RLS proof and a staged rollback.
+
 ## CURRENT ACCOUNTING STATUS (2026-10-23)
 
 - **R20 Treasury Command:** PR #85, merge `98a52b586`, exact PR CI `39985983629` SUCCESS and merged-main CI `39986203721` SUCCESS. Live source-scoped Finance cockpit, expense drivers, partial-cash provenance, material exception cues and separate pure, **non-posting** double-entry trial-balance core. NO new ledger tables, reconciliation or bank operations.

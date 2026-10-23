@@ -4,6 +4,18 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 26 — NATIVE FIELD-SERVICES HQ
+
+**PR:** [#95](https://github.com/OJ-Holdings/oj-workspace/pull/95). **Merged SHA:** `efddc6d57fc4b8e0ffe025f8a3b6100fc252def4`. **Exact PR-head CI:** `40020624041` SUCCESS.
+
+- Exterior Care's old generic venture overview is replaced with a custom, responsive division HQ. The new five-domain navigation is Command / Customers / Operations / Commercial / Intelligence, with a compatibility directory preserving functional legacy pages.
+- Four real source-evidenced finance/operations instruments: completed-job recorded revenue; future confirmed booking quote value; prebook open quote exposure; recorded revenue-minus-direct-cost subset. NO bank-confirmed collection, invoice or company-profit claims.
+- Upcoming job timeline, exact linked customer records, task/lead data-integrity decision queue, six-month completed-job revenue chart (unknown treated as unknown), all-time acquisition-source tags, source completeness and access-failure states.
+- Design release: technical graphite, sea-glass/amber, compact founder action controls, KPI entrance motion, interactive bar graphics, responsive iPhone layouts, focus and reduced-motion support.
+- Synthetic fixtures are limited to preview; live access requires existing authorized Exterior source. No database migrations, payments, customer sends, financial postings or external actions.
+- **Full 12-wave Exterior Command plan estimated 8% complete** upon PR merge; tracked with accountable weighted milestones in [Exterior progress ledger](./EXTERIOR_COMMAND_PROGRESS.md).
+- Windows host SHA and founder mobile/desktop acceptance unverified; merged-main CI check separately from PR-head.
+
 ## ATLAS V3 / Release 01 — COMMAND REBORN
 
 **GitHub PR:** [#57](https://github.com/OJ-Holdings/oj-workspace/pull/57).
