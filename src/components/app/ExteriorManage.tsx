@@ -542,6 +542,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               <footer>
                 <div className="atlas-booking-contact-actions">
                   {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
+                  {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                   {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
                   {l?.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`}>Directions</a>}
                 </div>
@@ -566,6 +567,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               <td className="num" data-label="Quoted, not paid">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && <td data-label="Actions"><div className="row-actions">
                 {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
+                {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                 {actionable(b) && <>
                   {l && <button className="secondary small" disabled={busy} onClick={() => setEditing(b)}>Edit</button>}
                   {l && <button className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Move</button>}
