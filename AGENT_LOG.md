@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (Exterior Command R27 - source-linked Customer 360)
+**Summary:** Introduced an exact-legacy-lead-ID Customer 360 dossier with source-qualified contact and service facts, original address/notes, lead-level quote and historical job revenue/cost, exact-ID booking associations, timeline with real vs fallback job dates, incomplete source warnings, and non-merging related candidate review. Reused guarded existing customer edit, new service booking, and recorded job-figure dialogs. Existing booking picker now shows distinct IDs instead of silently deduping by phone/address. Customer cards, booking workbench and HQ mission timeline deep-link to dossier. Refreshed erroneous historical 'payment' labels. Responsive dark Exterior presentation with reduced-motion.
+**Files:** src/lib/exterior-customer-360.ts; src/components/app/ExteriorCustomer360.tsx; ExteriorManage.tsx; ExteriorView.tsx; VentureView.tsx; ExteriorCommand.tsx; ExteriorCommandNav.tsx; src/styles/exterior-customer-360.css; src/app/globals.css; tests/exterior-customer-360.test.ts; docs/EXTERIOR_COMMAND_PROGRESS.md.
+**Verified:** PR #97 merged main as 04edc152f498c2cf81498cbd83dcaaa0fb7af760 after exact PR-head CI 40022388450 SUCCESS: npm ci, typecheck, tests, Next production build. Merged-main CI 40022648309 launched but conclusion must be checked. Actual Windows port 3011/Tailscale serving SHA and authenticated Oscar/Jacob real iPhone use NOT independently tested.
+**Progress:** Weighted Exterior full redesign **11%** engineering estimate (W1 5%, W2 3%, W3 3%; others 0). No newly persistent customer/property/estimate tables, no automatic LSA or message history merge, no verified cash collection/invoices or data migrations. Production backup + isolated restore/RLS gate remains.
+**Next:** Verify real-device dossier/action workflow; build canonical customer/property and quote lifecycle with source IDs and approved matching after guarded persistence; reduce repeat all-record downloads on navigation.
+
+
 ## 2026-10-23 -- ChatGPT (Exterior Command R26 - bespoke division HQ)
 **Summary:** Replaced generic Exterior Care venture overview with source-honest native Command screen, five-domain operating navigation (Command, Customers, Operations, Commercial, Intelligence), mission timeline/decision queue, KPI instruments, financial/data completeness indicators, acquisition source breakdown and six-month recorded-job history. Preserved all existing Exterior specialist source routes, authenticated editing workflows, and preview isolation. Added industrial graphite/amber/sea-glass styling, responsive motion and reduced-motion behavior.
 **Files:** src/components/app/ExteriorCommand.tsx, ExteriorCommandNav.tsx, VentureView.tsx, src/lib/exterior-command.ts, src/styles/exterior-command.css, src/app/globals.css, tests/exterior-command.test.ts, docs/EXTERIOR_COMMAND_PROGRESS.md.
