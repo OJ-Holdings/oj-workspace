@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { isFinanceLaunch } from '@/lib/operator-shortcuts';
-import { matchesMoneyWorkFocus, moneyWorkCounts, moneyWorkDetails, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
+import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
+import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
@@ -197,7 +198,6 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const month = filterMonth || dayKey(now).slice(0, 7);
   const pick = (key: string, value: string) => { const next = new URLSearchParams(query.toString()); if (value) next.set(key, value); else next.delete(key); setShown(12); router.replace(`${pathname}?${next}`, { scroll: false }); };
   const entries = sortMoneyWorkEntries(data.finance.filter(f => (!filterBusiness || f.venture === filterBusiness) && (!filterMonth || f.occurred_on.startsWith(filterMonth))));
-  const moneyCounts = moneyWorkCounts(entries);
   const searchText = moneySearch.trim().toLowerCase();
   const moneyEntries = entries.filter(f => matchesMoneyWorkFocus(f, moneyFocus) &&
     (!searchText || [f.category, f.note, f.occurred_on, f.auto ?? '', short(f.venture)].some(v => v.toLowerCase().includes(searchText))));
@@ -214,36 +214,23 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const netKnown = entries.some(f => f.kind === 'revenue' && f.occurred_on.startsWith(month)) && entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month));
   const withRevenue = scope.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
   return <>
-    {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
-    <section className="atlas-money-command" aria-label="Money operator workbench">
-      <header className="atlas-money-command-head">
-        <div><span>CORPORATE / MONEY OPERATIONS</span><h2>Record money. Understand the numbers.</h2>
-          <p>See actual entries, their sources and what still needs verification. Recorded differences are not automatically profit.</p></div>
-        {!readOnly && <div className="atlas-money-quick-actions">
-          <button type="button" className="primary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'cost' })}><Plus size={15} aria-hidden="true"/>Record expense</button>
-          <button type="button" className="secondary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'revenue' })}><Plus size={15} aria-hidden="true"/>Record income</button>
-        </div>}
-      </header>
-      <div className="atlas-money-queues" role="group" aria-label="Financial entry queues">
-        {moneyWorkFocuses.map(focus => <button key={focus} type="button" aria-pressed={moneyFocus === focus}
-          onClick={() => { setMoneyFocus(focus); setMoneySearch(''); setShown(12); }}>
-          <strong>{moneyCounts[focus]}</strong><span>{moneyWorkLabels[focus]}</span>
-        </button>)}
-      </div>
-      <p className="atlas-money-queue-note" role="status"><b>{moneyWorkLabels[moneyFocus]}:</b> {moneyWorkDetails[moneyFocus]} Counts reflect the business and date filters below.</p>
-    </section>
+    <AtlasTreasuryCommand data={data} month={month} scope={scope.map(v=>v.id)} owner={owner} readOnly={readOnly}
+      base={pathname.startsWith('/preview') ? '/preview' : '/workspace'}
+      onExpense={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'cost'})}
+      onIncome={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'revenue'})} />
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
       <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>
       {filterMonth && <button className="secondary" onClick={() => pick('month', '')}>All dates</button>}
     </div>
-    <div className="kpis">
-      <div><span>Recorded revenue / {month}</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
-      <div><span>Recorded costs / {month}</span><strong>{entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month)) ? dollars(costs) : 'Not recorded'}</strong></div>
-      <div><span>Recorded difference / {month}</span><strong className={revenue - costs < 0 ? 'neg' : ''}>{netKnown ? dollars(revenue - costs) : 'Incomplete'}</strong><small className="quiet">Not verified profit: income or cost coverage may be incomplete.</small></div>
-    </div>
     <section className="panel">
-      <header className="panel-head"><h2>Money ledger <small className="quiet">{moneyEntries.length} matching entries</small></h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
+      <header className="panel-head"><h2>Recorded inflows over the past 12 months</h2></header>
+      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
+        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
+      <p className="quiet">This chart shows dated recorded inflows, not reconciled bank deposits. Source work dates and imported order dates can differ from collection dates.</p>
+    </section>
+    <section className="panel" id="treasury-records">
+      <header className="panel-head"><h2>Transaction workbench</h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
       {form && (
         <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
           <div className="fields">
@@ -258,8 +245,11 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         </form>
       )}
       <Notice store={store} />
-      {entries.some(f => f.auto) && <p className="quiet">Recorded Exterior Care payments and paid USD Shopify orders are included automatically. Exterior figures use the job date, not a verified collection date. Do not enter these amounts again.</p>}
-      {data.reporting?.sources.map(source => <p className="quiet" key={source.id}>{source.label}: {source.state}. {source.detail}</p>)}
+      {entries.some(f => f.auto) && <p className="quiet">Some rows come from Exterior job/payment fields or Shopify order records. Their accounting and settlement dates may differ; do not duplicate these as manual entries without reconciliation.</p>}
+      <div className="atlas-money-ledger-filters" role="group" aria-label="Transaction filters">
+        {moneyWorkFocuses.map(focus=><button key={focus} type="button" aria-pressed={moneyFocus===focus}
+          onClick={()=>{setMoneyFocus(focus);setMoneySearch('');setShown(12);}}>{moneyWorkLabels[focus]}</button>)}
+      </div>
       <div className="atlas-money-tools">
         <input type="search" aria-label="Search financial entries" value={moneySearch} placeholder="Category, date, note, or source"
           onChange={e => { setMoneySearch(e.target.value); setShown(12); }}/>
@@ -287,11 +277,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>
       ) : <div className="empty"><p><b>No matching entries.</b> Try another queue or search. A quote is not paid revenue.</p></div>}
     </section>
-    <section className="panel">
-      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
-      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
-        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
-    </section>
+    {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
   </>;
 }
 
