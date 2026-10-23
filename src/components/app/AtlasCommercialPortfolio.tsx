@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, ArrowUpRight, Building2, Download, FileInput, Plus, Save, ShieldAlert, Trash2, Truck } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Card } from '@/lib/board';
 import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
 import { emptyFieldCrewPlan, type FieldCrewPlan } from '@/lib/atlas-field-mission';
@@ -42,6 +42,8 @@ const short=(id:string)=>id.length>11?id.slice(0,9)+'…':id;
  */
 export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad}:Props){
   const router=useRouter();
+  const deepLinkProject=useSearchParams().get('project');
+  const handledDeepLink=useRef('');
   const canEdit=mode==='live'&&!readOnly;
   const key='oj-commercial-project-portfolio-v1:'+org;
   const fleetKey='oj-fleet-command-v1:'+org;
@@ -132,6 +134,17 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     onLoad({name:project.name,input:structuredClone(project.input),review:[...project.review]});
     setNotice('Project loaded into the local estimator. Changes are NOT automatically saved or shared.');
   }
+  // A NEXUS deep link selects an existing local project only after the user
+  // agrees to replace any unsaved fields in the current estimator.
+  useEffect(()=>{
+    const marker=org+':'+deepLinkProject;
+    if(!canEdit||!ready||!deepLinkProject||handledDeepLink.current===marker)return;
+    handledDeepLink.current=marker;
+    const found=portfolio.projects.find(p=>p.id===deepLinkProject);
+    if(!found){setNotice('NEXUS project is not present in this device-local portfolio. Nothing was changed.');return;}
+    loadProject(found);
+  },[deepLinkProject,org,canEdit,ready,portfolio.projects]);
+
   function newProject(){
     if(!window.confirm('Begin a new project? Unsaved changes to the currently open estimate will be discarded. Previously saved portfolio entries remain.'))return;
     setSelectedId(null);setExpectedRevision(null);setPhase('scoping');
@@ -216,6 +229,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <button type="button" className="secondary" onClick={newProject}><Plus size={15}/> New project</button>
         <button type="button" className="primary" disabled={!ready} onClick={saveCurrent}><Save size={15}/> {selectedId?'Save selected project':'Save as new project'}</button>
         <button type="button" className="secondary" disabled={!ready||phase==='archived'} onClick={prepareProjectTask}>Save & prepare project task <ArrowUpRight size={15}/></button>
+        <Link className="secondary atlas-project-nexus-link" href={base+'/tools/nexus'+(selectedId?'?project='+encodeURIComponent(selectedId):'')}>Project 360 / NEXUS <ArrowUpRight size={15}/></Link>
         <button type="button" className="secondary" disabled={!ready} onClick={exportPortfolio}><Download size={15}/> Export portfolio</button>
         <button type="button" className="secondary" disabled={!ready} onClick={()=>fileInput.current?.click()}><FileInput size={15}/> Import portfolio</button>
         <input type="file" ref={fileInput} hidden accept="application/json,.json" aria-label="Import private commercial project portfolio" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importPortfolio(file);}}/>
