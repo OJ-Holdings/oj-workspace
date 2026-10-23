@@ -154,6 +154,21 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
       <div><span>EQUIPMENT DAYS</span><strong>{estimate.liftDays}</strong><small>Summed rental days across buildings</small></div>
       <div className="com-feature"><span>SCENARIO PRICE</span><strong>{dollars(estimate.suggestedPrice)}</strong><small>Internal calculation, not a client quote</small></div>
     </div>
+    <section className="atlas-commercial-command" aria-label="Commercial bid command shortcuts">
+      <div><p>ATLAS / BID OPERATIONS</p><h3>Estimate → Review → Controlled handoff</h3><span>Scenario math is not an approved price. Founder review and verified site access are required before a customer-facing proposal.</span></div>
+      <div className="atlas-commercial-command-actions">
+        <button type="button" onClick={()=>setTab('scope')} aria-pressed={tab==='scope'}><Building2 size={15}/> Survey scope</button>
+        <button type="button" onClick={()=>setTab('costs')} aria-pressed={tab==='costs'}><BarChart3 size={15}/> Cost model</button>
+        <button type="button" onClick={()=>setTab('warroom')} aria-pressed={tab==='warroom'}><ClipboardCheck size={15}/> Bid review <b>{reviewed}/{checklist.length}</b></button>
+      </div>
+    </section>
+    <div className="atlas-commercial-facts" aria-label="Estimate assumptions">
+      <span><strong>{input.sites.length}</strong> scoped buildings</span>
+      <span><strong>{estimate.crewHours}</strong> entered paid crew-hours</span>
+      <span><strong>{estimate.liftDays}</strong> summed rental days</span>
+      <span><strong>{reviewed}/{checklist.length}</strong> internal review items checked</span>
+      <b>{preview?'FICTIONAL PREVIEW':'BROWSER-LOCAL DRAFT'}</b>
+    </div>
     <div className="com-body">
       <div className="com-left">
         <div className="com-tabs" role="group" aria-label="Commercial desk sections">
