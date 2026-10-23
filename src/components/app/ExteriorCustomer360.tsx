@@ -127,7 +127,7 @@ export function ExteriorCustomer360({data,act,busy,readOnly,org,now,base}:Props)
          {candidates.length?<div className="ecc-candidates">{candidates.slice(0,showAll?candidates.length:5).map(c=><div className="ecc-candidate" key={c.id}>
            <span>{c.kind==='lead'?'Separate lead':'Website inquiry — unlinked'}</span>
            <strong>{c.label}</strong><small>{c.reason}. Review before relating records.</small>
-           <Link href={c.kind==='lead'?`${root}/customer?lead=${encodeURIComponent(c.lead!.id)}`:`${root}/quotes`}>Inspect separately <ArrowUpRight size={14}/></Link>
+           <Link href={c.kind==='lead'?`${root}/customer?lead=${encodeURIComponent(c.lead!.id)}`:`${root}/intake?request=${encodeURIComponent(c.quote!.id)}`}>Inspect separately <ArrowUpRight size={14}/></Link>
          </div>)}
          {candidates.length>5&&<button type="button" className="ecc-more" onClick={()=>setShowAll(v=>!v)}>{showAll?'Show fewer':`Show ${candidates.length-5} more`}</button>}
          </div>:<p className="ecc-empty-copy">No exact phone or address candidates in the accessible source window. This does not establish unique identity.</p>}
