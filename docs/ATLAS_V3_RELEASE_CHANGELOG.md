@@ -4,6 +4,18 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 28 — WEBSITE INTAKE COMMAND
+
+**PR:** [#99](https://github.com/OJ-Holdings/oj-workspace/pull/99). **Merged SHA:** `d0baf7bdb5b5387f5ba6c49b7b8409956979c486`. **Exact-head PR CI:** `40026458399` SUCCESS.
+
+- New responsive two-pane Website Intake Command replaces the quote_requests raw table: original request inbox, source identification, search, request details and contact, recurring-service interest, candidate identity review, and annotated lead creation handoff.
+- Reuses existing authenticated `LeadDialog` instead of copying customer data into another database. No automatic quote price, approval, payment or processed status; source ID and website data copied as **human-readable notes** only, with original record preserved and truncation warning.
+- Same phone or adequately detailed same address produces **possible match**, not identity verification. Explicit separate-lead acknowledgement required if candidates exist; direct exact-ID source links remain unchanged.
+- New `/b/exterior/intake` and legacy `/b/exterior/quotes` routes, Customer 360 website-request exact-source drillthrough, and entry points from HQ and customer workbench. Missing linked ID cannot silently substitute another request.
+- Bespoke high-density industrial visual styling, responsive mobile reflow, keyboard focus and reduced-motion support. Tests cover source semantics, matching, nulls, 4000-char note limit and no fake processed state.
+- Scope limit: No canonical request→lead foreign keys or idempotent processing, no automatic LSA data, no production migrations, no outbound comms. Source request limit 1,000; do not assert full customer history.
+- **Full Exterior Command plan:** engineering estimate **14%** (W1 5%, W2 3%, W3 5%, W4 1%, rest 0%). Deployment exact Windows SHA and real founder device tests unverified.
+
 ## ATLAS V3 / Exterior Command Release 27 — VERIFIED-SOURCE CUSTOMER 360
 
 **PR:** [#97](https://github.com/OJ-Holdings/oj-workspace/pull/97). **Merged SHA:** `04edc152f498c2cf81498cbd83dcaaa0fb7af760`. **Exact PR-head CI:** `40022388450` SUCCESS.
