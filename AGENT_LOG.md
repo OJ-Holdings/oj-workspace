@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (ATLAS V3 R20-R21 Treasury + accountant review)
+**Summary:** Replaced Finance's lead record-count command tiles with the live, scoped Treasury cockpit: recorded inflows/outflows and difference, prior-period context, category spending, venture breakdown, carefully restricted Mercury linked-balance evidence, source coverage and Exterior job-cost exceptions. Added a pure non-posting double-entry accounting journal/trial balance core with approval, entity and locked-period guards. Added an explicit accountant-review CSV from currently authorized and filtered finance entries; safe against formula execution with clear unverified/never-posted fields.
+**Files:** src/components/app/{AtlasTreasuryCommand,Pages}.tsx, src/lib/{atlas-treasury,atlas-accounting-core,atlas-accounting-export}.ts, src/styles/atlas-v3.css, tests/{atlas-treasury,atlas-accounting-core,atlas-accounting-export}.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.
+**Verified:** R20 PR #85 merge `98a52b586`, exact PR-head CI run `39985983629` SUCCESS, main CI `39986203721` SUCCESS. R21 PR #86 merge `8cbdc7d1d`, PR-head CI run `39986712315` SUCCESS; main CI/Windows host to verify independently.
+**Notes:** Neither release creates or posts live double-entry accounts, recognizes tax deductions, reconciles bank deposits, issues invoices, files taxes, modifies bank accounts or touches Supabase. Draft #42 protected migration remains blocked. User-hosted Windows SHA and founder iPhone/desktop QA not inspected. Do not mistake R20 decision totals for accounting P&L or the R21 export for reconciled books.
+
+
 ## 2026-10-23 -- ChatGPT (ATLAS V3 R18-R19 booking and money workbenches)
 **Summary:** Replaced the Exterior booking table-first experience with source-dated work queues (today, next 7 days, pending, upcoming, past, denied), responsive job cards, source-safe customer/call/directions and existing authorized edit/reschedule/crew/cancel actions. Reworked Finance as an actionable ledger with direct expense/income forms, manual/source distinctions, mobile transaction cards, filtering, retained bank/reporting permissions and a recorded-difference-not-profit warning.
 **Files:** src/components/app/{ExteriorManage,Pages}.tsx, src/lib/{exterior-booking-workflow,money-workflow}.ts, src/styles/atlas-v3.css, tests/{exterior-booking-workflow,money-workflow}.test.ts.
