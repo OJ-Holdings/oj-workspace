@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ArrowUpRight, ClipboardCopy, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, ClipboardCopy, ShieldCheck } from 'lucide-react';
 import type { FleetWorkbook } from '@/lib/fleet-command';
 import {
   fieldBridgeReport, internalFieldBrief, parseLocalCommercialDraft, parseLocalFleetDraft,
