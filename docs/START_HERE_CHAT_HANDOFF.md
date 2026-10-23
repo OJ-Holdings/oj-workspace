@@ -3,6 +3,14 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R28 WEBSITE INTAKE (2026-10-23)
+
+- **R28 feature:** PR [#99](https://github.com/OJ-Holdings/oj-workspace/pull/99) merged SHA `d0baf7bdb5b5387f5ba6c49b7b8409956979c486`. Exact PR-head CI `40026458399` SUCCESS for dependency setup, TS, full tests and Next.js production build. Post-merge main CI separately check latest run.
+- **User-facing:** `/workspace/b/exterior/intake` and old `/workspace/b/exterior/quotes` both show the new Website Intake Command instead of a raw records table. Search original website submissions; direct request deep link `?request=<request_id>`; view original customer/contact/property/services/recurrence/description; inspect exact-ID Customer 360 candidate matches.
+- **Save workflow:** review prefilled lead via original existing LeadDialog; draft sets source=website, quote=null and includes original request context/reference in free-text lead notes; existing authorized saveLead writes only after explicit user form submission. Candidate matches require operator acknowledgement before creation. No new write endpoint or LSA/message sends.
+- **Limitations:** No canonical durable request→lead FK, processed/disposition field, idempotency guarantee, quote approval/version/booking linkage, bank settlement or real-time LSA adapter. Source latest 1,000; do NOT infer all requests unresolved. Matching phone/address are unverified candidates, never auto-merge.
+- **Progress:** `docs/EXTERIOR_COMMAND_PROGRESS.md` weighted Exterior full plan **14%** (R26 8 + R27 3 + R28 3, W3 5 and W4 1). Actual Windows served SHA and founder desktop/mobile acceptance not verified; production schema migration still gated on independently restored backup, RLS checks and rollback.
+
 ## EXTERIOR COMMAND R27 CUSTOMER 360 RELEASE (2026-10-23)
 
 - **R27** [PR #97](https://github.com/OJ-Holdings/oj-workspace/pull/97), merged to main at `04edc152f498c2cf81498cbd83dcaaa0fb7af760`; exact-head run `40022388450` SUCCESS. Main CI run `40022648309` must be confirmed independently.
