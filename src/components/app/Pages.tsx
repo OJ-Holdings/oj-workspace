@@ -243,11 +243,6 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
       <div><span>Recorded difference / {month}</span><strong className={revenue - costs < 0 ? 'neg' : ''}>{netKnown ? dollars(revenue - costs) : 'Incomplete'}</strong><small className="quiet">Not verified profit: income or cost coverage may be incomplete.</small></div>
     </div>
     <section className="panel">
-      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
-      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
-        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
-    </section>
-    <section className="panel">
       <header className="panel-head"><h2>Money ledger <small className="quiet">{moneyEntries.length} matching entries</small></h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
       {form && (
         <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
@@ -289,8 +284,13 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
               <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
               <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
           ))}</tbody>
-        </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>)
+        </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>
       ) : <div className="empty"><p><b>No matching entries.</b> Try another queue or search. A quote is not paid revenue.</p></div>}
+    </section>
+    <section className="panel">
+      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
+      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
+        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
     </section>
   </>;
 }
