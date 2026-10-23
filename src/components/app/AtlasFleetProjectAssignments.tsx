@@ -94,6 +94,7 @@ export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day,b
       </div>
       {row.plannedAssets.length>0&&<ul>{row.plannedAssets.map(asset=><li key={asset.id}>{asset.name} <small>— {asset.state==='recorded-ready'?'Recorded ready, not site-verified':asset.state.replaceAll('-',' ')}</small></li>)}</ul>}
       {row.sameDayOverlapIds.length>0&&<p className="atlas-project-alert"><ShieldAlert size={15}/>{row.sameDayOverlapIds.length} candidate asset(s) also appear in another project with a different loaded booking on the same day. Actual time overlap is unverified.</p>}
+      <Link className="nexus-fleet-project-link" href={base+"/b/exterior/projects?project="+encodeURIComponent(row.projectId)}>Open in NEXUS / Project 360 <ArrowUpRight size={13}/></Link>
       <div className="atlas-dispatch-job-tasks"><ClipboardList size={14}/><span>{row.linkedTasks.length} explicitly linked shared task(s)</span>
         {row.linkedTasks.slice(0,3).map(task=><Link href={base+'/tasks?task='+encodeURIComponent(task.id)} key={task.id}>{task.title} · {task.stage} <ArrowUpRight size={12}/></Link>)}
       </div>
