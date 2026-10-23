@@ -29,9 +29,6 @@ const stages:{value:FieldStage;label:string}[]=[
  {value:'preparation',label:'Pre-job'},{value:'on-site',label:'On site'},{value:'wrap-up',label:'Post-job review'}];
 const amount=(text:string)=>text===''?null:Number(text);
 const newId=()=>typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function'?crypto.randomUUID():'entry-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-const changeMoney=(n:number|null,change:(v:number|null)=>void,placeholder='Unknown',limit=1000000)=>
- <input type="number" min="0" max={limit} step=".01" inputMode="decimal" placeholder={placeholder}
-  aria-label={placeholder+' amount'} value={n??''} onChange={e=>change(amount(e.target.value))}/>;
 
 export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  const params=useSearchParams();
@@ -164,7 +161,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
    <div><span className="ecfield-overline"><span className="ecfield-pulse"/> FIELD COMMAND / LOCAL WORK SHEET</span>
     <h1>Own the work.<br/><em>Record the evidence.</em></h1>
     <p><strong>{lead.name??'Unnamed customer'}</strong> · {lead.service_requested??'Service not entered'}</p>
-    <p><MapPin size={13} inline/>{lead.address??'Service address unavailable'} · {day(booking.date)} · {statusLabel(booking.status)}</p>
+    <p><MapPin size={13}/>{lead.address??'Service address unavailable'} · {day(booking.date)} · {statusLabel(booking.status)}</p>
     <div className="ecfield-hero-actions">
      <button type="button" disabled={!reviewed?.ok} onClick={exportField}><Download size={15}/> Export private field report</button>
      {!readonly&&<button type="button" disabled={!!storageError} onClick={()=>upload.current?.click()}><FileUp size={15}/> Import from crew</button>}
