@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
+import { accountingReviewCsv, accountingReviewFilename } from '@/lib/atlas-accounting-export';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
@@ -213,6 +214,22 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const revenue = sum('revenue'), costs = sum('cost');
   const netKnown = entries.some(f => f.kind === 'revenue' && f.occurred_on.startsWith(month)) && entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month));
   const withRevenue = scope.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
+  const exportAccountingReview = () => {
+    if (!moneyEntries.length) return;
+    if (!window.confirm('Export these authorized, filtered entries for accounting review? Notes may include sensitive information. These are NOT bank-reconciled, posted journal entries, verified profit or tax filings.')) return;
+    try {
+      const csv=accountingReviewCsv(moneyEntries);
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=accountingReviewFilename(filterMonth||null);
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    } catch {
+      window.alert('Export unavailable: check that every selected entry has a valid recorded date and amount.');
+    }
+  };
   return <>
     <AtlasTreasuryCommand data={data} month={month} scope={scope.map(v=>v.id)} owner={owner} readOnly={readOnly}
       base={pathname.startsWith('/preview') ? '/preview' : '/workspace'}
@@ -230,7 +247,14 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
       <p className="quiet">This chart shows dated recorded inflows, not reconciled bank deposits. Source work dates and imported order dates can differ from collection dates.</p>
     </section>
     <section className="panel" id="treasury-records">
-      <header className="panel-head"><h2>Transaction workbench</h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
+      <header className="panel-head">
+        <h2>Transaction workbench</h2>
+        <div className="atlas-accounting-export-actions">
+          <button type="button" className="secondary small" disabled={moneyEntries.length===0} onClick={exportAccountingReview}><Download size={14} aria-hidden="true"/> Export review CSV</button>
+          {!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}
+        </div>
+      </header>
+      <p className="atlas-accounting-export-note">Exports only records matching the active business, date, search and manual/source filters. Source dates, classifications and costs may be incomplete; this is an accountant review file, not a posted general ledger, bank reconciliation or tax return.</p>
       {form && (
         <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
           <div className="fields">
