@@ -102,7 +102,10 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
     <section className="panel">
       <header className="panel-head">
         <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
-        {!readOnly && <button className="primary" disabled={busy} onClick={() => setEditing({ ...blankLead })}><Plus size={15} aria-hidden="true" />New lead</button>}
+        <div className="exterior-customer-head-actions">
+          <Link className="secondary" href={`${base}/b/exterior/intake`}>Website intake <span aria-hidden="true">↗</span></Link>
+          {!readOnly && <button className="primary" disabled={busy} onClick={() => setEditing({ ...blankLead })}><Plus size={15} aria-hidden="true" />New lead</button>}
+        </div>
       </header>
       <div className="lead-tools">
         <input type="search" aria-label="Search leads" placeholder="Search by name, phone or address" value={search} onChange={e => { setSearch(e.target.value); setShown(50); }} />
