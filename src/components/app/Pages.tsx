@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { isFinanceLaunch } from '@/lib/operator-shortcuts';
+import { matchesMoneyWorkFocus, moneyWorkCounts, moneyWorkDetails, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
@@ -175,6 +176,9 @@ export function FinanceView({ store, readOnly, venture, owner = false }: Common 
 function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, blank }: Common & { owner?: boolean; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
   const now = store.now!, data = store.data!;
   const [shown, setShown] = useState(12);
+  const [moneyFocus, setMoneyFocus] = useState<MoneyWorkFocus>('all');
+  const [moneySearch, setMoneySearch] = useState('');
+  const [moneyView, setMoneyView] = useState<'cards' | 'table'>('cards');
   const query = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -192,9 +196,15 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const scope = filterBusiness ? [ventures[filterBusiness]] : ventureList;
   const month = filterMonth || dayKey(now).slice(0, 7);
   const pick = (key: string, value: string) => { const next = new URLSearchParams(query.toString()); if (value) next.set(key, value); else next.delete(key); setShown(12); router.replace(`${pathname}?${next}`, { scroll: false }); };
-  const entries = data.finance.filter(f => (!filterBusiness || f.venture === filterBusiness) && (!filterMonth || f.occurred_on.startsWith(filterMonth))).sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
+  const entries = sortMoneyWorkEntries(data.finance.filter(f => (!filterBusiness || f.venture === filterBusiness) && (!filterMonth || f.occurred_on.startsWith(filterMonth))));
+  const moneyCounts = moneyWorkCounts(entries);
+  const searchText = moneySearch.trim().toLowerCase();
+  const moneyEntries = entries.filter(f => matchesMoneyWorkFocus(f, moneyFocus) &&
+    (!searchText || [f.category, f.note, f.occurred_on, f.auto ?? '', short(f.venture)].some(v => v.toLowerCase().includes(searchText))));
   useEffect(() => {
     if (!selectedEntry) return;
+    setMoneyFocus('all');
+    setMoneySearch('');
     const index = entries.findIndex(f => f.id === selectedEntry);
     if (index >= 0) setShown(n => Math.max(n, index + 1));
   }, [selectedEntry, data.finance]);
@@ -205,6 +215,23 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const withRevenue = scope.filter(v => data.finance.some(f => f.venture === v.id && f.kind === 'revenue'));
   return <>
     {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
+    <section className="atlas-money-command" aria-label="Money operator workbench">
+      <header className="atlas-money-command-head">
+        <div><span>CORPORATE / MONEY OPERATIONS</span><h2>Record money. Understand the numbers.</h2>
+          <p>See actual entries, their sources and what still needs verification. Recorded differences are not automatically profit.</p></div>
+        {!readOnly && <div className="atlas-money-quick-actions">
+          <button type="button" className="primary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'cost' })}><Plus size={15} aria-hidden="true"/>Record expense</button>
+          <button type="button" className="secondary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'revenue' })}><Plus size={15} aria-hidden="true"/>Record income</button>
+        </div>}
+      </header>
+      <div className="atlas-money-queues" role="group" aria-label="Financial entry queues">
+        {moneyWorkFocuses.map(focus => <button key={focus} type="button" aria-pressed={moneyFocus === focus}
+          onClick={() => { setMoneyFocus(focus); setMoneySearch(''); setShown(12); }}>
+          <strong>{moneyCounts[focus]}</strong><span>{moneyWorkLabels[focus]}</span>
+        </button>)}
+      </div>
+      <p className="atlas-money-queue-note" role="status"><b>{moneyWorkLabels[moneyFocus]}:</b> {moneyWorkDetails[moneyFocus]} Counts reflect the business and date filters below.</p>
+    </section>
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
       <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>
@@ -213,15 +240,10 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
     <div className="kpis">
       <div><span>Recorded revenue / {month}</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
       <div><span>Recorded costs / {month}</span><strong>{entries.some(f => f.kind === 'cost' && f.occurred_on.startsWith(month)) ? dollars(costs) : 'Not recorded'}</strong></div>
-      <div><span>Recorded net / {month}</span><strong className={revenue - costs < 0 ? 'neg' : ''}>{netKnown ? dollars(revenue - costs) : 'Incomplete'}</strong><small className="quiet">Entered revenue minus entered costs. Missing costs can overstate this figure.</small></div>
+      <div><span>Recorded difference / {month}</span><strong className={revenue - costs < 0 ? 'neg' : ''}>{netKnown ? dollars(revenue - costs) : 'Incomplete'}</strong><small className="quiet">Not verified profit: income or cost coverage may be incomplete.</small></div>
     </div>
     <section className="panel">
-      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
-      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
-        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
-    </section>
-    <section className="panel">
-      <header className="panel-head"><h2>Entries</h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
+      <header className="panel-head"><h2>Money ledger <small className="quiet">{moneyEntries.length} matching entries</small></h2>{!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}</header>
       {form && (
         <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
           <div className="fields">
@@ -238,16 +260,37 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
       <Notice store={store} />
       {entries.some(f => f.auto) && <p className="quiet">Recorded Exterior Care payments and paid USD Shopify orders are included automatically. Exterior figures use the job date, not a verified collection date. Do not enter these amounts again.</p>}
       {data.reporting?.sources.map(source => <p className="quiet" key={source.id}>{source.label}: {source.state}. {source.detail}</p>)}
-      {entries.length ? (
-        <div className="tablewrap"><table className="table">
+      <div className="atlas-money-tools">
+        <input type="search" aria-label="Search financial entries" value={moneySearch} placeholder="Category, date, note, or source"
+          onChange={e => { setMoneySearch(e.target.value); setShown(12); }}/>
+        <div role="group" aria-label="Money ledger display">
+          <button type="button" aria-pressed={moneyView === 'cards'} onClick={() => setMoneyView('cards')}>Entry cards</button>
+          <button type="button" aria-pressed={moneyView === 'table'} onClick={() => setMoneyView('table')}>Compact table</button>
+        </div>
+      </div>
+      {moneyEntries.length ? (moneyView === 'cards' ? <div className="atlas-money-card-grid">
+        {moneyEntries.slice(0, shown).map(f => <article id={`finance-${f.id}`} key={f.id} className={`atlas-money-card${selectedEntry === f.id ? ' record-highlight' : ''}`}>
+          <header><div><small>{f.occurred_on} · {short(f.venture)}</small><h3>{f.category || 'Uncategorized'}</h3></div>
+            <strong className={f.kind === 'cost' ? 'neg' : 'pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</strong></header>
+          <p>{f.note || 'No additional note entered'}</p>
+          <footer><span>{f.auto ? `From source: ${f.auto}` : 'Manual ledger entry'}{f.dateBasis ? ` · Dated by ${f.dateBasis.replaceAll('-', ' ')}` : ''}</span>
+            {!readOnly && !f.auto && <button type="button" className="secondary small" aria-label={`Remove financial entry ${f.id}`} onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} aria-hidden="true"/>Remove</button>}</footer>
+        </article>)}
+        {moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(n => n + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more</button>}
+      </div> : <div className="tablewrap"><table className="table">
           <thead><tr><th>Date</th><th>Business</th><th>Category</th><th>Note</th><th className="num">Amount</th><th /></tr></thead>
-          <tbody>{entries.slice(0, shown).map(f => (
+          <tbody>{moneyEntries.slice(0, shown).map(f => (
             <tr key={f.id} id={`finance-${f.id}`} className={selectedEntry === f.id ? 'record-highlight' : undefined}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
               <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
               <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
           ))}</tbody>
-        </table>{entries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, entries.length - shown)} more of {entries.length}</button>}</div>
-      ) : <div className="empty"><p><b>Nothing logged.</b> A quote is not money in: log it when it is paid.</p></div>}
+        </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>
+      ) : <div className="empty"><p><b>No matching entries.</b> Try another queue or search. A quote is not paid revenue.</p></div>}
+    </section>
+    <section className="panel">
+      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
+      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
+        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
     </section>
   </>;
 }

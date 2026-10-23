@@ -886,3 +886,41 @@
 @media(max-width:1100px){.atlas-booking-queues{grid-template-columns:repeat(3,minmax(0,1fr))}.atlas-booking-command-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.atlas-booking-command-head{align-items:stretch;flex-direction:column}.atlas-booking-command-head>.primary{width:100%;justify-content:center;min-height:46px}.atlas-booking-card-grid{grid-template-columns:minmax(0,1fr)}.atlas-booking-tools{flex-wrap:wrap}.atlas-booking-tools>input{width:100%;max-width:none}.atlas-booking-tools>div{width:100%}.atlas-booking-tools button{flex:1}.atlas-booking-card{padding:15px}}
 @media(max-width:420px){.atlas-booking-queues{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-booking-command-stats>div{padding:11px}.atlas-booking-command-stats strong{font-size:23px}.atlas-booking-card>header{flex-wrap:wrap}.atlas-booking-card-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+
+
+/* ATLAS R19 — money is a working ledger first, analytical reporting second. */
+.atlas-money-command{display:grid;gap:17px;margin-bottom:17px;padding:clamp(17px,2.5vw,25px);background:linear-gradient(135deg,rgba(126,226,195,.09),transparent 50%),linear-gradient(145deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:13px}
+.atlas-money-command-head{display:flex;justify-content:space-between;align-items:center;gap:24px}
+.atlas-money-command-head>div:first-child{min-width:0}
+.atlas-money-command-head span{display:block;color:var(--atlas-teal);font-size:10px;letter-spacing:.14em;font-weight:850}
+.atlas-money-command-head h2{font:800 clamp(22px,2.8vw,32px)/1.15 var(--font-display);letter-spacing:-.045em;margin:6px 0}
+.atlas-money-command-head p{font-size:11px;line-height:1.6;color:var(--ink-3);max-width:650px;margin:0}
+.atlas-money-quick-actions{display:flex;gap:9px;flex-wrap:wrap}
+.atlas-money-quick-actions button{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:43px}
+.atlas-money-queues{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.atlas-money-queues button{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:10px;min-width:0;min-height:78px;padding:13px;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;text-align:left;color:var(--ink-2);cursor:pointer}
+.atlas-money-queues button strong{font:800 26px/1 var(--font-display);color:var(--ink)}
+.atlas-money-queues button span{font-size:11px;font-weight:700;line-height:1.3}
+.atlas-money-queues button[aria-pressed="true"]{border-color:var(--atlas-teal);box-shadow:inset 0 0 0 1px var(--atlas-teal);color:var(--ink);background:color-mix(in srgb,var(--atlas-teal) 10%,var(--bg-2))}
+.atlas-money-queues button:focus-visible,.atlas-money-tools button:focus-visible{outline:2px solid var(--accent-hi);outline-offset:3px}
+.atlas-money-queue-note{margin:0;color:var(--ink-3);font-size:11px;line-height:1.6}
+.atlas-money-queue-note b{color:var(--ink)}
+.atlas-money-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:13px 0 16px}
+.atlas-money-tools input{width:min(480px,100%);min-height:42px;min-width:0}
+.atlas-money-tools>div{display:flex;flex-shrink:0;gap:6px}
+.atlas-money-tools button{padding:9px 12px;font-size:11px;font-weight:750;color:var(--ink-2);background:var(--bg-2);border:1px solid var(--line);border-radius:7px;cursor:pointer}
+.atlas-money-tools button[aria-pressed="true"]{background:var(--panel-3);border-color:var(--atlas-teal);color:var(--ink)}
+.atlas-money-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.atlas-money-card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:17px;border:1px solid var(--line);border-radius:11px;background:linear-gradient(145deg,var(--panel-2),var(--panel))}
+.atlas-money-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:11px}
+.atlas-money-card>header>div{min-width:0}
+.atlas-money-card header small{display:block;color:var(--ink-3);font-size:10px;font-weight:650;margin-bottom:7px}
+.atlas-money-card h3{font:800 17px/1.25 var(--font-display);overflow-wrap:anywhere;margin:0}
+.atlas-money-card header strong{font:800 clamp(16px,2vw,24px)/1.1 var(--font-display);white-space:nowrap}
+.atlas-money-card>p{margin:0;color:var(--ink-3);line-height:1.5;font-size:11px;overflow-wrap:anywhere}
+.atlas-money-card>footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
+.atlas-money-card footer span{color:var(--ink-3);font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+.atlas-money-card-grid>.showmore{grid-column:1/-1}
+@media(max-width:1000px){.atlas-money-queues{grid-template-columns:repeat(3,minmax(0,1fr))}.atlas-money-command-head{flex-wrap:wrap}}
+@media(max-width:700px){.atlas-money-card-grid{grid-template-columns:minmax(0,1fr)}.atlas-money-tools{flex-wrap:wrap}.atlas-money-tools input{max-width:none;width:100%}.atlas-money-tools>div{width:100%}.atlas-money-tools button{flex:1}.atlas-money-quick-actions{width:100%}.atlas-money-quick-actions button{flex:1}}
+@media(max-width:440px){.atlas-money-queues{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-money-card{padding:13px}.atlas-money-card>header{flex-wrap:wrap}.atlas-money-card>header strong{font-size:23px}}
