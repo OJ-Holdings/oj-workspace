@@ -4,6 +4,17 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 31 — MOBILE FIELD COMMAND
+
+**PR:** [#105](https://github.com/OJ-Holdings/oj-workspace/pull/105). **Merged SHA:** 9b93a7f3743e05fca3b851124dd34129a75b40ea. **Exact feature-head CI:** 40034470435 SUCCESS.
+
+- Field Operations gains a new job-specific mobile operation application with source-bound /b/exterior/field?booking=<exact ID>. HQ, Customer 360 booking history, and dispatch cards/tables link to the right saved booking.
+- Operator-entered job stage, arrival/departure device timestamps, crew hours & loaded rates, material quantity/unit cost, mileage/rate, other direct costs, chemicals/PPE/runoff/water readiness, pump/hoses/WFP equipment checks, issue register and closeout notes. No source booking status is changed by local work-sheet completion.
+- Finite/range/canonical-date validation and economic review keep unknown distinct from reviewed 0. Known cost subset and four-category complete direct-cost total shown separately; no lead-level revenue is allocated to an individual booking, no fake profit, invoice or paid status.
+- All drafts remain in the current browser; versioned private field package transfer includes exact company/booking/lead binding, size/safety/row limits, field whitelist, file overwrite confirmation and fail-closed cross-organization imports. No automatic server sync or job completion action.
+- Responsive graphite and copper/sea-glass panels, focus and reduced-motion paths, mobile field controls, stop-work/safety warnings and exact booking source-drift indicators. Tests cover null direct costs, legitimate zero, hazard exceptions, forged finalized fields, import isolation and typed crew/material records.
+- **Full Exterior program: 22% estimated engineering completion** (W1 5, W2 3, W3 5, W4 6, W5 3; remaining waves unearned). Windows-served build SHA and actual founder-device acceptance unverified. Shared field event persistence still requires isolated restore/role/RLS proof before migration.
+
 ## ATLAS V3 / Exterior Command Release 30 — PORTABLE QUOTE HANDOFF AND APPROVAL-SAFETY PREFLIGHT
 
 **PR:** [#103](https://github.com/OJ-Holdings/oj-workspace/pull/103). **Merged SHA:** `19cf2613fb6f9921ef353fd4919042d2b715928f`. **Exact PR-head CI:** `40032631314` SUCCESS.

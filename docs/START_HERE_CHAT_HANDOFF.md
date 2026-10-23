@@ -3,6 +3,15 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R31 BOOKING-BOUND MOBILE FIELD COMMAND (2026-10-23)
+
+- **R31 merged:** PR #105 (https://github.com/OJ-Holdings/oj-workspace/pull/105), merged SHA 9b93a7f3743e05fca3b851124dd34129a75b40ea. Exact feature-head CI 40034470435 SUCCESS (npm ci, typecheck, full tests, production build). Check separate merged-main CI and actual served Windows/Tailscale SHA.
+- **Field operator URL:** /workspace/b/exterior/field?booking=<exact booking_id>, linked from live HQ, Operations, customer booking history, booking cards/table. The customer and booking MUST exist in the existing authorized Exterior source. Does not join by phone/name or substitute an ID.
+- **Captured locally:** stage, operator-triggered arrival/departure times (not GPS or punch verification), crew labor hours & estimated rate, consumed materials quantity/cost, mileage & per-mile cost, other direct costs, rig/hoses/WFP checks, chemical/PPE/runoff/water checks, issue severity including stop-work, site limitations/notes. Explicit reviewed checkboxes distinguish known zero from missing; total direct cost available only when four cost categories complete.
+- **Local scope:** valid drafts auto-save to per-organization+booking browser storage, not shared corporate data. Private field package v1 JSON export/import requires exact organization, booking and original lead, strict numeric/type/safety validation and overwrite consent; forged paid/completed status and untrusted extra metadata ignored/rejected. Import/export never changes shared customer/job/payment source.
+- **What is NOT implemented:** production field event DB tables/append receipts, cross-device sync and offline outbox, automatic payroll/attendance, camera/photo upload, equipment inventory writebacks, corporate job completion/invoice, actual collection or compliance certification.
+- **Weighted Exterior program: 22%** (W1 5, W2 3, W3 5, W4 6, W5 3; others 0) tracked in docs/EXTERIOR_COMMAND_PROGRESS.md. No production schema migration. Backup+isolated restore and RLS staging proof plus founder iPhone/desktop workflow acceptance are still gates.
+
 ## EXTERIOR COMMAND R30 PORTABLE FOUNDER QUOTE HANDOFF (2026-10-23)
 
 - **R30 code:** PR [#103](https://github.com/OJ-Holdings/oj-workspace/pull/103) merged main SHA `19cf2613fb6f9921ef353fd4919042d2b715928f`. Exact-head CI run `40032631314` SUCCESS (npm ci, typecheck, full tests, Next build). Independently check merged-main CI and actual production served SHA.
