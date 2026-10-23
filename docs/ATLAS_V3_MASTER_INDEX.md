@@ -52,7 +52,7 @@ Examples of natural flows, from any relevant screen:
 
 ## Already implemented ATLAS releases
 
-ATLAS V3 **Releases 01–10** are merged and CI-validated: source-aware HQ/shell, exact-ID CRM/task/booking context, CRM and Mission workbenches, Fleet Dispatch, Commercial Bid Command, validated same-device field context, explicit founder-reviewed shared task snapshots, a **versioned multi-project local commercial portfolio**, locally planned Fleet asset candidates and an exact booking/task-linked 7/30/90-day resource timeline. See [the detailed release ledger](./ATLAS_V3_RELEASE_CHANGELOG.md), [founder acceptance 03–07](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md), [founder acceptance 08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md), and [shared persistence gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). These improvements are not full multiuser Fleet/Commercial sync; most of the 413-feature vision remains proposed. Windows-host deployment and phone-based founder acceptance remain **unverified**.
+ATLAS V3 **Releases 01–12** are merged and CI-validated: source-aware HQ/shell, exact-ID CRM/task/booking context, actual CRM and Mission workbenches, Fleet Dispatch, Commercial Bid Command, validated same-device Commercial↔Fleet context, a versioned multi-project local commercial portfolio, candidate Fleet asset allocations, exact booking/task handoffs, a 7/30/90-day planning timeline, **per-project modeled paid crew-hour capacity + internal field mission packs**, and **equipment-specific reviewed shared maintenance task drafts**. See [the verified release ledger](./ATLAS_V3_RELEASE_CHANGELOG.md), [acceptance 03–07](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md), [acceptance 08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md), [acceptance 11–12](./ATLAS_V3_FOUNDER_ACCEPTANCE_11_12.md), and the [protected shared persistence contract](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Most of the 413-feature vision remains unimplemented; especially shared commercial/fleet database records, actual staff dispatch, quote approval and verified money. **Windows-host deployment, dual-founder iPhone/desktop QA and Supabase restore evidence remain independently unverified.**
 
 ## Package navigation
 
@@ -69,6 +69,7 @@ ATLAS V3 **Releases 01–10** are merged and CI-validated: source-aware HQ/shell
 | [Founder Acceptance / Releases 03–07](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md) | Windows, role, preview, Fleet, Commercial, handoff and iPhone manual verification |
 | [Founder Acceptance / Releases 08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md) | Multi-project local storage, exact booking/task relations and sourced Fleet date timeline QA |
 | [Shared Fleet & Commercial Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md) | Proposed canonical server model, authorization, import and non-negotiable backup/restore signoff; no migration applied |
+| [Founder Acceptance / Releases 11–12](./ATLAS_V3_FOUNDER_ACCEPTANCE_11_12.md) | Crew-hour/field-pack model correctness, private-text controls and exact Fleet asset maintenance task QA |
 
 These **new V3 planning files** supersede V2 documents for future product direction, but **not** for truth about implemented features, historical migrations or current deployment. Always use [the live-engineering handoff](./START_HERE_CHAT_HANDOFF.md) for the latter.
 

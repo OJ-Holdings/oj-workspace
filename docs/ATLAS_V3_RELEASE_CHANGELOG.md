@@ -141,6 +141,34 @@ The above PR head checks are verifiable GitHub CI events, not independent proof 
 
 [Founder Acceptance 08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md) details device, role, quote, booking, Fleet and task exercises still requiring human observation. [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md) specifies a **proposed, not applied** canonical project/asset schema and opt-in local import process after real protected backup and independent isolated restore.
 
+
+## ATLAS V3 / Release 11 — FIELD MISSION PLANNER & PAID CREW-HOUR CAPACITY
+
+**PR:** [#70](https://github.com/OJ-Holdings/oj-workspace/pull/70). **Merged SHA:** `d3ed846467922e9c5043a227f886c519b017c952`. **Exact-head CI:** `39890001290` — SUCCESS.
+
+- Added a real Field Mission Planner **inside** selected, versioned commercial projects. Crew size, productive hours/person/day, planned field days and a private staging note persist as a backward-compatible optional part of the existing device-local project format.
+- The model compares **paid person-hours** from the actual building estimates to `crew × productive hours/person/day × days`, computes the estimated minimum number of field days (rounded up), and flags shortfalls or missing inputs without inventing team members or actual availability.
+- Site access still marked for review, lift-access buildings with zero modeled rental days and qualified high-access work surface explicit internal warnings. An estimate's days are NOT actual lift reservations or cleared safety assessments.
+- Integrated R11 staffing gaps into Fleet Command's R10 7/30/90-day project planning cards and aggregate warning counts. This is an overlay on local assumptions, not shared crew dispatch data.
+- Added internal Field Mission Pack copy/download: current-editor snapshot of project scope, **conditional exact loaded booking ID**, paid labor model, candidate equipment and task references, and open workforce/access exceptions. It excludes separate private address/location/note fields; **names themselves can still contain sensitive content**, so users must review output before distribution.
+- Extended the existing **explicit user-reviewed shared task draft** to include paid crew-hour gaps without copying private staging notes. Task saves still follow the existing role/permissions and never auto-create contacts, proposals, orders, field reservations or payments.
+- Tests cover model arithmetic, unknown coverage, invalid inputs, zero-labor semantics, pre-R11 portfolio compatibility, private-field exclusion, booking verification and cross-module workforce projection.
+
+## ATLAS V3 / Release 12 — ASSET-SPECIFIC FLEET MAINTENANCE TASKS
+
+**PR:** [#71](https://github.com/OJ-Holdings/oj-workspace/pull/71). **Merged SHA:** `dbbfeb7d9b3deb0e8b974917aa99436a8522dab2`. **Exact-head CI:** `39890565690` — SUCCESS.
+
+- Every eligible asset card inside the actual Fleet Command Asset Registry can **Prepare service task** for that exact locally saved equipment ID. The usual shared task editor opens in DRAFT; a user must explicitly Save it.
+- Task description contains an exact, bounded `Local fleet asset ID:` receipt, manually entered status/meter/service thresholds, local service-ledger count and most recent logged service date. It deliberately omits private equipment notes, repair descriptions and expense amounts.
+- A non-empty source task must come from the **validated, organization-scoped local Fleet workbook**. Invalid/missing IDs, untrusted local data, preview and read-only roles cannot create a private-source handoff through the new route.
+- Asset cards show already-authorized **shared task snapshots** matched by an exact single-line textual Fleet asset ID, not fuzzy equipment names or fabricated canonical server foreign keys. A successful shared task does not synchronize the underlying private Fleet workbook to another device.
+- Updated task URL cleanup and unsaved-change protection for the new source action. Tests cover task schema acceptance, conditions and suggested priority based on entered local data, spoofed/multiline IDs and privacy-sensitive exclusions.
+- **No work was performed:** no part was purchased, repair was scheduled/executed, equipment certified, invoice raised, money collected or dispatch cleared.
+
+## Founder acceptance and actual deployment remain separate
+
+[Founder Acceptance 11–12](./ATLAS_V3_FOUNDER_ACCEPTANCE_11_12.md) extends the earlier manual Windows/iPhone/editor/viewer/Jacob acceptance plan. GitHub CI is **not** evidence that the guarded Windows host has pulled these commits or that the full founder flows work with actual customer, Fleet and booking records.
+
 ## What is STILL NOT built
 
 - Full replacement redesign of every vertical business screen; most deeper tabs retain V2 styling and flows.
@@ -153,7 +181,7 @@ The above PR head checks are verifiable GitHub CI events, not independent proof 
 
 ## Next integrated milestone (proposed; not yet shipped)
 
-**Release 11 / Protected canonical project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
+**Next protected milestone / Canonical multi-device project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
 
 ## Exact host verification on Oscar's Windows machine
 
@@ -164,4 +192,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–10 are merged into GitHub main with passing exact-head CI, including a versioned browser-local commercial portfolio, tentative Fleet assignment planning, exact booking/task handoffs and a source-backed 7/30/90-day Fleet timeline. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
+**Bottom line:** Releases 01–12 are merged into GitHub main with passing exact-head CI, including a versioned browser-local commercial portfolio, tentative Fleet resource planning, actual paid crew-hour scenario warnings, reviewed Field Mission Packs, exact booking/task handoffs and per-asset Fleet maintenance task drafts. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
