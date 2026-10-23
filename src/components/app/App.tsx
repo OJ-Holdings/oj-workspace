@@ -19,6 +19,7 @@ import { ConnectedOperations } from './ConnectedOperations';
 import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
 import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
 import { commercialPortfolioTask, commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
+import { fleetServiceTask } from '@/lib/atlas-fleet-service-handoff';
 import { decodeCommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
@@ -72,14 +73,14 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       if (args[0]) {
         const url = new URL(window.location.href);
         url.searchParams.set('task', args[0].id);
-        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
+        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
         window.history.pushState(null, '', url.pathname + url.search);
       }
     },
     closeCard: (extraDraft = false) => {
       if (!rawBoard.closeCard(extraDraft)) return false;
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
       window.history.replaceState(null, '', url.pathname + url.search);
       return true;
     },
@@ -95,15 +96,16 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   const sourceCommercial = query.get('sourceCommercial') === '1';
   const sourceFleet = query.get('sourceFleet') === '1';
   const sourceProject = query.get('sourceProject');
+  const sourceFleetAsset = query.get('sourceFleetAsset');
   useEffect(() => {
     if (!board.ready) return;
-    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : sourceProject ? `project:${sourceProject}` : sourceCommercial ? 'commercial:1' : sourceFleet ? 'fleet:1' : '';
+    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : sourceProject ? `project:${sourceProject}` : sourceFleetAsset ? `fleetasset:${sourceFleetAsset}` : sourceCommercial ? 'commercial:1' : sourceFleet ? 'fleet:1' : '';
     if (opened.current === key) return;
     if (rawBoard.editing && !rawBoard.closeCard()) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
       const [kind, ...value] = opened.current.split(':');
-      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : kind === 'commercial' ? 'sourceCommercial' : kind === 'fleet' ? 'sourceFleet' : kind === 'project' ? 'sourceProject' : 'sourceLead', value.join(':'));
+      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : kind === 'commercial' ? 'sourceCommercial' : kind === 'fleet' ? 'sourceFleet' : kind === 'project' ? 'sourceProject' : kind === 'fleetasset' ? 'sourceFleetAsset' : 'sourceLead', value.join(':'));
       window.history.replaceState(null, '', url.pathname + url.search);
       return;
     }
@@ -149,6 +151,20 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         opened.current=key;
         setHandoffError(error instanceof Error?error.message:'This local project could not be validated for task preparation.');
       }
+    } else if (sourceFleetAsset && !readOnly && mode === 'live') {
+      // Explicit click from a specific device-local fleet asset; no shared
+      // work-order save happens until the standard task editor is approved.
+      try{
+        const raw=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
+        if(!raw)throw new Error('No validated Fleet Command workbook is available on this device.');
+        const fleet=parseLocalFleetDraft(raw,organizationId);
+        const day=chicagoDateOf(new Date().toISOString())??'';
+        const draft=fleetServiceTask(fleet,sourceFleetAsset,day);
+        opened.current=key;setHandoffError('');rawBoard.openCard(undefined,draft);
+      }catch(error){
+        opened.current=key;
+        setHandoffError(error instanceof Error?error.message:'Cannot prepare a service task from this private equipment record.');
+      }
     } else if ((sourceCommercial || sourceFleet) && !readOnly && mode === 'live') {
       // This navigation is an explicit user request to PREPARE a task. Reading
       // org-keyed browser drafts cannot save a task, send outreach or approve a bid.
@@ -174,12 +190,12 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         setHandoffError(error instanceof Error ? error.message : 'The private source workbook could not be read.');
       }
     }
-  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
+  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceFleetAsset, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
   const wasEditing = useRef(false);
   useEffect(() => {
     if (wasEditing.current && !rawBoard.editing) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
       window.history.replaceState(null, '', url.pathname + url.search);
       opened.current = '';
     }
