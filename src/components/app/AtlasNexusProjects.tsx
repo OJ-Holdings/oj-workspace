@@ -110,7 +110,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
     return !q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||
       (p.customer.name??'').toLowerCase().includes(q);
   });
-  const selected=projects.find(p=>p.id===(fromUrl&&projects.some(x=>x.id===fromUrl)?fromUrl:selectedId))
+  const selected=projects.find(p=>p.id===(selectedId??(fromUrl&&projects.some(x=>x.id===fromUrl)?fromUrl:null)))
     ??filtered[0]??null;
   const taskPath=(id:string)=>base+'/tasks?task='+encodeURIComponent(id);
   const projectPath=(project:NexusProject)=>base+'/b/exterior/commercial?project='+encodeURIComponent(project.id);
@@ -177,7 +177,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
               {filtered.length===0&&<p>No matching local projects. Clearing filters does not modify your data.</p>}
               {filtered.map(p=><button type="button" key={p.id}
                 aria-pressed={selected?.id===p.id}
-                onClick={()=>{setSelectedId(p.id);setLens('command');window.history.replaceState(null,'',base+'/b/exterior/projects');}}>
+                onClick={()=>{setSelectedId(p.id);setLens('command');window.history.replaceState(null,'',base+'/b/exterior/projects?project='+encodeURIComponent(p.id));}}>
                 <span className="atlas-nexus-project-bullet" data-alert={p.findings.some(f=>f.priority==='attention')}/>
                 <span className="atlas-nexus-project-main"><strong>{p.name}</strong><small>{p.buildings} building(s) · {p.phase==='archived'?'Archived':p.phase==='founder-review'?'Founder review':'Scoping'} · v{p.revision}</small>
                   <span>{p.booking.state==='matched'?'Exact booking source loaded':p.booking.state==='inactive'?'Booking inactive':'Scheduling unverified'}</span>
