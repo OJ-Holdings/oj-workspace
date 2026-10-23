@@ -78,6 +78,8 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
       {(['new', 'contacted', 'following_up', 'booked', 'completed'] as const).map(s => <div key={s}><span>{statusLabel(s)}</span><strong><NumberFlow value={counts[s]} /></strong></div>)}
       <div><span>Open pipeline</span><strong><NumberFlow value={pipeline} format={usd} /></strong><small className="quiet">Quotes on open leads, not money in</small></div>
     </div>
+    {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
+      <p className="banner-inline" role="status">Partial customer history: {data.coverage.leads.loaded} of {data.coverage.leads.total} accessible records loaded. Queue counts describe this loaded window only.</p>}
     <section className="atlas-lead-priority" aria-label="Customer work queues">
       <header><div><span>EXTERIOR CARE / CUSTOMER OPERATIONS</span><h2>Move customers toward booked work.</h2></div>
         <small>Queues reflect recorded status and fields only. No inferred response deadlines or client acceptance.</small>
@@ -129,8 +131,9 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             </div>
             <footer>
               {!readOnly&&<label>Customer status<select aria-label={`Status of ${l.name??'customer'}`}
-                value={l.status??'new'} disabled={busy}
+                value={l.status??''} disabled={busy}
                 onChange={e=>{const status=e.target.value;act(()=>setLeadStatus(org,l.id,status),()=>`${l.name} marked ${statusLabel(status).toLowerCase()}.`);}}>
+                {!leadStatuses.includes(l.status??'')&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
                 {leadStatuses.map(status=><option key={status} value={status}>{statusLabel(status)}</option>)}
               </select></label>}
               <div className="atlas-customer-card-actions">
@@ -160,7 +163,8 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <td className="num" data-label="Quote">{cash(l.quote_amount)}</td>
             <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
             <td data-label="Status">{readOnly ? statusLabel(l.status) : (
-              <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? 'new'} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
+              <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? ''} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
+                {!leadStatuses.includes(l.status??'')&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
                 {leadStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
             )}</td>
