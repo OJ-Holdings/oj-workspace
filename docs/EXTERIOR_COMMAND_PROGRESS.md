@@ -6,7 +6,7 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R31 estimate earned | Not yet done |
+| Plan wave | Weight | R32 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
@@ -14,13 +14,13 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
 | W5 Field operations | 12% | **3%** | R31 booking-bound, mobile-oriented local work sheet for crew time, material usage, mileage/cost, equipment/site checks and issues; durable shared job events, media uploads, offline sync/replay, payroll/time approval and verified closeout remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
-| W7 Equipment integration | 8% | 0% | Durable rig/asset linkage to job readiness |
+| W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
 | W9 Deep intelligence | 7% | 0% | Verified attribution, geo, recurring-service, unit economics |
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **22% (conditional on R31 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **24% (conditional on R32 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -83,16 +83,26 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Mobile-optimized industrial Field Command CSS, clear status for safety gaps and stop-work incidents, keyboard focus, motion reduction, source-drift warnings and live vs preview safety. Tests cover unknown money, math, exact booking/source scope, forged finalized status, cross-org file rejection, corrupt payloads, unsafe issue labels and extra-field stripping.
 - Production database remains unchanged; the R30 quote-version backup/restore/RLS gating document still governs any future schema. Real iPhone acceptance and Windows-served SHA remain separate verification tasks.
 
+### R32 Fleet ↔ Field booking coordination (+2 W7 points, conditional on CI + merge)
+
+- Uses the **existing** browser-local Fleet Command asset registry, statuses, maintenance dates/meters, daily checklist and rig payload assumptions. Does not invent equipment records or create another fleet inventory.
+- Adds job-specific asset selection within each exact, authorized `/b/exterior/field?booking=<id>` work sheet. Saves a small per-organization/per-booking local assignment document with original `lead_id`, source date and status; preserves Field Command's R31 crew/material/site record and the fleet workbook separately.
+- Selection and current original source are joined **only by exact IDs**. Evaluates overdue/out-of-service/needs-service equipment, missing assets, old shift reviews, incomplete local pre-departure checklist and load exceeding entered vehicle payload. No inspection/certification is inferred; status `ready` means locally recorded only.
+- Same-day planned-asset overlaps are highlighted only among source bookings + assignments visible in this browser; without shared staff/equipment reservations the warning cannot prove physical overlap or team-wide availability.
+- Explicit operator review is stamped locally for the current Chicago business day, resets after asset changes, blocks recording if locally captured stop conditions exist; a change of original booking date/status forces founder review/rebase. No automatic dispatch confirmation, job-closeout, fleet writes, equipment inspection or payments.
+- Cross-tenant local assignment validation, strict whitelisting, corrupt-storage fail-closed, source-date/status drift warnings, responsive mobile visual cards. Pure regression tests cover original booking identity, overdue service, payload, warnings, false-availability avoidance, same-day overlaps and forged states.
+- **This is a device-local operational bridge**, not shared persistent field-fleet integration. Production DB unchanged; protected backup+independent isolated restore and RLS gate still blocks adding new durable quote/job/event tables.
+
 ### Release gates and the next update rule
 
-R26–R30 have earned a weighted **19%** engineering estimate after merged code and CI. R31 contributes **3 W5 points**, reaching **22%** only after its exact PR-head TypeScript, full tests and production build pass and the feature PR merges. If the branch fails, keep 19%. Browser-local field entries are NOT a shared corporate ledger, verified crew timesheet, certified site clearance, or source-of-truth job closeout. Windows serving SHA and real founder iPhone QA must be verified separately.
+R26–R31 earned **22%** after passing exact-head CI and merged feature releases. R32's safe same-device Fleet ↔ Field equipment-planning bridge adds **2 W7 points** only after CI passes (TypeScript, full tests, production build) and the feature PR merges, reaching **24%**. If R32 is unmerged/failed, preserve 22%. GitHub merging is not proof that the Windows host serves that SHA; two-founder desktop/iPhone QA and independent backup/restore remain separate release gates.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. **Protected database gate:** independently restore an encrypted private production backup in isolation, rehearse RLS/read/write role coverage and cross-organization denial, then review and stage canonical quote/event/work-order and booking-bound field event migrations.
-2. **Durable field persistence:** convert local booking logs into authenticated, idempotent append-only site events with explicit reviewed revisions, crew attribution and conflict/outbox status. Keep timestamp from client distinct from verified server receipt.
-3. **Real crew operations:** member-scoped field entry rights, labor/time approval, equipment asset IDs, materials expense receipts, job photo storage policies, and blocked closeout with critical unresolved issues.
-4. **Quoted work transition:** immutable shared estimate revisions, customer acceptance evidence and atomic approved quote → booked work order; never transform quote into verified cash.
-5. **Field founder acceptance:** Windows-served commit SHA, Oscar/Jacob iPhone controls (offline, form fields, storage denial, exact-booking import/export, safety and source drift), and independent end-to-end QA.
+1. **Database safety first:** founder-run, encrypted private backup and separate restored copy with reconciliation; test real cross-org RLS, viewer/user removal, version races, replay and rollback before migrating any shared business schema. Existing Windows scripts provide a path, not proof of completion.
+2. Add real organization-scoped, immutable shared quote versions, booking-related field events and audited asset reservations with explicit single-resource conflicts, member permissions, and provenance timestamps.
+3. Advance W5: mobile field write queue/recovery, real photo ingestion and permission design, crew-time review, invoice/closeout evidence and actual-cost reconciliations rather than browser-only figures.
+4. Advance W7: durable rig readiness and maintenance schedules that distinguish physically inspected vs manually entered condition; no dangerous assumption from a previous-day checklist.
+5. Verify Windows served SHA and conduct Oscar/Jacob authenticated iPhone/desktop adoption including corrupted storage and missing assets/booking reassignment.
