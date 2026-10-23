@@ -66,7 +66,7 @@ export function fieldCrewCapacity(estimate: EstimateInput, plan: FieldCrewPlan):
   const plannedPaidCrewHourCapacity = haveAll ? round(crewSize * productiveHoursPerPersonDay * plannedFieldDays) : null;
   const estimatedMinimumFieldDays = haveDaily && requiredPaidCrewHours > 0
     ? Math.ceil(requiredPaidCrewHours / (crewSize * productiveHoursPerPersonDay)) : null;
-  const capacityGapHours = plannedPaidCrewHourCapacity === null ? null
+  const capacityGapHours = plannedPaidCrewHourCapacity === null || requiredPaidCrewHours <= 0 ? null
     : round(plannedPaidCrewHourCapacity - requiredPaidCrewHours);
   const utilizationPct = plannedPaidCrewHourCapacity && requiredPaidCrewHours > 0
     ? round(requiredPaidCrewHours / plannedPaidCrewHourCapacity * 100) : null;
