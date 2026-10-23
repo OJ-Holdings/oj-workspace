@@ -85,7 +85,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     },
   };
   const store = useDashboard(dashboard, mode, organizationId, displayName);
-  const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
+  const { jobs, schedule: jobSchedule, loadingState: jobsState } = useJobs(organizationId, mode, pathname);
   const query = useSearchParams();
   const opened = useRef('');
   const [handoffError,setHandoffError]=useState('');
@@ -118,6 +118,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         rawBoard.openCard(undefined, followUpFromCrmLead(lead,base));
       }
     } else if (sourceBooking && !readOnly && mode === 'live') {
+      if(jobsState==='loading')return;
       const booking = jobs.find(j => j.id === sourceBooking);
       if (booking) {
         try {
@@ -127,6 +128,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         } catch { /* Rejected booking cannot create a task draft. */ }
       }
     } else if (sourceProject && !readOnly && mode === 'live') {
+      if(jobsState==='loading')return;
       try {
         if(!/^[A-Za-z0-9_-]{1,80}$/.test(sourceProject))throw new Error('Invalid local project identifier.');
         const raw=window.localStorage.getItem('oj-commercial-project-portfolio-v1:'+organizationId);
@@ -172,7 +174,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         setHandoffError(error instanceof Error ? error.message : 'The private source workbook could not be read.');
       }
     }
-  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, mode, readOnly, base]);
+  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
   const wasEditing = useRef(false);
   useEffect(() => {
     if (wasEditing.current && !rawBoard.editing) {
