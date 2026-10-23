@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasFleetProjectAssignments } from './AtlasFleetProjectAssignments';
+import { AtlasFleetAssetTasks } from './AtlasFleetAssetTasks';
 import type { Card } from '@/lib/board';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import type { LoadedBookingState } from '@/lib/atlas-fleet-dispatch-plan';
@@ -282,6 +283,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
           <div><dt>Next service date</dt><dd>{asset.nextServiceDate||'Not recorded'}</dd></div>
           <div><dt>Next meter threshold</dt><dd>{asset.nextServiceReading===null?'Not recorded':asset.nextServiceReading.toLocaleString()+' '+asset.unit}</dd></div></dl>
         <button type="button" className="fleet-card-edit" onClick={()=>setAssetEditor({...asset})}>{canEdit?'Manage asset':'View details'}<ArrowUpRight size={16}/></button>
+        <AtlasFleetAssetTasks id={asset.id} org={organizationId} base={base} cards={cards} canEdit={canEdit} />
       </article>)}</div>:<div className="fleet-empty"><PackagePlus size={28}/><strong>No equipment matches this view</strong><p>Add your vehicle, pressure washer, water-fed pole setup, and individual rig components to build a real local inventory.</p></div>}
     </section>}
 
