@@ -76,6 +76,7 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
  };
  const review=()=>{
   if(!plan||!report||!fleet||!report.sourceMatches)return;
+  if(plan.selectedAssetIds.length===0||report.missingIds.length){setNotice('Choose a recorded asset and resolve any missing equipment IDs before logging a manual review.');return;}
   if(report.findings.some(f=>f.type==='stop')){
    setNotice('Cannot mark locally reviewed: source is inactive, equipment is out of service/overdue, or payload exceeds the entered limit.');return;
   }
@@ -129,7 +130,7 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
   </div>}
   {report?.reviewedToday&&<p className="ecfield-equip-reviewed"><CheckCircle2 size={17}/> An operator review was recorded today. Verify the equipment physically before each use; this is not a clearance.</p>}
   {canEdit&&<button className="ecfield-equip-review" type="button"
-   disabled={!report||!fleet||!report.sourceMatches||!!loadError||report.findings.some(f=>f.type==='stop')}
+   disabled={!report||!fleet||!report.sourceMatches||!plan?.selectedAssetIds.length||!!report.missingIds.length||!!loadError||report.findings.some(f=>f.type==='stop')}
    onClick={review}><CheckCircle2 size={16}/> Record manual equipment review</button>}
   <p className="ecfield-disclaimer">Other-booking conflicts are detected only among booking plans saved on this same browser and in the currently loaded source window. Unknown elsewhere does not mean available. Changes here do not reserve equipment, update the Fleet workbook or the corporate job ledger.</p>
   {notice&&<p className="ecfield-toast" role="status">{notice}</p>}
