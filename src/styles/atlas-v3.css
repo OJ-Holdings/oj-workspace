@@ -476,3 +476,14 @@
 .atlas-mission-notice{margin:0;padding:11px 20px;border-top:1px solid var(--line);font-size:10px;line-height:1.6;color:var(--accent-hi)}
 @media(max-width:1040px){.atlas-mission-pack-body{grid-template-columns:1fr}.atlas-mission-crew{border-right:0;border-bottom:1px solid var(--line)}.atlas-mission-pack-footer{flex-wrap:wrap}.atlas-mission-pack-footer>div{flex-basis:100%}}
 @media(max-width:620px){.atlas-mission-pack-head{flex-direction:column;padding:16px}.atlas-mission-crew,.atlas-mission-evidence{padding:14px}.atlas-mission-fields{grid-template-columns:1fr}.atlas-mission-fields label{gap:5px}.atlas-mission-metrics{grid-template-columns:1fr 1fr}.atlas-mission-pack-footer{padding:13px}.atlas-mission-pack-footer button{flex:1;justify-content:center}.atlas-mission-section-label small{width:100%;margin:0}}
+
+/* R11 Fleet timeline sees the same manual workforce scenario, not actual staffing */
+.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.atlas-dispatch-job-crew{display:flex;gap:9px;align-items:flex-start;margin:12px 0 3px;padding:10px 0;border-top:1px solid var(--line);font-size:10px;line-height:1.55;color:var(--ink-2)}
+.atlas-dispatch-job-crew svg{flex-shrink:0;color:var(--accent-hi)}
+.atlas-dispatch-job-crew b{font-size:10px;color:var(--watch);font-weight:850}
+.atlas-dispatch-job-crew[data-state=shortfall] b{color:var(--bad)}
+.atlas-dispatch-job-crew[data-state=not-modeled] b,
+.atlas-dispatch-job-crew[data-state=no-labor-entered] b{color:var(--ink-3)}
+@media(max-width:1160px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:580px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
