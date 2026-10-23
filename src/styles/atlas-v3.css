@@ -781,3 +781,9 @@
   .booking-table .row-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
   .booking-table .row-actions button{min-height:36px}
 }
+
+/* Management remains reachable without burying everyday work under diagnostics. */
+.atlas-shell .atlas-nav-group-toggle{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;text-align:left;border:0;cursor:pointer}
+.atlas-shell .atlas-nav-group-toggle>span{font-size:15px;font-weight:700;color:var(--ink-3)}
+.atlas-shell .atlas-nav-group-toggle:hover{color:var(--accent-hi)}
+.atlas-shell .atlas-nav-group-toggle:focus-visible{outline:2px solid var(--accent-hi);outline-offset:-2px}
