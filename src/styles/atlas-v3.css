@@ -390,3 +390,41 @@
 .atlas-project-related-tasks>a small{font-size:10px;color:var(--ink-3)}
 .atlas-project-related-tasks>a svg{color:var(--accent-hi)}
 .atlas-project-related-tasks>a:hover span{text-decoration:underline}
+
+/* ATLAS V3 R10 — source-verified Fleet resource planning timeline */
+.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+.atlas-fleet-source-status{padding:0 20px 12px;margin:0}
+.atlas-fleet-horizon{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.atlas-fleet-horizon>span{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:11px;font-weight:800;color:var(--ink-2)}
+.atlas-fleet-horizon button{padding:7px 11px;border-radius:7px;border:1px solid var(--line-2);background:var(--bg-2);font-size:10px;font-weight:750;color:var(--ink-2)}
+.atlas-fleet-horizon button[aria-pressed=true]{border-color:var(--accent-hi);background:var(--accent-soft);color:var(--accent-hi)}
+.atlas-fleet-dated-plans,.atlas-fleet-unverified{padding:16px 20px}
+.atlas-fleet-dated-plans>p,.atlas-fleet-unverified>p{font-size:11px;color:var(--ink-3);line-height:1.6}
+.atlas-fleet-day-group{margin:0 0 16px}
+.atlas-fleet-day-group>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.atlas-fleet-day-group>header h4{margin:0;font:800 15px/1.3 var(--font-display);color:var(--ink)}
+.atlas-fleet-day-group>header span{font-size:10px;color:var(--ink-3)}
+.atlas-fleet-day-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:11px;padding-top:12px}
+.atlas-dispatch-job-card{min-width:0;padding:15px;border:1px solid var(--line);border-radius:11px;background:var(--bg-2)}
+.atlas-dispatch-job-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.atlas-dispatch-job-head strong{display:block;font-size:12px;color:var(--ink);line-height:1.5;overflow-wrap:anywhere}
+.atlas-dispatch-job-head small{display:block;margin-top:5px;font-size:10px;color:var(--ink-3);line-height:1.55}
+.atlas-dispatch-job-head>span{flex-shrink:0;font-size:8px;font-weight:850;letter-spacing:.07em;color:var(--watch)}
+.atlas-dispatch-job-head>span[data-state=loaded]{color:var(--good)}
+.atlas-dispatch-job-assets{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line);font-size:10px}
+.atlas-dispatch-job-assets b{font-size:10px}
+.atlas-dispatch-job-assets span{font-size:10px;color:var(--watch)}
+.atlas-dispatch-job-card>ul{margin:0 0 8px;padding:0 0 0 17px}
+.atlas-dispatch-job-card>ul li{padding:3px 0;font-size:10px;line-height:1.6;color:var(--ink-2);overflow-wrap:anywhere}
+.atlas-dispatch-job-card>ul small{color:var(--ink-3)}
+.atlas-dispatch-job-card>.atlas-project-alert{padding:7px 0;margin:0;font-size:10px}
+.atlas-dispatch-job-tasks{display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid var(--line)}
+.atlas-dispatch-job-tasks>svg{display:inline-block;color:var(--accent-hi)}
+.atlas-dispatch-job-tasks span{font-size:10px;color:var(--ink-2);font-weight:750}
+.atlas-dispatch-job-tasks a{display:flex;gap:7px;align-items:center;font-size:10px;color:var(--accent-hi);line-height:1.5;text-decoration:none;overflow-wrap:anywhere}
+.atlas-dispatch-job-tasks a:hover{text-decoration:underline}
+.atlas-fleet-unverified{border-top:1px solid var(--line)}
+.atlas-fleet-unverified h4{display:flex;align-items:center;gap:8px;margin:0;font-size:13px}
+.atlas-fleet-unverified h4 span{padding:2px 8px;border:1px solid var(--line);border-radius:8px;font-size:10px;color:var(--ink-3)}
+@media(max-width:980px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:580px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-fleet-horizon,.atlas-fleet-dated-plans,.atlas-fleet-unverified{padding:12px}.atlas-fleet-horizon>span{width:100%}}
