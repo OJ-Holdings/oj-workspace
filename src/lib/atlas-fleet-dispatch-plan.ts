@@ -55,7 +55,7 @@ export function buildFleetDispatchProjection(
       exactLocalProjectIds(card.description).includes(project.id)).slice(0,20);
     const totals:EstimateResult=calculateEstimate(project.input);
     return {
-      projectId:project.id,name:project.name,phase:project.phase,
+      projectId:project.id,name:project.name,phase:project.phase==='founder-review'?'founder-review':'scoping',
       bookingId:project.bookingId,bookingState:source,
       bookingDate:eligible?match!.date:null,bookingTime:eligible?match!.time_block:null,
       bookingStatus:eligible?match!.status:null,
