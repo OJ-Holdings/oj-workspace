@@ -12,7 +12,7 @@ const idPattern=/^[A-Za-z0-9_-]{1,80}$/;
 const inline=(value:string,max:number)=>value.replace(/[\r\n\t\u0000-\u001f]/g,' ').trim().slice(0,max);
 export function exactLocalFleetAssetIds(description:string):string[]{
   if(typeof description!=='string')return [];
-  const expression=/^Local fleet asset ID:\s*([A-Za-z0-9_-]{1,80})[ \t]*$/gm;
+  const expression=/^Local fleet asset ID:[ \t]*([A-Za-z0-9_-]{1,80})[ \t]*$/gm;
   return [...new Set([...description.matchAll(expression)].map(match=>match[1]))];
 }
 export function fleetServiceTask(
