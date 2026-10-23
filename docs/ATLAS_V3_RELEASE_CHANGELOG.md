@@ -105,19 +105,55 @@
 
 The above PR head checks are verifiable GitHub CI events, not independent proof of the current Windows/Tailscale production SHA or complete manual iPhone/desktop QA. Follow [Founder Acceptance & Production Truth Audit](./ATLAS_V3_FOUNDER_ACCEPTANCE_03_07.md) to validate end-to-end multi-role interactions with Oscar and Jacob. The migration/backup gate for draft PR #42 remains intact.
 
+
+## ATLAS V3 / Release 08 — COMMERCIAL PORTFOLIO & CANDIDATE RESOURCES
+
+**PR:** [#66](https://github.com/OJ-Holdings/oj-workspace/pull/66). **Merged SHA:** `ff8a56a7969cc4fd519b44d59228777f31beb718`. **Exact-head CI:** `39885587630` — SUCCESS.
+
+- Added a **device-local multi-project register** inside the existing Exterior Commercial Desk, not a separate top-level app. Each of up to 24 records has its own name, complete validated estimate, review checklist, `scoping/founder-review/archived` phase, exact optional source-booking ID, candidate Fleet asset IDs, timestamps and optimistic revision.
+- Existing singleton local estimate, estimator, Bid War Room, JSON interchange and task handoff are preserved. Selecting a portfolio entry explicitly loads the estimator; edits to the current estimate are not magically saved to a different device.
+- Project portfolio is versioned, organization-keyed and capped at 1 MB. Malformed, oversized, foreign-organization, duplicate and stale-revision writes fail closed. User-invoked import/export are private unencrypted JSON and must be handled securely.
+- Explicit booking association is only inferred by an exact currently loaded `ExtBooking.id`, never customer-name/address similarity. Booking cancellation, missing source and partial source coverage remain visible.
+- Candidate equipment selections come from a validated same-device Fleet workbook; equipment due/service/unverified states and tentative same-day multi-project contention generate warnings. **These are plans, not actual equipment reservations, dispatch orders, rental confirmations or site inspections.**
+- Added Fleet Command's read-only commercial allocation radar and tests for tenant scoping, malformed files, conditional access, no fabricated profitability, asset status and source-ID conflicts.
+
+## ATLAS V3 / Release 09 — PROJECT ↔ BOOKING ↔ TASK TRACEABILITY
+
+**PR:** [#67](https://github.com/OJ-Holdings/oj-workspace/pull/67). **Merged SHA:** `33e5958fa1f54158e37e66471f1691b750d54422`. **Exact-head CI:** `39886433047` — SUCCESS.
+
+- Commercial portfolio exposes **Save & prepare project task**. User explicitly persists the selected *local project* version and opens the preexisting shared task **draft**. Only the later, ordinary Save action creates a shared task.
+- Task description includes sanitized local project ID, version, estimated work summary and internal warnings. It gets a machine-readable `Booking record ID:` only when the exact source ID is currently loaded, active and calendar-valid. Otherwise the booking remains unverified; source client addresses and quote amounts are not automatically copied into shared tasks.
+- Inside a local project, a reverse-link panel finds currently loaded shared tasks carrying the exact project-ID line. This is an explicit textual snapshot relation, NOT a canonical server foreign key or another founder's ability to open the original local project.
+- `useJobs` was hardened with an explicit source loading/scope state so task handoffs cannot confirm a booking using stale previous-route or previous-company data.
+- Tests cover archived-project guard, cancelled/unloaded/invalid booking IDs, exact reverse source text, normal task validation and exclusion of source customer details.
+
+## ATLAS V3 / Release 10 — FLEET SOURCE-BACKED RESOURCE TIMELINE
+
+**PR:** [#68](https://github.com/OJ-Holdings/oj-workspace/pull/68). **Merged SHA:** `697e7660880785f0e8fc40d87073ecf94ea46dd2`. **Exact-head CI:** `39887258616` — SUCCESS.
+
+- The real Fleet Command now contains a **7/30/90-day commercial planning timeline** from the current user's already-loaded, permission-scoped Exterior booking records + device-local project portfolio + Fleet asset workbook + loaded shared task snapshots.
+- Only projects whose exact source-booking IDs resolve to currently loaded, valid and non-cancelled booking records get dated cards. Loading/failure/partial-coverage/cancelled/unlinked cases remain visibly unknown or unscheduled.
+- Cards show project count, *paid* crew-hours rather than elapsed job time, tentative lift rental days, locally entered asset health and exact shared task links. Potential same-day reuse of a candidate asset is a **review flag**, not a verified time overlap or reservation.
+- Pure projection tests cover source failure, client details/quote non-disclosure, valid horizons, cancellation, stale/fuzzy task refs, multi-project overlap and absence of imaginary project approval.
+- No live vehicle telemetry, availability tracking, crew dispatch, actual reservations, database migrations or customer-facing actions.
+
+## Release 08–10 manual acceptance & persistence safety
+
+[Founder Acceptance 08–10](./ATLAS_V3_FOUNDER_ACCEPTANCE_08_10.md) details device, role, quote, booking, Fleet and task exercises still requiring human observation. [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md) specifies a **proposed, not applied** canonical project/asset schema and opt-in local import process after real protected backup and independent isolated restore.
+
 ## What is STILL NOT built
 
 - Full replacement redesign of every vertical business screen; most deeper tabs retain V2 styling and flows.
 - Universal persistently linked customer/property/project/job/asset/invoice identity across every provider; current source links are narrow, exact, authorized read-only projections.
-- Shared Fleet/Commercial local-only draft sync across Oscar/Jacob, versioned concurrent edits or resilient offline field operations.
+- Shared server-side Fleet/Commercial project and resource persistence across Oscar/Jacob, globally consistent concurrent edits or resilient offline field operations. Local R08 project revisions protect some same-browser stale writes but are **not** a distributed transaction or shared synchronization.
 - Complete financial ledger/payment/bank reconciliation or permission-gated invoice closeout; **no ATLAS cash or net profit confidence claims**.
 - Fourth-venture Oscar Jacob live persistence, real publishing/analytics, agency AI telemetry, Shopify landed-cost/advertising reconciliation.
 - Production Windows/Tailscale host confirmation: only GitHub merges and PR CI are proven here.
 - P0 Supabase backup/restoration and additive migration: draft PR #42 remains blocked/unmerged pending independently verified private backup, isolated restore, RLS/auth audit and supervised release.
 
-## Next integrated release (proposed; not yet shipped)
+## Next integrated milestone (proposed; not yet shipped)
 
-**Release 08 / Source Identity and Founder Adoption:** Verify the Release 03–07 flows on actual authenticated Windows and iPhone sessions; strengthen task-linked project lifecycle and audit visibility without inventing external provider state. Design permission-safe canonical property/estimate/asset relationships for future sync, but do not write shared schema until a verified backup, isolated restore, RLS/security audit and supervised authorization have cleared the PR #42 gate.
+**Release 11 / Protected canonical project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
 
 ## Exact host verification on Oscar's Windows machine
 
@@ -128,4 +164,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–07 are merged into GitHub main with passing exact-head CI, including connected same-device Commercial/Fleet review and explicit shared task handoffs. Most of the 413 proposed capabilities remain to be built. The current Windows-host release SHA and founder acceptance are still unverified in this ledger.
+**Bottom line:** Releases 01–10 are merged into GitHub main with passing exact-head CI, including a versioned browser-local commercial portfolio, tentative Fleet assignment planning, exact booking/task handoffs and a source-backed 7/30/90-day Fleet timeline. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
