@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (ATLAS V3 R25 ledger posting preflight)
+**Summary:** Added in-memory, all-or-nothing journal batch review for duplicate journal and legal-entity-scoped source IDs, duplicate account IDs/codes, valid locked periods and journal/approval structure; only validated full batches produce per-entity trial balances. Added explicit immutable reversal draft preparation and prototype-safe entity key/period-lock handling. No persistence or automatic posting.
+**Files:** src/lib/atlas-posting-preflight.ts, tests/atlas-posting-preflight.test.ts, docs/ATLAS_ACCOUNTING_POSTING_INVARIANTS.md.
+**Verified:** PR #93 merged to main `b2bb3780870dc2fa34312ac7ed27fd567b57d368` after exact PR-head CI `40004558635` SUCCESS (PowerShell parse, npm ci, TypeScript, tests, production build). Post-merge main CI `40004895243` launched; independently check conclusion.
+**Limits:** Approver string is NOT permission/role authorization. No bank operations, journal writes, real account opening balances, tax effects, locked period or RLS changes. Draft database PR #42 stays unmerged. Live Windows/Tailscale serving SHA and real founder desktop/iPhone workflows have NOT been independently verified.
+
+
 ## 2026-10-23 -- ChatGPT (ATLAS V3 R24 Statement Import Inspection)
 **Summary:** Added owner-only Finance statement CSV selection in private browser memory; precise USD/date/quoted-field parsing with row-level rejection, local bank opening-to-closing arithmetic checks, and source-honest operating-ledger potential matches (abs cents/dates). Nothing is written to Supabase, Mercury or localStorage, and no journal, tax form, reconciliation or accounting period is posted/closed.
 **Files:** src/lib/atlas-statement-review.ts, src/components/app/AtlasStatementInspector.tsx, src/components/app/Pages.tsx, src/styles/atlas-v3.css, tests/atlas-statement-review.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.
