@@ -428,3 +428,62 @@
 .atlas-fleet-unverified h4 span{padding:2px 8px;border:1px solid var(--line);border-radius:8px;font-size:10px;color:var(--ink-3)}
 @media(max-width:980px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:580px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-fleet-horizon,.atlas-fleet-dated-plans,.atlas-fleet-unverified{padding:12px}.atlas-fleet-horizon>span{width:100%}}
+
+/* ATLAS V3 / R11 — Commercial Field Mission Pack and modeled workforce capacity */
+.atlas-mission-pack{margin:22px 0 17px;overflow:hidden;border:1px solid var(--line-2);border-radius:13px;background:linear-gradient(119deg,var(--panel-2),var(--panel))}
+.atlas-mission-pack-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:19px 20px;border-bottom:1px solid var(--line)}
+.atlas-mission-pack-head p{margin:0 0 8px;font-size:9px;letter-spacing:.15em;color:var(--accent-hi);font-weight:900}
+.atlas-mission-pack-head h4{margin:0 0 8px;font:800 20px/1.25 var(--font-display);letter-spacing:-.045em;color:var(--ink)}
+.atlas-mission-pack-head div>span{display:block;font-size:11px;line-height:1.65;max-width:72ch;color:var(--ink-3)}
+.atlas-mission-pack-status{flex-shrink:0;padding:7px 9px;border:1px solid var(--line-2);border-radius:6px;font-size:9px;font-weight:850;letter-spacing:.06em;color:var(--ink-3)}
+.atlas-mission-pack-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:0}
+.atlas-mission-crew,.atlas-mission-evidence{padding:20px;min-width:0}
+.atlas-mission-crew{border-right:1px solid var(--line)}
+.atlas-mission-section-label{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:15px;font-size:12px;font-weight:850;color:var(--ink)}
+.atlas-mission-section-label svg{color:var(--accent-hi)}
+.atlas-mission-section-label small{font-size:9px;line-height:1.5;color:var(--ink-3);font-weight:600;margin-left:auto}
+.atlas-mission-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.atlas-mission-fields label,.atlas-mission-private-note{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:10px;line-height:1.5;color:var(--ink-2);font-weight:750}
+.atlas-mission-fields input,.atlas-mission-private-note textarea{width:100%;min-width:0;max-width:100%;padding:9px 10px;font-size:12px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg-2);color:var(--ink);outline-offset:2px}
+.atlas-mission-fields input:focus,.atlas-mission-private-note textarea:focus{border-color:var(--accent-hi)}
+.atlas-mission-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
+.atlas-mission-metrics>div{padding:12px;border-radius:9px;background:var(--bg-2);border:1px solid var(--line);min-width:0}
+.atlas-mission-metrics small{display:block;margin-bottom:7px;font-size:9px;color:var(--ink-3);line-height:1.5}
+.atlas-mission-metrics strong{display:block;font:800 15px/1.3 var(--font-display);letter-spacing:-.03em;color:var(--ink);overflow-wrap:anywhere}
+.atlas-mission-metrics strong[data-status=shortfall]{color:var(--bad)}
+.atlas-mission-metrics strong[data-status=assumptions-fit]{color:var(--watch)}
+.atlas-mission-model-note,.atlas-mission-shortfall{font-size:10px;line-height:1.65;padding:11px 12px;border-radius:8px;margin:11px 0;background:var(--bg-2);color:var(--ink-3)}
+.atlas-mission-shortfall{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--line-2);color:var(--bad)}
+.atlas-mission-shortfall svg{flex-shrink:0}
+.atlas-mission-private-note{margin-top:15px}
+.atlas-mission-private-note textarea{resize:vertical;min-height:66px;line-height:1.5;font-size:11px}
+.atlas-mission-source{padding:12px;margin-bottom:9px;border:1px solid var(--line);border-radius:9px;background:var(--bg-2)}
+.atlas-mission-source strong{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink);line-height:1.55}
+.atlas-mission-source small{display:block;margin-top:6px;font-size:10px;color:var(--ink-3);line-height:1.6}
+.atlas-mission-finding{display:flex;align-items:flex-start;gap:10px;margin:0;padding:10px 0;border-bottom:1px solid var(--line);font-size:10px;line-height:1.55;color:var(--ink-2)}
+.atlas-mission-finding b{flex-shrink:0;width:58px;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--watch)}
+.atlas-mission-finding[data-severity=attention] b{color:var(--bad)}
+.atlas-mission-finding[data-severity=unknown] b{color:var(--ink-3)}
+.atlas-mission-caution{font-size:10px;line-height:1.65;margin:12px 0;color:var(--ink-3)}
+.atlas-mission-links{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.atlas-mission-links a{display:inline-flex;align-items:center;gap:6px;color:var(--accent-hi);font-size:10px;font-weight:850;text-decoration:none}
+.atlas-mission-links a:hover{text-decoration:underline}
+.atlas-mission-pack-footer{display:flex;align-items:center;gap:9px;padding:14px 20px;border-top:1px solid var(--line)}
+.atlas-mission-pack-footer>div{display:flex;align-items:center;gap:9px;flex:1;min-width:0;color:var(--ink-3);font-size:10px;line-height:1.6}
+.atlas-mission-pack-footer>div svg{flex-shrink:0;color:var(--accent-hi)}
+.atlas-mission-pack-footer>div strong{color:var(--ink-2)}
+.atlas-mission-pack-footer button{flex-shrink:0;display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;white-space:nowrap;padding:9px}
+.atlas-mission-notice{margin:0;padding:11px 20px;border-top:1px solid var(--line);font-size:10px;line-height:1.6;color:var(--accent-hi)}
+@media(max-width:1040px){.atlas-mission-pack-body{grid-template-columns:1fr}.atlas-mission-crew{border-right:0;border-bottom:1px solid var(--line)}.atlas-mission-pack-footer{flex-wrap:wrap}.atlas-mission-pack-footer>div{flex-basis:100%}}
+@media(max-width:620px){.atlas-mission-pack-head{flex-direction:column;padding:16px}.atlas-mission-crew,.atlas-mission-evidence{padding:14px}.atlas-mission-fields{grid-template-columns:1fr}.atlas-mission-fields label{gap:5px}.atlas-mission-metrics{grid-template-columns:1fr 1fr}.atlas-mission-pack-footer{padding:13px}.atlas-mission-pack-footer button{flex:1;justify-content:center}.atlas-mission-section-label small{width:100%;margin:0}}
+
+/* R11 Fleet timeline sees the same manual workforce scenario, not actual staffing */
+.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.atlas-dispatch-job-crew{display:flex;gap:9px;align-items:flex-start;margin:12px 0 3px;padding:10px 0;border-top:1px solid var(--line);font-size:10px;line-height:1.55;color:var(--ink-2)}
+.atlas-dispatch-job-crew svg{flex-shrink:0;color:var(--accent-hi)}
+.atlas-dispatch-job-crew b{font-size:10px;color:var(--watch);font-weight:850}
+.atlas-dispatch-job-crew[data-state=shortfall] b{color:var(--bad)}
+.atlas-dispatch-job-crew[data-state=not-modeled] b,
+.atlas-dispatch-job-crew[data-state=no-labor-entered] b{color:var(--ink-3)}
+@media(max-width:1160px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:580px){.atlas-fleet-dispatch-timeline .atlas-fleet-project-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}

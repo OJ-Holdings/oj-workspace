@@ -26,6 +26,7 @@ function portfolio(){
     p=savePortfolioProject(p,org,spec.id,{
       name:'Complex '+idx,input,review:[false,false,false,false,false],
       phase:spec.phase,bookingId:spec.bookingId,plannedAssetIds:spec.assetIds,
+      fieldCrewPlan:idx===0?{crewSize:1,productiveHoursPerPersonDay:2,plannedFieldDays:2,stagingNote:'PRIVATE CREW NOTE'}:undefined,
     },null,time);
   }
   return p;
@@ -61,12 +62,17 @@ test('source-backed projection distinguishes loaded bookings from unscheduled lo
   assert.equal(snapshot.assetIssueRows,3);
   assert.equal(snapshot.collisionRows,2);
   assert.equal(snapshot.linkedTaskCount,1);
+  assert.equal(snapshot.crewShortfallRows,1);
+  assert.equal(snapshot.crewUnmodeledRows,2);
+  assert.equal(snapshot.rows.find(x=>x.projectId==='proj1')?.crewModel.capacityGapHours,-4);
+  assert.equal(snapshot.rows.find(x=>x.projectId==='proj1')?.crewModel.estimatedMinimumFieldDays,4);
   assert.deepEqual(snapshot.rows.filter(x=>x.bookingDate).map(x=>x.bookingDate),['2026-10-25','2026-10-25']);
   assert.equal(snapshot.rows[0].plannedAssets[0].state,'needs-service');
   assert.equal(snapshot.rows[0].crewHours,8);
   assert.equal(snapshot.rows[0].linkedTasks[0].id,'task1');
   assert.deepEqual(snapshot.rows[0].sameDayOverlapIds,['asset-1']);
   assert.doesNotMatch(JSON.stringify(snapshot),/PRIVATE NAME|PRIVATE STREET|10000|20000/);
+  assert.doesNotMatch(JSON.stringify(snapshot),/PRIVATE CREW NOTE/);
 });
 
 test('failed or pending source fetch never creates dates, verified bookings or false collisions',()=>{

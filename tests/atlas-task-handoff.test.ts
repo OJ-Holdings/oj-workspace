@@ -111,3 +111,20 @@ test('reverse relationship accepts exact local ID lines and rejects fuzzy mentio
   assert.deepEqual(exactLocalProjectIds('projectA appears in note\nLocal portfolio project ID: projectA\nLocal portfolio project ID: projectA\nLocal portfolio project ID: projectB'),['projectA','projectB']);
   assert.deepEqual(exactLocalProjectIds('Subject projectA\nLocal portfolio project ID: projectA or another project'),[]);
 });
+
+test('shared project task includes workforce deficit but excludes private staging notes',()=>{
+  const source=savedProject();
+  const project={...source,fieldCrewPlan:{
+    crewSize:1,productiveHoursPerPersonDay:2,plannedFieldDays:1,
+    stagingNote:'PRIVATE CREW PREP NOTE DO NOT SHARE',
+  }};
+  const task=commercialPortfolioTask(project,emptyFleet(org),'2026-10-22',booking);
+  assert.match(task.description,/FIELD WORKFORCE SCENARIO/);
+  assert.match(task.description,/modeled gap: -6/);
+  assert.match(task.description,/MODELED SHORTFALL|short by 6 paid crew-hours/i);
+  assert.match(task.description,new RegExp('^Local portfolio project ID: '+project.id+'$', 'm'));
+  assert.match(task.description,new RegExp('^Booking record ID: '+bookingId+'$', 'm'));
+  assert.doesNotMatch(task.description,/PRIVATE CREW PREP NOTE/);
+  assert.ok(task.description.length<=7900);
+  assert.equal(validDraft(task).stage,'Backlog');
+});

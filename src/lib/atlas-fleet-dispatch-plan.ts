@@ -6,6 +6,7 @@ import { projectEquipmentEvidence } from './atlas-commercial-portfolio';
 import { exactLocalProjectIds } from './atlas-task-handoff';
 import type { FleetWorkbook } from './fleet-command';
 import { validDay } from './fleet-command';
+import { emptyFieldCrewPlan, fieldCrewCapacity, type CrewCapacity } from './atlas-field-mission';
 
 /**
  * Read-only fleet planning projection. Source bookings must be CURRENTLY LOADED
@@ -26,6 +27,8 @@ export type ProjectDispatchRow={
   sameDayOverlapIds:string[];
   linkedTasks:{id:string;title:string;stage:Card['stage'];assignee:string}[];
   crewHours:number;liftDays:number;buildingCount:number;
+  /** Paid labor feasibility under local manual assumptions, never staff availability. */
+  crewModel:CrewCapacity;
 };
 export type FleetDispatchProjection={
   rows:ProjectDispatchRow[];
@@ -33,6 +36,7 @@ export type FleetDispatchProjection={
   loadedBookings:number;
   sourcedRows:number;unscheduledRows:number;
   assetIssueRows:number;collisionRows:number;
+  crewShortfallRows:number;crewUnmodeledRows:number;
   linkedTaskCount:number;
 };
 
@@ -63,6 +67,7 @@ export function buildFleetDispatchProjection(
       sameDayOverlapIds:[],
       linkedTasks:related.map(t=>({id:t.id,title:t.title,stage:t.stage,assignee:t.assignee})),
       crewHours:totals.crewHours,liftDays:totals.liftDays,buildingCount:totals.sites,
+      crewModel:fieldCrewCapacity(project.input,project.fieldCrewPlan??emptyFieldCrewPlan()),
     };
   });
   for(const row of rows){
@@ -86,6 +91,8 @@ export function buildFleetDispatchProjection(
     unscheduledRows:rows.filter(row=>row.bookingState!=='loaded').length,
     assetIssueRows:rows.filter(row=>row.assetWarnings.length>0).length,
     collisionRows:rows.filter(row=>row.sameDayOverlapIds.length>0).length,
+    crewShortfallRows:rows.filter(row=>row.crewModel.state==='shortfall').length,
+    crewUnmodeledRows:rows.filter(row=>row.crewModel.state==='not-modeled'||row.crewModel.state==='no-labor-entered').length,
     linkedTaskCount:rows.reduce((sum,row)=>sum+row.linkedTasks.length,0),
   };
 }

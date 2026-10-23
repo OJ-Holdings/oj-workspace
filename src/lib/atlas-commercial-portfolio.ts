@@ -3,6 +3,7 @@ import { exportCommercialEstimate, importCommercialEstimate } from './commercial
 import type { ExtBooking } from './exterior';
 import type { FleetWorkbook } from './fleet-command';
 import { assetHealth, validDay } from './fleet-command';
+import { validateFieldCrewPlan, type FieldCrewPlan } from './atlas-field-mission';
 
 /**
  * This is a VERSIONED DEVICE-LOCAL project portfolio, deliberately separate from
@@ -23,13 +24,15 @@ export type CommercialProject={
   phase:ProjectPhase;
   bookingId:string|null;
   plannedAssetIds:string[];
+  /** Optional on pre-R11 exports; normalized to UNKNOWN model values when read. */
+  fieldCrewPlan?:FieldCrewPlan;
 };
 export type CommercialPortfolio={
   format:typeof portfolioFormat;version:typeof portfolioVersion;
   organizationId:string;revision:number;
   projects:CommercialProject[];
 };
-export type ProjectDraft=Pick<CommercialProject,'name'|'input'|'review'|'phase'|'bookingId'|'plannedAssetIds'>;
+export type ProjectDraft=Pick<CommercialProject,'name'|'input'|'review'|'phase'|'bookingId'|'plannedAssetIds'|'fieldCrewPlan'>;
 export type BookingEvidence={
   state:'unlinked'|'loaded-active'|'loaded-inactive'|'not-loaded';
   booking:ExtBooking|null;label:string;
@@ -79,6 +82,7 @@ function validatedDraft(raw:unknown,org:string):ProjectDraft{
     name:normalized.name,input:normalized.input,review:normalized.review,
     phase:phase as ProjectPhase,bookingId:uuid(record.bookingId),
     plannedAssetIds,
+    fieldCrewPlan:validateFieldCrewPlan(record.fieldCrewPlan),
   };
 }
 const validateProject=(raw:unknown,org:string):CommercialProject=>{
