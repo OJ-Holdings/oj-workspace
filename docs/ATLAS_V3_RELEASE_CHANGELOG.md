@@ -275,6 +275,17 @@ These are completed GitHub merges, not independently verified Windows-host deplo
 
 **Release acceptance still required:** post-merge CI and exact serving SHA on Windows 3011 plus authenticated founder/device QA. See [ATLAS Accounting Engineering](./ATLAS_ACCOUNTING_ENGINEERING.md).
 
+## ATLAS V3 Release 25 — POSTING INTEGRITY / REVERSAL PREFLIGHT
+
+**PR:** [#93](https://github.com/OJ-Holdings/oj-workspace/pull/93). **Merged:** `b2bb3780870dc2fa34312ac7ed27fd567b57d368`. **Exact PR-head CI:** `40004558635` SUCCESS.
+
+- Pure in-memory accounting preflight now rejects duplicate journal identity, duplicate legal-entity-scoped source reference (idempotent source), ambiguous account IDs and codes, mixed-entity line references, closed-period edits and malformed debits/credits.
+- Only a wholly valid batch yields a separate in-memory trial balance for each legal entity. Result maps and lock lookups prevent JavaScript prototype-key collisions on untrusted entity identifiers.
+- Correction is modeled as a new reversal **candidate** with distinct source identity, explicit approver string and inverted debits/credits. Original entries are preserved.
+- No persistent accounting schema, identity/approval authority verification, actual posted transactions, bank reconciliation, filing, customer changes or accounting close. Exact engineering gates are in [Posting Invariants](./ATLAS_ACCOUNTING_POSTING_INVARIANTS.md).
+
+**Post-merge/main and host:** Independent main CI and actual Windows 3011 serving SHA must be verified separately. Database restore gate remains blocked; draft #42 stays unmerged.
+
 ## Next integrated milestone (proposed; not yet shipped)
 
 **Next protected milestone / Canonical multi-device project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
@@ -288,4 +299,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–24 (including integration 13.1) are merged into GitHub main; R18–R24 exact-head CI receipts are detailed above. Earlier releases retain their individual CI receipts above. The architecture: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
+**Bottom line:** Releases 01–25 (including integration 13.1) are merged into GitHub main; R18–R25 exact-head CI receipts are detailed above. Earlier releases retain their individual CI receipts above. The architecture: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
