@@ -56,7 +56,7 @@ const demoAsset: FleetAsset[]=[
 ];
 const demoWorkbook=(org:string):FleetWorkbook=>({...emptyFleet(org),assets:demoAsset});
 
-export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
+export function FleetCommand({base,organizationId,mode,readOnly,bookings,bookingsState,cards}:Props) {
   const preview=mode==='preview';
   const canEdit=!preview && !readOnly;
   const storageKey='oj-fleet-command-v1:'+organizationId;
