@@ -3,6 +3,15 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R29 ESTIMATING WORKBENCH (2026-10-23)
+
+- **R29:** PR [#101](https://github.com/OJ-Holdings/oj-workspace/pull/101), merged `ef2ed0c440bbea75e807e82115405161ec3c5f2a`, exact-head CI `40030364222` SUCCESS (dependencies, TS, full regression suite, Next production build). Main CI `40030566386` must be checked separately.
+- **New application:** `/workspace/b/exterior/estimate?lead=<exact ID>`. Accessible through HQ, Customer 360, customers cards and table. Supports 24 line items, price/qty/unit, optional direct cost/unit, site notes, travel cost, discount and contingency. Cost coverage and margin are withheld if direct costs are missing. Existing lead source baseline is preserved; wrong/missing ID fails closed.
+- **Local persistence:** browser-local draft auto-save, up to 8 explicitly saved local revisions, restore/reset and optional internal brief clipboard. NOT shared across founders/devices, NOT signed or accepted quote, NOT a governed encrypted corporate archive; acknowledge shared-browser risk. No production Supabase schema changed.
+- **Narrow shared action:** `recordExteriorEstimatedPrice` is an existing-member authorized write to legacy lead `quote_amount` only (along with updated timestamp/manual field locks). Requires internal founder review checks, checks old quote and `updated_at` atomically on update, disallows booked/completed/closed leads, and logs. No outbound customer message, invoice, contract, bank payment or automation. Backend source staleness must cause review/rebase.
+- **Bookings:** workbench opens existing guarded `BookDialog` as a **separate** action. There is no durable quote-version/booking FK or quote-approval record. Stop treating local copy as approved pricing until verified customer acceptance.
+- **Progress:** weighed full Exterior program **17%** (5 W1 + 3 W2 + 5 W3 + 4 W4). See `docs/EXTERIOR_COMMAND_PROGRESS.md`. Windows/Tailscale host and Oscar/Jacob iPhone acceptance still unverified; protected backup + independent restore + RLS remain future schema gate.
+
 ## EXTERIOR COMMAND R28 WEBSITE INTAKE (2026-10-23)
 
 - **R28 feature:** PR [#99](https://github.com/OJ-Holdings/oj-workspace/pull/99) merged SHA `d0baf7bdb5b5387f5ba6c49b7b8409956979c486`. Exact PR-head CI `40026458399` SUCCESS for dependency setup, TS, full tests and Next.js production build. Post-merge main CI separately check latest run.
