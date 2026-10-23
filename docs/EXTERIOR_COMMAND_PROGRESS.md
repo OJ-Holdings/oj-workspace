@@ -6,12 +6,12 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R29 estimate earned | Not yet done |
+| Plan wave | Weight | R30 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
-| W4 Quote & booking | 12% | **4%** | R28 intake + R29 typed service line-item estimate, local version snapshots, review gate and conflict-checked shared quote amount; full durable multiuser quote versioning, customer acceptance, structured work orders and atomic booking handoff remain |
+| W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
 | W5 Field operations | 12% | 0% | Offline field sheet, jobs, labor, media, materials and issue capture |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | 0% | Durable rig/asset linkage to job readiness |
@@ -20,7 +20,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **17% (conditional on R29 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **19% (conditional on R30 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -63,16 +63,27 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Controls preserve read-only preview isolation, max 24 item validation, local revision recovery limits, keyboard focus, responsive industrial styling and reduced-motion support; automated tests cover cost provenance, source drift, storage corruption, discounts and unit economics.
 - Cross-device shared estimate versioning, customer e-sign/approval, tax/invoice treatment, route assignment and independent recovery of local drafts **remain blocked or future scope**.
 
+### R30 Portable Quote Handoff (+2 W4 points, conditional on CI and merge)
+
+- Read-only inspected production database and confirmed the legacy `leads` and `bookings` records exist but there is no durable quote-version table. `oj_documents` is a storage metadata table, not a quote-ledger shortcut.
+- Shipped a portable **internal** estimate package (`oj-exterior-internal-quote` v1) for the full line-item estimate plus up to 8 saved revisions. It is intentionally manually exchangeable only, not synced between devices.
+- New Estimating Workbench download/import actions with filename, file-size limits, strict exact organization + lead match, price/cost/discount validation, safe field whitelist, corruption resistance and deliberate confirmation before overwriting an existing local draft.
+- Quoting readiness panel checks original record freshness, price compatibility, linked booking count, incomplete cost evidence and **always unverified customer acceptance**. It never marks a file customer-approved, a quote sent, a job booked or any payment received.
+- Reuses the existing source-bound local drafts, member-authorized price recording and guarded booking dialogs. Imported versions can never automatically mutate shared leads or create bookings.
+- Produced a release-gated durable version/approval/work-order schema design: `docs/EXTERIOR_QUOTE_VERSION_STORAGE_GATE.md`; nothing applied to production. Future migration still requires recoverable backup, isolated restore, staging RLS and founder-device evidence.
+- Strict unit tests prove round-trip fidelity, no false payment/approval, cross-company/cross-customer denial, malformed JSON and extra-field isolation, stale source and booking preflight.
+- **No shared quote revisions yet; no cross-device sync, provider contact, electronic signatures, approved work orders, invoices, bank settlement, or database migrations.**
+
 ### Release gates and the next update rule
 
-R26 (8%), R27 (+3%) and R28 (+3%) completed the verified code milestones at **14%**. R29 raises the earned engineering estimate to **17%** only after exact PR-head CI (typecheck, full tests, build) succeeds and the PR is merged. Main-branch CI, Windows serving SHA and actual two-founder iPhone/desktop acceptance are independent checks; do not claim deployment from a GitHub merge. If R29 fails, preserve the last verified estimate of 14%.
+Verified R26 (8%), R27 (+3%), R28 (+3%) and R29 (+3%) earn **17%** engineering progress. R30's manually portable quote interchange adds **2 W4 percentage points** only if exact PR-head CI passes (typecheck, full tests, production build) and its PR merges. This targets **19%**; if CI/merge fails keep 17%. Do not describe internal file transfer as durable synchronized quote data. Live Windows served SHA and authenticated two-founder mobile acceptance remain separate mandatory checks.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. **Durable quote documents and source links:** pending real backup + isolated restore, proper versioned customer/property/estimate tables, RLS tests, provider-scoped ownership and evidence of approved/cancelled proposals. Do not treat a local estimate as a legal contract.
-2. **Safe conversion:** approved quote version → work order → site job scheduling with quote snapshot and idempotent transition receipts, not mutable lead quote fields.
-3. **Daily operating capture:** field arrival/finish, actual crew hours, supplies, mileage, equipment readiness, site photos and unknown-cost follow-ups feeding true job economics.
-4. **Cross-device shared storage:** local encrypted cache and sync outbox after designing identity, signing, conflict and restore behavior; browser localStorage isn't the corporate ledger.
-5. **Acceptance:** exact served Windows commit and both founders' desktop/iPhone workflow test across a real consented sample job, including read-only and lost-network states.
+1. Verify private production backup **and isolated restore**, then validate staging schema/RLS and migration approval before creating actual org-scoped quote, version, event and work-order tables.
+2. Build durable approval evidence (sent provider message ID, signed/specific accepted version, customer response timestamps) and atomic, idempotent `accepted-version → work-order → booking` server transaction.
+3. Migrate only authenticated, deliberate founder-reviewed local estimate versions into shared database documents; mark unresolved source drift and duplicate candidates, never auto-merge.
+4. Field operations capture: arrival, departure, actual crew hours, supplies, equipment, site photos, mileage, customer review and payment status with receipts rather than estimates.
+5. Real Windows commit SHA and Oscar/Jacob iPhone UAT, including import/export privacy, stale source handling and lost-network behavior.
