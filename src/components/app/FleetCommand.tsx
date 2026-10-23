@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasFleetProjectAssignments } from './AtlasFleetProjectAssignments';
+import type { Card } from '@/lib/board';
+import type { JobItem } from '@/app/workspace/exterior-actions';
+import type { LoadedBookingState } from '@/lib/atlas-fleet-dispatch-plan';
 import { chicagoDateOf } from '@/lib/atlas-field-bridge';
 import {
   assetHealth, calculateRigLoad, decodeFleet, emptyFleet, encodeFleet,
@@ -17,7 +20,7 @@ import {
   type FleetWorkbook, type ReadingUnit,
 } from '@/lib/fleet-command';
 
-type Props = { base: string; organizationId: string; mode: 'live' | 'preview'; readOnly: boolean };
+type Props = { base: string; organizationId: string; mode: 'live' | 'preview'; readOnly: boolean; bookings:JobItem[]; bookingsState:LoadedBookingState; cards:Card[] };
 type Tab = 'overview'|'assets'|'maintenance'|'readiness'|'rig';
 const tabNames: Record<Tab, string> = {
   overview: 'Command', assets: 'Asset Registry', maintenance: 'Maintenance',
@@ -53,7 +56,7 @@ const demoAsset: FleetAsset[]=[
 ];
 const demoWorkbook=(org:string):FleetWorkbook=>({...emptyFleet(org),assets:demoAsset});
 
-export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
+export function FleetCommand({base,organizationId,mode,readOnly,bookings,bookingsState,cards}:Props) {
   const preview=mode==='preview';
   const canEdit=!preview && !readOnly;
   const storageKey='oj-fleet-command-v1:'+organizationId;
@@ -219,7 +222,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
     </section>
     <AtlasFieldBridge base={base} organizationId={organizationId} mode={mode} view="fleet" fleet={workbook} disabled={readOnly} />
-    <AtlasFleetProjectAssignments org={organizationId} base={base} mode={mode} readOnly={readOnly} fleet={workbook} day={day} />
+    <AtlasFleetProjectAssignments org={organizationId} base={base} mode={mode} readOnly={readOnly} fleet={workbook} day={day} bookings={bookings} bookingsState={bookingsState} cards={cards} />
     <section className="fleet-kpis" aria-label="Fleet status overview">
       <div><span><Truck size={17}/> Logged assets</span><strong>{workbook.assets.length}</strong><small>Local inventory entries</small></div>
       <div><span><AlertTriangle size={17}/> Attention now</span><strong>{attention}</strong><small>Manually flagged or service due</small></div>

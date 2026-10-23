@@ -1,25 +1,44 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Boxes, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ClipboardList, ShieldAlert, Truck } from 'lucide-react';
+import type { Card } from '@/lib/board';
+import type { JobItem } from '@/app/workspace/exterior-actions';
 import type { FleetWorkbook } from '@/lib/fleet-command';
-import { decodeCommercialPortfolio, projectEquipmentEvidence, type CommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
+import { decodeCommercialPortfolio, type CommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
+import {
+  buildFleetDispatchProjection, dispatchRowsInHorizon,
+  type LoadedBookingState, type ProjectDispatchRow,
+} from '@/lib/atlas-fleet-dispatch-plan';
 
 type Props={
   org:string;base:string;mode:'live'|'preview';readOnly:boolean;
-  fleet:FleetWorkbook;day:string;
+  fleet:FleetWorkbook;day:string;bookings:JobItem[];bookingsState:LoadedBookingState;
+  cards:Card[];
 };
+const printedDate=(value:string)=>new Intl.DateTimeFormat('en-US',{
+  month:'short',day:'numeric',year:'numeric',timeZone:'UTC',
+}).format(new Date(value+'T12:00:00Z'));
+const statusText=(value:ProjectDispatchRow['bookingState'])=>({
+  unlinked:'No booking linked',
+  'source-pending':'Source bookings still loading',
+  'source-failed':'Source bookings unavailable',
+  'not-loaded':'Booking ID not among loaded source records',
+  inactive:'Booking is inactive or its date is invalid',
+  loaded:'Booking found in loaded source records',
+}[value]);
 
-/** A read-only projection of local commercial resource candidates. NO asset
- * lock or booking/dispatch assertion; source bookings aren't loaded here.
+/** Resource timeline is a non-mutating overlay on valid device-local projects,
+ * scoped real booking rows and already-authorized shared task records.
  */
-export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day}:Props){
+export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day,bookings,bookingsState,cards}:Props){
   const enabled=mode==='live'&&!readOnly;
   const key='oj-commercial-project-portfolio-v1:'+org;
   const [portfolio,setPortfolio]=useState<CommercialPortfolio|null>(null);
   const [state,setState]=useState<'loading'|'missing'|'valid'|'invalid'>('loading');
   const [error,setError]=useState('');
+  const [horizon,setHorizon]=useState<7|30|90>(30);
   useEffect(()=>{
     setPortfolio(null);setState('loading');setError('');
     if(!enabled){setState('missing');return;}
@@ -35,37 +54,77 @@ export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day}:
     };
     refresh();
     const onStorage=(event:StorageEvent)=>{if(event.key===key||event.key===null)refresh();};
-    window.addEventListener('storage',onStorage);window.addEventListener('focus',refresh);
+    window.addEventListener('storage',onStorage);
+    window.addEventListener('focus',refresh);
     return ()=>{window.removeEventListener('storage',onStorage);window.removeEventListener('focus',refresh);};
   },[key,org,enabled]);
 
-  const active=portfolio?.projects.filter(p=>p.phase!=='archived')??[];
-  const withEquipment=active.filter(p=>p.plannedAssetIds.length>0);
-  const uniqueIds=new Set(active.flatMap(p=>p.plannedAssetIds));
-  const repeated=[...uniqueIds].filter(id=>active.filter(p=>p.plannedAssetIds.includes(id)).length>1);
-  return <section className="atlas-fleet-project-link" aria-label="Commercial candidate asset allocations">
-    <header><div><small>ATLAS / FIELD RESOURCE PLANNING</small><h3>Commercial allocation radar</h3><p>Candidate equipment assignments from this browser’s private commercial project portfolio. No reservations, dispatch orders or confirmed schedules.</p></div>
+  const projection=useMemo(()=>portfolio&&enabled
+    ?buildFleetDispatchProjection(portfolio,fleet,bookings,bookingsState,cards,org,day)
+    :null,[portfolio,enabled,fleet,bookings,bookingsState,cards,org,day]);
+  const visible=useMemo(()=>dispatchRowsInHorizon(projection?.rows??[],day,horizon),[projection,day,horizon]);
+  const days=useMemo(()=>{
+    const groups=new Map<string,ProjectDispatchRow[]>();
+    for(const row of visible.scheduled){
+      if(!row.bookingDate)continue;
+      groups.set(row.bookingDate,[...(groups.get(row.bookingDate)??[]),row]);
+    }
+    return [...groups];
+  },[visible.scheduled]);
+
+  const renderRow=(row:ProjectDispatchRow)=>(
+    <article className="atlas-dispatch-job-card" key={row.projectId}>
+      <div className="atlas-dispatch-job-head">
+        <div><strong>{row.name}</strong><small>{row.buildingCount} scoped building(s) · {row.crewHours} entered PAID crew-hours · {row.liftDays} planned rental days</small></div>
+        <span data-state={row.bookingState}>{row.bookingState==='loaded'?'SOURCE LINKED':'NOT VERIFIED'}</span>
+      </div>
+      <p className="atlas-project-hint">{statusText(row.bookingState)}{row.bookingTime?' · '+row.bookingTime:''}{row.bookingStatus?' · recorded status '+row.bookingStatus:''}. This is not a dispatch authorization.</p>
+      <div className="atlas-dispatch-job-assets"><Truck size={14}/><b>{row.plannedAssets.length} candidate asset(s)</b>
+        {row.assetWarnings.length>0&&<span>{row.assetWarnings.length} status/availability warnings</span>}
+      </div>
+      {row.plannedAssets.length>0&&<ul>{row.plannedAssets.map(asset=><li key={asset.id}>{asset.name} <small>— {asset.state==='recorded-ready'?'Recorded ready, not site-verified':asset.state.replaceAll('-',' ')}</small></li>)}</ul>}
+      {row.sameDayOverlapIds.length>0&&<p className="atlas-project-alert"><ShieldAlert size={15}/>{row.sameDayOverlapIds.length} candidate asset(s) also appear in another project with a different loaded booking on the same day. Actual time overlap is unverified.</p>}
+      <div className="atlas-dispatch-job-tasks"><ClipboardList size={14}/><span>{row.linkedTasks.length} explicitly linked shared task(s)</span>
+        {row.linkedTasks.slice(0,3).map(task=><Link href={base+'/tasks?task='+encodeURIComponent(task.id)} key={task.id}>{task.title} · {task.stage} <ArrowUpRight size={12}/></Link>)}
+      </div>
+    </article>
+  );
+  return <section className="atlas-fleet-project-link atlas-fleet-dispatch-timeline" aria-label="Commercial resource planning timeline">
+    <header><div><small>ATLAS / FIELD RESOURCE PLANNING</small><h3>Commercial dispatch planning radar</h3><p>Source-linked booking dates, local equipment candidates and shared task snapshots. No reservations, GPS, crew availability or authorized dispatch decisions are recorded by this view.</p></div>
       <Link href={base+'/b/exterior/commercial'}>Open commercial projects <ArrowUpRight size={15}/></Link>
     </header>
-    {!enabled&&<p>Private project allocations are hidden in read-only and preview sessions.</p>}
-    {enabled&&state==='loading'&&<p>Checking local commercial project portfolio…</p>}
-    {enabled&&state==='missing'&&<p>No local commercial portfolio on this device. Open Commercial Estimating to save project-level candidate equipment assignments.</p>}
-    {enabled&&state==='invalid'&&<p className="atlas-project-alert" role="alert"><ShieldAlert size={15}/> The local commercial portfolio was rejected: {error}. Existing browser data was not overwritten.</p>}
-    {enabled&&state==='valid'&&<>
+    {!enabled&&<p>Private local commercial resource plans are not inspected in preview or read-only sessions.</p>}
+    {enabled&&state==='loading'&&<p>Checking this device’s private commercial portfolio…</p>}
+    {enabled&&state==='missing'&&<p>No private commercial project portfolio exists on this device. Save projects and candidate equipment in Commercial Estimating.</p>}
+    {enabled&&state==='invalid'&&<p className="atlas-project-alert" role="alert"><ShieldAlert size={15}/> Invalid local commercial portfolio: {error}. No data was overwritten.</p>}
+    {enabled&&projection&&<>
       <div className="atlas-fleet-project-kpis">
-        <div><b>{active.length}</b><span>Active local plans</span></div>
-        <div><b>{withEquipment.length}</b><span>Plans listing equipment</span></div>
-        <div><b>{repeated.length}</b><span>Asset IDs reused across plans</span></div>
+        <div><b>{projection.rows.length}</b><span>Active local commercial plans</span></div>
+        <div><b>{projection.sourcedRows}</b><span>Plans with bookings found in loaded source</span></div>
+        <div><b>{projection.unscheduledRows}</b><span>Unlinked or unverified dates</span></div>
+        <div><b>{projection.collisionRows}</b><span>Same-day candidate asset contention flags</span></div>
+        <div><b>{projection.linkedTaskCount}</b><span>Loaded, explicitly linked shared tasks</span></div>
       </div>
-      {repeated.length>0&&<p className="atlas-project-alert"><Boxes size={15}/> {repeated.length} candidate asset ID(s) are listed in multiple active projects. Without verified booking dates and times in this view, this is NOT a confirmed schedule conflict.</p>}
-      <div className="atlas-fleet-project-list">
-        {active.length===0&&<p>No active commercial project entries on this device. Archived or unsaved drafts are not scheduled work.</p>}
-        {active.map(p=><article key={p.id}>
-          <div><strong>{p.name}</strong><small>{p.input.sites.length} buildings · {p.phase==='founder-review'?'Founder review requested':'Scoping'} · {p.bookingId?'Booking ID recorded locally; not verified on Fleet screen':'No linked booking'}</small></div>
-          <ul>{p.plannedAssetIds.length?projectEquipmentEvidence(p,fleet,day).map(asset=>
-            <li key={asset.id}>{asset.name} <span>— {asset.state==='recorded-ready'?'recorded ready (not inspected for this job)':asset.state.replaceAll('-',' ')}</span></li>
-          ):<li>No candidate equipment selected</li>}</ul>
-        </article>)}
+      <p className="atlas-project-hint atlas-fleet-source-status">
+        {bookingsState==='loading'?'Exterior booking source still loading; no booking is currently confirmed by this projection.':
+          bookingsState==='failed'?'Exterior booking source failed to load; booking dates remain unknown.':
+          'Exterior booking source returned '+projection.loadedBookings+' rows for this account. Coverage may be partial; missing matches remain unknown.'}
+      </p>
+      <div className="atlas-fleet-horizon"><span><CalendarDays size={15}/> Date horizon (Chicago calendar)</span>
+        {([7,30,90] as const).map(value=><button key={value} type="button" aria-pressed={horizon===value} onClick={()=>setHorizon(value)}>{value} days</button>)}
+      </div>
+      <div className="atlas-fleet-dated-plans">
+        {days.length===0&&<p>No validated loaded booking dates within the selected horizon. That is not evidence of an empty company schedule.</p>}
+        {days.map(([date,rows])=><section key={date} className="atlas-fleet-day-group">
+          <header><h4>{printedDate(date)}</h4><span>{rows.length} local planned project(s), each with an exact loaded booking ID</span></header>
+          <div className="atlas-fleet-day-cards">{rows.map(renderRow)}</div>
+        </section>)}
+      </div>
+      {visible.outside.length>0&&<p className="atlas-project-hint">Additional {visible.outside.length} project(s) have a loaded booking date outside this {horizon}-day window. Change the horizon to inspect the relevant dates.</p>}
+      <div className="atlas-fleet-unverified">
+        <h4>Unscheduled / source unverified <span>{visible.unverified.length}</span></h4>
+        <p>Projects without a currently resolved booking date must not be treated as booked capacity.</p>
+        <div className="atlas-fleet-day-cards">{visible.unverified.map(renderRow)}</div>
       </div>
     </>}
   </section>;
