@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { Card } from '@/lib/board';
 import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
 import { emptyFieldCrewPlan, type FieldCrewPlan } from '@/lib/atlas-field-mission';
+import { mergeNonConflictingPortfolio, previewPortfolioMerge, type PortfolioMergePlan } from '@/lib/atlas-portfolio-merge';
 import { AtlasFieldMissionPanel } from './AtlasFieldMissionPanel';
 import type { ExtBooking } from '@/lib/exterior';
 import type { EstimateInput } from '@/lib/commercial-estimate';
@@ -63,6 +64,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   const [notice,setNotice]=useState('');
   const [day,setDay]=useState('');
   const [showPortfolio,setShowPortfolio]=useState(true);
+  const [pendingImport,setPendingImport]=useState<{incoming:CommercialPortfolio;preview:PortfolioMergePlan;baseline:number;filename:string}|null>(null);
 
   const reload=useCallback(()=>{
     if(!canEdit)return;
@@ -90,7 +92,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   useEffect(()=>{
     setReady(false);setSelectedId(null);setExpectedRevision(null);setPortfolio(emptyCommercialPortfolio(org));
     setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
-    setFleet(null);setNotice('');setDay(dateChicago());
+    setFleet(null);setNotice('');setPendingImport(null);setDay(dateChicago());
     if(!canEdit){setReady(true);return;}
     reload();reloadFleet();
     const onStorage=(event:StorageEvent)=>{
@@ -207,18 +209,61 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       setNotice('Private portfolio exported in unencrypted JSON. Store and transfer through a secure channel.');
     }catch(error){setNotice(error instanceof Error?error.message:'Export failed.');}
   }
+  /** File selection ONLY previews; no local or remote records are written. */
   async function importPortfolio(file:File|undefined){
-    if(!canEdit||!file)return;
+    if(!canEdit||!ready||!file)return;
+    setPendingImport(null);
     try{
       if(file.size>1024*1024)throw new Error('Portfolio file exceeds 1 MB.');
       const imported=decodeCommercialPortfolio(await file.text(),org);
-      if(!window.confirm('Replace ALL '+portfolio.projects.length+' browser-local portfolio projects with '+imported.projects.length+' imported projects? Export your existing portfolio first. Existing shared bookings/tasks will NOT change.'))return;
       const currentState=storagePortfolio();
-      if(currentState.revision!==portfolio.revision)throw new Error('Portfolio changed in another tab. Reload before replacing.');
-      const importedNext={...imported,revision:currentState.revision+1};
-      persist(importedNext,currentState.revision,'Private portfolio imported. Select a project to load it into the estimator; it is not synced to Jacob.');
-      setSelectedId(null);setExpectedRevision(null);setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
-    }catch(error){setNotice(error instanceof Error?error.message:'Import rejected. Existing portfolio was not modified.');}
+      if(currentState.revision!==portfolio.revision)
+        throw new Error('Portfolio changed in another tab. Reload before importing.');
+      const preview=previewPortfolioMerge(currentState,imported,org);
+      setPendingImport({incoming:imported,preview,baseline:currentState.revision,filename:file.name.slice(0,160)});
+      setNotice('Import file validated. Review the preview below before choosing a manual action. No source records were changed.');
+    }catch(error){
+      setNotice(error instanceof Error?error.message:'Import rejected. Existing portfolio was not modified.');
+    }
+  }
+  function applyPendingImport(strategy:'merge'|'replace'){
+    if(!canEdit||!ready||!pendingImport)return;
+    try{
+      const currentState=storagePortfolio();
+      if(currentState.revision!==portfolio.revision||currentState.revision!==pendingImport.baseline)
+        throw new Error('Portfolio changed since this preview was created. Cancel and reselect the file; no changes were made.');
+      // Recompute against the freshest validated storage, never trust a stale
+      // UI summary or use the other browser's revision as a global clock.
+      const preview=previewPortfolioMerge(currentState,pendingImport.incoming,org);
+      if(strategy==='merge'){
+        if(!preview.capacityAvailable)throw new Error('Import would exceed the 24-project browser limit. Nothing was imported.');
+        if(!preview.additions.length){
+          setNotice('No new project IDs in this file. '+preview.conflicts.length+' conflicting record(s) remain untouched.');
+          setPendingImport(null);return;
+        }
+        if(!window.confirm('MERGE only '+preview.additions.length+' new exact project IDs into this browser? '+
+            preview.conflicts.length+' conflicting same-ID records will be SKIPPED and left unchanged. '+
+            'Existing projects, Fleet and source bookings are never overwritten. Continue?'))return;
+        const result=mergeNonConflictingPortfolio(currentState,pendingImport.incoming,org);
+        if(!result.changed)throw new Error('No new records to import. Nothing was changed.');
+        persist(result.next,currentState.revision,'Merged '+result.plan.additions.length+' new browser-local project(s). '+
+          result.plan.conflicts.length+' conflicting same-ID record(s) were SKIPPED. No founder devices were synchronized.');
+      }else{
+        if(!window.confirm('REPLACE ALL '+currentState.projects.length+' browser-local project(s) with '+
+            pendingImport.incoming.projects.length+' from the selected file? Local-only projects NOT in the file will be LOST. '+
+            'Export a backup first. Shared bookings and tasks stay untouched. Continue?'))return;
+        const importedNext={...pendingImport.incoming,revision:currentState.revision+1};
+        persist(importedNext,currentState.revision,'Private portfolio REPLACED from explicit file. It remains only on this device.');
+        setSelectedId(null);setExpectedRevision(null);setPhase('scoping');setBookingId(null);
+        setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
+        // Do not leave an old removed project's unsaved scope in the estimator
+        // under a misleading 'new project' label after destructive replacement.
+        onLoad({name:'New commercial opportunity',input:newEstimate(),review:[false,false,false,false,false]});
+      }
+      setPendingImport(null);
+    }catch(error){
+      setNotice(error instanceof Error?error.message:'Import was refused. No records were changed.');
+    }
   }
   if(!canEdit)return <section className="atlas-project-portfolio"><header><div><small>ATLAS / PROJECT PORTFOLIO</small><h3>Commercial project register</h3></div></header><p>Private device-local project management is unavailable in preview or read-only mode. Nothing was read from local browser project storage.</p></section>;
   return <section className="atlas-project-portfolio" aria-label="Private commercial project portfolio">
@@ -236,6 +281,32 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <button type="button" className="secondary" disabled={!ready} onClick={()=>fileInput.current?.click()}><FileInput size={15}/> Import portfolio</button>
         <input type="file" ref={fileInput} hidden accept="application/json,.json" aria-label="Import private commercial project portfolio" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importPortfolio(file);}}/>
       </div>
+      {pendingImport&&<section className="atlas-portfolio-import-preview" aria-label="Imported portfolio dry-run preview">
+        <header><div><small>ATLAS / FOUNDER FILE HANDOFF · DRY RUN</small><h4>Review import before writing</h4>
+          <p>{pendingImport.filename} · Validated for this organization · Nothing imported yet</p></div>
+          <button type="button" className="secondary" onClick={()=>{setPendingImport(null);setNotice('Pending file import cancelled. Original records untouched.');}}>Cancel preview</button>
+        </header>
+        <div className="atlas-portfolio-import-counts">
+          <span><strong>{pendingImport.preview.additions.length}</strong> New exact IDs</span>
+          <span><strong>{pendingImport.preview.identicalIds.length}</strong> Already identical</span>
+          <span><strong>{pendingImport.preview.conflicts.length}</strong> Same-ID conflicts</span>
+          <span><strong>{pendingImport.preview.projectedCount}/{pendingImport.preview.limit}</strong> Project capacity after merge</span>
+        </div>
+        <p className="atlas-portfolio-import-disclaimer">Two devices may edit the same project independently. Timestamps and revision numbers cannot decide whose edits win. A merge adds ONLY new project IDs; identical IDs remain untouched and different same-ID records are skipped, never overwritten. A missing local ID could represent a previously deleted project; review imported records before relying on them. File exports can contain private customer/site details and are not encrypted.</p>
+        {pendingImport.preview.additions.length>0&&<div className="atlas-portfolio-import-details"><strong>New projects eligible for safe merge</strong>
+          {pendingImport.preview.additions.map(p=><p key={p.id}>{p.name} · ID {short(p.id)} · local version {p.revision}</p>)}</div>}
+        {pendingImport.preview.conflicts.length>0&&<div className="atlas-portfolio-import-details" role="status"><strong>Conflicts: NOT automatically merged</strong>
+          {pendingImport.preview.conflicts.map(c=><p key={c.id}>ID {short(c.id)} · This device: “{c.existingName}” (v{c.existingRevision}) · File: “{c.incomingName}” (v{c.incomingRevision})</p>)}
+          <p>Use separate exports and manually reconcile these projects. Do not assume that higher revision or newer timestamps indicate the correct copy.</p>
+        </div>}
+        {!pendingImport.preview.capacityAvailable&&<p className="atlas-project-alert" role="alert">Merge exceeds the 24-project limit. No automatic partial import will occur; export/resolve excess projects or consciously replace the entire portfolio.</p>}
+        <div className="atlas-portfolio-import-actions">
+          <button type="button" className="primary" disabled={!ready||!pendingImport.preview.capacityAvailable||pendingImport.preview.additions.length===0}
+            onClick={()=>applyPendingImport('merge')}><Plus size={15}/> Merge {pendingImport.preview.additions.length} new projects only</button>
+          <button type="button" className="secondary" onClick={()=>applyPendingImport('replace')}><ShieldAlert size={15}/> Replace all (destructive)</button>
+          <button type="button" className="secondary" onClick={exportPortfolio}><Download size={15}/> Back up current portfolio</button>
+        </div>
+      </section>}
       {!ready&&<p className="atlas-project-alert" role="alert">Project storage not verified. No portfolio writes are allowed. {notice}</p>}
       <div className="atlas-project-list" aria-label="Saved local commercial projects">
         {portfolio.projects.length===0&&<p>No saved projects on this device. The existing single local estimate is untouched; use “Save as new project” to retain it in this portfolio.</p>}
