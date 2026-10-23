@@ -26,9 +26,9 @@ const units:readonly {value:EstimateUnit;label:string}[]=[
 const safeNum=(value:string)=>value.trim()===''?0:Number(value);
 const storageKey=(org:string,id:string)=>`oj-exterior-estimate-v1:${org}:${id}`;
 function makeBook(estimate:ExteriorEstimate):LocalEstimateBook{return {schema:1,current:estimate,revisions:[]};}
-function moneyEditor(n:number|null,change:(n:number|null)=>void,allowUnknown=false){
+function moneyEditor(n:number|null,change:(n:number|null)=>void,allowUnknown=false,disabled=false){
  return <input type="number" inputMode="decimal" min="0" max="1000000" step=".01" aria-label={allowUnknown?'Known unit cost, blank when unknown':'Dollar amount'} value={n??''}
-  placeholder={allowUnknown?'Unknown':'0'} onChange={e=>change(allowUnknown&&e.target.value===''?null:safeNum(e.target.value))}/>;
+  placeholder={allowUnknown?'Unknown':'0'} disabled={disabled} onChange={e=>change(allowUnknown&&e.target.value===''?null:safeNum(e.target.value))}/>;
 }
 export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,mode}:Props){
  const params=useSearchParams(), id=params.get('lead')??'';
@@ -186,8 +186,8 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
              <label>Quantity<input type="number" min=".01" max="100000" step=".01" inputMode="decimal" value={line.quantity} disabled={readonly||!!storageFailure} onChange={e=>patchLine(line.id,{quantity:safeNum(e.target.value)})}/></label>
              <label>Unit<select value={line.unit} disabled={readonly||!!storageFailure} onChange={e=>patchLine(line.id,{unit:e.target.value as EstimateUnit})}>
                {units.map(u=><option key={u.value} value={u.value}>{u.label}</option>)}</select></label>
-             <label>Price / unit{moneyEditor(line.pricePerUnit,n=>patchLine(line.id,{pricePerUnit:n??0}))}</label>
-             <label>Est. cost / unit{moneyEditor(line.costPerUnit,n=>patchLine(line.id,{costPerUnit:n}),true)}</label>
+             <label>Price / unit{moneyEditor(line.pricePerUnit,n=>patchLine(line.id,{pricePerUnit:n??0}),false,readonly||!!storageFailure)}</label>
+             <label>Est. cost / unit{moneyEditor(line.costPerUnit,n=>patchLine(line.id,{costPerUnit:n}),true,readonly||!!storageFailure)}</label>
              <label className="ecest-notes">Site assumptions / exclusions<textarea rows={2} maxLength={800} value={line.notes} disabled={readonly||!!storageFailure} onChange={e=>patchLine(line.id,{notes:e.target.value})} placeholder="Access, surface conditions, equipment, measurements…"/></label>
            </div>
          </article>)}</div>
@@ -195,8 +195,8 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
        <section className="ecest-panel">
          <header className="ecest-section-title"><div><span className="ecest-eyebrow">02 / PRICE ADJUSTMENTS</span><h2>Unit economics</h2><p>Unknown costs stay unknown; entering a zero requires a real zero-cost estimate.</p></div></header>
          <div className="ecest-adjusts">
-           <label>Customer discount (flat $){moneyEditor(book.current.discount,n=>patch(v=>({...v,discount:n??0})))}</label>
-           <label>Travel/mobilization cost (blank = unknown){moneyEditor(book.current.travelCost,n=>patch(v=>({...v,travelCost:n})),true)}</label>
+           <label>Customer discount (flat $){moneyEditor(book.current.discount,n=>patch(v=>({...v,discount:n??0})),false,readonly||!!storageFailure)}</label>
+           <label>Travel/mobilization cost (blank = unknown){moneyEditor(book.current.travelCost,n=>patch(v=>({...v,travelCost:n})),true,readonly||!!storageFailure)}</label>
            <label>Direct-cost contingency (%)
              <input type="number" min="0" max="100" step=".5" value={book.current.contingencyPct} disabled={readonly||!!storageFailure} onChange={e=>patch(v=>({...v,contingencyPct:safeNum(e.target.value)}))}/></label>
          </div>
