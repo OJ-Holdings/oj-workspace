@@ -121,7 +121,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
   const partialSource=(totalBookings!==null&&totalBookings!==undefined&&totalBookings>(sourceSummary?.bookings.loaded??0))||
     (totalLeads!==null&&totalLeads!==undefined&&totalLeads>(sourceSummary?.leads.loaded??0));
 
-  return <main className="atlas-nexus" aria-label="NEXUS Project 360">
+  return <div className="atlas-nexus" role="region" aria-label="NEXUS Project 360">
     <header className="atlas-nexus-hero">
       <div className="atlas-nexus-brand">
         <span className="atlas-nexus-icon"><Network size={24}/></span>
@@ -281,5 +281,5 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
           </section>
         </div>
       </>}
-  </main>;
+  </div>;
 }
