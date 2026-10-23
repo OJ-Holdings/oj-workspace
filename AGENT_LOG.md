@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (ATLAS V3 R24 Statement Import Inspection)
+**Summary:** Added owner-only Finance statement CSV selection in private browser memory; precise USD/date/quoted-field parsing with row-level rejection, local bank opening-to-closing arithmetic checks, and source-honest operating-ledger potential matches (abs cents/dates). Nothing is written to Supabase, Mercury or localStorage, and no journal, tax form, reconciliation or accounting period is posted/closed.
+**Files:** src/lib/atlas-statement-review.ts, src/components/app/AtlasStatementInspector.tsx, src/components/app/Pages.tsx, src/styles/atlas-v3.css, tests/atlas-statement-review.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.
+**Verified:** PR #91 merged to main at `97f266be08e552086df58a6181fc852c3d7a3021` after exact-head CI `40003491512` SUCCESS (PowerShell helper parse, npm ci, typecheck, tests, production build). Independent post-merge main CI, actual Windows port 3011 serving version and founders' mobile/signed-in test are separate checks.
+**Database gate:** Supabase metadata was inspected read-only: project OJ EXTERIOR CARE LEADS was ACTIVE_HEALTHY, migration inventory ends at `20261019004044` (`oj_solutions_outreach_pipeline`), and no backed-up/restored private accounting target was validated. Draft protected #42 remains unmerged; do not apply new accounting schema until a real backup/isolated restore rehearsal and RLS review.
+**Next:** Confirm signed-in owner-only statement import/multiple bank CSV formats on devices, then move toward canonical legally verified chart of accounts, immutable/idempotent approved postings, full statement coverage, true reconciliations and owner capital/AR/AP. No professional CPA or tax-filing claims.
+
+
 ## 2026-10-23 -- ChatGPT (ATLAS V3 R22-R23 bank review and books preparation)
 **Summary:** Added the real, owner-only Finance bank comparison desk with Mercury source-row statuses/dates and read-only equal-amount nearby-date candidate suggestions; ambiguous rows and missing/partial/non-USD source evidence remain explicit. Added scoped month-end preparation with direct links to source-entry exceptions, source-relevant provider gaps, permanent unclosed-book warnings and downloadable nonfinal TXT preparation brief.
 **Files:** src/components/app/{AtlasBankReview,AtlasMonthEndPrep,Pages}.tsx, src/lib/{atlas-bank-review,atlas-close-prep}.ts, src/styles/atlas-v3.css, tests/{atlas-bank-review,atlas-close-prep}.test.ts, docs/ATLAS_ACCOUNTING_ENGINEERING.md.
