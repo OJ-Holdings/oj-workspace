@@ -1,4 +1,5 @@
 import { calculateEstimate, type EstimateInput } from './commercial-estimate';
+import { validDay } from './fleet-command';
 
 /** Private, operator-entered WORKFORCE SCENARIO. No crew member is assigned,
  * booked, paid or verified by recording this plan. */
@@ -129,7 +130,8 @@ export function internalFieldMissionPacket(ctx: FieldPacketContext): string {
   const estimate = calculateEstimate(project.input);
   const findings = fieldWorkforceFindings(project.input,project.fieldCrewPlan??emptyFieldCrewPlan());
   const verified = ctx.bookingState==='loaded-active' && ctx.booking!==null &&
-    ctx.booking.id.toLowerCase()===project.bookingId?.toLowerCase();
+    ctx.booking.id.toLowerCase()===project.bookingId?.toLowerCase() &&
+    validDay(ctx.booking.date) && ctx.booking.status!=='cancelled' && ctx.booking.status!=='denied';
   return [
     'OJ EXTERIOR CARE / ATLAS — INTERNAL FIELD MISSION PACK',
     'CONFIDENTIAL FIELD PLANNING • NOT A DISPATCH ORDER, CONTRACT, APPROVED PRICE OR SAFETY CERTIFICATION',
@@ -175,6 +177,7 @@ export function internalFieldMissionPacket(ctx: FieldPacketContext): string {
     '',
     'REQUIRED INDEPENDENT HUMAN CHECKS: weather, site access, hazards, PPE, permissions, client terms, confirmed crew, actual equipment condition, rentals, liability/worker coverage and authorized schedule.',
     'No invoices, revenue, customer payments, email, phone calls, equipment bookings, task assignments or dispatches were generated.',
-    'This pack is a device-local, time-sensitive snapshot; verify live source records again before field execution.',
+    'This pack is the CURRENT EDITOR state and may contain UNSAVED changes; verify all sources again before field execution.',
+    'If project or building NAMES themselves contain personal information, remove it before sharing this private pack.',
   ].join('\n').slice(0,16000);
 }
