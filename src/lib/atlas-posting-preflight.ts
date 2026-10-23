@@ -49,7 +49,7 @@ export function preflightPostingBatch(
     const key=`${journal.entityId}\u0000${journal.sourceId}`;
     if(sourceIds.has(key))issues.push({code:'source-id-conflict',id:journal.id,detail:'Source identity repeated within its legal entity. An idempotent posting key is required.'});
     sourceIds.add(key);
-    const lock=lockedThrough[journal.entityId]??null;
+    const lock=Object.prototype.hasOwnProperty.call(lockedThrough,journal.entityId) ? lockedThrough[journal.entityId]??null : null;
     const inspection=reviewJournal(journal,accounts,lock);
     for(const reason of inspection.reasons)issues.push({code:'journal-invalid',id:journal.id,detail:reason});
   }
