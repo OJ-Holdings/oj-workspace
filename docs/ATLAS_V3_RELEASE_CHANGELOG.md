@@ -4,6 +4,16 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 30 — PORTABLE QUOTE HANDOFF AND APPROVAL-SAFETY PREFLIGHT
+
+**PR:** [#103](https://github.com/OJ-Holdings/oj-workspace/pull/103). **Merged SHA:** `19cf2613fb6f9921ef353fd4919042d2b715928f`. **Exact PR-head CI:** `40032631314` SUCCESS.
+
+- New validated `oj-exterior-internal-quote` file-transfer format for complete line-item estimate plus local history, scoped to exact original company and lead and restricted to at most eight revisions, 120 KB input, verified numeric bounds and timestamp semantics. Import preserves unknown costs rather than forcing zero.
+- Founder Estimating Workbench now exports and imports private internal packages, explicitly warns before replacing a local draft, and shows source-match, shared quote price, existing-booking, missing-cost and customer-acceptance **unverified** states.
+- Security/accuracy tests cover wrong organization/lead, forged accepted or paid statuses, corrupt versions, invalid costs, duplicate revisions, unexpected/untrusted fields and stale source references. No file import alone causes a customer message, lead update, schedule change, approval or payment.
+- Read-only Supabase audit confirmed that durable structured quote-version records are not currently present, and file document metadata cannot safely substitute as a quote ledger. Added [quote-version schema and deployment gate](./EXTERIOR_QUOTE_VERSION_STORAGE_GATE.md) for isolated restore, RLS/role proof, source version receipts and atomic idempotent booking.
+- **Full Exterior plan: 19%** engineering estimate (W1 5 + W2 3 + W3 5 + W4 6), up from R29 17%. No automatic cross-device sync or production DB migration. Windows served SHA and real founder mobile/desktop acceptance unverified.
+
 ## ATLAS V3 / Exterior Command Release 29 — LINE-ITEM ESTIMATE ENGINE
 
 **PR:** [#101](https://github.com/OJ-Holdings/oj-workspace/pull/101). **Merged SHA:** `ef2ed0c440bbea75e807e82115405161ec3c5f2a`. **Exact-head PR CI:** `40030364222` SUCCESS.

@@ -3,6 +3,15 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R30 PORTABLE FOUNDER QUOTE HANDOFF (2026-10-23)
+
+- **R30 code:** PR [#103](https://github.com/OJ-Holdings/oj-workspace/pull/103) merged main SHA `19cf2613fb6f9921ef353fd4919042d2b715928f`. Exact-head CI run `40032631314` SUCCESS (npm ci, typecheck, full tests, Next build). Independently check merged-main CI and actual production served SHA.
+- **Practical workflow:** At `/workspace/b/exterior/estimate?lead=<exact existing lead ID>`, export an `oj-exterior-internal-quote` JSON package containing the original typed estimate and up to eight saved local revisions, manually send it through a private trusted channel, import into the same member-authorized organization/lead after verifying file type and explicit overwrite confirmation. Imported values do NOT update shared lead or booking automatically.
+- **Safety:** Strict whitelist parsing, max 120 KB, same original organization and lead ID, valid numeric money/quantities and revision IDs/dates. Reject forged accepted/sent status, broken JSON, unknown customer, corrupt or out-of-range amounts, and cross-org package. Cost null remains unknown. The handoff is not digitally signed or server authenticated as a provider/customer receipt.
+- **UI:** Quote readiness panel shows source baseline match, whether proposed price equals the original shared lead quote, exact linked booking count, missing direct costs and ALWAYS unverified customer acceptance. R29 guarded `recordExteriorEstimatedPrice` and `BookDialog` are separate explicit actions.
+- **Live read-only database review:** `leads`, `bookings`, `oj_memberships`, and `oj_documents` were inspected. No current `oj_exterior_quote_versions` table. `oj_documents` metadata is NOT a structured quote ledger. **No production schema or data changed** in this release. Full schema/RLS/restore gate designed in `docs/EXTERIOR_QUOTE_VERSION_STORAGE_GATE.md`.
+- **Weighted Exterior completion: 19%** (W1 5%, W2 3%, W3 5%, W4 6%). Actual synchronized multi-founder revisions and approved work-order/booking evidence are NOT shipped. Windows server version, 2-founder iPhone QA and staging restore/RLS gate remain unverified.
+
 ## EXTERIOR COMMAND R29 ESTIMATING WORKBENCH (2026-10-23)
 
 - **R29:** PR [#101](https://github.com/OJ-Holdings/oj-workspace/pull/101), merged `ef2ed0c440bbea75e807e82115405161ec3c5f2a`, exact-head CI `40030364222` SUCCESS (dependencies, TS, full regression suite, Next production build). Main CI `40030566386` must be checked separately.
