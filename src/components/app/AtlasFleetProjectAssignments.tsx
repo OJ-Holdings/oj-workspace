@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, CalendarDays, ClipboardList, ShieldAlert, Truck } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ClipboardList, ShieldAlert, Truck, Users } from 'lucide-react';
 import type { Card } from '@/lib/board';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import type { FleetWorkbook } from '@/lib/fleet-command';
@@ -79,6 +79,16 @@ export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day,b
         <span data-state={row.bookingState}>{row.bookingState==='loaded'?'SOURCE LINKED':'NOT VERIFIED'}</span>
       </div>
       <p className="atlas-project-hint">{statusText(row.bookingState)}{row.bookingTime?' · '+row.bookingTime:''}{row.bookingStatus?' · recorded status '+row.bookingStatus:''}. This is not a dispatch authorization.</p>
+      <div className="atlas-dispatch-job-crew" data-state={row.crewModel.state}>
+        <Users size={14}/>
+        <span>{row.crewModel.state==='not-modeled'?'Crew capacity not modeled':
+          row.crewModel.state==='no-labor-entered'?'Paid labor hours not entered':
+          row.crewModel.crewSize+' crew × '+row.crewModel.productiveHoursPerPersonDay+
+            ' productive hr/person/day × '+row.crewModel.plannedFieldDays+' days'}
+          {' · '}<b>{row.crewModel.state==='shortfall'?'MODELED SHORTFALL: '+Math.abs(row.crewModel.capacityGapHours??0)+' paid hours':
+            row.crewModel.state==='assumptions-fit'?'Entered capacity fits, staff unverified':'Verification required'}</b>
+        </span>
+      </div>
       <div className="atlas-dispatch-job-assets"><Truck size={14}/><b>{row.plannedAssets.length} candidate asset(s)</b>
         {row.assetWarnings.length>0&&<span>{row.assetWarnings.length} status/availability warnings</span>}
       </div>
@@ -104,6 +114,7 @@ export function AtlasFleetProjectAssignments({org,base,mode,readOnly,fleet,day,b
         <div><b>{projection.unscheduledRows}</b><span>Unlinked or unverified dates</span></div>
         <div><b>{projection.collisionRows}</b><span>Same-day candidate asset contention flags</span></div>
         <div><b>{projection.linkedTaskCount}</b><span>Loaded, explicitly linked shared tasks</span></div>
+        <div><b>{projection.crewShortfallRows}</b><span>Paid crew-hour scenario shortfalls</span></div>
       </div>
       <p className="atlas-project-hint atlas-fleet-source-status">
         {bookingsState==='loading'?'Exterior booking source still loading; no booking is currently confirmed by this projection.':
