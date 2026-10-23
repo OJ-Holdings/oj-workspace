@@ -23,7 +23,7 @@ const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
 
 /** Every Exterior Care tab beyond the shared ones: the records the original Exterior Care app works on. */
-export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean }) {
+export function ExteriorView({ tab, org, mode, readOnly, cards }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean; cards: import('@/lib/board').Card[] }) {
   const [result, setResult] = useState<ExteriorResult | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [attempt, setAttempt] = useState(0);
