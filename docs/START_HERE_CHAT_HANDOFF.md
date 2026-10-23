@@ -3,6 +3,15 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R32 FLEET-TO-FIELD EQUIPMENT READINESS (2026-10-23)
+
+- **R32 merged:** [PR #107](https://github.com/OJ-Holdings/oj-workspace/pull/107) at commit `03cfbdbac8e13c4540bd8e6df1138144b827cd2b`. Exact final feature-head CI `40041648800` SUCCESS (npm ci, typecheck, full tests, build). Check separate merged-main CI `40041943291`.
+- **Operator route:** Each `/workspace/b/exterior/field?booking=<exact source booking ID>` now contains an Equipment Plan. It reads only the existing browser-local `oj-fleet-command-v1:<org>` from Fleet Command. Asset selections are stored separately at `oj-exterior-field-equipment-v1:<org>:<booking>`, with exact org/lead/booking stamp. Never infer identity by customer name, phone, property or address.
+- **Live usefulness:** Select real locally entered truck, pressure washer, water-fed pole, hose/rig or other asset. Review due/near-due maintenance, out-of-service status, same-day asset overlap among only loaded bookings/plans on this browser, stale source date/status, unreviewed/missing assets, local Fleet pre-departure checklist, estimated rig load versus manually entered capacity. Readiness remains manual and cannot certify safe equipment use or real availability.
+- **Local operator review:** A local same-Chicago-day review timestamp is optional and blocked for missing/empty asset selections or locally recorded stop conditions; any asset change resets the review. Not an external inspection, reservation receipt, customer consent or crew dispatch. Source changed? Rebase deliberately, then re-review.
+- **No shared writes:** This release introduced no migrations, Supabase write actions, fleet maintenance updates, booking state changes, invoices, payments, photo storage, or cross-device equipment reservations. Private Windows Supabase pg_dump script exists; no verified encrypted backup + isolated restore evidence exists in this chat. Continue protected RLS/migration gate.
+- **Weighted complete program:** **24%** engineering estimate after R32 (W1=5, W2=3, W3=5, W4=6, W5=3, W7=2, others 0), per `docs/EXTERIOR_COMMAND_PROGRESS.md`. Windows host release SHA, verified two-founder iPhone/desktop UAT and external independent DB recovery remain not proven.
+
 ## EXTERIOR COMMAND R31 BOOKING-BOUND MOBILE FIELD COMMAND (2026-10-23)
 
 - **R31 merged:** PR #105 (https://github.com/OJ-Holdings/oj-workspace/pull/105), merged SHA 9b93a7f3743e05fca3b851124dd34129a75b40ea. Exact feature-head CI 40034470435 SUCCESS (npm ci, typecheck, full tests, production build). Check separate merged-main CI and actual served Windows/Tailscale SHA.
