@@ -74,3 +74,19 @@ test('reversal cannot reuse original identity, backdate incorrectly, or lack a n
   assert.throws(()=>prepareReversalDraft(original,{id:'new',sourceId:'new-source',date:'2026-02-30',approvedBy:'person'}));
   assert.throws(()=>prepareReversalDraft(original,{id:'new',sourceId:'new-source',date:'2026-10-24',approvedBy:null}));
 });
+
+
+test('arbitrary entity labels cannot rewrite batch result object prototypes',()=>{
+ const weird:LedgerAccount[]=[
+  {id:'weird-cash',entityId:'__proto__',code:'1000',name:'Cash',class:'asset',currency:'USD',active:true},
+  {id:'weird-sales',entityId:'__proto__',code:'4000',name:'Sales',class:'income',currency:'USD',active:true},
+ ];
+ const x:JournalDraft={...journal('proto'),entityId:'__proto__',lines:[
+   {accountId:'weird-cash',debitCents:1,creditCents:0},
+   {accountId:'weird-sales',debitCents:0,creditCents:1},
+ ]};
+ const r=preflightPostingBatch(weird,[x]);
+ assert.equal(r.valid,true);
+ assert.equal(r.byEntity?.['__proto__'].balanced,true);
+ assert.equal(Object.getPrototypeOf(r.byEntity),null);
+});
