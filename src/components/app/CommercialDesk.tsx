@@ -10,6 +10,7 @@ import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialE
 import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
+import { AtlasCommercialPortfolio } from './AtlasCommercialPortfolio';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -172,6 +173,9 @@ export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:s
       <div className="com-seal" aria-hidden="true"><strong>OJ</strong><span>FIELD / OPERATIONS</span></div>
     </header>
     <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
+    {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly}
+      name={name} input={input} review={review} bookings={data.bookings}
+      onLoad={project=>{setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}
     <div className="com-snapshot">
       <div><span>BUILDINGS</span><strong>{estimate.sites}</strong><small>{estimate.floors} floors · {estimate.panes} panes (estimated)</small></div>
       <div><span>CREW-HOURS</span><strong>{estimate.crewHours}</strong><small>Total paid crew-hours, not elapsed hours</small></div>
