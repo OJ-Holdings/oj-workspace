@@ -129,13 +129,13 @@ export function ConnectedOperations({base,org,cards,activity,dashboard,jobs,jobs
       </section>
       <aside className="operations-aside">
         <section className="operations-panel">
-          <h2><GitBranchPlus size={19}/> Verified connections</h2>
-          <p>Relationships are shown only when their identifiers actually match; a customer name or email similarity never creates a link.</p>
-          <strong>{index.relations.length} identifier-backed links in loaded records</strong>
+          <h2><GitBranchPlus size={19}/> Exact-ID source and text references</h2>
+          <p>Source records are matched by exact ID. Task descriptions may also contain an explicit ID reference, which is NOT a canonical foreign key; names, phone numbers or emails never establish identity.</p>
+          <strong>{index.relations.length} exact-ID links or text references in loaded records</strong>
           <div className="operations-mini-stat"><span>Task → CRM lead</span><b>{index.relations.filter(r=>r.toKey?.startsWith('lead:')).length}</b></div>
           <div className="operations-mini-stat"><span>Task → Exterior booking</span><b>{index.relations.filter(r=>r.toKey?.startsWith('booking:')).length}</b></div>
           <div className="operations-mini-stat"><span>Exterior booking → source lead</span><b>{index.relations.filter(r=>r.toKey===null).length}</b></div>
-          <p>Use a record's “Create linked task draft” action to carry an exact source ID into the normal task editor. The draft is not saved until you submit it. Links are verified against loaded records; names never establish a match.</p>
+          <p>Use a record's “Create linked task draft” action to carry an exact source ID into the normal task editor. The draft is not saved until you submit it. Referenced source records are loaded when available; task text itself does not establish server-level ownership or project identity. Names never establish a match.</p>
           <Link href={base+'/tasks'} className="operations-aside-link">Open shared task board <ArrowUpRight size={15}/></Link>
         </section>
         <section className="operations-panel">
