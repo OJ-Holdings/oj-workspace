@@ -86,7 +86,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  };
  const patchLine=(lineId:string,fields:Partial<EstimateLine>)=>patch(v=>({...v,lines:v.lines.map(line=>line.id===lineId?{...line,...fields}:line)}));
  const addLine=()=>patch(v=>v.lines.length>=24?v:{...v,lines:[...v.lines,newEstimateLine('line-'+Date.now()+'-'+Math.floor(Math.random()*100000))]});
- const dropLine=(lineId:string)=>patch(v=>v.lines.length===1?v:{...v,lines:v.lines.filter(line=>line.id!==lineId)}));
+ const dropLine=(lineId:string)=>patch(v=>v.lines.length===1?v:{...v,lines:v.lines.filter(line=>line.id!==lineId)});
  const rebase=()=>{
    if(!canModify||!book||!lead)return;
    if(!window.confirm('Rebase this local internal draft on the CURRENT customer source? Existing line items stay; earlier legacy quote changes will NOT be copied into your lines. Continue only after reviewing them.'))return;
