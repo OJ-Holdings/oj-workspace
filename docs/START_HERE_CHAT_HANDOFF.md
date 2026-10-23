@@ -2,6 +2,15 @@
 
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
+
+## EXTERIOR COMMAND R27 CUSTOMER 360 RELEASE (2026-10-23)
+
+- **R27** [PR #97](https://github.com/OJ-Holdings/oj-workspace/pull/97), merged to main at `04edc152f498c2cf81498cbd83dcaaa0fb7af760`; exact-head run `40022388450` SUCCESS. Main CI run `40022648309` must be confirmed independently.
+- **Customer source dossier**: `/workspace/b/exterior/customer?lead=<exact saved lead ID>`. Displays source status/contact/address/service/notes, associated bookings joined **only by exact lead_id**, history with completion timestamp provenance, legacy lead-level recorded job figures (not deposits), and unverified phone/address related-candidate review (never auto-merge). Readonly preview uses synthetic source; live requires session-bound source authorization.
+- **Actual actions** reuse existing authenticated `LeadDialog`, `BookDialog` and `MoneyDialog`; customer cards, booking workbench, and Exterior Command HQ link to dossier. Legacy booking person picker no longer collapses different lead IDs with similar contact information.
+- **Current weighted Exterior plan: 11%** (R26 8% + R27 3%, W3 Customer 360 initial). `docs/EXTERIOR_COMMAND_PROGRESS.md` defines remaining categories and gates. No canonical customer IDs, validated household/entity merging, property schema, approved quote revisions, legal invoices, payment settlements, offline sync, or production migrations yet.
+- **Important:** Claims of actual deployment require Windows/Tailscale current served SHA and Oscar/Jacob phone/desktop acceptance. Preserved draft DB backup/isolated restore and policy gates still apply.
+
 ## CURRENT EXTERIOR COMMAND IMPLEMENTATION (2026-10-23)
 
 - **New implementation plan:** Exterior Command master plan created October 23, covering 12 implementation waves. Engineering progress definition / weights in `docs/EXTERIOR_COMMAND_PROGRESS.md`.
