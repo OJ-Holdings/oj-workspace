@@ -7,6 +7,8 @@ import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
 import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialEstimate } from '@/lib/commercial-transfer';
 import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
+import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
+import { AtlasFieldBridge } from './AtlasFieldBridge';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -37,21 +39,27 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   const key='oj-commercial-estimate-v2:'+org;
 
   useEffect(()=>{
+    // Reset whenever the organization or preview context changes. Never
+    // carry a previous company's private local draft into another workspace.
+    setReady(false);
+    setName('New commercial opportunity');
+    setInput(newEstimate());
+    setReview(checklist.map(()=>false));
+    setNotice('');
     if(preview){setReady(true);return;}
     try {
       const stored=window.localStorage.getItem(key);
-      if(stored) {
-        const d=JSON.parse(stored) as {name?:unknown;input?:EstimateInput;review?:boolean[]};
-        if(typeof d.name==='string')setName(d.name.slice(0,140));
-        if(d.input && Array.isArray(d.input.sites) && d.input.sites.length>0 && d.input.sites.length<=12) {
-          const defaults=newEstimate();
-          setInput({...defaults,...d.input,sites:d.input.sites.map((site,i)=>({...newSite('restored-'+i),...site,id:'restored-'+i}))});
-        }
-        if(Array.isArray(d.review))setReview(checklist.map((_,i)=>d.review?.[i]===true));
+      if(stored){
+        const validated=parseLocalCommercialDraft(stored,org);
+        setName(validated.name);
+        setInput(validated.input);
+        setReview(validated.review);
       }
-    } catch {setNotice('Local draft was unreadable; a new draft is shown.');}
+    } catch {
+      setNotice('Saved commercial draft could not be validated. Its original browser record was not overwritten. Export or recover the old draft before saving a replacement.');
+    }
     setReady(true);
-  },[key,preview]);
+  },[key,org,preview]);
 
   const patch=(changes:Partial<EstimateInput>)=>setInput(v=>({...v,...changes}));
   const patchSite=(id:string,changes:Partial<Site>)=>setInput(v=>({...v,sites:v.sites.map(s=>s.id===id?{...s,...changes}:s)}));
@@ -59,7 +67,7 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   const remove=(id:string)=>setInput(v=>v.sites.length===1?v:{...v,sites:v.sites.filter(s=>s.id!==id)});
   const save=()=>{
     if(preview){setNotice('Preview mode cannot save a real draft.');return;}
-    try{window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Draft saved on this browser only. Nothing was written to the shared OJ database.');}
+    try{exportCommercialEstimate(org,name,input,review);window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Validated draft saved on this browser only. Nothing was written to the shared OJ database.');}
     catch{setNotice('Browser storage is unavailable; download your draft instead.');}
   };
   const reset=()=>{
@@ -169,6 +177,7 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
       <span><strong>{reviewed}/{checklist.length}</strong> internal review items checked</span>
       <b>{preview?'FICTIONAL PREVIEW':'BROWSER-LOCAL DRAFT'}</b>
     </div>
+    {ready && <AtlasFieldBridge base={base} organizationId={org} mode={mode} view="commercial" commercial={{name,input,review}} />}
     <div className="com-body">
       <div className="com-left">
         <div className="com-tabs" role="group" aria-label="Commercial desk sections">
