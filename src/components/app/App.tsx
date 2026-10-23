@@ -211,7 +211,10 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
 
   let current: NavKey = 'home';
   let venture: VentureId | null = null;
-  if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) { current = 'businesses'; venture = parts[1]; }
+  if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) {
+    current = parts[1] === 'exterior' && parts[2] === 'projects' ? 'nexus' : 'businesses';
+    venture = parts[1];
+  }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
   else if (parts[0] === 'tools' && parts[1] === 'operations') current = 'operations';
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
