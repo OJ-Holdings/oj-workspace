@@ -12,14 +12,20 @@ import type { ScheduleJob } from '@/lib/dashboard';
  */
 export function useJobs(org: string, mode: 'preview' | 'live', path: string) {
   const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [loadingState, setLoadingState] = useState<'loading'|'ready'|'failed'>(mode==='live'?'loading':'ready');
   useEffect(() => {
-    if (mode !== 'live') return;
+    if (mode !== 'live') {setJobs([]);setLoadingState('ready');return;}
     let live = true;
-    loadJobs(org).then(list => { if (live) setJobs(list); }, () => { /* the calendar just shows no jobs */ });
+    setLoadingState('loading');
+    setJobs([]);
+    loadJobs(org).then(
+      list => { if (live) {setJobs(list);setLoadingState('ready');} },
+      () => { if (live) {setLoadingState('failed');} },
+    );
     return () => { live = false; };
   }, [org, mode, path]);
   const schedule = useMemo<ScheduleJob[]>(() => jobs.map(j => ({
     id: j.id, date: j.date, startMinutes: parseBlock(j.time_block)?.start ?? 0, timeLabel: blockLabel(j.time_block), name: j.name, service: j.service,
   })), [jobs]);
-  return { jobs, schedule };
+  return { jobs, schedule, loadingState };
 }
