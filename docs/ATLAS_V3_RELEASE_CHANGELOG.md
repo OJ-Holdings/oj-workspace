@@ -244,6 +244,25 @@ These are completed GitHub merges, not independently verified Windows-host deplo
 
 **Deployment:** GitHub merges verified; actual Windows/Tailscale serving SHA, founder device acceptance and production backup/restore still unverified. Detailed next-stage gates: [ATLAS Accounting](./ATLAS_ACCOUNTING_ENGINEERING.md).
 
+## ATLAS V3 Release 22 — MERCURY BANK INSPECTION
+
+**PR:** [#88](https://github.com/OJ-Holdings/oj-workspace/pull/88). **Merged SHA:** `f2cffd5f9`. **Exact PR-head CI:** `39989291018` SUCCESS. **Post-merge main CI:** `39989499380` SUCCESS.
+
+- Owner-only, readable Mercury recent bank feed in Finance with actual account-name/amount/date/status evidence and direct links to existing operating-ledger candidate rows.
+- Candidates are exact USD amount magnitudes within four Chicago-local calendar days (dates checked through DST); no debit/credit semantics, automatic confirmation, account/legal-entity assumption or general-ledger posting is inferred.
+- Ambiguity, incomplete source timestamps, non-USD records, partial bank feed and missing candidate matches are openly labeled. Last 50 bank transactions do not equal statement-level reconciliation.
+- No bank mutations, Supabase schema changes, payment actions or customer outreach.
+
+## ATLAS V3 Release 23 — MONTH-END ACCOUNTING PREPARATION
+
+**PR:** [#89](https://github.com/OJ-Holdings/oj-workspace/pull/89). **Merged SHA:** `e7741575a`. **Exact PR-head CI:** `39990285027` SUCCESS.
+
+- Finance displays actionable month and venture scoped review items for unclassified operational entries, estimated imported source dates and business-relevant integration gaps. It distinguishes explicit known zeros from unrecorded costs.
+- A standalone period-close preparation brief is downloadable, with source and caveat evidence but without owner's private account details; nothing is marked finalized or bank-reconciled.
+- Full approved double-entry journal persistence, complete bank statements and reconciliation, receipt-linked accounting evidence, AR/AP and owner equity remain unsatisfied gates. No background financial posting, migration, tax filing or live protected record writes.
+
+**Real deployment status:** GitHub merges + named CI verified; exact Windows port 3011/Tailscale serving SHA and both founders' authenticated desktop/iPhone acceptance remain unverified. See [ATLAS Accounting Engineering](./ATLAS_ACCOUNTING_ENGINEERING.md).
+
 ## Next integrated milestone (proposed; not yet shipped)
 
 **Next protected milestone / Canonical multi-device project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
@@ -257,4 +276,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–19 (including integration 13.1) are merged into GitHub main; R18/R19 exact-head CI passed. Earlier releases retain their individual CI receipts above. The architecture: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
+**Bottom line:** Releases 01–23 (including integration 13.1) are merged into GitHub main; R18–R23 exact-head CI receipts are detailed above. Earlier releases retain their individual CI receipts above. The architecture: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
