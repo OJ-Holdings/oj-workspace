@@ -6,13 +6,13 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R30 estimate earned | Not yet done |
+| Plan wave | Weight | R31 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
-| W5 Field operations | 12% | 0% | Offline field sheet, jobs, labor, media, materials and issue capture |
+| W5 Field operations | 12% | **3%** | R31 booking-bound, mobile-oriented local work sheet for crew time, material usage, mileage/cost, equipment/site checks and issues; durable shared job events, media uploads, offline sync/replay, payroll/time approval and verified closeout remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | 0% | Durable rig/asset linkage to job readiness |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
@@ -20,7 +20,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **19% (conditional on R30 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **22% (conditional on R31 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -74,16 +74,25 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Strict unit tests prove round-trip fidelity, no false payment/approval, cross-company/cross-customer denial, malformed JSON and extra-field isolation, stale source and booking preflight.
 - **No shared quote revisions yet; no cross-device sync, provider contact, electronic signatures, approved work orders, invoices, bank settlement, or database migrations.**
 
+### R31 Mobile Field Command (+3 W5 points, conditional on CI and merge)
+
+- Real `/b/exterior/field?booking=<exact ID>` work sheet reachable from the HQ, Field Operations navigation, booking card/table and Customer 360; exact booking and lead identity are required and never substituted from a matching name, phone or address.
+- Operator-entered, booking-bound stage/prep, optional arrival and departure device timestamps, crew labor hours and loaded-rate estimates, materials/consumable quantities/costs, mileage/rate, miscellaneous direct costs, site and wastewater/PPE/chemical review, pump/hoses/water-fed equipment checks, operational incidents (including stop-work) and site notes.
+- Typed `src/lib/exterior-field-log.ts` validates quantity/rate bounds, source date/status, exact booking and customer IDs, unique row identifiers, date ordering, text limits, safety enums and exception severity. Null and unchecked are never counted as zero or reviewed. Complete direct costs appear only after **all four categories** are explicitly reviewed; the recorded cost subset is separately labeled; no booking-specific profit or paid revenue is inferred.
+- A private local browser draft auto-saves only after validation, with manual `oj-exterior-field-draft` portable JSON export/import scoped to exact company, booking and original lead. Import requires explicit destructive-overwrite confirmation. No shared corporate job record, real crew time approval, online sync, invoice, customer signoff, location verification, camera uploads or background transmission was implemented.
+- Mobile-optimized industrial Field Command CSS, clear status for safety gaps and stop-work incidents, keyboard focus, motion reduction, source-drift warnings and live vs preview safety. Tests cover unknown money, math, exact booking/source scope, forged finalized status, cross-org file rejection, corrupt payloads, unsafe issue labels and extra-field stripping.
+- Production database remains unchanged; the R30 quote-version backup/restore/RLS gating document still governs any future schema. Real iPhone acceptance and Windows-served SHA remain separate verification tasks.
+
 ### Release gates and the next update rule
 
-Verified R26 (8%), R27 (+3%), R28 (+3%) and R29 (+3%) earn **17%** engineering progress. R30's manually portable quote interchange adds **2 W4 percentage points** only if exact PR-head CI passes (typecheck, full tests, production build) and its PR merges. This targets **19%**; if CI/merge fails keep 17%. Do not describe internal file transfer as durable synchronized quote data. Live Windows served SHA and authenticated two-founder mobile acceptance remain separate mandatory checks.
+R26–R30 have earned a weighted **19%** engineering estimate after merged code and CI. R31 contributes **3 W5 points**, reaching **22%** only after its exact PR-head TypeScript, full tests and production build pass and the feature PR merges. If the branch fails, keep 19%. Browser-local field entries are NOT a shared corporate ledger, verified crew timesheet, certified site clearance, or source-of-truth job closeout. Windows serving SHA and real founder iPhone QA must be verified separately.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. Verify private production backup **and isolated restore**, then validate staging schema/RLS and migration approval before creating actual org-scoped quote, version, event and work-order tables.
-2. Build durable approval evidence (sent provider message ID, signed/specific accepted version, customer response timestamps) and atomic, idempotent `accepted-version → work-order → booking` server transaction.
-3. Migrate only authenticated, deliberate founder-reviewed local estimate versions into shared database documents; mark unresolved source drift and duplicate candidates, never auto-merge.
-4. Field operations capture: arrival, departure, actual crew hours, supplies, equipment, site photos, mileage, customer review and payment status with receipts rather than estimates.
-5. Real Windows commit SHA and Oscar/Jacob iPhone UAT, including import/export privacy, stale source handling and lost-network behavior.
+1. **Protected database gate:** independently restore an encrypted private production backup in isolation, rehearse RLS/read/write role coverage and cross-organization denial, then review and stage canonical quote/event/work-order and booking-bound field event migrations.
+2. **Durable field persistence:** convert local booking logs into authenticated, idempotent append-only site events with explicit reviewed revisions, crew attribution and conflict/outbox status. Keep timestamp from client distinct from verified server receipt.
+3. **Real crew operations:** member-scoped field entry rights, labor/time approval, equipment asset IDs, materials expense receipts, job photo storage policies, and blocked closeout with critical unresolved issues.
+4. **Quoted work transition:** immutable shared estimate revisions, customer acceptance evidence and atomic approved quote → booked work order; never transform quote into verified cash.
+5. **Field founder acceptance:** Windows-served commit SHA, Oscar/Jacob iPhone controls (offline, form fields, storage denial, exact-booking import/export, safety and source drift), and independent end-to-end QA.
