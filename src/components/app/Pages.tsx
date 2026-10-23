@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
@@ -178,6 +179,14 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
   const router = useRouter();
   const pathname = usePathname();
   const selectedEntry = query.get('entry');
+  const launchMoney=query.get('new');
+  useEffect(()=>{
+    if(readOnly||!isFinanceLaunch(launchMoney))return;
+    setForm({...blank(),kind:launchMoney});
+    const url=new URL(window.location.href);
+    url.searchParams.delete('new');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+  },[readOnly,launchMoney,setForm]);
   const filterBusiness = venture ?? (isVenture(query.get('business') ?? '') ? query.get('business') as VentureId : null);
   const filterMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(query.get('month') ?? '') ? query.get('month')! : '';
   const scope = filterBusiness ? [ventures[filterBusiness]] : ventureList;
