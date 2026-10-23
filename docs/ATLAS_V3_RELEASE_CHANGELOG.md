@@ -1,6 +1,6 @@
 # ATLAS V3 — Engineering Release Notes & Status Ledger
 
-> Snapshot: **2026-10-22, America/Chicago**. Recheck GitHub main, active PRs, CI and the exact Windows-host release before asserting present tense status.
+> Snapshot: **2026-10-23, America/Chicago**. Recheck GitHub main, active PRs, CI and the exact Windows-host release before asserting present tense status.
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
@@ -205,6 +205,26 @@ The above PR head checks are verifiable GitHub CI events, not independent proof 
 - Production Windows/Tailscale host confirmation: only GitHub merges and PR CI are proven here.
 - P0 Supabase backup/restoration and additive migration: draft PR #42 remains blocked/unmerged pending independently verified private backup, isolated restore, RLS/auth audit and supervised release.
 
+## ATLAS V3 / Releases 14–19 — corporate integration through daily operator UX
+
+These are completed GitHub merges, not independently verified Windows-host deployments.
+
+| Release | Merged PR / SHA | Operational change |
+| --- | --- | --- |
+| **R14** | [#78](https://github.com/OJ-Holdings/oj-workspace/pull/78) · `0a3d527` | Unified source-backed NEXUS Corporate Command without duplicating Project 360 |
+| **R15** | [#79](https://github.com/OJ-Holdings/oj-workspace/pull/79) · `063eefa` | Reviewable, non-destructive device-local commercial project import/merge |
+| **R16** | [#80](https://github.com/OJ-Holdings/oj-workspace/pull/80) · `840defd` | One-tap lead, booking, finance expense and task creation; functional mobile navigation |
+| **R17** | [#81](https://github.com/OJ-Holdings/oj-workspace/pull/81) · `01d8204` | Action-first Exterior Care CRM records and exact-status customer queues |
+| **R18** | [#82](https://github.com/OJ-Holdings/oj-workspace/pull/82) · `14f7903` | Action-first, responsive job booking workbench with explicit approval/date queues, customer/call/directions, crew/edit/reschedule/cancel |
+| **R19** | [#83](https://github.com/OJ-Holdings/oj-workspace/pull/83) · `8f0ca67` | Action-first Money ledger with expense/income launch actions, source/manual queues, searchable mobile cards, compact table, retained reporting |
+
+**R18 CI:** exact head `39938060774` SUCCESS — PowerShell parse, npm ci, typecheck, tests, production build.
+**R19 CI:** exact head `39938744120` SUCCESS — same checks.
+
+**Operator truth constraints:** R18 pending approval is not a confirmed job; past bookings are not proof of completed work; a quoted booking value is not a collected payment. R19 direct/manual and imported/source-recorded entries are distinguished; missing cost coverage remains unknown, and recorded difference is not a verified profit figure. Existing authorized mutation handlers were preserved. Neither release executes external outreach, purchases, bank operations, a database migration, or automatic dispatch.
+
+**Production:** Both merges were verified in GitHub; exact Windows port 3011/Tailscale host SHA, authenticated founder/iPhone walkthroughs, and production backup/restore evidence remain unverified. The supervised draft database PR #42 remains blocked. See [live engineering handoff](./START_HERE_CHAT_HANDOFF.md).
+
 ## Next integrated milestone (proposed; not yet shipped)
 
 **Next protected milestone / Canonical multi-device project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
@@ -218,4 +238,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-production-
 
 Expected comparison is current `main` SHA to same-origin localhost `http://127.0.0.1:3011/api/deploy-health` release SHA. Code-only guarded updater may normally auto-deploy green main commits, but **do not assume** it did so. Optional `-TriggerUpdater` invokes the existing guarded updater if explicitly needed and authorized. Keep existing account identities and live records intact.
 
-**Bottom line:** Releases 01–13 (including integration 13.1) are merged into GitHub main with passing exact-head CI: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
+**Bottom line:** Releases 01–19 (including integration 13.1) are merged into GitHub main; R18/R19 exact-head CI passed. Earlier releases retain their individual CI receipts above. The architecture: source-linked NEXUS Project 360 builds on the versioned device-local commercial portfolio, tentative Fleet planning, crew-hour models, exact source booking/customer identity, shared task receipts and real task activity. Most of the 413 proposed capabilities remain unbuilt. This ledger has **not** independently verified the Windows-host SHA, actual mobile usability, both founders' role flows or the Supabase backup/restore gate.
