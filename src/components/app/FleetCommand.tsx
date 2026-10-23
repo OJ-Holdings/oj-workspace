@@ -208,6 +208,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
         <button type="button" onClick={()=>setTab('readiness')}><ClipboardCheck size={16}/> Pre-departure</button>
         <button type="button" onClick={()=>setTab('maintenance')}><Wrench size={16}/> Service ledger</button>
         <button type="button" onClick={()=>setTab('rig')}><Truck size={16}/> Rig Lab</button>
+        {canEdit&&<Link className="atlas-fleet-task-link" href={base+'/tasks?sourceFleet=1'}><ClipboardCheck size={16}/> Prepare shared task <ArrowUpRight size={14}/></Link>}
       </div>
     </section>
     <section className="atlas-fleet-alertline" aria-label="Equipment attention summary">
