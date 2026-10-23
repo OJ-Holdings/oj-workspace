@@ -4,6 +4,7 @@ import type { JobItem } from '@/app/workspace/exterior-actions';
 import { validDay } from './fleet-command';
 import type { FleetWorkbook } from './fleet-command';
 import { fieldBridgeReport, internalFieldBrief, type CommercialPlan } from './atlas-field-bridge';
+import { fieldCrewCapacity, fieldWorkforceFindings, emptyFieldCrewPlan } from './atlas-field-mission';
 
 type HandoffDraft = Pick<Card,'business'|'title'|'description'|'priority'|'due_date'>;
 const clean = (value:string,limit:number) => value.replace(/[\r\n\t]/g,' ').trim().slice(0,limit);
@@ -64,6 +65,17 @@ export function commercialPortfolioTask(
     loadedBooking.id.toLowerCase()===project.bookingId.toLowerCase()&&
     loadedBooking.status!=='cancelled'&&loadedBooking.status!=='denied'&&
     validDay(loadedBooking.date);
+  // A manual shared-task snapshot should surface workforce gaps to the other
+  // founder without copying private staging notes, site addresses or names.
+  const crew=fieldCrewCapacity(project.input,project.fieldCrewPlan??emptyFieldCrewPlan());
+  const crewFindings=fieldWorkforceFindings(project.input,project.fieldCrewPlan??emptyFieldCrewPlan());
+  const crewLines=[
+    'FIELD WORKFORCE SCENARIO (local inputs, NOT a crew assignment or dispatch)',
+    'Budgeted paid crew-hours: '+crew.requiredPaidCrewHours,
+    'Entered team: '+(crew.crewSize??'UNKNOWN')+' people, '+(crew.productiveHoursPerPersonDay??'UNKNOWN')+' productive hours/person/day, '+(crew.plannedFieldDays??'UNKNOWN')+' planned days',
+    'Capacity: '+(crew.plannedPaidCrewHourCapacity??'UNKNOWN')+' paid person-hours; modeled gap: '+(crew.capacityGapHours??'UNKNOWN')+'; '+crew.state,
+    ...crewFindings.map(f=>'['+f.severity.toUpperCase()+'] '+f.text),
+  ].join('\n');
   const projectReceipt=[
     'Local portfolio project ID: '+project.id,
     'Local project revision: '+project.revision+' · saved '+project.updatedAt,
@@ -82,7 +94,14 @@ export function commercialPortfolioTask(
   ];
   return {
     ...task,
-    description:[task.description.slice(0,6500),'',...projectReceipt].join('\n').slice(0,7900),
+    // Preserve exact booking and local project ID receipts at the END even when
+    // source estimate text is long. Never cut the authoritative ID halfway.
+    description:(()=>{
+      const receipt=projectReceipt.join('\n');
+      const workforce=crewLines.slice(0,1450);
+      const available=Math.max(0,7900-receipt.length-workforce.length-5);
+      return [task.description.slice(0,available),workforce,receipt].join('\n\n').slice(0,7900);
+    })(),
   };
 }
 /** Recognize only explicit local project IDs in user-saved task bodies. This is
