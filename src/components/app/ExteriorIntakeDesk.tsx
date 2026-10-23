@@ -31,9 +31,11 @@ export function ExteriorIntakeDesk({data,act,busy,readOnly,org,now,base}:Props){
     return !q||[row.request.name,row.request.phone,row.request.email,row.request.address,row.request.service_needed,row.request.business_name,row.request.id]
       .some(x=>(x??'').toLowerCase().includes(q));
   });
-  const selected=entries.find(x=>x.request.id===active)
-    ??entries.find(x=>x.request.id===requestId)
-    ??filtered[0]??null;
+  const hasRequestedId=Boolean(requestId);
+  // An explicit deep-link that is missing must not silently resolve to another customer's inquiry.
+  const selected=filtered.find(x=>x.request.id===active)
+    ??filtered.find(x=>x.request.id===requestId)
+    ??(!hasRequestedId||active?filtered[0]:null)??null;
   const url=`${base}/b/exterior`;
   const canCreate=Boolean(selected&&!readOnly&&(!selected.matches.length||allowSeparate));
   const select=(id:string)=>{setActive(id);setAllowSeparate(false);setDraftOpen(false);};
