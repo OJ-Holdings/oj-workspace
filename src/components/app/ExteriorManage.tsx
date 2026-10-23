@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFocuses, matchesLeadWorkFocus, sortLeadsForWork, type LeadWorkFocus } from '@/lib/exterior-lead-workflow';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -44,6 +45,8 @@ const blankLead: LeadInput = { name: '', phone: '', address: '', service_request
 
 export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [filter, setFilter] = useState('all');
+  const [workFocus,setWorkFocus]=useState<LeadWorkFocus>('all');
+  const [view,setView]=useState<'cards'|'table'>('cards');
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(50);
   const [editing, setEditing] = useState<LeadInput | null>(null);
@@ -61,31 +64,97 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   },[readOnly,launchNewLead]);
   useEffect(() => {
     const lead = data.leads.find(l => l.id === selected);
-    if (lead) { setFilter('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
+    if (lead) { setFilter('all'); setWorkFocus('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
   }, [selected, data.leads]);
 
   const counts = useMemo(() => Object.fromEntries(leadStatuses.map(s => [s, data.leads.filter(l => l.status === s).length])), [data.leads]);
+  const workCounts=useMemo(()=>countLeadWorkFocuses(data.leads),[data.leads]);
   const pipeline = data.leads.filter(l => openStatuses.includes(l.status ?? '')).reduce((s, l) => s + (l.quote_amount ?? 0), 0);
   const q = search.trim().toLowerCase();
-  const rows = data.leads.filter(l => (filter === 'all' || l.status === filter) && (!q || [l.name, l.phone, l.address].some(v => (v ?? '').toLowerCase().includes(q))));
+  const rows = sortLeadsForWork(data.leads.filter(l => (filter === 'all' || l.status === filter) && matchesLeadWorkFocus(l,workFocus) && (!q || [l.name, l.phone, l.address, l.service_requested].some(v => (v ?? '').toLowerCase().includes(q)))));
 
   return <>
     <div className="kpis many">
       {(['new', 'contacted', 'following_up', 'booked', 'completed'] as const).map(s => <div key={s}><span>{statusLabel(s)}</span><strong><NumberFlow value={counts[s]} /></strong></div>)}
       <div><span>Open pipeline</span><strong><NumberFlow value={pipeline} format={usd} /></strong><small className="quiet">Quotes on open leads, not money in</small></div>
     </div>
+    {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
+      <p className="banner-inline" role="status">Partial customer history: {data.coverage.leads.loaded} of {data.coverage.leads.total} accessible records loaded. Queue counts describe this loaded window only.</p>}
+    <section className="atlas-lead-priority" aria-label="Customer work queues">
+      <header><div><span>EXTERIOR CARE / CUSTOMER OPERATIONS</span><h2>Move customers toward booked work.</h2></div>
+        <small>Queues reflect recorded status and fields only. No inferred response deadlines or client acceptance.</small>
+      </header>
+      <div className="atlas-lead-focuses">
+        {leadWorkFocuses.filter(focus=>focus!=='all').map(focus=><button key={focus} type="button"
+          aria-pressed={workFocus===focus} onClick={()=>{setWorkFocus(focus);setFilter('all');setSearch('');setShown(50);}}>
+          <strong>{workCounts[focus]}</strong><span>{leadWorkLabels[focus]}</span>
+          <small>{leadWorkDescriptions[focus]}</small>
+        </button>)}
+      </div>
+      {workFocus!=='all'&&<div className="atlas-lead-focus-notice" role="status">
+        <span><b>{leadWorkLabels[workFocus]}:</b> {leadWorkDescriptions[workFocus]}</span>
+        <button type="button" className="secondary small" onClick={()=>{setWorkFocus('all');setFilter('all');setShown(50);}}>Show all customers</button>
+      </div>}
+    </section>
     <section className="panel">
       <header className="panel-head">
-        <h2>Leads</h2>
+        <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
         {!readOnly && <button className="primary" disabled={busy} onClick={() => setEditing({ ...blankLead })}><Plus size={15} aria-hidden="true" />New lead</button>}
       </header>
       <div className="lead-tools">
         <input type="search" aria-label="Search leads" placeholder="Search by name, phone or address" value={search} onChange={e => { setSearch(e.target.value); setShown(50); }} />
         <div className="filter-chips" role="group" aria-label="Filter by status">
-          {['all', ...leadStatuses].map(s => <button key={s} type="button" aria-pressed={filter === s} onClick={() => { setFilter(s); setShown(50); }}>{s === 'all' ? 'All' : statusLabel(s)}<span>{s === 'all' ? data.leads.length : counts[s]}</span></button>)}
+          {['all', ...leadStatuses].map(s => <button key={s} type="button" aria-pressed={filter === s} onClick={() => { setFilter(s); setWorkFocus('all'); setShown(50); }}>{s === 'all' ? 'All' : statusLabel(s)}<span>{s === 'all' ? data.leads.length : counts[s]}</span></button>)}
         </div>
       </div>
-      {rows.length ? <div className="tablewrap"><table className="table lead-table">
+      <div className="atlas-lead-view-toggle" role="group" aria-label="Customer display">
+        <span>Showing {rows.length} matching record{rows.length===1?'':'s'} · latest source creation date first</span>
+        <button type="button" aria-pressed={view==='cards'} onClick={()=>setView('cards')}>Customer cards</button>
+        <button type="button" aria-pressed={view==='table'} onClick={()=>setView('table')}>Compact table</button>
+      </div>
+      {view==='cards'&&(rows.length ? <>
+        <div className="atlas-customer-grid" aria-label="Accessible customer cards">
+          {rows.slice(0,shown).map(l=><article key={l.id} className="atlas-customer-card" data-status={l.status??'unknown'}>
+            <header>
+              <span className="atlas-customer-avatar" aria-hidden="true">{(l.name??'?').trim().charAt(0).toUpperCase()||'?'}</span>
+              <div><h3>{l.name||'Unnamed customer'}</h3>
+                <small>Added {day(l.created_at)} · {sourceLabel(l.source)}</small></div>
+              <span className="atlas-customer-stage">{statusLabel(l.status)}</span>
+            </header>
+            <div className="atlas-customer-description">
+              <div><small>Requested service</small><strong>{l.service_requested||'Not entered'}</strong></div>
+              <div><small>Entered quote, not paid</small><strong>{cash(l.quote_amount)}</strong></div>
+            </div>
+            <div className="atlas-customer-contact">
+              {isRealPhone(l.phone)?<a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a>:<span>{shownPhone(l.phone)}</span>}
+              {l.address&&<small>{l.address}</small>}
+            </div>
+            <footer>
+              {!readOnly&&<label>Customer status<select aria-label={`Status of ${l.name??'customer'}`}
+                value={l.status??''} disabled={busy}
+                onChange={e=>{const status=e.target.value;act(()=>setLeadStatus(org,l.id,status),()=>`${l.name} marked ${statusLabel(status).toLowerCase()}.`);}}>
+                {!leadStatuses.some(status=>status===l.status)&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
+                {leadStatuses.map(status=><option key={status} value={status}>{statusLabel(status)}</option>)}
+              </select></label>}
+              <div className="atlas-customer-card-actions">
+                {!readOnly&&l.status==='completed'&&<button type="button" className="secondary small"
+                  onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Record payment/cost':'Review payment/cost'}</button>}
+                {!readOnly&&l.status!=='booked'&&<button type="button" className="primary small" onClick={()=>setBooking(l)}>
+                  <CalendarPlus size={14}/>{isDone(l)?'Book again':'Book job'}</button>}
+                {!readOnly&&<button type="button" className="secondary small" onClick={()=>setEditing({
+                  id:l.id,name:l.name??'',phone:l.phone??'',address:l.address??'',
+                  service_requested:l.service_requested??'',quote_amount:l.quote_amount??'',
+                  notes:l.notes??'',source:l.source??'',
+                })}><Pencil size={14}/>Edit details</button>}
+              </div>
+            </footer>
+          </article>)}
+        </div>
+        {rows.length>shown&&<button className="secondary showmore" onClick={()=>setShown(shown+50)}>
+          Show {Math.min(50,rows.length-shown)} more customers
+        </button>}
+      </>:<div className="empty"><p><b>No customers in this view.</b> Change the work queue, status or search to see other loaded records.</p></div>)}
+      {view==='table'&&(rows.length ? <div className="tablewrap"><table className="table lead-table">
         <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
           <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
@@ -94,7 +163,8 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <td className="num" data-label="Quote">{cash(l.quote_amount)}</td>
             <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
             <td data-label="Status">{readOnly ? statusLabel(l.status) : (
-              <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? 'new'} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
+              <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? ''} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
+                {!leadStatuses.some(status=>status===l.status)&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
                 {leadStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
             )}</td>
@@ -107,7 +177,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
           </tr>
         ))}</tbody></table>
         {rows.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, rows.length - shown)} more of {rows.length}</button>}</div>
-        : <div className="empty"><p><b>No leads match.</b> Change the filter or search.</p></div>}
+        : <div className="empty"><p><b>No leads match.</b> Change the filter or search.</p></div>)}
     </section>
 
     <LeadDialog lead={editing} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
