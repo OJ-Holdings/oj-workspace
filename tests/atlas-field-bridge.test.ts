@@ -4,7 +4,7 @@ import { newEstimate } from '../src/lib/commercial-estimate';
 import { exportCommercialEstimate } from '../src/lib/commercial-transfer';
 import { emptyFleet, encodeFleet, readinessItems, type FleetAsset } from '../src/lib/fleet-command';
 import {
-  fieldBridgeReport, internalFieldBrief, parseLocalCommercialDraft, parseLocalFleetDraft,
+  chicagoDateOf, fieldBridgeReport, internalFieldBrief, parseLocalCommercialDraft, parseLocalFleetDraft,
 } from '../src/lib/atlas-field-bridge';
 
 const org = '00000000-0000-4000-8000-000000000001';
@@ -88,4 +88,15 @@ test('portable validated commercial transfer and legacy local draft share accept
   const transfer = JSON.parse(portable);
   const value = parseLocalCommercialDraft(JSON.stringify(transfer),org);
   assert.equal(value.input.sites[0].id,'site-1');
+});
+
+test('departure day uses Chicago calendar date, not UTC date', () => {
+  assert.equal(chicagoDateOf('2026-10-23T02:30:00.000Z'),'2026-10-22');
+  assert.equal(chicagoDateOf('2026-10-22T04:59:59.000Z'),'2026-10-21');
+  assert.equal(chicagoDateOf(null),null);
+  const workbook=emptyFleet(org);
+  workbook.readiness={checked:readinessItems.map(x=>x.id),updatedAt:'2026-10-23T02:30:00.000Z'};
+  const report=fieldBridgeReport(null,workbook,'2026-10-22');
+  assert.equal(report.fleet?.checklistFresh,true);
+  assert.equal(report.findings.some(x=>x.id==='old-checklist'),false);
 });
