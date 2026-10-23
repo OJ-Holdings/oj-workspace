@@ -123,7 +123,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
             <div className="excmd-job-details">
               <div><strong>{job.customer}</strong><span>{job.service}</span></div>
               <small>{job.address??'Service address not in loaded record'} · {job.quote===null?'Quote unavailable':`${money(job.quote)} quoted`}</small>
-              <Link href={job.leadId ? `${parent}/leads?lead=${encodeURIComponent(job.leadId)}` : `${parent}/bookings`}>
+              <Link href={job.leadId ? `${parent}/customer?lead=${encodeURIComponent(job.leadId)}` : `${parent}/bookings`}>
                 {job.leadId?'Open customer':'Inspect booking'} <ArrowRight size={13}/>
               </Link>
             </div>
