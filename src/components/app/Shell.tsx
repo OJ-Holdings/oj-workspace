@@ -57,6 +57,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
+  const [expandedGroups,setExpandedGroups]=useState<Record<'MANAGEMENT'|'MORE',boolean>>({MANAGEMENT:false,MORE:false});
   const searchInput = useRef<HTMLInputElement>(null);
   const palette = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -129,13 +130,22 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
           <span className="atlas-brand-text"><strong>ATLAS</strong><small>OJ HOLDINGS</small></span>
         </Link>
         <nav>
-          {nav.map((item,i) => (
-            <div key={item.key}>
-              {(i===0||nav[i-1].group!==item.group)&&<p className="atlas-rail-heading">{item.group}</p>}
-              <Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
+          {nav.map((item,i) => {
+            const expandable=item.group==='MANAGEMENT'||item.group==='MORE';
+            const groupOpen=!expandable||expandedGroups[item.group as 'MANAGEMENT'|'MORE']||nav.some(n=>n.group===item.group&&n.key===current);
+            return <div key={item.key}>
+              {(i===0||nav[i-1].group!==item.group)&&(expandable
+                ? <button type="button" className="atlas-rail-heading atlas-nav-group-toggle"
+                  aria-expanded={groupOpen}
+                  onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!prev[item.group as 'MANAGEMENT'|'MORE']}))}>
+                    {item.group==='MANAGEMENT'?'MANAGEMENT / ANALYTICS':'MORE / SETTINGS'}
+                    <span aria-hidden="true">{groupOpen?'−':'+'}</span>
+                  </button>
+                : <p className="atlas-rail-heading">{item.group==='DAILY'?'DO THE WORK':item.group==='BUSINESSES'?'YOUR BUSINESSES':item.group}</p>)}
+              {groupOpen&&<Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
                 <item.icon size={18} aria-hidden="true" /><span>{item.label}</span>
                 {item.key === 'tasks' && openTasks > 0 && <b className="rail-count">{openTasks}</b>}
-              </Link>
+              </Link>}
               {item.key === 'businesses' && (
                 <div className="rail-ventures">
                   {discoverableVentures.map(v => (
@@ -146,8 +156,8 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
                   ))}
                 </div>
               )}
-            </div>
-          ))}
+            </div>;
+          })}
         </nav>
 
         <div className="rail-team">
