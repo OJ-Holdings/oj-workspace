@@ -109,7 +109,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   const findings=useMemo(()=>resourcePlanFindings(simulated,portfolio.projects,fleet,bookings,day),
     [selectedId,plannedAssetIds,portfolio.projects,fleet,bookings,bookingId,day]);
   const booking=resolveSourceBooking(bookingId,bookings);
-  const selectedBooking=bookingId&&bookings.find(b=>b.id.toLowerCase()===bookingId.toLowerCase());
+  const selectedBooking=bookingId?bookings.find(b=>b.id.toLowerCase()===bookingId.toLowerCase()):undefined;
   const choices=useMemo(()=>{
     const eligible=bookings.filter(b=>b.status!=='cancelled'&&b.status!=='denied');
     return eligible.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,150);
