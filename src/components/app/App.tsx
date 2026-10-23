@@ -105,7 +105,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       window.history.replaceState(null, '', url.pathname + url.search);
       return;
     }
-    if (!key) { opened.current = ''; return; }
+    if (!key) { opened.current = ''; setHandoffError(''); return; }
     if (taskId) {
       const card = board.data.cards.find(c => c.id === taskId);
       if (card) { opened.current = key; rawBoard.openCard(card); }
@@ -133,7 +133,11 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         const rawFleet=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
         if(sourceCommercial && !rawCommercial)throw new Error('Save your commercial estimate on this device before preparing a shared task.');
         if(sourceFleet && !rawFleet)throw new Error('Save a Fleet Command workbook on this device before preparing a shared task.');
-        const fleet=rawFleet ? (sourceFleet ? parseLocalFleetDraft(rawFleet,organizationId) : (()=>{try{return parseLocalFleetDraft(rawFleet,organizationId)}catch{return null}})()) : null;
+        let fleet: ReturnType<typeof parseLocalFleetDraft> | null = null;
+        if(rawFleet){
+          try{fleet=parseLocalFleetDraft(rawFleet,organizationId);}
+          catch(error){if(sourceFleet)throw error;} // Optional fleet evidence never blocks commercial task preparation.
+        }
         const draft=sourceCommercial
           ? commercialReviewTask(parseLocalCommercialDraft(rawCommercial!,organizationId),fleet,day)
           : fleetReviewTask(fleet!,day);
