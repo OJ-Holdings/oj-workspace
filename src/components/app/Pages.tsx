@@ -7,6 +7,7 @@ import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import { AtlasBankReview } from './AtlasBankReview';
+import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
 import { accountingReviewCsv, accountingReviewFilename } from '@/lib/atlas-accounting-export';
 import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpreadsheet, FileText, Plus, Send, Trash2, Upload } from 'lucide-react';
@@ -247,6 +248,12 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         params.set('entry',id);
         return `${pathname}?${params.toString()}`;
       }} />}
+    <AtlasMonthEndPrep data={data} month={month} scope={scope.map(v=>v.id)} owner={owner}
+      entryHref={(id) => {
+        const params=new URLSearchParams(query.toString());
+        params.set('entry',id);
+        return `${pathname}?${params.toString()}`;
+      }} />
     <section className="panel">
       <header className="panel-head"><h2>Recorded inflows over the past 12 months</h2></header>
       {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
