@@ -49,7 +49,16 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [editing, setEditing] = useState<LeadInput | null>(null);
   const [paying, setPaying] = useState<ExtLead | null>(null);
   const [booking, setBooking] = useState<ExtLead | null>(null);
-  const selected = useSearchParams().get('lead');
+  const leadParams=useSearchParams();
+  const selected=leadParams.get('lead');
+  const launchNewLead=leadParams.get('new');
+  useEffect(()=>{
+    if(readOnly||launchNewLead!=='1')return;
+    setEditing({...blankLead});
+    const url=new URL(window.location.href);
+    url.searchParams.delete('new');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+  },[readOnly,launchNewLead]);
   useEffect(() => {
     const lead = data.leads.find(l => l.id === selected);
     if (lead) { setFilter('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
@@ -359,6 +368,15 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [editing, setEditing] = useState<ExtBooking | null>(null);
   const [assigning, setAssigning] = useState<ExtBooking | null>(null);
   const [flow, setFlow] = useState<string | null>(null);
+  const bookingParams=useSearchParams();
+  const launchNewBooking=bookingParams.get('new');
+  useEffect(()=>{
+    if(readOnly||launchNewBooking!=='1')return;
+    setFlow('');
+    const url=new URL(window.location.href);
+    url.searchParams.delete('new');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+  },[readOnly,launchNewBooking]);
   const today = dayKey(now), month = today.slice(0, 7);
   const lead = new Map(data.leads.map(l => [l.id, l]));
   const live = data.bookings.filter(b => b.status !== 'denied');
