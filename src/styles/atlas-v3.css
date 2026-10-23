@@ -255,3 +255,18 @@
 .atlas-pipeline-pulse strong{font:800 24px/1.2 var(--font-display);letter-spacing:-.045em}
 .atlas-pipeline-pulse small{font-size:9px;color:var(--ink-3);line-height:1.4}
 @media(max-width:760px){.atlas-workbench-head{padding:17px;align-items:flex-start;flex-direction:column}.atlas-pipeline-pulse{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-shell .boardview .statstrip>div{padding:15px}.atlas-shell .boardview .statstrip strong{font-size:24px}}
+
+/* ATLAS V3 / Release 04: Fleet dispatch cockpit */
+.atlas-fleet-dispatch{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:0 0 11px;padding:19px 22px;border:1px solid var(--line-2);border-radius:12px;background:linear-gradient(115deg,var(--panel-2),var(--panel))}
+.atlas-fleet-dispatch p{margin:0 0 8px;font-size:9px;font-weight:850;letter-spacing:.16em;color:var(--accent-hi)}
+.atlas-fleet-dispatch h2{margin:0 0 7px;font:820 23px/1.2 var(--font-display);letter-spacing:-.05em}
+.atlas-fleet-dispatch span{font-size:11px;color:var(--ink-3);line-height:1.6}
+.atlas-fleet-dispatch-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.atlas-fleet-dispatch-actions button{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line-2);border-radius:9px;background:var(--panel-3);color:var(--ink);font-size:11px;font-weight:750;white-space:nowrap}
+.atlas-fleet-dispatch-actions button:hover{border-color:var(--accent-hi);color:var(--accent-hi)}
+.atlas-fleet-alertline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;margin-bottom:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.atlas-fleet-alertline span{font-size:10px;color:var(--ink-3);padding-right:12px;border-right:1px solid var(--line)}
+.atlas-fleet-alertline span b{color:var(--ink);font-size:12px}
+.atlas-fleet-alertline strong{margin-left:auto;font-size:9px;letter-spacing:.08em;color:var(--accent-hi)}
+@media(max-width:950px){.atlas-fleet-dispatch{align-items:flex-start;flex-direction:column}.atlas-fleet-dispatch-actions{justify-content:flex-start}}
+@media(max-width:550px){.atlas-fleet-dispatch{padding:16px}.atlas-fleet-dispatch-actions{width:100%;display:grid;grid-template-columns:1fr}.atlas-fleet-dispatch-actions button{justify-content:center}.atlas-fleet-alertline span{border-right:0;width:100%}.atlas-fleet-alertline strong{margin-left:0}}

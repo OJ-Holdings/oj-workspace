@@ -194,6 +194,20 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
         {readOnly&&!preview?' Your workspace role is read-only.':''}
       </span></div>
     </header>
+    <section className="atlas-fleet-dispatch" aria-label="Dispatch operations summary">
+      <div><p>ATLAS / FIELD OPERATIONS</p><h2>Dispatch readiness console</h2><span>Equipment decisions are based on manually entered local records. This is not a live telematics feed.</span></div>
+      <div className="atlas-fleet-dispatch-actions">
+        <button type="button" onClick={()=>setTab('readiness')}><ClipboardCheck size={16}/> Pre-departure</button>
+        <button type="button" onClick={()=>setTab('maintenance')}><Wrench size={16}/> Service ledger</button>
+        <button type="button" onClick={()=>setTab('rig')}><Truck size={16}/> Rig Lab</button>
+      </div>
+    </section>
+    <section className="atlas-fleet-alertline" aria-label="Equipment attention summary">
+      <span><b>{dueNow.length}</b> recorded assets need attention</span>
+      <span><b>{soon}</b> nearing entered service thresholds</span>
+      <span><b>{readinessItems.length-completed}</b> checklist items unchecked</span>
+      <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
+    </section>
     <section className="fleet-kpis" aria-label="Fleet status overview">
       <div><span><Truck size={17}/> Logged assets</span><strong>{workbook.assets.length}</strong><small>Local inventory entries</small></div>
       <div><span><AlertTriangle size={17}/> Attention now</span><strong>{attention}</strong><small>Manually flagged or service due</small></div>
