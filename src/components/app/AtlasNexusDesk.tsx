@@ -132,7 +132,7 @@ export function AtlasNexusDesk({
   )??[],[graph,filter,scope]);
   const openCount=project?.tasks.filter(t=>t.stage!=='Done').length??0;
 
-  return <main className="nexus-desk page">
+  return <div className="nexus-desk page">
     <header className="nexus-hero">
       <div className="nexus-hero-overline"><Network size={16}/> ATLAS / RELEASE 13 / NEXUS</div>
       <div className="nexus-hero-main">
@@ -333,5 +333,5 @@ export function AtlasNexusDesk({
         </div>}
       </>}
     </div>}
-  </main>;
+  </div>;
 }
