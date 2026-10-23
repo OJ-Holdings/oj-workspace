@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Building2, Check, ChevronRight, ClipboardCheck, ClipboardCopy, Download, FileInput, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
@@ -24,6 +25,7 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
 
 export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean}) {
+  const router=useRouter();
   const preview=mode==='preview';
   const [tab,setTab]=useState<Tab>('scope');
   const [name,setName]=useState('New commercial opportunity');
@@ -69,6 +71,18 @@ export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:s
     if(preview||readOnly){setNotice('This mode cannot save a private draft.');return;}
     try{exportCommercialEstimate(org,name,input,review);window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Validated draft saved on this browser only. Nothing was written to the shared OJ database.');}
     catch{setNotice('Browser storage is unavailable; download your draft instead.');}
+  };
+  const prepareSharedTask=()=>{
+    if(preview||readOnly)return;
+    try{
+      // Explicit Save + Prepare action. The shared task is not created until
+      // the founder reviews and saves the normal task editor.
+      exportCommercialEstimate(org,name,input,review);
+      window.localStorage.setItem(key,JSON.stringify({name,input,review}));
+      router.push('/workspace/tasks?sourceCommercial=1');
+    }catch(error){
+      setNotice(error instanceof Error?error.message:'Could not validate the local estimate for task preparation.');
+    }
   };
   const reset=()=>{
     if(readOnly||preview)return;
@@ -147,6 +161,7 @@ export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:s
           <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save local draft</button>
           <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
           <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
+          <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Save & prepare shared task</button>
           <button className="secondary" onClick={exportEditable}><Download size={16}/> Export editable</button>
           <button className="secondary" disabled={preview||readOnly} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
           <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{
