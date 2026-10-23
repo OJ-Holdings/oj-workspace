@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Building2, Check, ChevronRight, ClipboardCheck, ClipboardCopy, Download, FileInput, HardHat, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Building2, Check, ChevronRight, ClipboardCheck, ClipboardCopy, Download, FileInput, HardHat, Network, Plus, RotateCcw, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
 import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialEstimate } from '@/lib/commercial-transfer';
@@ -173,6 +173,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <div className="com-seal" aria-hidden="true"><strong>OJ</strong><span>FIELD / OPERATIONS</span></div>
     </header>
     <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
+    {ready && <div className="atlas-nexus-editor-entry"><Link href={base+'/b/exterior/projects'}><Network size={16}/> Open NEXUS · Project 360 <ArrowUpRight size={14}/></Link></div>}
     {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly}
       name={name} input={input} review={review} bookings={data.bookings} cards={cards}
       onLoad={project=>{setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}

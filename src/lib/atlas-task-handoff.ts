@@ -108,6 +108,6 @@ export function commercialPortfolioTask(
  * a same-device relationship hint, never a server-side authoritative FK.
  */
 export function exactLocalProjectIds(description:string):string[]{
-  const expression=/^Local portfolio project ID:\s*([A-Za-z0-9_-]{1,80})\s*$/gm;
+  const expression=/^Local portfolio project ID:[ \t]*([A-Za-z0-9_-]{1,80})[ \t]*$/gm;
   return [...new Set([...description.matchAll(expression)].map(match=>match[1]))];
 }

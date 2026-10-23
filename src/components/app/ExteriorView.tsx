@@ -13,6 +13,7 @@ import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
 import { JobsCalendar } from './ExteriorCalendar';
 import { CommercialDesk } from './CommercialDesk';
+import { AtlasNexusProjects } from './AtlasNexusProjects';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { loadJobCrew } from '@/app/workspace/employees/actions';
@@ -23,7 +24,7 @@ const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
 
 /** Every Exterior Care tab beyond the shared ones: the records the original Exterior Care app works on. */
-export function ExteriorView({ tab, org, mode, readOnly, cards }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean; cards: import('@/lib/board').Card[] }) {
+export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean; cards: import('@/lib/board').Card[]; activity: import('@/lib/board').Activity[] }) {
   const [result, setResult] = useState<ExteriorResult | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -83,6 +84,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards }: { tab: string;
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
+  if (tab === 'projects') return <AtlasNexusProjects key={org+mode+String(readOnly)} org={org} base={mode === 'preview' ? '/preview' : '/workspace'} mode={mode} readOnly={readOnly} exterior={data} cards={cards} activity={activity} />;
   if (tab === 'commercial') return <CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} cards={cards} />;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;

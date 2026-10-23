@@ -18,7 +18,7 @@ import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
+  exterior: [['leads', 'Leads'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['projects', 'NEXUS / Project 360'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
   solutions: [['clients', 'Clients'], ['outreach', 'Outreach'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
   content: [['studio', 'Production Studio']],
@@ -26,7 +26,7 @@ const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
 const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'exterior'
-  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 5), coreTabs[3], ...extraTabs.exterior.slice(5), coreTabs[4], coreTabs[5]]
+  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 6), coreTabs[3], ...extraTabs.exterior.slice(6), coreTabs[4], coreTabs[5]]
   : venture === 'content'
     ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4], coreTabs[5]]
     : [...coreTabs, ...extraTabs[venture]];
@@ -77,7 +77,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} displayName={displayName} />}
       {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
-      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} />}
+      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} activity={board.data.activity ?? []} />}
       {(active === 'clients' || active === 'calls') && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
     </div>
   );
