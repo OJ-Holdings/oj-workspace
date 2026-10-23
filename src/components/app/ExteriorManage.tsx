@@ -133,7 +133,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
               {!readOnly&&<label>Customer status<select aria-label={`Status of ${l.name??'customer'}`}
                 value={l.status??''} disabled={busy}
                 onChange={e=>{const status=e.target.value;act(()=>setLeadStatus(org,l.id,status),()=>`${l.name} marked ${statusLabel(status).toLowerCase()}.`);}}>
-                {!leadStatuses.includes(l.status??'')&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
+                {!leadStatuses.some(status=>status===l.status)&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
                 {leadStatuses.map(status=><option key={status} value={status}>{statusLabel(status)}</option>)}
               </select></label>}
               <div className="atlas-customer-card-actions">
@@ -164,7 +164,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
             <td data-label="Status">{readOnly ? statusLabel(l.status) : (
               <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? ''} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
-                {!leadStatuses.includes(l.status??'')&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
+                {!leadStatuses.some(status=>status===l.status)&&<option value={l.status??''}>{statusLabel(l.status)}</option>}
                 {leadStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
             )}</td>
