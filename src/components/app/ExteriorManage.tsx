@@ -393,11 +393,11 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     {[['Upcoming', upcoming, 'Nothing booked from today on. Press "Book a job" to add one.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
       <section className="panel" key={title}>
         <header className="panel-head"><h2>{title}</h2></header>
-        {list.length ? <div className="tablewrap"><table className="table">
+        {list.length ? <div className="tablewrap"><table className="table booking-table">
           <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Address</th><th className="num">Quote</th>{!readOnly && title === 'Upcoming' && <th><span className="sr-only">Actions</span></th>}</tr></thead>
           <tbody>{list.map(b => { const l = lead.get(b.lead_id ?? ''); return (
-            <tr key={b.id}><td>{day(b.date)}</td><td>{blockLabel(b.time_block)}</td><td>{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td>{l?.service_requested || '-'}</td><td>{l?.address || '-'}</td><td className="num">{cash(l?.quote_amount ?? null)}</td>
-              {!readOnly && title === 'Upcoming' && <td><div className="row-actions">
+            <tr key={b.id}><td data-label="Date">{day(b.date)}</td><td data-label="Time">{blockLabel(b.time_block)}</td><td data-label="Customer">{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td><td className="num" data-label="Quoted (not paid)">{cash(l?.quote_amount ?? null)}</td>
+              {!readOnly && title === 'Upcoming' && <td data-label="Actions"><div className="row-actions">
                 {l && <button className="secondary small" onClick={() => setEditing(b)}><Pencil size={13} aria-hidden="true" />Edit</button>}
                 {l && crew && <button className="secondary small" onClick={() => setAssigning(b)}>{crew.assignments.find(row => row.booking_id === b.id)?.employee_name ?? 'Assign'}</button>}
                 {l && <button className="secondary small" onClick={() => setMoving(b)}>Move</button>}
