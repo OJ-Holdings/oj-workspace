@@ -142,11 +142,11 @@ export async function recordExteriorEstimatedPrice(
     const prior=money(expected.amount,'Expected existing price');
     if(prior!==expected.amount)say('The saved quote baseline is invalid. Refresh the customer record.');
     const price=money(proposedPrice,'Proposed estimate');
-    if(price===null||price===0)say('Add a positive estimate price before recording.');
+    if(price===null||price===0)throw new Error('!Add a positive estimate price before recording.');
     const {data:current,error:readError}=await client.from('leads')
       .select('id,name,status,quote_amount,updated_at,manually_updated_fields,job_revenue,completed_at')
       .eq('id',id).maybeSingle();
-    if(readError||!current)say('Customer record is unavailable. Reload it before recording.');
+    if(readError||!current)throw new Error('!Customer record is unavailable. Reload it before recording.');
     if(!['new','contacted','following_up'].includes(current.status??''))say('This customer is already booked, completed or closed. Review the existing booking or create a new opportunity; do not replace a historic quote.');
     if(current.updated_at!==expected.updatedAt||num(current.quote_amount)!==prior)
       say('The customer record changed since this estimate was opened. Review the new source values before recording a price.');
