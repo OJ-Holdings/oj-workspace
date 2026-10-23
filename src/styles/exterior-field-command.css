@@ -113,3 +113,37 @@
 @media(max-width:480px){.ecfield-hero h1{font-size:32px}.ecfield-hero-actions button{flex:1}.ecfield-entry-grid,.ecfield-trip{grid-template-columns:minmax(0,1fr)}.ecfield-heading{flex-wrap:wrap}.ecfield-add{width:100%}.ecfield-stamps{grid-template-columns:minmax(0,1fr)}.ecfield-checklist label{grid-template-columns:minmax(0,1fr)}.ecfield-metric{min-height:144px;padding:13px}.ecfield-metric strong{font-size:clamp(19px,6vw,29px)}}
 @media(max-width:350px){.ecfield-metrics{grid-template-columns:minmax(0,1fr)}.ecfield-stage{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.ecfield *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.ecfield-hero-actions button:hover{transform:none}}
+
+
+/* Release 32 / exact job equipment coordination from the existing local Fleet workbook */
+.ecfield-equip{display:grid;gap:14px}
+.ecfield-equip .ecfield-heading{margin-bottom:0}
+.ecfield-equip-head{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ecfield-equip-head>div{min-width:0;padding:12px;border:1px solid var(--fld-line);border-radius:8px;background:var(--bg-2);display:grid;gap:8px}
+.ecfield-equip-head small{font-size:9px;line-height:1.5;color:var(--ink-3)}
+.ecfield-equip-head strong{font-size:17px;line-height:1.2;overflow-wrap:anywhere;color:var(--ink)}
+.ecfield-equip-actions{display:flex;flex-wrap:wrap;gap:8px}
+.ecfield-equip-actions :is(a,button){min-height:39px;display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:10px 12px;text-decoration:none;color:var(--fld-green);border:1px solid rgba(142,214,186,.25);border-radius:8px;background:rgba(142,214,186,.07);font-size:10px;font-weight:830;cursor:pointer}
+.ecfield-equip-assets{display:grid;gap:7px}
+.ecfield-equip-assets label{display:flex;align-items:start;gap:11px;background:var(--bg-2);border:1px solid var(--fld-line);padding:12px;border-radius:9px;cursor:pointer;transition:background 140ms,border-color 140ms}
+.ecfield-equip-assets label.assigned{border-color:rgba(139,221,189,.5);background:rgba(139,221,189,.07)}
+.ecfield-equip-assets label input{flex-shrink:0;width:19px;height:19px;margin-top:2px;accent-color:#91e2c5}
+.ecfield-equip-assets label span{display:grid;gap:6px;min-width:0}
+.ecfield-equip-assets label strong{font-size:11px;line-height:1.5}
+.ecfield-equip-assets label small{font-size:10px;color:var(--ink-3);line-height:1.55;overflow-wrap:anywhere}
+.ecfield-equip-findings{display:grid;gap:7px}
+.ecfield-equip-findings>p,.ecfield-equip-warning{display:flex;gap:9px;align-items:start;margin:0;padding:10px 12px;border:1px solid var(--fld-line);border-radius:8px;color:var(--ink-2);font-size:10px;line-height:1.65;background:var(--bg-2)}
+.ecfield-equip-warning{border-color:rgba(246,168,100,.32);background:rgba(246,168,100,.06)}
+.ecfield-equip-findings>p[data-level="stop"]{border-color:rgba(241,120,116,.42);background:rgba(241,120,116,.09)}
+.ecfield-equip-findings>p[data-level="attention"]{border-color:rgba(239,168,105,.29);background:rgba(239,168,105,.07)}
+.ecfield-equip-findings :is(p,div)>svg,.ecfield-equip-warning>svg{flex-shrink:0;color:var(--fld-amber)}
+.ecfield-equip-findings>div{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:9px 12px;border-bottom:1px solid var(--fld-line)}
+.ecfield-equip-findings>div small{font-size:10px;color:var(--ink-3)}
+.ecfield-equip-findings>div strong{font-size:10px;color:var(--ink)}
+.ecfield-equip-reviewed{display:flex;gap:8px;align-items:start;font-size:10px;line-height:1.65;color:var(--fld-green);padding:12px;background:rgba(142,214,186,.07);border:1px solid rgba(142,214,186,.24);border-radius:9px}
+.ecfield-equip-reviewed svg{flex-shrink:0}
+.ecfield-equip-review{min-height:45px;display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;border:1px solid rgba(142,214,186,.28);border-radius:9px;background:rgba(142,214,186,.13);color:var(--fld-green);font-size:11px;font-weight:860;cursor:pointer}
+.ecfield-equip-review:hover:not(:disabled){background:rgba(142,214,186,.21)}
+.ecfield-equip-review:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:520px){.ecfield-equip-head{grid-template-columns:repeat(2,minmax(0,1fr))}.ecfield-equip-actions>a,.ecfield-equip-actions>button{flex:1}.ecfield-equip-head>div:last-child{grid-column:1/-1}}
+@media(max-width:360px){.ecfield-equip-head{grid-template-columns:minmax(0,1fr)}.ecfield-equip-head>div:last-child{grid-column:auto}}
