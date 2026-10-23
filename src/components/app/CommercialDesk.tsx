@@ -25,7 +25,7 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
 
-export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean}) {
+export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean;cards:import('@/lib/board').Card[]}) {
   const router=useRouter();
   const preview=mode==='preview';
   const [tab,setTab]=useState<Tab>('scope');
