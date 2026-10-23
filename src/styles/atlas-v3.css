@@ -766,3 +766,18 @@
   .lead-table tbody td .row-actions button{min-height:36px}
   .lead-table tbody td:first-child .quiet.block{line-height:1.6}
 }
+
+/* ATLAS operator-grade mobile bookings: actual existing actions and source rows */
+@media(max-width:680px){
+  .booking-table thead{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .booking-table,.booking-table tbody,.booking-table tbody tr,.booking-table tbody td{display:block;width:100%;box-sizing:border-box}
+  .booking-table tbody{display:grid;gap:10px}
+  .booking-table tbody tr{padding:13px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2)}
+  .booking-table tbody td{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:6px 0;border:0!important;font-size:11px;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+  .booking-table tbody td::before{content:attr(data-label);font-size:10px;font-weight:850;color:var(--ink-3);flex:1;min-width:85px;text-align:left}
+  .booking-table tbody td[data-label=Customer]{font-size:13px;font-weight:800;text-align:right}
+  .booking-table tbody td[data-label=Actions]{justify-content:flex-end;padding-top:11px;margin-top:7px;border-top:1px solid var(--line)!important}
+  .booking-table tbody td[data-label=Actions]::before{display:none}
+  .booking-table .row-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .booking-table .row-actions button{min-height:36px}
+}
