@@ -83,7 +83,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
-  if (tab === 'commercial') return <CommercialDesk data={data} org={org} mode={mode} />;
+  if (tab === 'commercial') return <CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} />;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 

@@ -163,7 +163,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'operations' ? (
         <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} readOnly={readOnly} />
       ) : current === 'fleet' ? (
-        <FleetCommand base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
+        <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
       ) : current === 'tools' ? (
         parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'weekly-review' ? <FounderWeeklyReview base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} /> : parts[1] === 'systems' ? <SystemsHealthDesk mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
       ) : current === 'tasks' ? (

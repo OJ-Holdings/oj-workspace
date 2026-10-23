@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
+import { usePathname } from 'next/navigation';
 import { CheckSquare, MessageSquare, Plus, Search } from 'lucide-react';
 import { matchesCard, stages, type Business } from '@/lib/board';
 import { ventureList, ventures, type VentureId } from '@/lib/ventures';
@@ -20,6 +21,7 @@ type Props = { board: Board; members: string[]; readOnly: boolean; displayName: 
 /** The task board. With `lockVenture` it shows one business only and new cards default to it. */
 export function BoardView({ board, members, readOnly, displayName, lockVenture }: Props) {
   const { params, update } = useViewParams();
+  const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const business = lockVenture ?? (ventureList.some(v => v.id === params.get('business')) ? params.get('business')! : 'all');
   const query = (params.get('q') ?? '').slice(0, 200);
   const assignee = members.includes(params.get('assignee') ?? '') ? params.get('assignee')! : '';
@@ -41,7 +43,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
 
   return (
     <div className="boardview">
-      <header className="atlas-workbench-head"><div><p>ATLAS / EXECUTION WORKBENCH</p><h1>Mission Board</h1><small>One source of truth for assigned work across company divisions. Dragging a task changes its recorded stage; review does not mean approved.</small></div><a href="/workspace">Executive HQ →</a></header>
+      <header className="atlas-workbench-head"><div><p>ATLAS / EXECUTION WORKBENCH</p><h1>Mission Board</h1><small>One source of truth for assigned work across company divisions. Dragging a task changes its recorded stage; review does not mean approved.</small></div><a href={base}>Executive HQ →</a></header>
       <div className="statstrip">
         <div><span>Open in this view</span><strong><NumberFlow value={filtered.filter(c => c.stage !== 'Done').length} /></strong></div>
         <div><span>In progress</span><strong><NumberFlow value={count('In progress')} /></strong></div>

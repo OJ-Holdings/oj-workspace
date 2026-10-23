@@ -7,6 +7,8 @@ import type { ExteriorData } from '@/lib/exterior';
 import { brief, calculateEstimate, newEstimate, newSite, type EstimateInput, type Site } from '@/lib/commercial-estimate';
 import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialEstimate } from '@/lib/commercial-transfer';
 import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
+import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
+import { AtlasFieldBridge } from './AtlasFieldBridge';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -21,7 +23,7 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
 
-export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mode:'live'|'preview'}) {
+export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean}) {
   const preview=mode==='preview';
   const [tab,setTab]=useState<Tab>('scope');
   const [name,setName]=useState('New commercial opportunity');
@@ -37,32 +39,39 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   const key='oj-commercial-estimate-v2:'+org;
 
   useEffect(()=>{
-    if(preview){setReady(true);return;}
+    // Reset whenever the organization or preview context changes. Never
+    // carry a previous company's private local draft into another workspace.
+    setReady(false);
+    setName('New commercial opportunity');
+    setInput(newEstimate());
+    setReview(checklist.map(()=>false));
+    setNotice('');
+    if(preview||readOnly){setReady(true);return;}
     try {
       const stored=window.localStorage.getItem(key);
-      if(stored) {
-        const d=JSON.parse(stored) as {name?:unknown;input?:EstimateInput;review?:boolean[]};
-        if(typeof d.name==='string')setName(d.name.slice(0,140));
-        if(d.input && Array.isArray(d.input.sites) && d.input.sites.length>0 && d.input.sites.length<=12) {
-          const defaults=newEstimate();
-          setInput({...defaults,...d.input,sites:d.input.sites.map((site,i)=>({...newSite('restored-'+i),...site,id:'restored-'+i}))});
-        }
-        if(Array.isArray(d.review))setReview(checklist.map((_,i)=>d.review?.[i]===true));
+      if(stored){
+        const validated=parseLocalCommercialDraft(stored,org);
+        setName(validated.name);
+        setInput(validated.input);
+        setReview(validated.review);
       }
-    } catch {setNotice('Local draft was unreadable; a new draft is shown.');}
+    } catch {
+      setNotice('Saved commercial draft could not be validated. Its original browser record was not overwritten. Export or recover the old draft before saving a replacement.');
+    }
     setReady(true);
-  },[key,preview]);
+  },[key,org,preview,readOnly]);
 
   const patch=(changes:Partial<EstimateInput>)=>setInput(v=>({...v,...changes}));
   const patchSite=(id:string,changes:Partial<Site>)=>setInput(v=>({...v,sites:v.sites.map(s=>s.id===id?{...s,...changes}:s)}));
   const add=()=>setInput(v=>v.sites.length>=12?v:{...v,sites:[...v.sites,{...newSite('site-'+String(Date.now())),name:'Building '+String(v.sites.length+1)}]});
   const remove=(id:string)=>setInput(v=>v.sites.length===1?v:{...v,sites:v.sites.filter(s=>s.id!==id)});
   const save=()=>{
-    if(preview){setNotice('Preview mode cannot save a real draft.');return;}
-    try{window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Draft saved on this browser only. Nothing was written to the shared OJ database.');}
+    if(preview||readOnly){setNotice('This mode cannot save a private draft.');return;}
+    try{exportCommercialEstimate(org,name,input,review);window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Validated draft saved on this browser only. Nothing was written to the shared OJ database.');}
     catch{setNotice('Browser storage is unavailable; download your draft instead.');}
   };
   const reset=()=>{
+    if(readOnly||preview)return;
     if(!window.confirm('Reset this local draft? No customer or financial records will change.'))return;
     setInput(newEstimate());setName('New commercial opportunity');setReview(checklist.map(()=>false));
     try{window.localStorage.removeItem(key);}catch{}
@@ -105,7 +114,7 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
   };
   const importEditable=async(file:File|undefined)=>{
     if(!file)return;
-    if(preview){setNotice('Sample preview cannot import a real company estimate.');return;}
+    if(preview||readOnly){setNotice('This mode cannot import a private company estimate.');return;}
     if(file.size>commercialTransferMaxChars){setNotice('Estimate file exceeds the 256 KB import limit.');return;}
     try {
       const imported=importCommercialEstimate(await file.text(),org);
@@ -135,11 +144,11 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
         <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
         <p>Develop multi-building scope, model true direct costs, and prepare an internal proposal brief. Nothing here is treated as booked, paid, or contractually approved.</p>
         <div className="com-actions">
-          <button className="primary" onClick={save}><Save size={16}/> Save local draft</button>
+          <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save local draft</button>
           <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
           <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
           <button className="secondary" onClick={exportEditable}><Download size={16}/> Export editable</button>
-          <button className="secondary" disabled={preview} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
+          <button className="secondary" disabled={preview||readOnly} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
           <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{
             const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importEditable(file);
           }}/>
@@ -169,6 +178,7 @@ export function CommercialDesk({data,org,mode}:{data:ExteriorData;org:string;mod
       <span><strong>{reviewed}/{checklist.length}</strong> internal review items checked</span>
       <b>{preview?'FICTIONAL PREVIEW':'BROWSER-LOCAL DRAFT'}</b>
     </div>
+    {ready && <AtlasFieldBridge base={base} organizationId={org} mode={mode} view="commercial" commercial={{name,input,review}} disabled={readOnly} />}
     <div className="com-body">
       <div className="com-left">
         <div className="com-tabs" role="group" aria-label="Commercial desk sections">

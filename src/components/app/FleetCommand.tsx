@@ -7,6 +7,8 @@ import {
   Download, Droplets, FileUp, Gauge, HardHat, PackagePlus, Plus, RotateCcw,
   Save, Settings2, ShieldAlert, ShieldCheck, Trash2, Truck, Wrench, X,
 } from 'lucide-react';
+import { AtlasFieldBridge } from './AtlasFieldBridge';
+import { chicagoDateOf } from '@/lib/atlas-field-bridge';
 import {
   assetHealth, calculateRigLoad, decodeFleet, emptyFleet, encodeFleet,
   fleetKinds, fleetStatuses, readingUnits, readinessItems, validateFleet,
@@ -68,6 +70,7 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
   const [query,setQuery]=useState('');
   const [statusFilter,setStatusFilter]=useState<'all'|FleetStatus>('all');
   const [day,setDay]=useState('');
+  useEffect(()=>{const timer=window.setInterval(()=>setDay(todayLocal()),60_000);return ()=>window.clearInterval(timer);},[]);
   const fileRef=useRef<HTMLInputElement>(null);
 
   useEffect(()=>{
@@ -108,6 +111,9 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
     [a.name,a.model,kindNames[a.kind],a.notes].some(v=>v.toLowerCase().includes(query.toLowerCase())));
   const load=useMemo(()=>calculateRigLoad(workbook.rig),[workbook.rig]);
   const completed=workbook.readiness.checked.length;
+  // Never carry a previous day’s inspection into today’s departure indicators.
+  const checklistFresh=!!day && chicagoDateOf(workbook.readiness.updatedAt)===day;
+  const todayChecked=checklistFresh?completed:0;
 
   function saveAsset(){
     if(!assetEditor||!canEdit)return;
@@ -141,10 +147,12 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
     persist({...workbook,maintenance:workbook.maintenance.filter(m=>m.id!==id)},'Maintenance entry removed.');
   }
   function toggleReadiness(id:(typeof readinessItems)[number]['id']){
-    if(!canEdit)return;
-    const checked=workbook.readiness.checked.includes(id)
-      ?workbook.readiness.checked.filter(x=>x!==id):[...workbook.readiness.checked,id];
-    persist({...workbook,readiness:{checked,updatedAt:new Date().toISOString()}},'Checklist updated in this browser.');
+    if(!canEdit || !day)return;
+    if(!checklistFresh && completed>0 &&
+      !window.confirm('These checks were recorded on another day. Start a new checklist for today? Prior checked items will be replaced. Export your workbook first if you need to retain them.'))return;
+    const previous=checklistFresh?workbook.readiness.checked:[];
+    const checked=previous.includes(id)?previous.filter(x=>x!==id):[...previous,id];
+    persist({...workbook,readiness:{checked,updatedAt:new Date().toISOString()}},'Today’s local departure checks updated; repeat for each job departure.');
   }
   function resetReadiness(){
     if(!canEdit||!window.confirm('Reset all pre-departure checks for your next job?'))return;
@@ -205,14 +213,15 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
     <section className="atlas-fleet-alertline" aria-label="Equipment attention summary">
       <span><b>{dueNow.length}</b> recorded assets need attention</span>
       <span><b>{soon}</b> nearing entered service thresholds</span>
-      <span><b>{readinessItems.length-completed}</b> checklist items unchecked</span>
+      <span><b>{readinessItems.length-todayChecked}</b> checklist items unchecked today</span>
       <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
     </section>
+    <AtlasFieldBridge base={base} organizationId={organizationId} mode={mode} view="fleet" fleet={workbook} disabled={readOnly} />
     <section className="fleet-kpis" aria-label="Fleet status overview">
       <div><span><Truck size={17}/> Logged assets</span><strong>{workbook.assets.length}</strong><small>Local inventory entries</small></div>
       <div><span><AlertTriangle size={17}/> Attention now</span><strong>{attention}</strong><small>Manually flagged or service due</small></div>
       <div><span><Gauge size={17}/> Service approaching</span><strong>{soon}</strong><small>Based on entered thresholds</small></div>
-      <div><span><ClipboardCheck size={17}/> Readiness</span><strong>{completed}/{readinessItems.length}</strong><small>Local pre-departure checklist</small></div>
+      <div><span><ClipboardCheck size={17}/> Readiness</span><strong>{todayChecked}/{readinessItems.length}</strong><small>Recorded today; reset for each job</small></div>
     </section>
     <nav className="fleet-tabs" aria-label="Fleet Command sections">
       {(Object.keys(tabNames) as Tab[]).map(t=>
@@ -233,8 +242,8 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
       </section>
       <section className="fleet-panel fleet-side-panel">
         <div className="fleet-panel-heading"><div><p className="fleet-section-kicker">PRE-DEPARTURE</p><h2>Rig readiness</h2></div><ClipboardCheck size={22}/></div>
-        <div className="fleet-progress-track"><span style={{width:(completed/readinessItems.length*100)+'%'}}/></div>
-        <p><strong>{completed} / {readinessItems.length}</strong> safety and job-prep items checked</p>
+        <div className="fleet-progress-track"><span style={{width:(todayChecked/readinessItems.length*100)+'%'}}/></div>
+        <p><strong>{todayChecked} / {readinessItems.length}</strong> safety and job-prep items recorded today</p>
         <p className="fleet-muted">Checklist status is a local self-check, not an official inspection or safety certification. Reset it before every new job.</p>
         <button className="fleet-primary" type="button" onClick={()=>setTab('readiness')}>Open readiness checklist <ArrowUpRight size={16}/></button>
       </section>
@@ -294,9 +303,10 @@ export function FleetCommand({base,organizationId,mode,readOnly}:Props) {
     {tab==='readiness'&&<section className="fleet-panel">
       <div className="fleet-panel-heading"><div><p className="fleet-section-kicker">FIELD SAFETY</p><h2>Pre-departure inspection</h2></div><HardHat size={23}/></div>
       <p className="fleet-muted">This is a general preparation prompt, not a substitute for equipment manuals, training, site-specific risk assessment or required inspections. Complete a new checklist before each departure.</p>
-      <div className="fleet-progress-track"><span style={{width:(completed/readinessItems.length*100)+'%'}}/></div>
-      <p className="fleet-muted">{completed} of {readinessItems.length} checked. Last updated: {workbook.readiness.updatedAt?new Date(workbook.readiness.updatedAt).toLocaleString():'Never'}</p>
-      <div className="fleet-checklist">{readinessItems.map(item=><label key={item.id}><input type="checkbox" disabled={!canEdit} checked={workbook.readiness.checked.includes(item.id)} onChange={()=>toggleReadiness(item.id)}/><span>{item.label}</span></label>)}</div>
+      <div className="fleet-progress-track"><span style={{width:(todayChecked/readinessItems.length*100)+'%'}}/></div>
+      <p className="fleet-muted">{todayChecked} of {readinessItems.length} checked today. Last saved: {workbook.readiness.updatedAt?new Date(workbook.readiness.updatedAt).toLocaleString():'Never'}</p>
+      {!checklistFresh&&completed>0&&<p className="fleet-inline-danger" role="status">Previous-day checks are retained for reference but do not count for today. Starting a new checklist requires your confirmation.</p>}
+      <div className="fleet-checklist">{readinessItems.map(item=><label key={item.id}><input type="checkbox" disabled={!canEdit} checked={checklistFresh&&workbook.readiness.checked.includes(item.id)} onChange={()=>toggleReadiness(item.id)}/><span>{item.label}</span></label>)}</div>
       <button className="fleet-outline" type="button" disabled={!canEdit} onClick={resetReadiness}><RotateCcw size={15}/>Reset for the next job</button>
     </section>}
 
