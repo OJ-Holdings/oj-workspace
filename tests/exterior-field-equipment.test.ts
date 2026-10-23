@@ -80,7 +80,7 @@ test('valid same-day local fleet and load yield selected assets but NOT certifie
  assert.equal(data.fleetChecklistFresh,true);
  assert.equal(data.fleetChecklistChecked,10);
  assert.equal(data.knownPayloadOverage,false);
- assert.equal(data.capacityRemainingLb,1500-(500+35*8.34+320+100));
+ assert.ok(data.capacityRemainingLb!==null&&Math.abs(data.capacityRemainingLb-(1500-(500+35*8.34+320+100)))<0.001);
  assert.ok(!data.findings.some(x=>x.type==='stop'));
 });
 test('unavailable fleet, no assets, stale review are UNKNOWN rather than ready',()=>{
