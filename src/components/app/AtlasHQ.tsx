@@ -67,7 +67,8 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
         <h1>The company.<br/><em>Under your command.</em></h1>
         <p className="atlas-hq-lead">One headquarters for your people, jobs, equipment, clients and commitments. Real records first. Every decision has a source.</p>
         <div className="atlas-hq-hero-actions">
-          <Link className="atlas-action-primary" href={base+'/tasks'}>Open mission board <ArrowUpRight size={17}/></Link>
+          <Link className="atlas-action-primary" href={base+'/tools/operations'}>Open NEXUS Corporate Command <Network size={17}/></Link>
+          <Link className="atlas-action-secondary" href={base+'/tasks'}>Mission board <ArrowUpRight size={16}/></Link>
           <Link className="atlas-action-secondary" href={base+'/b/exterior/commercial'}>Commercial War Room <BriefcaseBusiness size={16}/></Link>
           <Link className="atlas-action-secondary" href={base+'/tools/fleet'}>Fleet Command <Truck size={16}/></Link>
         </div>
