@@ -700,3 +700,23 @@
 .nexus-corporate-footer svg{flex-shrink:0;color:var(--watch)}
 @media(max-width:1050px){.nexus-corporate-body{grid-template-columns:1fr}.nexus-corporate-projects{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:600px){.nexus-corporate-head{flex-direction:column;align-items:flex-start;padding:15px}.nexus-corporate-head h2{font-size:19px}.nexus-corporate-head>a{width:100%;justify-content:center}.nexus-corporate-projects,.nexus-corporate-changes{padding:13px}.nexus-corporate-project-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.nexus-corporate-events time{display:none}}
+
+/* ATLAS V3 / R15 — deliberate private founder portfolio file-transfer preview */
+.atlas-portfolio-import-preview{margin:13px 0 16px;border:1px solid var(--accent-hi);border-radius:11px;padding:16px;background:var(--panel-2)}
+.atlas-portfolio-import-preview>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.atlas-portfolio-import-preview>header small{display:block;font-size:9px;letter-spacing:.1em;font-weight:900;color:var(--accent-hi)}
+.atlas-portfolio-import-preview>header h4{margin:6px 0;font:850 19px/1.3 var(--font-display);color:var(--ink)}
+.atlas-portfolio-import-preview>header p{font-size:10px;line-height:1.6;color:var(--ink-3);margin:0;overflow-wrap:anywhere}
+.atlas-portfolio-import-preview>header button{font-size:10px;white-space:nowrap}
+.atlas-portfolio-import-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:13px}
+.atlas-portfolio-import-counts span{display:flex;flex-direction:column;gap:5px;padding:11px;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;color:var(--ink-3);font-size:10px;line-height:1.5}
+.atlas-portfolio-import-counts strong{font:800 22px/1.2 var(--font-display);color:var(--ink)}
+.atlas-portfolio-import-disclaimer{font-size:10px;line-height:1.7;color:var(--ink-3);margin:10px 0}
+.atlas-portfolio-import-details{border-top:1px solid var(--line);padding:10px 0}
+.atlas-portfolio-import-details>strong{font-size:11px;color:var(--ink)}
+.atlas-portfolio-import-details p{font-size:10px;line-height:1.6;color:var(--ink-3);overflow-wrap:anywhere;margin:7px 0}
+.atlas-portfolio-import-actions{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+.atlas-portfolio-import-actions button{display:inline-flex;gap:7px;align-items:center;justify-content:center;font-size:10px}
+.atlas-portfolio-import-actions button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:790px){.atlas-portfolio-import-counts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.atlas-portfolio-import-preview{padding:12px}.atlas-portfolio-import-actions{flex-direction:column}.atlas-portfolio-import-actions button{width:100%}.atlas-portfolio-import-preview>header button{width:100%}}
