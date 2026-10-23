@@ -127,7 +127,7 @@ export function AtlasFieldMissionPanel({org,base,project,isSaved,day,plan,onChan
       </div>
     </div>
     <footer className="atlas-mission-pack-footer">
-      <div><HardHat size={17}/><span><strong>Current editor snapshot.</strong> Save the selected project to retain crew assumptions in this browser. Exported pack omits private property locations, notes, customer names and contact details.</span></div>
+      <div><HardHat size={17}/><span><strong>Current editor snapshot.</strong> Save the selected project to retain crew assumptions in this browser. Export excludes dedicated address, private-note and customer contact fields. Project/building names are included and may themselves contain sensitive details—review before sharing.</span></div>
       <button type="button" className="secondary" onClick={()=>void copyPack()}><ClipboardCopy size={15}/> Copy internal pack</button>
       <button type="button" className="secondary" onClick={downloadPack}><Download size={15}/> Download pack</button>
     </footer>
