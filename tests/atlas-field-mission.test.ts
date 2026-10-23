@@ -59,6 +59,7 @@ test('zero labor hours cannot be treated as an approved safe/staffed plan',()=>{
   const result=fieldCrewCapacity(input,plan);
   assert.equal(result.state,'no-labor-entered');
   assert.equal(result.estimatedMinimumFieldDays,null);
+  assert.equal(result.capacityGapHours,null);
   assert.equal(fieldWorkforceFindings(input,plan)[0].id,'labor-zero');
 });
 
