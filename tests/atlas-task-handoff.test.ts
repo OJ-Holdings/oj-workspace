@@ -40,7 +40,8 @@ test('commercial founder handoff is a valid unsaved task snapshot with source wa
   assert.match(value.description,/not founder approval/i);
   assert.doesNotMatch(value.description,/PRIVATE BUILDING STREET LOCATION/);
   assert.doesNotMatch(value.description,/Private instructions should stay/);
-  assert.doesNotMatch(value.description,/Fake approval marker\n/);
+  assert.match(value.description,/Project: Site alpha Fake approval marker\nScope:/);
+  assert.doesNotMatch(value.description,/Project: Site alpha\nFake approval marker/);
   assert.ok(value.description.length<=8000);
 });
 
