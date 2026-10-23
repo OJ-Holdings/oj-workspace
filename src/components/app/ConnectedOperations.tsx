@@ -16,9 +16,11 @@ import {
 } from '@/lib/operating-network';
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { workDay } from '@/lib/task-workflows';
+import { NexusCorporateExtension } from './NexusCorporateExtension';
+import type { Activity } from '@/lib/board';
 
-type Props={base:string;cards:Card[];dashboard:Dashboard|null;jobs:JobItem[];
-  mode:'live'|'preview';limited:boolean;readOnly:boolean};
+type Props={base:string;org:string;cards:Card[];activity:Activity[];dashboard:Dashboard|null;jobs:JobItem[];
+  jobsState:'loading'|'ready'|'failed';mode:'live'|'preview';limited:boolean;readOnly:boolean};
 const labels:Record<OperatingKind,string>={
   task:'Task',lead:'CRM lead',booking:'Exterior booking',event:'Calendar',
   document:'Document',finance:'Finance record',message:'Team message',
@@ -27,7 +29,7 @@ const kinds=new Set<string>(operatingKinds);
 const tasksFirst=(r:OperatingRecord)=>r.priority<=5&&r.kind==='task';
 const fragment=(base:string,path:string)=>base+path;
 
-export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited,readOnly}:Props){
+export function ConnectedOperations({base,org,cards,activity,dashboard,jobs,jobsState,mode,limited,readOnly}:Props){
   const params=useSearchParams();
   const businessParam=params.get('business');
   const [today,setToday]=useState('');
@@ -67,15 +69,16 @@ export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited,read
 
   return <main className="operations page">
     <header className="operations-hero">
-      <p className="tools-eyebrow"><Network size={15} aria-hidden="true"/> OJ HOLDINGS / CONNECTED OPERATIONS</p>
-      <h1>One company. <em>Every workstream.</em></h1>
+      <p className="tools-eyebrow"><Network size={15} aria-hidden="true"/> OJ HOLDINGS / NEXUS CORPORATE COMMAND</p>
+      <h1>One company. <em>One operating network.</em></h1>
       <p>Jump from priorities to CRM, bookings, schedules, finance records and documents without switching mental context. Every item opens its existing system of record; this page is a read-only coordination layer, not a second database.</p>
       <div className="operations-hero-meta">
         <span><ShieldCheck size={15}/>{mode==='preview'?'Fictional demonstration — not company data':'Only authorized, loaded workspace records'}</span>
         <span><CalendarDays size={15}/>{today?today+' · Chicago business day':'Checking business day…'}</span>
       </div>
     </header>
-    {index?<><section className="operations-stats" aria-label="Connected operating summary">
+    {index?<><NexusCorporateExtension base={base} org={org} mode={mode} readOnly={readOnly} cards={cards} activity={activity} jobs={jobs} jobsState={jobsState} today={today} />
+    <section className="operations-stats" aria-label="Connected operating summary">
       <Link href={base+'/tasks'}><span>Overdue work</span><strong>{index.counts.overdue}</strong><small>Unfinished tasks <ArrowUpRight size={13}/></small></Link>
       <Link href={base+'/tasks'}><span>Needs review / owner</span><strong>{index.counts.review} / {index.counts.unassigned}</strong><small>Review stage / unassigned <ArrowUpRight size={13}/></small></Link>
       <Link href={base+'/b/exterior/calendar'}><span>Next seven dates</span><strong>{index.counts.upcomingBookings}</strong><small>Loaded Exterior bookings <ArrowUpRight size={13}/></small></Link>
@@ -126,13 +129,13 @@ export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited,read
       </section>
       <aside className="operations-aside">
         <section className="operations-panel">
-          <h2><GitBranchPlus size={19}/> Verified connections</h2>
-          <p>Relationships are shown only when their identifiers actually match; a customer name or email similarity never creates a link.</p>
-          <strong>{index.relations.length} identifier-backed links in loaded records</strong>
+          <h2><GitBranchPlus size={19}/> Exact-ID source and text references</h2>
+          <p>Source records are matched by exact ID. Task descriptions may contain explicit ID text, which is NOT a canonical database foreign key; names, phones and emails never establish identity.</p>
+          <strong>{index.relations.length} exact-ID links or text references in loaded records</strong>
           <div className="operations-mini-stat"><span>Task → CRM lead</span><b>{index.relations.filter(r=>r.toKey?.startsWith('lead:')).length}</b></div>
           <div className="operations-mini-stat"><span>Task → Exterior booking</span><b>{index.relations.filter(r=>r.toKey?.startsWith('booking:')).length}</b></div>
           <div className="operations-mini-stat"><span>Exterior booking → source lead</span><b>{index.relations.filter(r=>r.toKey===null).length}</b></div>
-          <p>Use a record's “Create linked task draft” action to carry an exact source ID into the normal task editor. The draft is not saved until you submit it. Links are verified against loaded records; names never establish a match.</p>
+          <p>Use a record's “Create linked task draft” action to carry an exact source ID into the normal task editor. The draft is not saved until you submit it. Referenced source records are loaded when available; task text does not establish server-level project identity. Names never establish a match.</p>
           <Link href={base+'/tasks'} className="operations-aside-link">Open shared task board <ArrowUpRight size={15}/></Link>
         </section>
         <section className="operations-panel">
@@ -147,6 +150,7 @@ export function ConnectedOperations({base,cards,dashboard,jobs,mode,limited,read
           <div className="operations-shortcuts">
             <Link href={base+'/crm'}><Users size={15}/> Shared CRM <ArrowUpRight size={14}/></Link>
             <Link href={base+'/b/exterior/commercial'}>Commercial Bid War Room <ArrowUpRight size={14}/></Link>
+            <Link href={base+'/b/exterior/projects'}><Network size={15}/> NEXUS Project 360 <ArrowUpRight size={14}/></Link>
             <Link href={base+'/finance'}>Recorded finance <ArrowUpRight size={14}/></Link>
             <Link href={base+'/files'}>Company documents <ArrowUpRight size={14}/></Link>
           </div>
@@ -169,6 +173,6 @@ export function ConnectedOperationsPulse({base,cards,dashboard,jobs,today,limite
       <span><strong>{snapshot?.counts.unassigned??'—'}</strong> need owners</span>
       <span><strong>{snapshot?.counts.upcomingBookings??'—'}</strong> upcoming Exterior bookings</span>
     </div>
-    <Link href={base+'/tools/operations'}>Open Connected Operations <ArrowUpRight size={16}/></Link>
+    <Link href={base+'/tools/operations'}>Open NEXUS corporate operations <ArrowUpRight size={16}/></Link>
   </section>;
 }

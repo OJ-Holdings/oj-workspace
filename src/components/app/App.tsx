@@ -234,7 +234,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
       ) : current === 'operations' ? (
-        <ConnectedOperations base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} readOnly={readOnly} />
+        <ConnectedOperations base={base} org={organizationId} cards={board.data.cards} activity={board.data.activity ?? []} dashboard={store.data} jobs={jobs} jobsState={jobsState} mode={mode} limited={limited} readOnly={readOnly} />
       ) : current === 'fleet' ? (
         <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} bookings={jobs} bookingsState={jobsState} cards={board.data.cards} />
       ) : current === 'tools' ? (

@@ -19,6 +19,7 @@ type NavGroup='COMMAND'|'WORKBENCH'|'INTELLIGENCE'|'SYSTEM';
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group: NavGroup }[] = [
   { key:'home', label:'Executive HQ', path:'', icon:Home, group:'COMMAND' },
   { key:'nexus', label:'NEXUS / Project 360', path:'/b/exterior/projects', icon:Network, group:'COMMAND' },
+  { key:'operations', label:'NEXUS / Corporation', path:'/tools/operations', icon:Network, group:'COMMAND' },
   { key:'businesses', label:'Business Divisions', path:'/businesses', icon:Building2, group:'COMMAND' },
   { key:'fleet', label:'Fleet Command', path:'/tools/fleet', icon:Truck, group:'COMMAND' },
   { key:'tasks', label:'Missions & Tasks', path:'/tasks', icon:CheckSquare, group:'WORKBENCH' },
