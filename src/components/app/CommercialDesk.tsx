@@ -25,7 +25,7 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
 
-export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean}) {
+export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean;cards:import('@/lib/board').Card[]}) {
   const router=useRouter();
   const preview=mode==='preview';
   const [tab,setTab]=useState<Tab>('scope');
@@ -174,7 +174,7 @@ export function CommercialDesk({data,org,mode,readOnly}:{data:ExteriorData;org:s
     </header>
     <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
     {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly}
-      name={name} input={input} review={review} bookings={data.bookings}
+      name={name} input={input} review={review} bookings={data.bookings} cards={cards}
       onLoad={project=>{setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}
     <div className="com-snapshot">
       <div><span>BUILDINGS</span><strong>{estimate.sites}</strong><small>{estimate.floors} floors · {estimate.panes} panes (estimated)</small></div>

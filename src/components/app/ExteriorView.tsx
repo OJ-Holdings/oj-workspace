@@ -23,7 +23,7 @@ const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
 
 /** Every Exterior Care tab beyond the shared ones: the records the original Exterior Care app works on. */
-export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean }) {
+export function ExteriorView({ tab, org, mode, readOnly, cards }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean; cards: import('@/lib/board').Card[] }) {
   const [result, setResult] = useState<ExteriorResult | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -83,7 +83,7 @@ export function ExteriorView({ tab, org, mode, readOnly }: { tab: string; org: s
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
-  if (tab === 'commercial') return <CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} />;
+  if (tab === 'commercial') return <CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} cards={cards} />;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 

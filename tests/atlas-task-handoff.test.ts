@@ -4,7 +4,9 @@ import { validateCard } from '../src/lib/board';
 import { newEstimate } from '../src/lib/commercial-estimate';
 import { emptyFleet } from '../src/lib/fleet-command';
 import { parseLocalCommercialDraft } from '../src/lib/atlas-field-bridge';
-import { commercialReviewTask, fleetReviewTask } from '../src/lib/atlas-task-handoff';
+import { commercialPortfolioTask, commercialReviewTask, exactLocalProjectIds, fleetReviewTask } from '../src/lib/atlas-task-handoff';
+import { emptyCommercialPortfolio, savePortfolioProject } from '../src/lib/atlas-commercial-portfolio';
+import type { JobItem } from '../src/app/workspace/exterior-actions';
 
 const org='00000000-0000-4000-8000-000000000001';
 const commercial=()=>{
@@ -62,4 +64,50 @@ test('long commercial references cannot exceed task title and description limits
   assert.ok(draft.title.length<=180);
   assert.ok(draft.description.length<=8000);
   assert.equal(validDraft(draft).priority,'normal');
+});
+
+const bookingId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const booking:JobItem={
+  id:bookingId,lead_id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',date:'2026-11-12',
+  time_block:'9 to 12',status:'confirmed',name:'PRIVATE CLIENT NAME',
+  service:'commercial window cleaning',address:'PRIVATE CUSTOMER STREET ADDRESS',quote:38000,
+};
+const savedProject=()=>{
+  const p=savePortfolioProject(emptyCommercialPortfolio(org),org,'projectA',
+    { ...commercial(),phase:'founder-review',bookingId,plannedAssetIds:['asset-1'] },
+    null,'2026-10-22T17:00:00.000Z');
+  return p.projects[0];
+};
+
+test('exact saved local project creates valid task with an explicitly confirmed booking relation',()=>{
+  const project=savedProject();
+  const task=commercialPortfolioTask(project,emptyFleet(org),'2026-10-22',booking);
+  assert.equal(validDraft(task).business,'exterior');
+  assert.equal(task.priority,'normal');
+  assert.equal(task.due_date,'');
+  assert.match(task.description,/Local portfolio project ID: projectA/);
+  assert.deepEqual(exactLocalProjectIds(task.description),['projectA']);
+  assert.match(task.description,new RegExp('^Booking record ID: '+bookingId+'$', 'm'));
+  assert.match(task.description,/Source booking status at task creation: confirmed/);
+  assert.match(task.description,/NOT reserved or dispatched/);
+  assert.doesNotMatch(task.description,/PRIVATE CUSTOMER STREET ADDRESS/);
+  assert.doesNotMatch(task.description,/PRIVATE CLIENT NAME/);
+  assert.doesNotMatch(task.description,/38000/);
+});
+
+test('an unobserved or cancelled booking never becomes a verified task-booking link',()=>{
+  const project=savedProject();
+  for(const job of [null,{...booking,id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'},{...booking,status:'cancelled'}, {...booking,date:'invalid'}]){
+    const task=commercialPortfolioTask(project,null,'2026-10-22',job);
+    assert.doesNotMatch(task.description,/^Booking record ID:/m);
+    assert.match(task.description,/matching active booking was not verified/);
+    assert.deepEqual(exactLocalProjectIds(task.description),['projectA']);
+  }
+});
+test('archived local project is not treated as actionable shared work',()=>{
+  assert.throws(()=>commercialPortfolioTask({...savedProject(),phase:'archived'},null,'2026-10-22',booking),/Archived/);
+});
+test('reverse relationship accepts exact local ID lines and rejects fuzzy mentions',()=>{
+  assert.deepEqual(exactLocalProjectIds('projectA appears in note\nLocal portfolio project ID: projectA\nLocal portfolio project ID: projectA\nLocal portfolio project ID: projectB'),['projectA','projectB']);
+  assert.deepEqual(exactLocalProjectIds('Subject projectA\nLocal portfolio project ID: projectA or another project'),[]);
 });

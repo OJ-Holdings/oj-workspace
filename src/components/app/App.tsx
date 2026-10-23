@@ -18,7 +18,8 @@ import { SystemsHealthDesk } from './SystemsHealthDesk';
 import { ConnectedOperations } from './ConnectedOperations';
 import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
 import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
-import { commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
+import { commercialPortfolioTask, commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
+import { decodeCommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
@@ -71,20 +72,20 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       if (args[0]) {
         const url = new URL(window.location.href);
         url.searchParams.set('task', args[0].id);
-        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet');
+        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
         window.history.pushState(null, '', url.pathname + url.search);
       }
     },
     closeCard: (extraDraft = false) => {
       if (!rawBoard.closeCard(extraDraft)) return false;
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
       window.history.replaceState(null, '', url.pathname + url.search);
       return true;
     },
   };
   const store = useDashboard(dashboard, mode, organizationId, displayName);
-  const { jobs, schedule: jobSchedule } = useJobs(organizationId, mode, pathname);
+  const { jobs, schedule: jobSchedule, loadingState: jobsState } = useJobs(organizationId, mode, pathname);
   const query = useSearchParams();
   const opened = useRef('');
   const [handoffError,setHandoffError]=useState('');
@@ -93,15 +94,16 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   const sourceBooking = query.get('sourceBooking');
   const sourceCommercial = query.get('sourceCommercial') === '1';
   const sourceFleet = query.get('sourceFleet') === '1';
+  const sourceProject = query.get('sourceProject');
   useEffect(() => {
     if (!board.ready) return;
-    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : sourceCommercial ? 'commercial:1' : sourceFleet ? 'fleet:1' : '';
+    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : sourceProject ? `project:${sourceProject}` : sourceCommercial ? 'commercial:1' : sourceFleet ? 'fleet:1' : '';
     if (opened.current === key) return;
     if (rawBoard.editing && !rawBoard.closeCard()) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
       const [kind, ...value] = opened.current.split(':');
-      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : kind === 'commercial' ? 'sourceCommercial' : kind === 'fleet' ? 'sourceFleet' : 'sourceLead', value.join(':'));
+      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : kind === 'commercial' ? 'sourceCommercial' : kind === 'fleet' ? 'sourceFleet' : kind === 'project' ? 'sourceProject' : 'sourceLead', value.join(':'));
       window.history.replaceState(null, '', url.pathname + url.search);
       return;
     }
@@ -116,6 +118,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         rawBoard.openCard(undefined, followUpFromCrmLead(lead,base));
       }
     } else if (sourceBooking && !readOnly && mode === 'live') {
+      if(jobsState==='loading')return;
       const booking = jobs.find(j => j.id === sourceBooking);
       if (booking) {
         try {
@@ -123,6 +126,28 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           opened.current = key;
           rawBoard.openCard(undefined,draft);
         } catch { /* Rejected booking cannot create a task draft. */ }
+      }
+    } else if (sourceProject && !readOnly && mode === 'live') {
+      if(jobsState==='loading')return;
+      try {
+        if(!/^[A-Za-z0-9_-]{1,80}$/.test(sourceProject))throw new Error('Invalid local project identifier.');
+        const raw=window.localStorage.getItem('oj-commercial-project-portfolio-v1:'+organizationId);
+        if(!raw)throw new Error('This commercial project portfolio is not available on this device.');
+        const portfolio=decodeCommercialPortfolio(raw,organizationId);
+        const project=portfolio.projects.find(p=>p.id===sourceProject);
+        if(!project)throw new Error('Project not found in this device-local commercial portfolio.');
+        const day=chicagoDateOf(new Date().toISOString())??'';
+        const rawFleet=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
+        let fleet:ReturnType<typeof parseLocalFleetDraft>|null=null;
+        if(rawFleet){try{fleet=parseLocalFleetDraft(rawFleet,organizationId);}catch{/* Optional fleet evidence is unknown, not invented. */}}
+        const sourceBooking=project.bookingId
+          ? jobs.find(j=>j.id.toLowerCase()===project.bookingId&&j.status!=='cancelled'&&j.status!=='denied')??null
+          : null;
+        const draft=commercialPortfolioTask(project,fleet,day,sourceBooking);
+        opened.current=key;setHandoffError('');rawBoard.openCard(undefined,draft);
+      }catch(error){
+        opened.current=key;
+        setHandoffError(error instanceof Error?error.message:'This local project could not be validated for task preparation.');
       }
     } else if ((sourceCommercial || sourceFleet) && !readOnly && mode === 'live') {
       // This navigation is an explicit user request to PREPARE a task. Reading
@@ -149,12 +174,12 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         setHandoffError(error instanceof Error ? error.message : 'The private source workbook could not be read.');
       }
     }
-  }, [taskId, sourceLead, sourceBooking, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, mode, readOnly, base]);
+  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
   const wasEditing = useRef(false);
   useEffect(() => {
     if (wasEditing.current && !rawBoard.editing) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet');
+      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject');
       window.history.replaceState(null, '', url.pathname + url.search);
       opened.current = '';
     }

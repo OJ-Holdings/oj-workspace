@@ -380,3 +380,13 @@
 .atlas-fleet-project-list li{font-size:10px;color:var(--ink-2);line-height:1.65}
 .atlas-fleet-project-list li span{color:var(--ink-3)}
 @media(max-width:760px){.atlas-project-portfolio-head,.atlas-fleet-project-link>header{align-items:flex-start;flex-direction:column;padding:16px}.atlas-project-controls{grid-template-columns:1fr}.atlas-project-editor{padding:14px}.atlas-project-list{padding:12px}.atlas-fleet-project-kpis{padding:12px}.atlas-fleet-project-list{padding:0 12px 12px}.atlas-project-toolbar{padding:12px}.atlas-fleet-project-link>header a{white-space:normal}}
+
+/* ATLAS R09 — audited exact-ID shared task handoffs from saved local projects */
+.atlas-project-related-tasks{margin:16px 0;padding:15px;border:1px solid var(--line-2);border-radius:10px;background:var(--bg-2)}
+.atlas-project-related-tasks>strong{display:block;font-size:11px;margin-bottom:7px}
+.atlas-project-related-tasks>p{margin:0 0 10px;color:var(--ink-3);font-size:10px;line-height:1.6}
+.atlas-project-related-tasks>a{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:11px;color:var(--ink);text-decoration:none}
+.atlas-project-related-tasks>a span{flex:1;min-width:0;overflow-wrap:anywhere}
+.atlas-project-related-tasks>a small{font-size:10px;color:var(--ink-3)}
+.atlas-project-related-tasks>a svg{color:var(--accent-hi)}
+.atlas-project-related-tasks>a:hover span{text-decoration:underline}

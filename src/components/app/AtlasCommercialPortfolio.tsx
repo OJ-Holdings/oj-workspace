@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, ArrowUpRight, Building2, Download, FileInput, Plus, Save, ShieldAlert, Trash2, Truck } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import type { Card } from '@/lib/board';
+import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
 import type { ExtBooking } from '@/lib/exterior';
 import type { EstimateInput } from '@/lib/commercial-estimate';
 import { newEstimate } from '@/lib/commercial-estimate';
@@ -18,7 +21,7 @@ import {
 type Props={
   org:string;base:string;mode:'preview'|'live';readOnly:boolean;
   name:string;input:EstimateInput;review:boolean[];
-  bookings:ExtBooking[];
+  bookings:ExtBooking[];cards:Card[];
   onLoad:(project:Pick<CommercialProject,'name'|'input'|'review'>)=>void;
 };
 const dateChicago=()=>{
@@ -35,7 +38,8 @@ const short=(id:string)=>id.length>11?id.slice(0,9)+'…':id;
  * Explicit booking IDs are only linked after selecting currently loaded records;
  * an editor cannot join a project to a customer by name/address similarity.
  */
-export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,onLoad}:Props){
+export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad}:Props){
+  const router=useRouter();
   const canEdit=mode==='live'&&!readOnly;
   const key='oj-commercial-project-portfolio-v1:'+org;
   const fleetKey='oj-fleet-command-v1:'+org;
@@ -115,6 +119,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     return eligible.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,150);
   },[bookings]);
   const knownIds=new Set((fleet?.assets??[]).map(asset=>asset.id));
+  const linkedTasks=selectedId?cards.filter(card=>card.organization_id===org&&card.business==='exterior'&&exactLocalProjectIds(card.description).includes(selectedId)).slice(0,20):[];
 
   function loadProject(project:CommercialProject){
     if(!window.confirm('Load "'+project.name+'"? This replaces unsaved scope and pricing edits in the current editor. It does not modify the shared OJ database.'))return;
@@ -142,8 +147,8 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     window.localStorage.setItem(key,encodeCommercialPortfolio(next,org));
     setPortfolio(next);setNotice(message);
   }
-  function saveCurrent(){
-    if(!canEdit||!ready)return;
+  function saveCurrent():string|null{
+    if(!canEdit||!ready)return null;
     try{
       const currentState=storagePortfolio();
       if(currentState.revision!==portfolio.revision)throw new Error('Portfolio changed in another tab. Reload before saving.');
@@ -152,7 +157,13 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       persist(next,currentState.revision,'Private project saved in this browser. Booking/equipment selections are plans, NOT dispatch assignments.');
       const saved=next.projects.find(p=>p.id===id)!;
       setSelectedId(id);setExpectedRevision(saved.revision);
-    }catch(error){setNotice(error instanceof Error?error.message:'Project could not be saved.');}
+      return id;
+    }catch(error){setNotice(error instanceof Error?error.message:'Project could not be saved.');return null;}
+  }
+  function prepareProjectTask(){
+    if(phase==='archived'){setNotice('Restore the project to scoping or review before preparing a shared task.');return;}
+    const id=saveCurrent();
+    if(id)router.push(base+'/tasks?sourceProject='+encodeURIComponent(id));
   }
   function deleteCurrent(){
     if(!canEdit||!selectedId||expectedRevision===null)return;
@@ -200,6 +211,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       <div className="atlas-project-toolbar">
         <button type="button" className="secondary" onClick={newProject}><Plus size={15}/> New project</button>
         <button type="button" className="primary" disabled={!ready} onClick={saveCurrent}><Save size={15}/> {selectedId?'Save selected project':'Save as new project'}</button>
+        <button type="button" className="secondary" disabled={!ready||phase==='archived'} onClick={prepareProjectTask}>Save & prepare project task <ArrowUpRight size={15}/></button>
         <button type="button" className="secondary" disabled={!ready} onClick={exportPortfolio}><Download size={15}/> Export portfolio</button>
         <button type="button" className="secondary" disabled={!ready} onClick={()=>fileInput.current?.click()}><FileInput size={15}/> Import portfolio</button>
         <input type="file" ref={fileInput} hidden accept="application/json,.json" aria-label="Import private commercial project portfolio" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importPortfolio(file);}}/>
@@ -244,6 +256,14 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <div className="atlas-project-findings"><strong>Planning exceptions · {findings.length}</strong>
           {findings.map(issue=><p key={issue.id} data-severity={issue.severity}><span>{issue.severity}</span>{issue.text}</p>)}
         </div>
+        {selectedId&&<div className="atlas-project-related-tasks" aria-label="Shared tasks explicitly referencing the selected local project">
+          <strong>Linked shared task snapshots · {linkedTasks.length}</strong>
+          <p>Exact project IDs in currently loaded Exterior task text, not synchronized portfolio records or an authoritative database foreign key.</p>
+          {linkedTasks.map(task=><Link key={task.id} href={base+'/tasks?task='+encodeURIComponent(task.id)}>
+            <span>{task.title}</span><small>{task.stage} · {task.assignee||'Unassigned'}</small><ArrowUpRight size={14}/>
+          </Link>)}
+          {linkedTasks.length===0&&<p>No explicit project ID matches in loaded tasks. This does not prove that other records do not exist.</p>}
+        </div>}
         <p className="atlas-project-hint">Changes to booking references, stage and candidate assets are local until you click “Save selected project”. The main scope and pricing editor is also stored in this selected portfolio entry only when you save it. Other founder devices cannot see these assignments.</p>
       </div>
     </>}
