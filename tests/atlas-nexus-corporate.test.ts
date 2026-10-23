@@ -131,3 +131,10 @@ test('no local portfolio entries is not evidence of no business activities',()=>
   assert.equal(result.projects.length,0);
   assert.equal(result.taskActivity.length,1); // shared task activity exists separately
 });
+
+test('corporate NEXUS rejects cross-tenant Fleet input even for empty portfolios',()=>{
+  const i=make();
+  const foreignFleet=emptyFleet(other);
+  assert.throws(()=>buildCorporateNexusOverlay({...i,fleet:foreignFleet}),/Fleet source belongs to another organization/);
+  assert.throws(()=>buildCorporateNexusOverlay({...i,portfolio:emptyCommercialPortfolio(org),fleet:foreignFleet}),/Fleet source belongs to another organization/);
+});
