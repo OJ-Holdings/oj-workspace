@@ -62,3 +62,18 @@ test('prepared text includes caveats and actionable source issues but no bank ac
  assert.ok(!text.includes('Sensitive bank'));
  assert.ok(!text.includes('USD 500'));
 });
+
+
+test('venture-scoped preparation suppresses unrelated provider warnings while keeping bank evidence',()=>{
+ const sources:NonNullable<Dashboard['reporting']>={...reporting,sources:[
+   {id:'exterior',label:'Exterior',state:'available',detail:'OK'},
+   {id:'shopify',label:'Shopify',state:'unavailable',detail:'Offline'},
+   {id:'ghl',label:'GoHighLevel',state:'partial',detail:'Partial'},
+   {id:'mercury',label:'Mercury',state:'not-connected',detail:'Bank not connected'},
+ ]};
+ const result=buildClosePrep({finance:[],reporting:sources},'2026-10',['exterior'],false);
+ assert.deepEqual(result.sourceStates.map(s=>s.name),['Exterior','Mercury']);
+ assert.equal(result.actionable.some(a=>a.id==='source-shopify'),false);
+ assert.equal(result.actionable.some(a=>a.id==='source-ghl'),false);
+ assert.equal(result.actionable.some(a=>a.id==='source-mercury'),true);
+});
