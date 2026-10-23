@@ -835,3 +835,54 @@
 @media(max-width:1130px){.atlas-lead-focuses{grid-template-columns:repeat(3,minmax(0,1fr))}.atlas-lead-focuses button{border-bottom:1px solid var(--line)}}
 @media(max-width:850px){.atlas-customer-grid{grid-template-columns:1fr}}
 @media(max-width:580px){.atlas-lead-priority>header{padding:13px}.atlas-lead-focuses{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-lead-focuses button{padding:11px}.atlas-lead-focuses button strong{font-size:23px}.atlas-lead-focus-notice{flex-wrap:wrap}.atlas-customer-card>header{padding:12px}.atlas-customer-description{padding:12px}.atlas-customer-card footer{padding:12px}.atlas-customer-card-actions button{flex:1 1 auto}}
+
+
+/* ATLAS R18 — source-grounded booking operator workbench. Responsive by default. */
+.atlas-booking-command{display:grid;gap:17px;margin-bottom:16px;padding:clamp(17px,2.5vw,26px);border:1px solid var(--line);border-radius:14px;background:linear-gradient(130deg,rgba(253,146,78,.1),transparent 55%),linear-gradient(150deg,var(--panel-2),var(--panel))}
+.atlas-booking-command-head{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.atlas-booking-command-head>div{min-width:0}
+.atlas-booking-command-head span{display:block;font-size:10px;font-weight:850;color:var(--c-exterior);letter-spacing:.14em}
+.atlas-booking-command-head h2{font:800 clamp(22px,2.9vw,33px)/1.18 var(--font-display);letter-spacing:-.045em;margin:6px 0}
+.atlas-booking-command-head p{font-size:12px;color:var(--ink-3);line-height:1.6;margin:0;max-width:700px}
+.atlas-booking-command-head>.primary{flex-shrink:0}
+.atlas-booking-command-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-booking-command-stats>div{display:flex;flex-direction:column;gap:7px;min-width:0;padding:15px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px}
+.atlas-booking-command-stats small{font-size:10px;color:var(--ink-3);font-weight:700}
+.atlas-booking-command-stats strong{font:800 clamp(23px,2.8vw,33px)/1 var(--font-display);letter-spacing:-.035em;color:var(--ink)}
+.atlas-booking-command-stats span{font-size:10px;color:var(--ink-3);line-height:1.5}
+.atlas-booking-queues{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.atlas-booking-queues button{min-height:78px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:9px;padding:12px;border:1px solid var(--line);background:var(--bg-2);border-radius:9px;color:var(--ink-2);cursor:pointer}
+.atlas-booking-queues button strong{font:800 23px/1 var(--font-display);color:var(--ink)}
+.atlas-booking-queues button span{font-size:11px;font-weight:750}
+.atlas-booking-queues button[aria-pressed="true"]{border-color:var(--c-exterior);box-shadow:inset 0 0 0 1px var(--c-exterior);background:color-mix(in srgb,var(--c-exterior) 9%,var(--bg-2));color:var(--ink)}
+.atlas-booking-queues button:focus-visible,.atlas-booking-tools button:focus-visible,.atlas-booking-card button:focus-visible{outline:2px solid var(--accent-hi);outline-offset:2px}
+.atlas-booking-queue-note{font-size:11px;color:var(--ink-3);margin:0;line-height:1.5}
+.atlas-booking-queue-note b{color:var(--ink)}
+.atlas-booking-workbench .panel-head h2 small{font:500 11px/1.4 var(--font-ui);margin-left:6px}
+.atlas-booking-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}
+.atlas-booking-tools>input{min-width:0;width:min(460px,100%);min-height:41px}
+.atlas-booking-tools>div{display:flex;flex-shrink:0;gap:5px}
+.atlas-booking-tools button{background:var(--bg-2);color:var(--ink-2);border:1px solid var(--line);border-radius:7px;padding:9px 12px;font-size:11px;font-weight:750;cursor:pointer}
+.atlas-booking-tools button[aria-pressed="true"]{background:var(--panel-3);color:var(--ink);border-color:var(--accent)}
+.atlas-booking-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.atlas-booking-card{display:flex;flex-direction:column;gap:13px;min-width:0;padding:19px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(150deg,var(--panel-2),var(--panel))}
+.atlas-booking-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.atlas-booking-card>header>div{min-width:0}
+.atlas-booking-card>header small{display:block;color:var(--c-exterior);font-size:11px;font-weight:750;margin-bottom:8px}
+.atlas-booking-card h3{font:800 20px/1.2 var(--font-display);letter-spacing:-.026em;overflow-wrap:anywhere;margin:0}
+.atlas-booking-state{flex-shrink:0;max-width:155px;padding:6px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;font-weight:750;color:var(--ink-2);text-align:center}
+.atlas-booking-card[data-status="confirmed"] .atlas-booking-state{background:rgba(86,202,154,.08);border-color:rgba(86,202,154,.38);color:var(--good)}
+.atlas-booking-card[data-status="pending_approval"] .atlas-booking-state{background:rgba(247,182,82,.1);border-color:rgba(247,182,82,.38);color:var(--c-exterior)}
+.atlas-booking-card-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+.atlas-booking-card-fields>div{display:grid;gap:5px;min-width:0}
+.atlas-booking-card-fields small{color:var(--ink-3);font-size:10px}
+.atlas-booking-card-fields strong{color:var(--ink);font-size:14px;overflow-wrap:anywhere}
+.atlas-booking-card-context{display:grid;gap:5px}
+.atlas-booking-card-context p{font-size:11px;line-height:1.5;color:var(--ink-3);margin:0;overflow-wrap:anywhere}
+.atlas-booking-card footer{display:grid;gap:10px;margin-top:auto;padding-top:13px;border-top:1px solid var(--line)}
+.atlas-booking-contact-actions,.atlas-booking-management-actions{display:flex;flex-wrap:wrap;gap:7px}
+.atlas-booking-card footer :is(a,button){display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:35px;text-decoration:none}
+.atlas-booking-card footer .primary{min-width:90px}
+@media(max-width:1100px){.atlas-booking-queues{grid-template-columns:repeat(3,minmax(0,1fr))}.atlas-booking-command-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.atlas-booking-command-head{align-items:stretch;flex-direction:column}.atlas-booking-command-head>.primary{width:100%;justify-content:center;min-height:46px}.atlas-booking-card-grid{grid-template-columns:minmax(0,1fr)}.atlas-booking-tools{flex-wrap:wrap}.atlas-booking-tools>input{width:100%;max-width:none}.atlas-booking-tools>div{width:100%}.atlas-booking-tools button{flex:1}.atlas-booking-card{padding:15px}}
+@media(max-width:420px){.atlas-booking-queues{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-booking-command-stats>div{padding:11px}.atlas-booking-command-stats strong{font-size:23px}.atlas-booking-card>header{flex-wrap:wrap}.atlas-booking-card-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
