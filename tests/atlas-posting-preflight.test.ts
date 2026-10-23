@@ -90,3 +90,17 @@ test('arbitrary entity labels cannot rewrite batch result object prototypes',()=
  assert.equal(r.byEntity?.['__proto__'].balanced,true);
  assert.equal(Object.getPrototypeOf(r.byEntity),null);
 });
+
+test('inherited property names cannot act as unseen period locks',()=>{
+ const weird:LedgerAccount[]=[
+  {id:'cash',entityId:'__proto__',code:'1000',name:'Cash',class:'asset',currency:'USD',active:true},
+  {id:'sales',entityId:'__proto__',code:'4000',name:'Sales',class:'income',currency:'USD',active:true},
+ ];
+ const source:JournalDraft={...journal('new'),entityId:'__proto__',lines:[
+   {accountId:'cash',debitCents:200,creditCents:0},
+   {accountId:'sales',debitCents:0,creditCents:200},
+ ]};
+ const defaults={oj:'2026-10-22'};
+ const result=preflightPostingBatch(weird,[source],defaults);
+ assert.equal(result.valid,true);
+});
