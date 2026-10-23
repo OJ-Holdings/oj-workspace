@@ -101,6 +101,8 @@ export function CrmView({ store, readOnly, venture, cards = [] }: Common & { car
   }, [selected, store.data]);
   return (
     <Gate store={store} what="Leads and CRM">{() => <>
+      <header className="atlas-workbench-head"><div><p>ATLAS / CUSTOMER OPERATIONS</p><h1>Client Pipeline</h1><small>Workspace CRM records and explicit source-linked follow-ups. Pipeline values are opportunities, not collected revenue. Other lead providers may be separate.</small></div><Link href={base}>Executive HQ →</Link></header>
+      <div className="atlas-pipeline-pulse" aria-label="Loaded CRM overview"><div><span>LEADS IN VIEW</span><strong>{store.data!.leads.filter(l => scope === 'all' || l.venture === scope).length}</strong><small>Authorized workspace records</small></div><div><span>NEW</span><strong>{store.data!.leads.filter(l => l.stage === 'New' && (scope === 'all' || l.venture === scope)).length}</strong><small>Stage label only</small></div><div><span>PROPOSAL</span><strong>{store.data!.leads.filter(l => l.stage === 'Proposal' && (scope === 'all' || l.venture === scope)).length}</strong><small>Not signed contracts</small></div><div><span>WON</span><strong>{store.data!.leads.filter(l => l.stage === 'Won' && (scope === 'all' || l.venture === scope)).length}</strong><small>Not proof of payment</small></div></div>
       <div className="toolbar">
         {!venture && (
           <div className="seg" role="group" aria-label="Filter by business">

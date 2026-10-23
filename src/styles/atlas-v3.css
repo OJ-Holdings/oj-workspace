@@ -215,3 +215,43 @@
 .atlas-relations-panel li svg{flex-shrink:0;color:var(--accent-hi)}
 .atlas-relations-trust{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:var(--ink-3);font-size:10px;line-height:1.55}
 .atlas-relations-trust svg{flex-shrink:0;color:var(--good)}
+
+/* ATLAS V3 / Release 03: real CRM and mission workbench, not another destination */
+.atlas-shell .boardview,.atlas-shell .pipeline-board{--atlas-work-line:rgba(137,175,195,.19)}
+.atlas-shell .boardview .statstrip{overflow:hidden;border:1px solid var(--line-2);border-radius:14px;background:linear-gradient(120deg,var(--panel-2),var(--panel));box-shadow:none}
+.atlas-shell .boardview .statstrip>div{padding:21px 23px}
+.atlas-shell .boardview .statstrip span{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.atlas-shell .boardview .statstrip strong{display:block;margin-top:7px;font:800 30px/1.15 var(--font-display);letter-spacing:-.06em}
+.atlas-shell .boardview .toolbar{gap:12px;margin:15px 0 12px}
+.atlas-shell .boardview .work-focus{border-radius:11px}
+.atlas-shell .boardview .board{gap:12px;align-items:stretch}
+.atlas-shell .boardview .board>.column{background:linear-gradient(180deg,var(--panel-2),var(--bg-2));border:1px solid var(--atlas-work-line);border-radius:13px;min-height:430px;padding:13px}
+.atlas-shell .boardview .board>.column>header{padding:5px 4px 15px;margin-bottom:9px;border-bottom:1px solid var(--line)}
+.atlas-shell .boardview .board>.column h2{font-size:12px;font-weight:800}
+.atlas-shell .boardview .board .column-count{margin-left:auto;background:var(--panel-3);border:1px solid var(--line);padding:3px 9px}
+.atlas-shell .boardview .board .column-count+.icon-button{margin-left:0}
+.atlas-shell .boardview .taskcard,.atlas-shell .pipeline-board .leadcard{border-radius:10px;border:1px solid var(--line);background:linear-gradient(135deg,var(--panel),var(--panel-2));box-shadow:0 12px 24px -24px #000}
+.atlas-shell .boardview .taskcard:hover,.atlas-shell .pipeline-board .leadcard:hover{border-color:var(--accent-hi);box-shadow:0 17px 35px -26px var(--accent)}
+.atlas-shell .boardview .taskcard-open,.atlas-shell .pipeline-board .leadcard .taskcard-open{padding:16px 14px 13px 18px}
+.atlas-shell .boardview .taskcard h3,.atlas-shell .pipeline-board .leadcard h3{font-size:12px;font-weight:780;line-height:1.5}
+.atlas-shell .boardview .taskcard-tags,.atlas-shell .pipeline-board .taskcard-tags{justify-content:flex-start;gap:6px}
+.atlas-shell .boardview .taskcard .taskcard-meta{padding-top:9px;border-top:1px solid var(--line)}
+.atlas-shell .pipeline-board{gap:12px;align-items:stretch}
+.atlas-shell .pipeline-board>.column{background:linear-gradient(180deg,var(--panel-2),var(--bg-2));border:1px solid var(--atlas-work-line);border-radius:13px;padding:13px}
+.atlas-shell .pipeline-board>.column>header{padding:6px 4px 15px;border-bottom:1px solid var(--line);margin-bottom:12px;gap:7px}
+.atlas-shell .pipeline-board>.column>header h2{font-size:12px;font-weight:800}
+.atlas-shell .pipeline-board .column-sum{color:var(--accent-hi);font-size:10px;font-weight:800}
+.atlas-shell .pipeline-board .leadcard .move{border-top:1px solid var(--line);padding:9px 12px 10px 16px}
+.atlas-shell .formpanel:has(.atlas-relations-panel){border:1px solid var(--line-2);border-radius:14px;background:linear-gradient(145deg,var(--panel-2),var(--panel))}
+.atlas-shell .formpanel:has(.atlas-relations-panel)>h2{font:800 23px/1.2 var(--font-display);letter-spacing:-.05em}
+.atlas-workbench-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding:20px 23px;border:1px solid var(--line-2);border-radius:13px;background:linear-gradient(110deg,var(--panel-2),var(--panel));margin-bottom:15px}
+.atlas-workbench-head p{margin:0 0 7px;color:var(--accent-hi);font-size:9px;font-weight:850;letter-spacing:.16em}
+.atlas-workbench-head h1{font:850 clamp(22px,2.8vw,32px)/1.2 var(--font-display);letter-spacing:-.06em;margin:0 0 7px}
+.atlas-workbench-head small{display:block;max-width:70ch;color:var(--ink-3);font-size:11px;line-height:1.6}
+.atlas-workbench-head>a{display:flex;align-items:center;gap:8px;white-space:nowrap;text-decoration:none;color:var(--accent-hi);font-size:10px;font-weight:800}
+.atlas-pipeline-pulse{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:17px}
+.atlas-pipeline-pulse>div{display:flex;flex-direction:column;gap:7px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.atlas-pipeline-pulse span{font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--ink-3)}
+.atlas-pipeline-pulse strong{font:800 24px/1.2 var(--font-display);letter-spacing:-.045em}
+.atlas-pipeline-pulse small{font-size:9px;color:var(--ink-3);line-height:1.4}
+@media(max-width:760px){.atlas-workbench-head{padding:17px;align-items:flex-start;flex-direction:column}.atlas-pipeline-pulse{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-shell .boardview .statstrip>div{padding:15px}.atlas-shell .boardview .statstrip strong{font-size:24px}}
