@@ -225,6 +225,25 @@ These are completed GitHub merges, not independently verified Windows-host deplo
 
 **Production:** Both merges were verified in GitHub; exact Windows port 3011/Tailscale host SHA, authenticated founder/iPhone walkthroughs, and production backup/restore evidence remain unverified. The supervised draft database PR #42 remains blocked. See [live engineering handoff](./START_HERE_CHAT_HANDOFF.md).
 
+## ATLAS V3 Release 20 — TREASURY COMMAND / ACCOUNTING KERNEL
+
+**PR:** [#85](https://github.com/OJ-Holdings/oj-workspace/pull/85). **Merged SHA:** `98a52b586`. **PR exact-head CI:** `39985983629` SUCCESS. **Merged-main CI:** `39986203721` SUCCESS.
+
+- Finance now leads with recorded inflow/outflow/difference, previous-period context, cost breakdown, operating-brand summaries and exception work grounded in permitted finance and job coverage data rather than numbers of entries.
+- Mercury current USD linked balances appear only to authorized owners with complete available account data; not total company cash, not verified profit or bank reconciliation.
+- Existing finance actions, scoped ledger and records are retained; no DB migration or customer/financial side effects.
+- Pure guarded double-entry journal validator and in-memory trial balance exist for future canonical accounting only; **nothing has been posted**.
+
+## ATLAS V3 Release 21 — ACCOUNTANT REVIEW DATA EXPORT
+
+**PR:** [#86](https://github.com/OJ-Holdings/oj-workspace/pull/86). **Merged SHA:** `8cbdc7d1d`. **PR exact-head CI:** `39986712315` SUCCESS.
+
+- Actual Finance transaction workbench can export visible, filtered, authorized records to a spreadsheet-formula-safe CSV containing source, dated amount, category, note and the explicit distinction of estimated/unknown source date basis.
+- Every row is labeled **not verified by bank reconciliation** and **not posted to a general ledger**. This is a review file, not a P&L, tax return, or exported CPA signoff.
+- Explicit review confirmation protects potentially sensitive financial notes; read-only actors may export only records they were permitted to load. No data mutation or schema change.
+
+**Deployment:** GitHub merges verified; actual Windows/Tailscale serving SHA, founder device acceptance and production backup/restore still unverified. Detailed next-stage gates: [ATLAS Accounting](./ATLAS_ACCOUNTING_ENGINEERING.md).
+
 ## Next integrated milestone (proposed; not yet shipped)
 
 **Next protected milestone / Canonical multi-device project persistence:** First finish a real private production backup and independently isolated restore drill, actual live schema/RLS introspection, supervised migration approval and tenant/booking-source security tests. Only then implement opt-in canonical server-side project/estimate/asset/task relationships, import mapping and dual-device permission-safe edits behind OFF-by-default feature flags. See [Shared Persistence Gate](./ATLAS_V3_SHARED_PERSISTENCE_GATE.md). Continue refining source-aware field and customer workflows without creating false shared-data claims in the meantime.
