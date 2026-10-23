@@ -13,7 +13,8 @@ import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
 import { OutreachView } from './OutreachView';
 import { ContentStudio } from './ContentStudio';
-import { OperatorLaunchpad } from './OperatorLaunchpad';
+import { ExteriorCommand } from './ExteriorCommand';
+import { ExteriorCommandNav } from './ExteriorCommandNav';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
@@ -44,20 +45,19 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
 
   return (
     <div className="venture">
-      <header className="venture-head">
-        <span className="venture-logo"><Image src={v.mark} alt={`${v.name} logo`} width={112} height={112} priority /></span>
-        <div>
-          <h1>{v.name}</h1>
-          <p className="venture-tagline">{v.tagline}</p>
-        </div>
-      </header>
+      {venture==='exterior' ? <ExteriorCommandNav base={base} active={active} /> : <>
+        <header className="venture-head">
+          <span className="venture-logo"><Image src={v.mark} alt={`${v.name} logo`} width={112} height={112} priority /></span>
+          <div><h1>{v.name}</h1><p className="venture-tagline">{v.tagline}</p></div>
+        </header>
+        <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
+      </>}
+      {venture==='exterior'&&active==='overview'&&
+        <ExteriorCommand base={base} org={organizationId} mode={mode} readOnly={readOnly}
+          cards={cards} onNewTask={()=>board.openCard(undefined,{business:'exterior'})}/>}
 
-      <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
-      {venture==='exterior'&&<OperatorLaunchpad base={base as '/workspace'|'/preview'}
-        mode={mode} readOnly={readOnly} venture="exterior" compact
-        onNewTask={()=>board.openCard(undefined,{business:'exterior'})} />}
 
-      {active === 'overview' && venture !== 'content' && (
+      {active === 'overview' && venture !== 'content' && venture !== 'exterior' && (
         <div className="venture-overview">
           <div className="kpis">
             {m ? <>
