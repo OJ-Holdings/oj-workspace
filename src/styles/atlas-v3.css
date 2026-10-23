@@ -986,3 +986,10 @@
 @media(max-width:700px){.atlas-treasury-top{padding:17px}.atlas-treasury-actions button{flex:1}.atlas-treasury-value{padding:14px}.atlas-treasury-panel{padding:16px}.atlas-treasury-panel-title{flex-wrap:wrap}.atlas-treasury-tabs{width:100%}.atlas-treasury-tabs button{flex:1}}
 @media(max-width:420px){.atlas-treasury-values{gap:7px}.atlas-treasury-value strong{font-size:22px}.atlas-treasury-value>span{font-size:10px}.atlas-treasury-value small{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.atlas-treasury *{scroll-behavior:auto}}
+
+
+/* ATLAS R21 / accountant review, visible only for loaded authorized rows. */
+.atlas-accounting-export-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.atlas-accounting-export-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:35px}
+.atlas-accounting-export-note{font-size:10px;line-height:1.6;color:var(--ink-3);max-width:860px;margin:0 0 12px}
+@media(max-width:600px){.atlas-accounting-export-actions{width:100%}.atlas-accounting-export-actions button{flex:1}}
