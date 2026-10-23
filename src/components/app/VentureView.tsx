@@ -20,7 +20,7 @@ import type { Board } from './useBoard';
 
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['leads', 'Leads'], ['customer', 'Customer 360'], ['intake', 'Website Intake'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['projects', 'NEXUS / Project 360'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
+  exterior: [['leads', 'Leads'], ['customer', 'Customer 360'], ['estimate', 'Estimate Workbench'], ['intake', 'Website Intake'], ['bookings', 'Bookings'], ['calendar', 'Calendar'], ['projects', 'NEXUS / Project 360'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
   solutions: [['clients', 'Clients'], ['outreach', 'Outreach'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
   content: [['studio', 'Production Studio']],

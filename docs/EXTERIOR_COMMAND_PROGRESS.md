@@ -6,12 +6,12 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R28 estimate earned | Not yet done |
+| Plan wave | Weight | R29 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
-| W4 Quote & booking | 12% | **1%** | R28 website request-to-lead draft workflow; quote versioning, approvals, duplicate-safe intake disposition and conflict-safe estimate → booked-job handoff not yet built |
+| W4 Quote & booking | 12% | **4%** | R28 intake + R29 typed service line-item estimate, local version snapshots, review gate and conflict-checked shared quote amount; full durable multiuser quote versioning, customer acceptance, structured work orders and atomic booking handoff remain |
 | W5 Field operations | 12% | 0% | Offline field sheet, jobs, labor, media, materials and issue capture |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | 0% | Durable rig/asset linkage to job readiness |
@@ -20,7 +20,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **14% (conditional on R28 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **17% (conditional on R29 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -53,16 +53,26 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Responsive industrial design and reduced-motion/focus behavior; tests prove no automatic identity matching, payment guesses, or manufactured processed status.
 - Important: quote_requests has no disposition/processed status in the loaded source, no durable request-to-lead FK and may be capped at latest 1,000. This release makes review/use faster but **does not** claim completed real-time LSA intake, idempotent conversions, or a complete booking/estimate ledger.
 
+### R29 Estimate Workbench (+3 points within W4, conditional on merge)
+
+- Native `/b/exterior/estimate?lead=<exact ID>` launched from HQ, Customer 360, customer cards/table and the five-domain navigation. No selection fallback substitutes another customer.
+- Full in-browser line-item scope builder with units (flat, each, square foot, linear foot, pane and hour), quantity, price/unit, optional direct cost/unit, site notes, discount, travel expense and direct-cost contingency; exact 2-decimal money math with explicit unknown cost coverage, contribution and gross margin qualifiers.
+- Auto-saved browser draft (localStorage), up to 8 manually snapshotted local revisions per organization/source lead, restore, reset and copy internal estimate brief. Drafts and cost breakdown are **not shared with Jacob on a different device**, protected cross-session persistence/authenticated sync is NOT claimed, no external proposal sent or customer accepted.
+- Three manual founder review checks followed by a narrow **member-only server action** which rechecks original lead's source timestamp and old quoted amount before changing ONLY `quote_amount` (and technical update/lock metadata). A stale source, booked/completed/closed status, zero proposed price or unauthorized member fails safely. No booking/payment semantics inferred.
+- Existing guarded `BookDialog` is reachable from the estimate for the selected exact lead, but booking is still a separately confirmed action. There is no durable estimate version → work order relationship or atomic quote-and-book transaction yet.
+- Controls preserve read-only preview isolation, max 24 item validation, local revision recovery limits, keyboard focus, responsive industrial styling and reduced-motion support; automated tests cover cost provenance, source drift, storage corruption, discounts and unit economics.
+- Cross-device shared estimate versioning, customer e-sign/approval, tax/invoice treatment, route assignment and independent recovery of local drafts **remain blocked or future scope**.
+
 ### Release gates and the next update rule
 
-R26 (8%) and R27 (+3%) earned a total **11%** after exact PR-head and merged-main CI. R28 contributes only **3 additional points** (W3 2, W4 1) after exact-head CI succeeds and PR merges. GitHub CI/merge verifies repository code only; Windows-served SHA and founder iPhone acceptance are separate required checks. Preserve 11% if R28 does not pass.
+R26 (8%), R27 (+3%) and R28 (+3%) completed the verified code milestones at **14%**. R29 raises the earned engineering estimate to **17%** only after exact PR-head CI (typecheck, full tests, build) succeeds and the PR is merged. Main-branch CI, Windows serving SHA and actual two-founder iPhone/desktop acceptance are independent checks; do not claim deployment from a GitHub merge. If R29 fails, preserve the last verified estimate of 14%.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. Complete request-to-lead durable source mapping with idempotency, user-approved merges and verified backup+restore / RLS before any production migration.
-2. Build structured quote revisions, itemized scope, customer acceptance evidence, and the explicit quote → work order → booking lifecycle (W4).
-3. Refactor repeated `loadExterior` full-source reads into one authenticated shared cache with bounded invalidation and source coverage.
-4. Add field time/expenses/material capture and offline write queue with encrypted local recovery after source-of-truth and permission design.
-5. Founder mobile/browser UAT; no claim of Windows port 3011 running merged SHA until deployment receipt.
+1. **Durable quote documents and source links:** pending real backup + isolated restore, proper versioned customer/property/estimate tables, RLS tests, provider-scoped ownership and evidence of approved/cancelled proposals. Do not treat a local estimate as a legal contract.
+2. **Safe conversion:** approved quote version → work order → site job scheduling with quote snapshot and idempotent transition receipts, not mutable lead quote fields.
+3. **Daily operating capture:** field arrival/finish, actual crew hours, supplies, mileage, equipment readiness, site photos and unknown-cost follow-ups feeding true job economics.
+4. **Cross-device shared storage:** local encrypted cache and sync outbox after designing identity, signing, conflict and restore behavior; browser localStorage isn't the corporate ledger.
+5. **Acceptance:** exact served Windows commit and both founders' desktop/iPhone workflow test across a real consented sample job, including read-only and lost-network states.

@@ -119,6 +119,53 @@ export async function saveLead(org: string, input: LeadInput): Promise<Done<{ id
   });
 }
 
+/**
+ * Explicitly records ONLY the internal estimate's reviewed price on the original
+ * legacy lead. Draft lines, costs and versions stay local until a governed shared
+ * quote schema exists. This is NOT quote acceptance, an email, an invoice or payment.
+ *
+ * Timestamp + existing amount compare-and-swap prevents a stale draft silently
+ * overwriting changes another founder just made.
+ */
+export async function recordExteriorEstimatedPrice(
+  org: string,
+  leadId: string,
+  expected: { updatedAt: string | null; amount: number | null },
+  proposedPrice: number,
+  reviewed: boolean,
+): Promise<Done<{ id: string; amount: number }>> {
+  return guarded(org, async (client, who) => {
+    const id=uuid(leadId);
+    if(reviewed!==true)say('Confirm the source, scope and quote pricing before recording the amount.');
+    if(!expected||typeof expected!=='object'||expected.updatedAt!==null&&
+        (typeof expected.updatedAt!=='string'||!Number.isFinite(Date.parse(expected.updatedAt))))say('Refresh the customer source before recording an estimate.');
+    const prior=money(expected.amount,'Expected existing price');
+    if(prior!==expected.amount)say('The saved quote baseline is invalid. Refresh the customer record.');
+    const price=money(proposedPrice,'Proposed estimate');
+    if(price===null||price===0)throw new Error('!Add a positive estimate price before recording.');
+    const {data:current,error:readError}=await client.from('leads')
+      .select('id,name,status,quote_amount,updated_at,manually_updated_fields,job_revenue,completed_at')
+      .eq('id',id).maybeSingle();
+    if(readError||!current)throw new Error('!Customer record is unavailable. Reload it before recording.');
+    if(!['new','contacted','following_up'].includes(current.status??''))say('This customer is already booked, completed or closed. Review the existing booking or create a new opportunity; do not replace a historic quote.');
+    if(current.updated_at!==expected.updatedAt||num(current.quote_amount)!==prior)
+      say('The customer record changed since this estimate was opened. Review the new source values before recording a price.');
+    const now=new Date().toISOString();
+    let query=client.from('leads')
+      .update(planLeadUpdate(current,{quote_amount:price},now))
+      .eq('id',id).eq('status',current.status);
+    query=expected.updatedAt===null?query.is('updated_at',null):query.eq('updated_at',expected.updatedAt);
+    query=prior===null?query.is('quote_amount',null):query.eq('quote_amount',prior);
+    const {data,error}=await query.select('id').maybeSingle();
+    if(error)throw Error(error.message);
+    if(!data)say('Someone changed this customer while you were reviewing the estimate. Reload and rebase your local draft before recording.');
+    await log(client,who,'quote_price_recorded',
+      'Recorded an internally reviewed estimate amount on an Exterior lead. Not a client acceptance or payment.',
+      {id,name:current.name},{previous:prior,newAmount:price,internalReview:true});
+    return {ok:true,id,amount:price};
+  });
+}
+
 /** Moves a lead along the pipeline. Marking it completed with no payment entered uses the quote. */
 export async function setLeadStatus(org: string, id: string, status: string): Promise<Done> {
   return guarded(org, async (client, who) => {
