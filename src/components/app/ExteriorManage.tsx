@@ -49,7 +49,16 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [editing, setEditing] = useState<LeadInput | null>(null);
   const [paying, setPaying] = useState<ExtLead | null>(null);
   const [booking, setBooking] = useState<ExtLead | null>(null);
-  const selected = useSearchParams().get('lead');
+  const leadParams=useSearchParams();
+  const selected=leadParams.get('lead');
+  const launchNewLead=leadParams.get('new');
+  useEffect(()=>{
+    if(readOnly||launchNewLead!=='1')return;
+    setEditing({...blankLead});
+    const url=new URL(window.location.href);
+    url.searchParams.delete('new');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+  },[readOnly,launchNewLead]);
   useEffect(() => {
     const lead = data.leads.find(l => l.id === selected);
     if (lead) { setFilter('all'); setSearch(lead.name ?? ''); setShown(data.leads.length); }
@@ -80,17 +89,17 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
           <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
-            <td><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
-            <td>{l.service_requested || '-'}</td>
-            <td className="num">{cash(l.quote_amount)}</td>
-            <td><span className="tag">{sourceLabel(l.source)}</span></td>
-            <td>{readOnly ? statusLabel(l.status) : (
+            <td data-label="Customer"><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
+            <td data-label="Service">{l.service_requested || '-'}</td>
+            <td className="num" data-label="Quote">{cash(l.quote_amount)}</td>
+            <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
+            <td data-label="Status">{readOnly ? statusLabel(l.status) : (
               <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? 'new'} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
                 {leadStatuses.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
             )}</td>
-            <td>{day(l.created_at)}</td>
-            {!readOnly && <td><div className="row-actions">
+            <td data-label="Added">{day(l.created_at)}</td>
+            {!readOnly && <td data-label="Actions"><div className="row-actions">
               {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
               {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
               <button className="icon-button" aria-label={`Edit ${l.name}`} onClick={() => setEditing({ id: l.id, name: l.name ?? '', phone: l.phone ?? '', address: l.address ?? '', service_requested: l.service_requested ?? '', quote_amount: l.quote_amount ?? '', notes: l.notes ?? '', source: l.source ?? '' })}><Pencil size={15} /></button>
@@ -359,6 +368,15 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [editing, setEditing] = useState<ExtBooking | null>(null);
   const [assigning, setAssigning] = useState<ExtBooking | null>(null);
   const [flow, setFlow] = useState<string | null>(null);
+  const bookingParams=useSearchParams();
+  const launchNewBooking=bookingParams.get('new');
+  useEffect(()=>{
+    if(readOnly||launchNewBooking!=='1')return;
+    setFlow('');
+    const url=new URL(window.location.href);
+    url.searchParams.delete('new');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+  },[readOnly,launchNewBooking]);
   const today = dayKey(now), month = today.slice(0, 7);
   const lead = new Map(data.leads.map(l => [l.id, l]));
   const live = data.bookings.filter(b => b.status !== 'denied');
@@ -375,11 +393,11 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     {[['Upcoming', upcoming, 'Nothing booked from today on. Press "Book a job" to add one.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
       <section className="panel" key={title}>
         <header className="panel-head"><h2>{title}</h2></header>
-        {list.length ? <div className="tablewrap"><table className="table">
+        {list.length ? <div className="tablewrap"><table className="table booking-table">
           <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Address</th><th className="num">Quote</th>{!readOnly && title === 'Upcoming' && <th><span className="sr-only">Actions</span></th>}</tr></thead>
           <tbody>{list.map(b => { const l = lead.get(b.lead_id ?? ''); return (
-            <tr key={b.id}><td>{day(b.date)}</td><td>{blockLabel(b.time_block)}</td><td>{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td>{l?.service_requested || '-'}</td><td>{l?.address || '-'}</td><td className="num">{cash(l?.quote_amount ?? null)}</td>
-              {!readOnly && title === 'Upcoming' && <td><div className="row-actions">
+            <tr key={b.id}><td data-label="Date">{day(b.date)}</td><td data-label="Time">{blockLabel(b.time_block)}</td><td data-label="Customer">{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td><td className="num" data-label="Quoted (not paid)">{cash(l?.quote_amount ?? null)}</td>
+              {!readOnly && title === 'Upcoming' && <td data-label="Actions"><div className="row-actions">
                 {l && <button className="secondary small" onClick={() => setEditing(b)}><Pencil size={13} aria-hidden="true" />Edit</button>}
                 {l && crew && <button className="secondary small" onClick={() => setAssigning(b)}>{crew.assignments.find(row => row.booking_id === b.id)?.employee_name ?? 'Assign'}</button>}
                 {l && <button className="secondary small" onClick={() => setMoving(b)}>Move</button>}

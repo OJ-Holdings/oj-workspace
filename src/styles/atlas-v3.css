@@ -720,3 +720,70 @@
 .atlas-portfolio-import-actions button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:790px){.atlas-portfolio-import-counts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.atlas-portfolio-import-preview{padding:12px}.atlas-portfolio-import-actions{flex-direction:column}.atlas-portfolio-import-actions button{width:100%}.atlas-portfolio-import-preview>header button{width:100%}}
+
+/* ATLAS V3 R16 — everyday operator actions ahead of management analytics.
+   Buttons open existing editors. A navigated link alone never writes records. */
+.atlas-operator-launchpad{margin:14px 0 18px;border:1px solid var(--line-2);border-radius:13px;background:linear-gradient(115deg,var(--panel-2),var(--panel));overflow:hidden}
+.atlas-operator-intro{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.atlas-operator-intro p{font-size:9px;letter-spacing:.13em;font-weight:900;color:var(--accent-hi);margin:0 0 7px}
+.atlas-operator-intro h2{font:850 22px/1.2 var(--font-display);letter-spacing:-.045em;color:var(--ink);margin:0 0 7px}
+.atlas-operator-intro span{display:block;font-size:10px;line-height:1.55;color:var(--ink-3)}
+.atlas-operator-intro>a{flex-shrink:0;display:inline-flex;gap:7px;align-items:center;color:var(--accent-hi);font-size:11px;font-weight:850;text-decoration:none}
+.atlas-operator-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.atlas-operator-action{display:flex;align-items:center;gap:10px;padding:17px 13px;min-width:0;min-height:76px;border-right:1px solid var(--line);background:transparent;text-align:left;text-decoration:none;color:var(--ink);cursor:pointer}
+.atlas-operator-action:last-child{border-right:0}
+.atlas-operator-action:not(.is-disabled):hover{background:var(--accent-soft);color:var(--accent-hi)}
+.atlas-operator-action:focus-visible{outline:2px solid var(--accent-hi);outline-offset:-4px}
+.atlas-operator-action.is-disabled,.atlas-operator-action:disabled{cursor:not-allowed;opacity:.58}
+.atlas-operator-action-icon{flex-shrink:0;display:grid;place-items:center;width:37px;height:37px;border:1px solid var(--line-2);border-radius:9px;background:var(--bg-2);color:var(--accent-hi)}
+.atlas-operator-action>span:nth-child(2){flex:1;min-width:0}
+.atlas-operator-action strong{display:block;font-size:12px;line-height:1.35;font-weight:850}
+.atlas-operator-action small{display:block;font-size:9px;color:var(--ink-3);line-height:1.55;margin-top:5px}
+.atlas-operator-arrow{flex-shrink:0;color:var(--ink-3)}
+.atlas-operator-launchpad.is-compact{margin:8px 0 16px;border-radius:10px}
+.atlas-operator-launchpad.is-compact .atlas-operator-action{min-height:54px;padding:11px 12px}
+.atlas-operator-launchpad.is-compact .atlas-operator-action-icon{width:31px;height:31px}
+.atlas-operator-launchpad.is-compact .atlas-operator-action strong{font-size:11px}
+.atlas-operator-launchpad.is-compact .atlas-operator-action small{display:none}
+.atlas-operator-launchpad.is-compact .atlas-operator-arrow{display:none}
+.atlas-shell .rail-venture[href*="content-preview"] span{color:var(--ink-3)}
+.atlas-shell .rail-link[href*="/b/exterior/bookings"],.atlas-shell .rail-link[href*="/b/exterior/leads"]{min-height:40px}
+@media(max-width:1080px){.atlas-operator-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-operator-action:nth-child(2){border-right:0}.atlas-operator-action:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+@media(max-width:640px){.atlas-operator-launchpad{margin:10px 0 13px}.atlas-operator-intro{flex-direction:column;align-items:flex-start;padding:14px}.atlas-operator-intro h2{font-size:19px}.atlas-operator-action{padding:11px;min-height:65px}.atlas-operator-action-icon{width:31px;height:31px}.atlas-operator-action strong{font-size:11px}.atlas-operator-arrow{display:none}.atlas-operator-launchpad.is-compact .atlas-operator-action{min-height:49px;padding:9px}.atlas-operator-launchpad.is-compact .atlas-operator-action-icon{width:28px;height:28px}}
+/* R16: common actionable customer records read like contact cards on phones,
+   preserving source rows and their edit/status/book/payment controls. */
+@media(max-width:680px){
+  .lead-table thead{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .lead-table,.lead-table tbody,.lead-table tbody tr,.lead-table tbody td{display:block;width:100%;box-sizing:border-box}
+  .lead-table tbody{display:grid;gap:10px}
+  .lead-table tbody tr{padding:13px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2)}
+  .lead-table tbody td{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;padding:7px 0;border:0!important;font-size:11px}
+  .lead-table tbody td:first-child{display:block;font-size:13px}
+  .lead-table tbody td:not(:first-child)::before{content:attr(data-label);flex:1;font-size:10px;font-weight:850;color:var(--ink-3);text-align:left}
+  .lead-table tbody td:last-child{justify-content:flex-end;margin-top:5px;border-top:1px solid var(--line)!important;padding-top:12px}
+  .lead-table tbody td:last-child::before{display:none}
+  .lead-table tbody td .row-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+  .lead-table tbody td .row-actions button{min-height:36px}
+  .lead-table tbody td:first-child .quiet.block{line-height:1.6}
+}
+
+/* ATLAS operator-grade mobile bookings: actual existing actions and source rows */
+@media(max-width:680px){
+  .booking-table thead{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .booking-table,.booking-table tbody,.booking-table tbody tr,.booking-table tbody td{display:block;width:100%;box-sizing:border-box}
+  .booking-table tbody{display:grid;gap:10px}
+  .booking-table tbody tr{padding:13px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2)}
+  .booking-table tbody td{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:6px 0;border:0!important;font-size:11px;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+  .booking-table tbody td::before{content:attr(data-label);font-size:10px;font-weight:850;color:var(--ink-3);flex:1;min-width:85px;text-align:left}
+  .booking-table tbody td[data-label=Customer]{font-size:13px;font-weight:800;text-align:right}
+  .booking-table tbody td[data-label=Actions]{justify-content:flex-end;padding-top:11px;margin-top:7px;border-top:1px solid var(--line)!important}
+  .booking-table tbody td[data-label=Actions]::before{display:none}
+  .booking-table .row-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .booking-table .row-actions button{min-height:36px}
+}
+
+/* Management remains reachable without burying everyday work under diagnostics. */
+.atlas-shell .atlas-nav-group-toggle{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;text-align:left;border:0;cursor:pointer}
+.atlas-shell .atlas-nav-group-toggle>span{font-size:15px;font-weight:700;color:var(--ink-3)}
+.atlas-shell .atlas-nav-group-toggle:hover{color:var(--accent-hi)}
+.atlas-shell .atlas-nav-group-toggle:focus-visible{outline:2px solid var(--accent-hi);outline-offset:-2px}

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
-import { ventureList, type VentureId } from '@/lib/ventures';
+import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
+import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
 import { signOut } from '@/app/workspace/actions';
 import type { Dashboard } from '@/lib/dashboard';
@@ -13,25 +14,27 @@ import { searchWorkspace } from '@/lib/workspace-search';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { searchActiveTools } from '@/lib/corporate-tools';
 
-export type NavKey = 'home' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations' | 'nexus';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations' | 'nexus';
 
-type NavGroup='COMMAND'|'WORKBENCH'|'INTELLIGENCE'|'SYSTEM';
+type NavGroup='DAILY'|'BUSINESSES'|'MANAGEMENT'|'MORE';
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group: NavGroup }[] = [
-  { key:'home', label:'Executive HQ', path:'', icon:Home, group:'COMMAND' },
-  { key:'nexus', label:'NEXUS / Project 360', path:'/b/exterior/projects', icon:Network, group:'COMMAND' },
-  { key:'operations', label:'NEXUS / Corporation', path:'/tools/operations', icon:Network, group:'COMMAND' },
-  { key:'businesses', label:'Business Divisions', path:'/businesses', icon:Building2, group:'COMMAND' },
-  { key:'fleet', label:'Fleet Command', path:'/tools/fleet', icon:Truck, group:'COMMAND' },
-  { key:'tasks', label:'Missions & Tasks', path:'/tasks', icon:CheckSquare, group:'WORKBENCH' },
-  { key:'calendar', label:'Chronos / Calendar', path:'/calendar', icon:CalendarDays, group:'WORKBENCH' },
-  { key:'crm', label:'Clients & CRM', path:'/crm', icon:UsersRound, group:'WORKBENCH' },
-  { key:'finance', label:'Treasury / Finance', path:'/finance', icon:Wallet, group:'WORKBENCH' },
-  { key:'analytics', label:'Intelligence', path:'/analytics', icon:BarChart3, group:'INTELLIGENCE' },
-  { key:'files', label:'Company Vault', path:'/files', icon:FileText, group:'INTELLIGENCE' },
-  { key:'messages', label:'Founder Messages', path:'/messages', icon:MessageSquare, group:'INTELLIGENCE' },
-  { key:'team', label:'People & Team', path:'/team', icon:Users, group:'INTELLIGENCE' },
-  { key:'tools', label:'Capability Library', path:'/tools', icon:Wrench, group:'SYSTEM' },
-  { key:'settings', label:'Control & Settings', path:'/settings', icon:Settings, group:'SYSTEM' },
+  { key:'home', label:'Today', path:'', icon:Home, group:'DAILY' },
+  { key:'exterior-bookings', label:'Jobs & Bookings', path:'/b/exterior/bookings', icon:CalendarDays, group:'DAILY' },
+  { key:'exterior-leads', label:'Customers & Leads', path:'/b/exterior/leads', icon:UsersRound, group:'DAILY' },
+  { key:'tasks', label:'My Tasks & Team Work', path:'/tasks', icon:CheckSquare, group:'DAILY' },
+  { key:'finance', label:'Money & Expenses', path:'/finance', icon:Wallet, group:'DAILY' },
+  { key:'businesses', label:'Our Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
+  { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'BUSINESSES' },
+  { key:'calendar', label:'Company Calendar', path:'/calendar', icon:CalendarDays, group:'BUSINESSES' },
+  { key:'crm', label:'Company CRM', path:'/crm', icon:UsersRound, group:'BUSINESSES' },
+  { key:'operations', label:'NEXUS / Company View', path:'/tools/operations', icon:Network, group:'MANAGEMENT' },
+  { key:'nexus', label:'Project 360', path:'/b/exterior/projects', icon:Network, group:'MANAGEMENT' },
+  { key:'analytics', label:'Reports & Analytics', path:'/analytics', icon:BarChart3, group:'MANAGEMENT' },
+  { key:'files', label:'Files & Documents', path:'/files', icon:FileText, group:'MORE' },
+  { key:'messages', label:'Messages', path:'/messages', icon:MessageSquare, group:'MORE' },
+  { key:'team', label:'Team', path:'/team', icon:Users, group:'MORE' },
+  { key:'tools', label:'More Tools', path:'/tools', icon:Wrench, group:'MORE' },
+  { key:'settings', label:'Settings', path:'/settings', icon:Settings, group:'MORE' },
 ];
 
 type Props = {
@@ -54,12 +57,13 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
+  const [expandedGroups,setExpandedGroups]=useState<Record<'MANAGEMENT'|'MORE',boolean|null>>({MANAGEMENT:null,MORE:null});
   const searchInput = useRef<HTMLInputElement>(null);
   const palette = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const restoreFocus = useRef(true);
-  const currentName=current==='nexus'?'NEXUS / Project 360':venture?ventureList.find(v=>v.id===venture)?.short??'Business Division':
+  const currentName=current==='nexus'?'Project 360':current==='exterior-bookings'?'Jobs & Bookings':current==='exterior-leads'?'Customers & Leads':venture?discoverableVentures.find(v=>v.id===venture)?.short??'Business Division':
     nav.find(item=>item.key===current)?.label??'Corporate Workspace';
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
@@ -109,7 +113,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
     const q = query.trim().toLowerCase();
     if (!q) return { pages: nav.slice(0, 5) };
     return {
-      pages: [...nav, ...ventureList.map(v => ({ key: 'businesses' as NavKey, label: v.name, path: `/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
+      pages: [...nav, ...discoverableVentures.map(v => ({ key: 'businesses' as NavKey, label: v.name+(v.id==='content'&&!contentPersistenceEnabled?' · Preview':''), path: v.id==='content'&&!contentPersistenceEnabled?'/tools/content-preview':`/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
     };
   }, [query]);
 
@@ -126,24 +130,34 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
           <span className="atlas-brand-text"><strong>ATLAS</strong><small>OJ HOLDINGS</small></span>
         </Link>
         <nav>
-          {nav.map((item,i) => (
-            <div key={item.key}>
-              {(i===0||nav[i-1].group!==item.group)&&<p className="atlas-rail-heading">{item.group}</p>}
-              <Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
+          {nav.map((item,i) => {
+            const expandable=item.group==='MANAGEMENT'||item.group==='MORE';
+            const groupOpen=!expandable||(expandedGroups[item.group as 'MANAGEMENT'|'MORE']??nav.some(n=>n.group===item.group&&n.key===current));
+            return <div key={item.key}>
+              {(i===0||nav[i-1].group!==item.group)&&(expandable
+                ? <button type="button" className="atlas-rail-heading atlas-nav-group-toggle"
+                  aria-expanded={groupOpen}
+                  onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!groupOpen}))}>
+                    {item.group==='MANAGEMENT'?'MANAGEMENT / ANALYTICS':'MORE / SETTINGS'}
+                    <span aria-hidden="true">{groupOpen?'−':'+'}</span>
+                  </button>
+                : <p className="atlas-rail-heading">{item.group==='DAILY'?'DO THE WORK':item.group==='BUSINESSES'?'YOUR BUSINESSES':item.group}</p>)}
+              {groupOpen&&<Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
                 <item.icon size={18} aria-hidden="true" /><span>{item.label}</span>
                 {item.key === 'tasks' && openTasks > 0 && <b className="rail-count">{openTasks}</b>}
-              </Link>
+              </Link>}
               {item.key === 'businesses' && (
                 <div className="rail-ventures">
-                  {ventureList.map(v => (
-                    <Link key={v.id} className={venture === v.id ? 'rail-venture is-current' : 'rail-venture'} aria-current={venture === v.id ? 'page' : undefined} href={`${base}/b/${v.id}`} onClick={() => setDrawer(false)}>
-                      <Image src={v.mark} alt="" width={22} height={22} /><span>{v.short}</span>
+                  {discoverableVentures.map(v => (
+                    <Link key={v.id} className={venture === v.id ? 'rail-venture is-current' : 'rail-venture'} aria-current={venture === v.id ? 'page' : undefined}
+                      href={visibleBusinessRoute(base as '/workspace'|'/preview',v.id,contentPersistenceEnabled)} onClick={() => setDrawer(false)}>
+                      <Image src={v.mark} alt="" width={22} height={22} /><span>{v.short}{v.id==='content'&&!contentPersistenceEnabled?' · Preview':''}</span>
                     </Link>
                   ))}
                 </div>
               )}
-            </div>
-          ))}
+            </div>;
+          })}
         </nav>
 
         <div className="rail-team">
@@ -202,9 +216,9 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
 
       <nav className="atlas-mobile-nav" aria-label="Mobile navigation" inert={search}>
         <Link href={base} className={current==='home'?'is-current':''} aria-current={current==='home'?'page':undefined}><Home size={19}/>Today</Link>
+        <Link href={base+'/b/exterior/bookings'} className={current==='exterior-bookings'?'is-current':''} aria-current={current==='exterior-bookings'?'page':undefined}><CalendarDays size={19}/>Jobs</Link>
         <Link href={base+'/tasks'} className={current==='tasks'?'is-current':''} aria-current={current==='tasks'?'page':undefined}><CheckSquare size={19}/>Tasks</Link>
-        <Link href={base+'/tools/fleet'} className={current==='fleet'?'is-current':''} aria-current={current==='fleet'?'page':undefined}><Truck size={19}/>Fleet</Link>
-        <button type="button" onClick={openSearch} aria-label="Search ATLAS"><Search size={19}/>Search</button>
+        <Link href={base+'/finance'} className={current==='finance'?'is-current':''} aria-current={current==='finance'?'page':undefined}><Wallet size={19}/>Money</Link>
         <button type="button" onClick={()=>{setDrawer(true);setBell(false)}} aria-label="Open all sections"><Menu size={19}/>More</button>
       </nav>
       {search && (

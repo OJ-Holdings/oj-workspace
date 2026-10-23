@@ -18,6 +18,7 @@ import { ventures, type VentureId } from '@/lib/ventures';
 import { atlasModes, atlasSignalsForMode, buildAtlasSnapshot, type AtlasMode } from '@/lib/atlas-command';
 import { buildOperatingNetwork } from '@/lib/operating-network';
 import type { IntelligenceSignal } from '@/lib/corporate-intelligence';
+import { OperatorLaunchpad } from './OperatorLaunchpad';
 
 type Props={
   base:string;board:Board;store:DashboardStore;jobs:JobItem[];
@@ -67,10 +68,10 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
         <h1>The company.<br/><em>Under your command.</em></h1>
         <p className="atlas-hq-lead">One headquarters for your people, jobs, equipment, clients and commitments. Real records first. Every decision has a source.</p>
         <div className="atlas-hq-hero-actions">
-          <Link className="atlas-action-primary" href={base+'/tools/operations'}>Open NEXUS Corporate Command <Network size={17}/></Link>
+          <Link className="atlas-action-primary" href={base+'/b/exterior/bookings'}>Job schedule <CalendarClock size={17}/></Link>
           <Link className="atlas-action-secondary" href={base+'/tasks'}>Mission board <ArrowUpRight size={16}/></Link>
-          <Link className="atlas-action-secondary" href={base+'/b/exterior/commercial'}>Commercial War Room <BriefcaseBusiness size={16}/></Link>
-          <Link className="atlas-action-secondary" href={base+'/tools/fleet'}>Fleet Command <Truck size={16}/></Link>
+          <Link className="atlas-action-secondary" href={base+'/b/exterior/leads'}>Customer pipeline <Users size={16}/></Link>
+          <Link className="atlas-action-secondary" href={base+'/finance'}>Money & expenses <Wallet size={16}/></Link>
         </div>
       </div>
       <div className="atlas-hq-orbit" aria-hidden="true">
@@ -88,6 +89,7 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
       </div>
     </header>
 
+    <OperatorLaunchpad base={base as '/workspace'|'/preview'} mode={mode} readOnly={readOnly} onNewTask={()=>board.openCard(undefined,{business:'exterior'})} />
     <div className="atlas-modebar" aria-label="Executive command modes">
       <div className="atlas-modes" role="group" aria-label="HQ operating mode">
         {atlasModes.map(m=>{const Icon=modeIcons[m];return <button key={m} type="button" onClick={()=>{setActive(m);setSelected(null)}} aria-pressed={active===m}><Icon size={16}/>{navLabels[m]}</button>})}
