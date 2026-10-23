@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFocuses, matchesLeadWorkFocus, sortLeadsForWork, type LeadWorkFocus } from '@/lib/exterior-lead-workflow';
+import { bookingWorkCounts, bookingWorkDescriptions, bookingWorkFocuses, bookingWorkLabels, matchesBookingWorkFocus, sortBookingsForWork, type BookingWorkFocus } from '@/lib/exterior-booking-workflow';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -438,46 +439,142 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [editing, setEditing] = useState<ExtBooking | null>(null);
   const [assigning, setAssigning] = useState<ExtBooking | null>(null);
   const [flow, setFlow] = useState<string | null>(null);
-  const bookingParams=useSearchParams();
-  const launchNewBooking=bookingParams.get('new');
-  useEffect(()=>{
-    if(readOnly||launchNewBooking!=='1')return;
+  const [focus, setFocus] = useState<BookingWorkFocus>('upcoming');
+  const [view, setView] = useState<'cards' | 'table'>('cards');
+  const [search, setSearch] = useState('');
+  const [shown, setShown] = useState(30);
+  const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
+  const bookingParams = useSearchParams();
+  const launchNewBooking = bookingParams.get('new');
+  useEffect(() => {
+    if (readOnly || launchNewBooking !== '1') return;
     setFlow('');
-    const url=new URL(window.location.href);
+    const url = new URL(window.location.href);
     url.searchParams.delete('new');
-    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
-  },[readOnly,launchNewBooking]);
-  const today = dayKey(now), month = today.slice(0, 7);
-  const lead = new Map(data.leads.map(l => [l.id, l]));
-  const live = data.bookings.filter(b => b.status !== 'denied');
-  const byTime = (a: ExtBooking, b: ExtBooking) => a.date.localeCompare(b.date) || (parseBlock(a.time_block)?.start ?? 0) - (parseBlock(b.time_block)?.start ?? 0);
-  const upcoming = live.filter(b => b.date >= today).sort(byTime);
-  const past = live.filter(b => b.date < today);
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [readOnly, launchNewBooking]);
+
+  const today = dayKey(now);
+  const month = today.slice(0, 7);
+  const lead = useMemo(() => new Map(data.leads.map(l => [l.id, l])), [data.leads]);
+  const counts = useMemo(() => bookingWorkCounts(data.bookings, today), [data.bookings, today]);
+  const upcoming = data.bookings.filter(b => matchesBookingWorkFocus(b, 'upcoming', today));
+  const quoted = upcoming.reduce((sum, b) => sum + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0);
+  const q = search.trim().toLowerCase();
+  const rows = sortBookingsForWork(data.bookings.filter(b => {
+    if (!matchesBookingWorkFocus(b, focus, today)) return false;
+    if (!q) return true;
+    const customer = lead.get(b.lead_id ?? '');
+    return [customer?.name, customer?.phone, customer?.address, customer?.service_requested, b.date, b.status]
+      .some(value => (value ?? '').toLowerCase().includes(q));
+  }), focus === 'past');
+  const setQueue = (next: BookingWorkFocus) => { setFocus(next); setShown(30); setSearch(''); };
+  const statusOf = (b: ExtBooking) => b.status === 'confirmed' ? 'Confirmed' :
+    b.status === 'pending_approval' ? 'Pending approval' :
+    b.status === 'denied' ? 'Denied' : statusLabel(b.status);
+  const actionable = (b: ExtBooking) => !readOnly && b.date >= today && b.status !== 'denied';
+  const cancelBooking = (b: ExtBooking, name: string | null) => {
+    if (window.confirm(`Cancel ${name || 'this'} booking on ${day(b.date)}? The lead goes back to following up.`))
+      void act(() => removeBooking(org, b.id), () => 'Booking cancelled.');
+  };
+
   return <>
-    {!readOnly && <div className="formactions top"><button className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={15} aria-hidden="true" />Book a job</button></div>}
-    <div className="kpis">
-      <div><span>Upcoming jobs</span><strong><NumberFlow value={upcoming.length} /></strong></div>
-      <div><span>Booked this month</span><strong><NumberFlow value={live.filter(b => b.date.startsWith(month)).length} /></strong></div>
-      <div><span>Upcoming quoted value</span><strong><NumberFlow value={upcoming.reduce((s, b) => s + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0)} format={usd} /></strong><small className="quiet">Quotes, not money in</small></div>
-    </div>
-    {[['Upcoming', upcoming, 'Nothing booked from today on. Press "Book a job" to add one.'] as const, ['Past', past, 'No past bookings.'] as const].map(([title, list, none]) => (
-      <section className="panel" key={title}>
-        <header className="panel-head"><h2>{title}</h2></header>
-        {list.length ? <div className="tablewrap"><table className="table booking-table">
-          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Address</th><th className="num">Quote</th>{!readOnly && title === 'Upcoming' && <th><span className="sr-only">Actions</span></th>}</tr></thead>
-          <tbody>{list.map(b => { const l = lead.get(b.lead_id ?? ''); return (
-            <tr key={b.id}><td data-label="Date">{day(b.date)}</td><td data-label="Time">{blockLabel(b.time_block)}</td><td data-label="Customer">{l?.name || 'Lead no longer on record'}{b.status === 'pending_approval' && <small className="quiet block">Waiting for approval</small>}</td><td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td><td className="num" data-label="Quoted (not paid)">{cash(l?.quote_amount ?? null)}</td>
-              {!readOnly && title === 'Upcoming' && <td data-label="Actions"><div className="row-actions">
-                {l && <button className="secondary small" onClick={() => setEditing(b)}><Pencil size={13} aria-hidden="true" />Edit</button>}
-                {l && crew && <button className="secondary small" onClick={() => setAssigning(b)}>{crew.assignments.find(row => row.booking_id === b.id)?.employee_name ?? 'Assign'}</button>}
-                {l && <button className="secondary small" onClick={() => setMoving(b)}>Move</button>}
-                <button className="icon-button" aria-label={`Cancel booking for ${l?.name ?? 'lead'}`} disabled={busy} onClick={() => { if (window.confirm(`Cancel ${l?.name ?? 'this'} booking on ${day(b.date)}? The lead goes back to following up.`)) act(() => removeBooking(org, b.id), () => 'Booking cancelled.'); }}><Trash2 size={15} /></button>
+    <section className="atlas-booking-command" aria-label="Booking operation queues">
+      <header className="atlas-booking-command-head">
+        <div><span>EXTERIOR CARE / JOB OPERATIONS</span><h2>Run the schedule. Get jobs done.</h2>
+          <p>Actual booking dates and recorded statuses, not inferred dispatch, completed work, or collected payments.</p></div>
+        {!readOnly && <button type="button" className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={17} aria-hidden="true"/>Book a job</button>}
+      </header>
+      <div className="atlas-booking-command-stats">
+        <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today, excluding denied</span></div>
+        <div><small>Confirmed upcoming</small><strong><NumberFlow value={upcoming.filter(b => b.status === 'confirmed').length} /></strong><span>Explicitly confirmed in source</span></div>
+        <div><small>Quoted upcoming value</small><strong><NumberFlow value={quoted} format={usd} /></strong><span>Entered quotes; not paid revenue</span></div>
+        <div><small>Bookings this month</small><strong><NumberFlow value={data.bookings.filter(b => b.status !== 'denied' && b.date.startsWith(month)).length} /></strong><span>Scheduled records, not completed jobs</span></div>
+      </div>
+      {data.coverage?.bookings && data.coverage.bookings.total !== null && data.coverage.bookings.total > data.coverage.bookings.loaded &&
+        <p className="banner-inline" role="status">Partial booking history: {data.coverage.bookings.loaded} of {data.coverage.bookings.total} source records loaded. Counts and queues describe this window only.</p>}
+      <div className="atlas-booking-queues" role="group" aria-label="Choose booking queue">
+        {bookingWorkFocuses.map(key => <button key={key} type="button" aria-pressed={focus === key}
+          onClick={() => setQueue(key)}>
+          <strong>{counts[key]}</strong><span>{bookingWorkLabels[key]}</span>
+        </button>)}
+      </div>
+      <p className="atlas-booking-queue-note" role="status"><b>{bookingWorkLabels[focus]}:</b> {bookingWorkDescriptions[focus]}</p>
+    </section>
+    <section className="panel atlas-booking-workbench">
+      <header className="panel-head"><h2>Job workbench <small className="quiet">{rows.length} matching record{rows.length === 1 ? '' : 's'}</small></h2>
+        <Link className="secondary small" href={`${base}/b/exterior/calendar`}>View calendar</Link>
+      </header>
+      <div className="atlas-booking-tools">
+        <input type="search" aria-label="Search booked jobs" placeholder="Customer, address, date or service" value={search}
+          onChange={e => { setSearch(e.target.value); setShown(30); }}/>
+        <div role="group" aria-label="Booking display mode">
+          <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Job cards</button>
+          <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>Compact table</button>
+        </div>
+      </div>
+      {rows.length === 0 ? <div className="empty"><p><b>No bookings match this view.</b> {q ? 'Try another search.' : focus === 'upcoming' ? 'Book a job to populate the upcoming schedule.' : 'Choose another queue to see existing booking records.'}</p></div> : <>
+        {view === 'cards' ? <div className="atlas-booking-card-grid" aria-label="Booked job cards">
+          {rows.slice(0, shown).map(b => {
+            const l = lead.get(b.lead_id ?? '');
+            const canEdit = actionable(b);
+            const assigned = crew?.assignments.find(a => a.booking_id === b.id);
+            return <article key={b.id} className="atlas-booking-card" data-status={b.status ?? 'unknown'}>
+              <header><div><small>{day(b.date)} · {blockLabel(b.time_block)}</small>
+                <h3>{l?.name || 'Customer record unavailable'}</h3></div>
+                <span className="atlas-booking-state">{statusOf(b)}</span>
+              </header>
+              <div className="atlas-booking-card-fields">
+                <div><small>Requested service</small><strong>{l?.service_requested || 'Not entered'}</strong></div>
+                <div><small>Entered quote (not paid)</small><strong>{cash(l?.quote_amount ?? null)}</strong></div>
+              </div>
+              <div className="atlas-booking-card-context">
+                {l?.address ? <p>{l.address}</p> : <p>Address not recorded</p>}
+                {crew && <p>Crew: {assigned?.employee_name || 'Not assigned in workspace'}</p>}
+                {!l && <p>Linked lead is not in the loaded customer records. No contact or quote can be verified here.</p>}
+              </div>
+              <footer>
+                <div className="atlas-booking-contact-actions">
+                  {l && <Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
+                  {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
+                  {l?.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`}>Directions</a>}
+                </div>
+                {canEdit && <div className="atlas-booking-management-actions">
+                  {l && <button type="button" className="primary small" disabled={busy} onClick={() => setEditing(b)}><Pencil size={14} aria-hidden="true" />Edit job</button>}
+                  {l && <button type="button" className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Reschedule</button>}
+                  {l && crew && <button type="button" className="secondary small" disabled={busy} onClick={() => setAssigning(b)}>{assigned?.employee_name ?? 'Assign crew'}</button>}
+                  <button type="button" className="secondary small" disabled={busy} onClick={() => cancelBooking(b, l?.name ?? null)}><Trash2 size={13} aria-hidden="true"/>Cancel</button>
+                </div>}
+              </footer>
+            </article>;
+          })}
+        </div> : <div className="tablewrap"><table className="table booking-table">
+          <caption className="sr-only">Exact source booking records in the {bookingWorkLabels[focus]} queue</caption>
+          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Recorded status</th><th>Service</th><th>Address</th><th className="num">Quote, not paid</th>{!readOnly && <th>Actions</th>}</tr></thead>
+          <tbody>{rows.slice(0, shown).map(b => {
+            const l = lead.get(b.lead_id ?? '');
+            return <tr key={b.id}>
+              <td data-label="Date">{day(b.date)}</td><td data-label="Time">{blockLabel(b.time_block)}</td>
+              <td data-label="Customer">{l?.name || 'Customer record unavailable'}</td><td data-label="Status">{statusOf(b)}</td>
+              <td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td>
+              <td className="num" data-label="Quoted, not paid">{cash(l?.quote_amount ?? null)}</td>
+              {!readOnly && <td data-label="Actions"><div className="row-actions">
+                {l && <Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
+                {actionable(b) && <>
+                  {l && <button className="secondary small" disabled={busy} onClick={() => setEditing(b)}>Edit</button>}
+                  {l && <button className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Move</button>}
+                  {l && crew && <button className="secondary small" disabled={busy} onClick={() => setAssigning(b)}>{crew.assignments.find(a => a.booking_id === b.id)?.employee_name || 'Assign'}</button>}
+                  <button className="icon-button" aria-label={`Cancel booking for ${l?.name ?? 'lead'}`} disabled={busy} onClick={() => cancelBooking(b, l?.name ?? null)}><Trash2 size={15} /></button>
+                </>}
               </div></td>}
-            </tr>
-          ); })}</tbody></table></div>
-          : <div className="empty"><p><b>{none}</b></p></div>}
-      </section>
-    ))}
+            </tr>;
+          })}</tbody>
+        </table></div>}
+        {rows.length > shown && <button type="button" className="secondary showmore" onClick={() => setShown(n => n + 30)}>
+          Show {Math.min(30, rows.length - shown)} more bookings
+        </button>}
+      </>}
+    </section>
     <BookFlow startDate={flow} close={() => setFlow(null)} data={data} act={act} busy={busy} org={org} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <JobDialog booking={editing} lead={editing ? lead.get(editing.lead_id ?? '') : undefined} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
