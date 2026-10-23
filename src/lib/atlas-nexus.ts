@@ -63,6 +63,7 @@ export function buildNexusProject(project:CommercialProject, all:NexusInputs):Ne
   // Caller must have used decodeCommercialPortfolio(org). Guard even here to
   // prevent rendering accidental cross-company local or task context.
   if(all.portfolio.organizationId!==all.org ||
+    (all.fleet && all.fleet.organizationId!==all.org) ||
     !all.portfolio.projects.some(candidate=>candidate.id===project.id)){
     throw new Error('Project is not part of the validated current organization.');
   }
@@ -206,6 +207,8 @@ export function buildNexusProject(project:CommercialProject, all:NexusInputs):Ne
 export function buildNexusOverview(inputs:NexusInputs):NexusOverview{
   if(inputs.org!==inputs.portfolio.organizationId)
     throw new Error('Portfolio does not belong to the current organization.');
+  if(inputs.fleet && inputs.fleet.organizationId!==inputs.org)
+    throw new Error('Fleet workbook belongs to a different organization.');
   const projects=inputs.portfolio.projects.map(p=>buildNexusProject(p,inputs))
     .sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||a.name.localeCompare(b.name));
   return {

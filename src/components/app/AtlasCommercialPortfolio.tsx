@@ -231,6 +231,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <button type="button" className="secondary" onClick={newProject}><Plus size={15}/> New project</button>
         <button type="button" className="primary" disabled={!ready} onClick={saveCurrent}><Save size={15}/> {selectedId?'Save selected project':'Save as new project'}</button>
         <button type="button" className="secondary" disabled={!ready||phase==='archived'} onClick={prepareProjectTask}>Save & prepare project task <ArrowUpRight size={15}/></button>
+        <Link className="secondary nexus-editor-link" href={base+"/b/exterior/projects"+(selectedId?"?project="+encodeURIComponent(selectedId):"")}>NEXUS / Last saved snapshot <ArrowUpRight size={14}/></Link>
         <button type="button" className="secondary" disabled={!ready} onClick={exportPortfolio}><Download size={15}/> Export portfolio</button>
         <button type="button" className="secondary" disabled={!ready} onClick={()=>fileInput.current?.click()}><FileInput size={15}/> Import portfolio</button>
         <input type="file" ref={fileInput} hidden accept="application/json,.json" aria-label="Import private commercial project portfolio" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importPortfolio(file);}}/>

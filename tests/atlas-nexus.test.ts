@@ -182,3 +182,19 @@ test('archived and incomplete plans are accounted separately from active schedul
   assert.equal(report.active,1);
   assert.ok(report.projects.find(p=>p.id==='archived1')?.findings.some(f=>f.id==='archived'));
 });
+
+test('NEXUS refuses a foreign organization Fleet workbook even when commercial source matches',()=>{
+  const given=inputs();
+  assert.ok(given.fleet);
+  given.fleet={...given.fleet!,organizationId:otherOrg};
+  assert.throws(()=>buildNexusOverview(given),/Fleet workbook belongs to a different organization/);
+  assert.throws(()=>buildNexusProject(given.portfolio.projects[0],given),/validated current organization/);
+});
+
+test('foreign Fleet is rejected even with an empty local commercial project portfolio',()=>{
+  const given=inputs({
+    portfolio:emptyCommercialPortfolio(org),
+    fleet:{...emptyFleet(org),organizationId:otherOrg},
+  });
+  assert.throws(()=>buildNexusOverview(given),/different organization/);
+});
