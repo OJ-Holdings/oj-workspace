@@ -126,6 +126,10 @@ export function fieldBridgeReport(
       payloadRemainingLb: load.remainingLb,
       enteredPayloadExceeded: load.exceedsEnteredPayload,
     };
+    if (fleetSummary.assets === 0) findings.push({
+      id: 'no-assets', severity: 'unknown',
+      text: 'No equipment assets are recorded in this local workbook. A checked checklist does not demonstrate equipment availability.',
+    });
     if (fleetSummary.attention) findings.push({
       id: 'service', severity: 'attention',
       text: fleetSummary.attention + ' recorded equipment asset(s) require service attention; review individual records before assigning equipment.',
