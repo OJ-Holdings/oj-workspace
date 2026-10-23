@@ -165,7 +165,7 @@ export function internalFieldBrief(report: FieldBridgeReport, day: string): stri
   return [
     'OJ EXTERIOR CARE / ATLAS FIELD OPERATIONS — INTERNAL PLANNING ONLY',
     'Local review date: ' + (validDay(day) ? day : 'unknown'),
-    'Project: ' + (p?.name ?? 'Unavailable on this device'),
+    'Project: ' + (p ? p.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 140) : 'Unavailable on this device'),
     'Scope: ' + (p ? p.buildings + ' buildings; ' + p.crewHours + ' paid crew-hours; ' + p.liftDays + ' planned rental days' : 'unknown'),
     'Bid checks: ' + (p ? p.reviewChecked + '/' + p.reviewTotal + ' entered checks; not founder approval' : 'unknown'),
     'Fleet: ' + (f ? f.assets + ' entered assets; ' + f.attention + ' flagged for service; ' + f.unverified + ' unverified' : 'unknown'),
