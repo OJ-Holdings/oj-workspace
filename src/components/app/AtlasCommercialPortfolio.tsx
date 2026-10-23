@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, ArrowUpRight, Building2, Download, FileInput, Plus, Save, ShieldAlert, Trash2, Truck } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Card } from '@/lib/board';
 import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
 import { emptyFieldCrewPlan, type FieldCrewPlan } from '@/lib/atlas-field-mission';
@@ -42,6 +42,9 @@ const short=(id:string)=>id.length>11?id.slice(0,9)+'…':id;
  */
 export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad}:Props){
   const router=useRouter();
+  const params=useSearchParams();
+  const targetProject=params.get('project');
+  const openedTarget=useRef('');
   const canEdit=mode==='live'&&!readOnly;
   const key='oj-commercial-project-portfolio-v1:'+org;
   const fleetKey='oj-fleet-command-v1:'+org;
@@ -132,6 +135,18 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     onLoad({name:project.name,input:structuredClone(project.input),review:[...project.review]});
     setNotice('Project loaded into the local estimator. Changes are NOT automatically saved or shared.');
   }
+  // The NEXUS deep link resolves an exact local project ID only on the
+  // SAME validated browser. Explicitly warn before replacing editor state.
+  useEffect(()=>{
+    if(!ready||!canEdit||!targetProject)return;
+    const marker=org+':'+targetProject;
+    if(openedTarget.current===marker)return;
+    openedTarget.current=marker;
+    const target=portfolio.projects.find(p=>p.id===targetProject);
+    if(target)loadProject(target);
+    else setNotice('The requested project ID is not in this device-local portfolio. Nothing was loaded or changed.');
+  },[ready,canEdit,targetProject,org,portfolio.projects]);
+
   function newProject(){
     if(!window.confirm('Begin a new project? Unsaved changes to the currently open estimate will be discarded. Previously saved portfolio entries remain.'))return;
     setSelectedId(null);setExpectedRevision(null);setPhase('scoping');
