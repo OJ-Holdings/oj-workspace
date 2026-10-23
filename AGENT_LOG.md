@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-23 -- ChatGPT (ATLAS V3 R18-R19 booking and money workbenches)
+**Summary:** Replaced the Exterior booking table-first experience with source-dated work queues (today, next 7 days, pending, upcoming, past, denied), responsive job cards, source-safe customer/call/directions and existing authorized edit/reschedule/crew/cancel actions. Reworked Finance as an actionable ledger with direct expense/income forms, manual/source distinctions, mobile transaction cards, filtering, retained bank/reporting permissions and a recorded-difference-not-profit warning.
+**Files:** src/components/app/{ExteriorManage,Pages}.tsx, src/lib/{exterior-booking-workflow,money-workflow}.ts, src/styles/atlas-v3.css, tests/{exterior-booking-workflow,money-workflow}.test.ts.
+**Verified:** PR #82 merged as 14f7903 after exact-head CI 39938060774 SUCCESS. PR #83 merged as 8f0ca67 after exact-head CI 39938744120 SUCCESS; both ran PowerShell parse, npm ci, typecheck, tests and production build.
+**Notes:** No new database tables/migrations, automatic payments, client messages or provider calls. Existing permitted editors still require the operator to save. Booking status is not job completion; quotes are not payment; historical source payment dates can be only estimated. Windows port 3011 and iPhone/Jacob authenticated UX are NOT independently verified. Retain protected draft PR #42 until private backup and restore/RLS approval.
+
+
 ## 2026-10-22 -- ChatGPT (Executive Command + Commercial Desk)
 **Summary:** Added an executive command center using live authorized task, booking and source-coverage data, plus a multi-building internal commercial estimating desk with browser-local drafts, site scoping, cost engineering, checklist, copy and export. Uses existing business branding, responsive CSS, direct record links and permissions.
 **Files:** src/components/app/{ExecutiveCommand,CommercialDesk,HomeView,App,VentureView,ExteriorView,BusinessNav,Shell}.tsx, src/lib/commercial-estimate.ts, src/styles/executive.css, src/app/globals.css, tests/commercial-estimate.test.ts, docs/EXECUTIVE_PHASE1_RELEASE.md.
