@@ -141,3 +141,24 @@ export function fieldBridgeReport(
   }
   return { commercial: commercialSummary, fleet: fleetSummary, findings };
 }
+
+/** Manual internal handoff only; never a customer proposal, dispatch authorization or certified inspection. */
+export function internalFieldBrief(report: FieldBridgeReport, day: string): string {
+  const p = report.commercial;
+  const f = report.fleet;
+  return [
+    'OJ EXTERIOR CARE / ATLAS FIELD OPERATIONS — INTERNAL PLANNING ONLY',
+    'Local review date: ' + (validDay(day) ? day : 'unknown'),
+    'Project: ' + (p?.name ?? 'Unavailable on this device'),
+    'Scope: ' + (p ? p.buildings + ' buildings; ' + p.crewHours + ' paid crew-hours; ' + p.liftDays + ' planned rental days' : 'unknown'),
+    'Bid checks: ' + (p ? p.reviewChecked + '/' + p.reviewTotal + ' entered checks; not founder approval' : 'unknown'),
+    'Fleet: ' + (f ? f.assets + ' entered assets; ' + f.attention + ' flagged for service; ' + f.unverified + ' unverified' : 'unknown'),
+    'Pre-departure: ' + (f ? f.checklistChecked + '/' + f.checklistTotal + ' valid today; ' + (f.checklistFresh ? 'dated today' : 'not current') : 'unknown'),
+    'Payload remaining: ' + (f?.payloadRemainingLb === null || f?.payloadRemainingLb === undefined ? 'unknown' : f.payloadRemainingLb + ' entered lb'),
+    'OPEN FINDINGS:',
+    ...(report.findings.length ? report.findings.map(x => '- [' + x.severity.toUpperCase() + '] ' + x.text) : ['- No automated exceptions detected; independent checks remain required.']),
+    '',
+    'SOURCE: device-local commercial and fleet workbook projections. Not synchronized with the other founder.',
+    'No customer contact, approval, booking, rental reservation, inspection certification or payment has been performed.',
+  ].join('\n');
+}
