@@ -4,6 +4,14 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## Exterior Release 41 — DISPATCH TASKS THAT BECOME SHARED TEAM WORK
+
+**Implementation:** [PR #126](https://github.com/OJ-Holdings/oj-workspace/pull/126), merged `main` SHA `693483d091af50a4d3efaffb94dd0c0f2331873a`. Exact feature head `6137113489e91d7d1758c119eaf5822b5566a91e` full [CI #40121742079](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121742079) SUCCESS, feature post-merge [main CI #40121915030](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121915030) SUCCESS. Synthetic PostgreSQL 17 recovery and app test/build both green.
+- **Operational friction removed:** Exterior Command and Booking Manager dispatch exception cards have inline **Assign Action**. Pick a flagged exact original booking, choose the issue requiring action, preview/edit a no-PII specific instruction, choose active unique owner/member assignee, due date and priority and publish to existing live RLS-protected team cards. Already open job tasks can be reviewed; exact duplicate note cautioned. The assigned task arrives in founder Operations Inbox and existing company task board without private browser JSON import/export.
+- **Correctness:** The server does not trust client labels; re-verifies org role, original source lead and booking, date/time/status and selected assignee on publish. Cancelled/denied/unknown/stale original source cannot save. A repeated task ID with changed instructions/deadline/assignee/priority cannot silently report previous task as new success. R38 inbox re-fetches after actual save, not from speculative local state. No outgoing SMS, automatic approval, crew/vehicle reservation, signed scope, payment or booking closeout is inferred.
+- **Tests:** New dispatch assignment test coverage and shared-task retry regression, plus normal all-code CI. No production DDL/migrations.
+- **Exterior weighted engineering score: 40%** (previous 39%; +1 W2). Windows served SHA, two-phone live founder acceptance, original record-sharing schema and actual encrypted production restore remain independently unverified.
+
 ## Exterior Release 40 — Founder private backup readiness (real recovery not yet executed)
 
 **Feature:** [PR #124](https://github.com/OJ-Holdings/oj-workspace/pull/124), merged SHA `13c2774082c334756fbbbf01fd79e5fd3e36c7c1`. Exact-head CI [#40092698720](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092698720) and merged-main CI [#40092863472](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092863472) both successful, including the synthetic PostgreSQL 17 recovery job.
