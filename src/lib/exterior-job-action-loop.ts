@@ -14,7 +14,7 @@ export function originalBookingActionable(
  booking:ExtBooking,server:OriginalBookingSnapshot|null,
 ):boolean{
  return !!server&&booking.lead_id!==null&&
- booking.status!==null&&booking.status!=='denied'&&booking.status!=='cancelled'&&
+ (booking.status==='confirmed'||booking.status==='pending_approval')&&
  booking.date===server.date&&booking.time_block===server.time&&
  booking.status===server.status;
 }
