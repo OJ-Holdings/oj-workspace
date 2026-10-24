@@ -4,7 +4,7 @@ import {requireMember} from '@/lib/supabase';
 import type {Card} from '@/lib/board';
 import {
  allowedFollowupStages,isJobFollowupFor,makeJobFollowupCard,
- parseJobFollowupReceipt,projectJobFollowup,uuid,validDay,
+ parseJobFollowupReceipt,projectJobFollowup,sameJobFollowupAttempt,uuid,validDay,
  type FollowupStage,type NewJobFollowup,type SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
 import type {ExtBooking} from '@/lib/exterior';
@@ -105,8 +105,7 @@ export async function createExteriorSharedFollowup(
  if(lookupError)throw Error('Could not check for an earlier saved follow-up.');
  if(existing){
   const previous=projectJobFollowup(asCard(existing),org,bookingId,input.leadId);
-  if(!previous||previous.origin!==input.origin||
-      previous.handoffRequestId!==input.handoffRequestId)
+  if(!previous||!sameJobFollowupAttempt(previous,input))
    throw Error('The chosen task identifier already belongs to another record.');
   return previous;
  }
@@ -119,7 +118,7 @@ export async function createExteriorSharedFollowup(
   const {data:again}=await client.from('oj_cards').select(fields)
    .eq('id',card.id).eq('organization_id',org).maybeSingle();
   const prior=again&&projectJobFollowup(asCard(again),org,bookingId,input.leadId);
-  if(prior&&prior.origin===input.origin&&prior.handoffRequestId===input.handoffRequestId)return prior;
+  if(prior&&sameJobFollowupAttempt(prior,input))return prior;
   throw Error('Follow-up was not saved to the shared company board. Please retry.');
  }
  const saved=projectJobFollowup(asCard(data),org,bookingId,input.leadId);

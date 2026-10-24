@@ -58,6 +58,12 @@ export function ExteriorOperationsInbox({org,mode,base,readOnly}:Props){
   window.addEventListener('focus',refresh);
   return()=>{window.clearInterval(timer);window.removeEventListener('focus',refresh);};
  },[live]);
+ useEffect(()=>{
+  if(!live)return;
+  const onPublished=()=>setReload(n=>n+1);
+  window.addEventListener('oj-exterior-followup-saved',onPublished);
+  return()=>window.removeEventListener('oj-exterior-followup-saved',onPublished);
+ },[live]);
  const report=latest?.report??null;
  const entries=useMemo(()=>report?selectExteriorInbox(report.items,focus):[],[report,focus]);
  const displayed=entries.slice(0,shown);

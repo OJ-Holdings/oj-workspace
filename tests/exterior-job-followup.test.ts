@@ -4,7 +4,7 @@ import type {ExtBooking} from '../src/lib/exterior';
 import {
  allowedFollowupStages,buildJobFollowupDescription,isJobFollowupFor,
  makeJobFollowupCard,parseJobFollowupReceipt,projectJobFollowup,
- validateJobFollowup,type NewJobFollowup,
+ validateJobFollowup,sameJobFollowupAttempt,type NewJobFollowup,
 } from '../src/lib/exterior-job-followup';
 
 const org='11111111-1111-4111-8111-111111111111';
@@ -161,4 +161,25 @@ test('original receipt parser refuses oversized or absent task bodies',()=>{
  assert.equal(parseJobFollowupReceipt(null),null);
  assert.equal(parseJobFollowupReceipt({}),null);
  assert.equal(buildJobFollowupDescription(org,booking,input()).length<8000,true);
+});
+
+
+test('R41 retry is idempotent ONLY if all original instructions and ownership match',()=>{
+ const first=input();
+ const card=makeJobFollowupCard(org,booking,first);
+ const saved=projectJobFollowup(card,org,bookingId,leadId);
+ assert.ok(saved);
+ assert.equal(sameJobFollowupAttempt(saved,first),true);
+ assert.equal(sameJobFollowupAttempt(saved,{...first,note:'  '+first.note+'  '}),true);
+ const divergentAttempts:Partial<NewJobFollowup>[] = [
+  {note:'Call the customer instead of checking pump coupling.'},
+  {assignee:'Oscar'}, {dueOn:'2026-10-28'},{priority:'normal'},
+  {sourceDate:'2026-10-28'}, {sourceTime:'12-3'},
+  {sourceStatus:'pending_approval'},{handoffRequestId:requestId},
+  {origin:'private-owner-reply-reference'},
+ ];
+ for(const divergent of divergentAttempts){
+  assert.equal(sameJobFollowupAttempt(saved,{...first,...divergent}),false,
+   JSON.stringify(divergent));
+ }
 });

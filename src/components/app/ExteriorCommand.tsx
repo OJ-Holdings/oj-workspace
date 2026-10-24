@@ -110,7 +110,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
       </Link>)}
     </section>
 
-    <ExteriorDispatchPreflight data={result.data} now={loadedAt} base={base} mode={mode} compact/>
+    <ExteriorDispatchPreflight data={result.data} now={loadedAt} base={base} mode={mode} org={org} readOnly={readOnly} compact/>
     <ExteriorOperationsInbox org={org} mode={mode} base={base} readOnly={readOnly}/>
     <section className="excmd-workspace" aria-label="Operations and founder decisions">
       <div className="excmd-mission-board">

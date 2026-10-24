@@ -141,6 +141,18 @@ export function projectJobFollowup(
   sourceDate:source.sourceDate,sourceTime:source.sourceTime,sourceStatus:source.sourceStatus,
  };
 }
+/** Idempotent create retries must match ALL immutable proposal fields. A changed
+ * assignee, deadline, or note requires a fresh UUID instead of falsely
+ * reporting that earlier work was saved with the new instructions. */
+export function sameJobFollowupAttempt(
+ previous:SharedJobFollowup,input:NewJobFollowup,
+):boolean{
+ return previous.origin===input.origin&&previous.handoffRequestId===input.handoffRequestId&&
+  previous.sourceDate===input.sourceDate&&previous.sourceTime===input.sourceTime&&
+  previous.sourceStatus===input.sourceStatus&&previous.note===input.note.trim()&&
+  previous.assignee===input.assignee.trim()&&previous.priority===input.priority&&
+  previous.dueDate===input.dueOn;
+}
 export function makeJobFollowupCard(org:string,booking:ExtBooking,input:NewJobFollowup):Card{
  const x=validateJobFollowup(org,booking,input);
  return {
