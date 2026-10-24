@@ -166,7 +166,7 @@ export function ExteriorOperationsInbox({org,mode,base,readOnly}:Props){
       {stale&&<p className="ecinbox-source-note"><AlertTriangle size={14}/>{x.sourceDetail}</p>}
       <div className="ecinbox-item-bottom">
        <div className="ecinbox-actions">
-        <Link href={root+'/field?booking='+encodeURIComponent(x.bookingId)+'#ecfield-shared'}>
+        <Link href={root+'/bookings?booking='+encodeURIComponent(x.bookingId)}>
          Open job <ArrowRight size={13}/>
         </Link>
         {x.source!=='unavailable'&&<Link href={root+'/customer?lead='+encodeURIComponent(x.leadId)}>
