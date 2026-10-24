@@ -75,7 +75,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
   setBusy('create');setError('');setNotice('');
   try{
    if(!retryId.current){
-    if(!crypto?.randomUUID)throw Error('Secure task identifiers are not available on this device.');
+    if(typeof crypto==='undefined'||typeof crypto.randomUUID!=='function')throw Error('Secure task identifiers are not available on this device.');
     retryId.current=crypto.randomUUID();
    }
    await createExteriorSharedFollowup(org,booking.id,{
