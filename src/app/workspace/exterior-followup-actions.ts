@@ -8,6 +8,7 @@ import {
  type FollowupStage,type NewJobFollowup,type SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
 import type {ExtBooking} from '@/lib/exterior';
+import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
 
 /** Existing RLS-protected oj_cards + oj_comments only. NO new schema, no
  * elevated/service-role token, private field report upload or customer write. */
@@ -137,11 +138,16 @@ export async function updateExteriorSharedFollowupStage(
    expectedRevision<0||!allowedFollowupStages.includes(stage))
   throw Error('Invalid shared task state update.');
  const {client}=await requireMember(org,true);
- await source(client,bookingId,leadId);
+ const booking=await source(client,bookingId,leadId);
  const {data:stored,error:readError}=await client.from('oj_cards')
   .select(fields).eq('organization_id',org).eq('id',taskId).maybeSingle();
  if(readError||!stored||!isJobFollowupFor(stored.description,org,bookingId,leadId))
   throw Error('This task is no longer associated with the verified original job.');
+ const receipt=parseJobFollowupReceipt(stored.description);
+ if(!receipt||!originalJobMatchesTask({
+   sourceDate:receipt.sourceDate,sourceTime:receipt.sourceTime,sourceStatus:receipt.sourceStatus,
+  },booking))
+  throw Error('The original booking date, time or status changed. Reopen the booking before advancing the company task.');
  if(stored.revision!==expectedRevision)throw Error('Another founder edited this task. Refresh before changing its status.');
  const {data,error}=await client.from('oj_cards').update({
   stage,revision:expectedRevision,
