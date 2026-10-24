@@ -133,3 +133,12 @@ test('manually reviewed zero direct costs are meaningful but not bank proof',()=
  assert.equal(r.quoteLessFieldCostRatio,100);
  assert.equal(r.quoteAccepted,'unverified');
 });
+
+
+test('a truncated booking response never proves uniqueness even when one loaded booking matches',()=>{
+ const r=sourceReviewJobEconomics(booking(),lead(),[booking()],completeField(),localPlan());
+ assert.equal(r.bookingCoverageComplete,false);
+ assert.equal(r.quoteLessFieldCost,null);
+ assert.equal(r.comparable,false);
+ assert.ok(r.comparisonReasons.some(x=>/truncated/i.test(x)));
+});
