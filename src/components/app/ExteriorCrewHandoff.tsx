@@ -6,13 +6,13 @@ import {
  FileUp,ShieldAlert,Trash2,UsersRound,
 } from 'lucide-react';
 import type {ExtBooking,ExtLead} from '@/lib/exterior';
-import {fieldSourceMatches,type ExteriorFieldLog} from '@/lib/exterior-field-log';
+import type {ExteriorFieldLog} from '@/lib/exterior-field-log';
 import {reviewInternalCloseout} from '@/lib/exterior-closeout-review';
 import {
  createFieldHandoffReply,createFieldHandoffRequest,handoffFileMaxChars,
  handoffRevisionMatchesField,newHandoffMailbox,parseFieldHandoffReply,
  parseFieldHandoffRequest,readHandoffMailbox,serializeHandoffMailbox,
- type FieldHandoffRequest,type FollowUpOwner,type HandoffDecision,type HandoffMailbox,
+ type FollowUpOwner,type HandoffDecision,type HandoffMailbox,
 } from '@/lib/exterior-crew-handoff';
 
 type Props={
