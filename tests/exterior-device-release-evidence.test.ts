@@ -35,7 +35,7 @@ test('manual device evidence copies only allowlisted public commit, never secret
  assert.match(r,/production backup.*NOT VERIFIED/);
  assert.match(r,/GitHub main.*NOT VERIFIED/);
  assert.doesNotMatch(r,/LEAK-SENTINEL/);
- assert.doesNotMatch(r,/customer ID|booking ID|signed.*verified/i);
+ assert.doesNotMatch(r,/customer ID|booking ID|signed off|ACCEPTANCE PASSED/i);
 });
 test('unknown timestamp cannot leak arbitrary string into sanitized receipt',()=>{
  const e=assessDeviceReleaseResponse({status:'ok',release:sha});
