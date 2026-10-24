@@ -6,6 +6,14 @@
 
 
 
+## EXTERIOR COMMAND R34 FIELD CLOSEOUT / OWNER HANDOFF (2026-10-23)
+
+- **R34 merged:** [PR #112](https://github.com/OJ-Holdings/oj-workspace/pull/112), main SHA `83b246a48626b520e235d80c15b9e621af6cf4b9`. Exact-head CI [40049280505](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049280505) SUCCESS: npm ci, TypeScript, all tests, production build. Main post-merge CI [40049454435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049454435) must be independently checked. Actual Windows served SHA and founder phones unverified.
+- **Operator route:** `/workspace/b/exterior/field?booking=<exact ID>` now includes Crew Closeout Handoff. It derives a checklist from that same original source booking and lead plus the R31 browser-local field log. It points directly to incomplete time, labor/material/travel/other cost reviews, water/PPE/runoff/chemicals/pump/hoses/pure-water items, and outstanding operational observations. Incomplete authorized booking source and multiple active visits prevent a falsely unique booking claim.
+- **Private owner packet:** An operator taps Copy private owner handoff. Even with zero local blockers, report remains **internal draft only**, explicitly not a completion receipt, customer-accepted price, source invoice, payroll certification or bank payment. Costs entered locally do not update the original lead's historic revenue/cost.
+- **Implementation:** `src/lib/exterior-closeout-review.ts`, `src/components/app/ExteriorCloseoutReview.tsx`, Field Command integration/CSS, nine focused tests. No schema changes, source mutations, SMS sends, finance ledger writes, customer-facing report or automatic sharing.
+- **Weighted full Exterior Command completion: 29%** (R33 27%, R34 +2 W5). Source-of-truth backup/isolated restore, governed shared quote/job persistence and two-founder browser sync remain unfinished. See `docs/EXTERIOR_COMMAND_PROGRESS.md` and `docs/EXTERIOR_CONTINUE_HERE.md`.
+
 ## EXTERIOR COMMAND R33 JOB ECONOMICS REVIEW (2026-10-23)
 
 - **R33 merged:** [PR #109](https://github.com/OJ-Holdings/oj-workspace/pull/109) at source code commit `7fb0bb624ac52e9b00994e298b2a36a403e3ceb8`. Exact-head CI `40043642452` SUCCESS (npm ci, typecheck, full tests, build). Independently verify the latest merged-main CI, Windows port-served commit and founder iPhone acceptance.
