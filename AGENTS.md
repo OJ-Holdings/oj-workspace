@@ -1,5 +1,9 @@
 # OJ workspace
 
+## Current Exterior founder priority — integration passes first
+
+Read [docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md](docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) with the canonical handoff. The founder directed P1–P7 to go **before normal standalone Exterior feature expansion**, preserving the 12-wave weighted completion model and performing a **second full critique after the pass train**. P1 source-bound Job Continuity is inside current Bookings, not another unrelated tab. P2 genuine founder-host backup/restore/RLS and two-device proof remains a gate before any new production schema or real cross-device field/quote claims. Never merge PR #42 by default.
+
 ## Cross-chat Exterior Command continuity (mandatory)
 
 For OJ Exterior Care / ATLAS / Exterior Command work, FIRST read [`docs/EXTERIOR_CONTINUE_HERE.md`](docs/EXTERIOR_CONTINUE_HERE.md) for the canonical checkpoint, then `docs/EXTERIOR_COMMAND_PROGRESS.md`, recent `docs/START_HERE_CHAT_HANDOFF.md`, `AGENT_LOG.md`, and this repository's `docs/BUILD_PLAN.md`. The canonical handoff carries a ready-to-copy new-chat prompt.
