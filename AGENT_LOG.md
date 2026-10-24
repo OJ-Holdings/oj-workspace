@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-24 -- ChatGPT (Permanent GitHub Exterior Command continuation protocol)
+**Summary:** Established a single compact, canonical `docs/EXTERIOR_CONTINUE_HERE.md` handoff for any future ChatGPT/Claude/Codex session, with the R33 verified GitHub snapshot, 27% weighted roadmap, critical current product paths, local-vs-shared limitations, safeguarded Supabase gates, recommended R34 slice, every-release GitHub documentation rules and a ready-to-copy fresh-chat prompt. Added prominent pointers to the canonical entry point in `AGENTS.md` and the historical chat handoff. This is documentation only, no feature delivery or live-schema changes.
+**Files:** docs/EXTERIOR_CONTINUE_HERE.md; AGENTS.md; docs/START_HERE_CHAT_HANDOFF.md; AGENT_LOG.md.
+**Verified:** R33 main snapshot `9731a4672d782f6062aa7cb4920cb64e16c4aa09` with post-merge CI `40044145344` successful before this docs PR. This docs PR must pass exact-head CI before merge; later main/docs SHA and post-merge CI should be checked and updated as evidence.
+**Progress:** Full Exterior engineering score remains **27%**; adding handoff documents earns **0** implementation points. Windows served SHA, independent Supabase isolated restore and Oscar/Jacob device acceptance remain unverified.
+**Next:** Read canonical handoff and implement the next safe customer-to-job operational vertical slice; leave persistent notes in GitHub again, never rely on chat history.
+
+
 ## 2026-10-23 -- ChatGPT (Exterior Command R33 - source-qualified booking economics)
 **Summary:** Introduced a read-only Estimate vs. Field Costs review inside exact-booking Field Command. Uses authorized original lead and booking, R29 device-local estimate and R31 device-local field log. Displays planned direct-cost assumptions, reviewed labor/material/travel/other estimates, reviewed field hours and strictly labeled quoted-price scenarios. No automatic job-cost postings, actual bank profit, invoice/payment, approved proposal or customer communication. A scenario is withheld unless (a) authorized booking source count is complete, (b) exact booking is present/current, (c) exactly one active booking belongs to that lead, (d) positive quoted amount is source recorded, (e) field dates/status are current, and (f) all four field cost categories are explicitly reviewed. Planned-vs-field variance and bars additionally require current lead estimate source. Historical lead-level job_revenue/job_cost are never allocated to a visit. Source gaps are visible, and an INTERNAL-only review can be copied to clipboard.
 **Files:** src/lib/exterior-job-economics.ts; src/components/app/ExteriorJobEconomics.tsx; src/components/app/ExteriorFieldCommand.tsx; src/styles/exterior-field-command.css; tests/exterior-job-economics.test.ts; docs/EXTERIOR_COMMAND_PROGRESS.md.
