@@ -8,6 +8,8 @@ import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFocuses, matchesLeadWorkFocus, sortLeadsForWork, type LeadWorkFocus } from '@/lib/exterior-lead-workflow';
 import { bookingWorkCounts, bookingWorkDescriptions, bookingWorkFocuses, bookingWorkLabels, matchesBookingWorkFocus, sortBookingsForWork, type BookingWorkFocus } from '@/lib/exterior-booking-workflow';
+import {qualifiedDispatchQuotes} from '@/lib/exterior-dispatch-preflight';
+import {ExteriorDispatchPreflight} from './ExteriorDispatchPreflight';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -465,7 +467,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const lead = useMemo(() => new Map(data.leads.map(l => [l.id, l])), [data.leads]);
   const counts = useMemo(() => bookingWorkCounts(data.bookings, today), [data.bookings, today]);
   const upcoming = data.bookings.filter(b => matchesBookingWorkFocus(b, 'upcoming', today));
-  const quoted = upcoming.reduce((sum, b) => sum + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0);
+  const quoted = useMemo(() => qualifiedDispatchQuotes(data,upcoming),[data,upcoming]);
   const q = search.trim().toLowerCase();
   const rows = sortBookingsForWork(data.bookings.filter(b => {
     if (!matchesBookingWorkFocus(b, focus, today)) return false;
@@ -494,7 +496,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       <div className="atlas-booking-command-stats">
         <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today, excluding denied</span></div>
         <div><small>Confirmed upcoming</small><strong><NumberFlow value={upcoming.filter(b => b.status === 'confirmed').length} /></strong><span>Explicitly confirmed in source</span></div>
-        <div><small>Quoted upcoming value</small><strong><NumberFlow value={quoted} format={usd} /></strong><span>Entered quotes; not paid revenue</span></div>
+        <div><small>Source-qualified confirmed quotes</small><strong>{quoted.total===null?'Withheld':<NumberFlow value={quoted.total} format={usd}/>}</strong><span>{quoted.eligible} of {quoted.confirmed} confirmed visits uniquely priced; not cash</span></div>
         <div><small>Bookings this month</small><strong><NumberFlow value={data.bookings.filter(b => b.status !== 'denied' && b.date.startsWith(month)).length} /></strong><span>Scheduled records, not completed jobs</span></div>
       </div>
       {data.coverage?.bookings && data.coverage.bookings.total !== null && data.coverage.bookings.total > data.coverage.bookings.loaded &&
@@ -507,6 +509,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       </div>
       <p className="atlas-booking-queue-note" role="status"><b>{bookingWorkLabels[focus]}:</b> {bookingWorkDescriptions[focus]}</p>
     </section>
+    <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'}/>
     <section className="panel atlas-booking-workbench">
       <header className="panel-head"><h2>Job workbench <small className="quiet">{rows.length} matching record{rows.length === 1 ? '' : 's'}</small></h2>
         <Link className="secondary small" href={`${base}/b/exterior/calendar`}>View calendar</Link>

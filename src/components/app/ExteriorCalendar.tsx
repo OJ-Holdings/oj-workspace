@@ -5,6 +5,7 @@ import NumberFlow from '@number-flow/react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import type { ExtBooking, ExteriorData } from '@/lib/exterior';
 import { blockLabel, blockStartLabel, isRealPhone, parseBlock } from '@/lib/exterior-ops';
+import {qualifiedDispatchQuotes} from '@/lib/exterior-dispatch-preflight';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { BookFlow, JobDialog, type Act } from './ExteriorManage';
@@ -25,7 +26,7 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
   const lead = useMemo(() => new Map(data.leads.map(l => [l.id, l])), [data.leads]);
   const byDay = useMemo(() => {
     const map = new Map<string, ExtBooking[]>();
-    for (const b of data.bookings) if (b.status !== 'denied') map.set(b.date, [...(map.get(b.date) ?? []), b]);
+    for (const b of data.bookings) if (b.status !== 'denied' && b.status !== 'cancelled') map.set(b.date, [...(map.get(b.date) ?? []), b]);
     for (const list of map.values()) list.sort((a, b) => startOf(a) - startOf(b));
     return map;
   }, [data.bookings]);
@@ -35,12 +36,12 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
   const days = Array.from({ length: 42 }, (_, i) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i));
   const monthKey = dayKey(first).slice(0, 7);
   const monthJobs = [...byDay].filter(([k]) => k.startsWith(monthKey)).flatMap(([, list]) => list);
-  // Booked value is the sum of the jobs' quotes. Quotes, not money in; a job without a quote adds nothing.
-  const quoted = (list: ExtBooking[]) => list.reduce((s, b) => s + (lead.get(b.lead_id ?? '')?.quote_amount ?? 0), 0);
+  // R36: only sum original lead prices when fully loaded sources prove ONE active visit
+  // for that lead, and all selected confirmed visits have a positive recorded price.
+  const quoted = (list: ExtBooking[]) => qualifiedDispatchQuotes(data,list);
   const monthValue = quoted(monthJobs);
   const dayJobs = byDay.get(picked) ?? [];
   const dayValue = quoted(dayJobs);
-  const unquoted = dayJobs.filter(b => lead.get(b.lead_id ?? '')?.quote_amount == null).length;
   const dot = { '--dot': 'var(--c-exterior)' } as CSSProperties;
 
   return <>
@@ -55,7 +56,7 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
     </div>
     <div className="kpis">
       <div><span>Jobs this month</span><strong><NumberFlow value={monthJobs.length} /></strong></div>
-      <div><span>Quoted this month</span><strong><NumberFlow value={monthValue} format={usd} /></strong><small className="quiet">Quotes, not money in</small></div>
+      <div><span>Confirmed quote exposure</span><strong>{monthValue.total===null?'Withheld':<NumberFlow value={monthValue.total} format={usd}/>}</strong><small className="quiet">{monthValue.eligible} of {monthValue.confirmed} confirmed visits source-qualified; never paid revenue</small></div>
     </div>
     <div className="calendar-layout">
       <div className="month panel" role="grid" aria-label="Exterior Care jobs by day">
@@ -65,8 +66,8 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
           return (
             <div key={k} role="gridcell" className={`month-day${d.getMonth() !== first.getMonth() ? ' is-other' : ''}${k === today ? ' is-today' : ''}${k === picked ? ' is-picked' : ''}`}>
               <div className="month-top">
-                <button className="month-num" aria-label={`${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}${value ? `, ${dollars(value)} booked` : ''}`} aria-pressed={k === picked} onClick={() => setPicked(k)}>{d.getDate()}</button>
-                {value > 0 && <span className="month-value" aria-hidden="true" title="Booked on this day (quotes)">{dollars(value)}</span>}
+                <button className="month-num" aria-label={`${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}${value.total !== null ? `, ${dollars(value.total)} source-qualified confirmed quotes` : value.confirmed ? ', confirmed quote total withheld' : ''}`} aria-pressed={k === picked} onClick={() => setPicked(k)}>{d.getDate()}</button>
+                {value.total !== null && <span className="month-value" aria-hidden="true" title="Uniquely attributable source-confirmed lead quotes; not accepted or paid">{dollars(value.total)}</span>}
               </div>
               {jobs.slice(0, 3).map(b => { const l = lead.get(b.lead_id ?? ''); return (
                 <button key={b.id} className="month-item" style={dot} disabled={readOnly || !l} onClick={() => setEditing(b)} title={`${blockLabel(b.time_block)}: ${l?.name ?? 'Customer'}${l?.service_requested ? `, ${l.service_requested}` : ''}`}>{blockStartLabel(b.time_block)} {l?.name ?? 'Customer'}</button>
@@ -79,13 +80,13 @@ export function JobsCalendar({ data, act, busy, readOnly, org, now }: { data: Ex
       <aside className="calendar-side">
         <section className="panel">
           <header className="panel-head"><h2>{picked === today ? 'Today' : longDay(picked)}</h2></header>
-          {dayJobs.length > 0 && <p className="day-total"><strong><NumberFlow value={dayValue} format={usd} /></strong> booked across {dayJobs.length} {dayJobs.length === 1 ? 'job' : 'jobs'}{unquoted ? <small className="quiet">{unquoted} without a quote</small> : null}</p>}
+          {dayJobs.length > 0 && <p className="day-total"><strong>{dayValue.total===null?'Quoted total withheld':<NumberFlow value={dayValue.total} format={usd}/>}</strong> source-qualified quote exposure across {dayValue.confirmed} confirmed visit{dayValue.confirmed===1?'':'s'}<small className="quiet">{dayValue.eligible} uniquely attributable; pending approvals, repeats, missing quotes and incomplete source windows do not become revenue.</small></p>}
           {dayJobs.length ? <ol className="job-day">{dayJobs.map(b => { const l = lead.get(b.lead_id ?? ''); return (
             <li key={b.id} style={dot}>
               <time>{blockLabel(b.time_block)}</time>
               <div>
                 <b>{l?.name || 'Lead no longer on record'}</b>
-                <span>{[l?.service_requested, l?.quote_amount != null ? dollars(l.quote_amount) : null].filter(Boolean).join(' / ') || 'No service entered'}</span>
+                <span>{[l?.service_requested, l?.quote_amount != null ? `Original lead quote ${dollars(l.quote_amount)} (not accepted/visit-attributed)` : null].filter(Boolean).join(' / ') || 'No service entered'}</span>
                 {l?.address && <span>{l.address}</span>}
                 {phone(l?.phone ?? null) && <span>{phone(l?.phone ?? null)}</span>}
                 {b.status === 'pending_approval' && <small className="quiet">Waiting for approval</small>}
