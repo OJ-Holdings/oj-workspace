@@ -313,7 +313,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
   </div>
   <ExteriorCrewHandoff org={org} booking={booking} lead={lead} bookings={data.bookings}
    bookingCoverageComplete={data.coverage?.bookings.total!==null&&data.coverage?.bookings.total!==undefined&&data.coverage.bookings.loaded>=data.coverage.bookings.total}
-   field={log} mode={mode} readOnly={readOnly}/>
+   field={log} mode={mode} readOnly={readOnly} base={base}/>
   {notice&&<p className="ecfield-toast" role="status">{notice}</p>}
  </main>;
 }
