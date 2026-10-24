@@ -1,6 +1,7 @@
 import type { Card } from './board';
 import { businessDay } from './reporting';
 import { jobDate, jobDateBasis, sourceLabel, type ExteriorData, type ExtLead } from './exterior';
+import {qualifiedDispatchQuotes,quoteAttributionForBooking} from './exterior-dispatch-preflight';
 
 /**
  * Read-only, source-evidenced command projection. Never equates quoted, scheduled,
@@ -38,8 +39,7 @@ export function buildExteriorCommand(data:ExteriorData,cards:readonly Card[],tod
  const openLeads=data.leads.filter(l=>pendingStatuses.has(l.status??''));
  const pricedOpen=openLeads.filter(l=>validAmount(l.quote_amount));
  const booked=data.bookings.filter(b=>b.status==='confirmed'&&validDay(b.date)&&b.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
- const quoteValues=booked.map(b=>leadMap.get(b.lead_id??'')?.quote_amount);
- const quotedBooked=quoteValues.filter(validAmount);
+ const quotedBooked=qualifiedDispatchQuotes(data,booked);
  const completed=data.leads.filter(l=>l.status==='completed');
  const withRevenue=completed.filter(l=>validAmount(l.job_revenue));
  const withCosts=completed.filter(l=>validAmount(l.job_cost));
@@ -83,13 +83,13 @@ export function buildExteriorCommand(data:ExteriorData,cards:readonly Card[],tod
     openPriced:pricedOpen.length,openUnpriced:openLeads.length-pricedOpen.length,
     bySource:[...sourceCounts].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,6)},
   dispatch:{confirmedUpcoming:booked.length,
-    quotedUpcomingValue:quotedBooked.length?quotedBooked.reduce((s,n)=>s+n,0):null,
-    priced:quotedBooked.length,unpriced:booked.length-quotedBooked.length,
+    quotedUpcomingValue:quotedBooked.total,
+    priced:quotedBooked.eligible,unpriced:quotedBooked.notAttributable,
     next:booked.slice(0,5).map(b=>{
       const lead:ExtLead|undefined=leadMap.get(b.lead_id??'');
       return {id:b.id,date:b.date,time:b.time_block??'Time not recorded',leadId:lead?.id??null,
         customer:lead?.name??'Customer not available',service:lead?.service_requested??'Service not entered',
-        address:lead?.address??null,quote:validAmount(lead?.quote_amount)?lead!.quote_amount:null};
+        address:lead?.address??null,quote:quoteAttributionForBooking(b,lead,data.bookings,data)};
     })},
   production:{completed:completed.length,withRevenue:withRevenue.length,withCosts:withCosts.length,fullyCosted:matched.length,
     recordedJobRevenue:withRevenue.length?withRevenue.reduce((s,l)=>s+(l.job_revenue??0),0):null,
