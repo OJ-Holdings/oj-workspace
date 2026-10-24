@@ -37,7 +37,7 @@ test('R43 keeps a verified original booking writable only when source snapshot m
 });
 
 test('R43 denied/cancelled/null booking statuses prohibit posting and advancing tasks',()=>{
- for(const status of ['denied','cancelled',null]){
+ for(const status of ['denied','cancelled','unknown',null]){
   const updated={...booking,status};
   assert.equal(originalBookingActionable(updated,{...source,status}),false);
   assert.equal(linkedTaskActionable(task,updated,{...source,status}),false);
