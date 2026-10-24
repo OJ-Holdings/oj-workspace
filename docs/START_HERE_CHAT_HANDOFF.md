@@ -6,6 +6,13 @@
 
 
 
+## R40 — FOUNDER PRIVATE BACKUP PREFLIGHT (October 24, 2026)
+
+- [PR #124](https://github.com/OJ-Holdings/oj-workspace/pull/124) merged as `13c2774082c334756fbbbf01fd79e5fd3e36c7c1`. Feature exact-head CI [#40092698720](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092698720) and merged-main CI [#40092863472](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092863472) SUCCESS (app checks plus real synthetic two-container PG17 test).
+- New `scripts/exterior-r40-recovery-preflight.ps1` guards founder-side DPAPI-configured backup/restore with primary/mirror BitLocker checks, archive checksum parity and local scratch target. Emits a safe, status-only report that cannot say migration authorized or source/Storage/auth RLS restored. Runbook `docs/EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md` contains the exact trusted-host PowerShell commands.
+- Real production read-only catalog verification succeeded. Storage has file objects requiring a separate encrypted file-byte backup; logical dumps cover metadata only. No production DDL, customer data writes or user data exports were performed.
+- **Actual private host backup/restore was not accessible or executed; score stays 39/100.** Founder must run the sanitized preflight locally to progress. Keep legacy PR #42 unmerged until protected backup, isolated successful restore and true actor/RLS checks are verified.
+
 ## EXTERIOR COMMAND R39 GUARDED ISOLATED RECOVERY TOOLING (2026-10-24)
 
 - **Feature PR #122:** merged `main` SHA `674f929a633636a54edc192e678863d326580158`; exact feature head `f81018cdbd7765f6456f09ba04c0413ed9927a07` full [CI #40090540975](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090540975) SUCCESS (both jobs). Feature merged-main [CI #40090651371](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090651371) SUCCESS, including standard app test/build and real **synthetic** two-PostgreSQL-17-container recovery test.
