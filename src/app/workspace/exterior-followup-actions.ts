@@ -165,11 +165,18 @@ export async function addExteriorSharedFollowupNote(
     /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(body))
   throw Error('Use a 3–600 character operational note.');
  const {client,user,member}=await requireMember(org,true);
- await source(client,bookingId,leadId);
+ const booking=await source(client,bookingId,leadId);
  const {data:card,error:readError}=await client.from('oj_cards')
   .select('id,description').eq('id',taskId).eq('organization_id',org).maybeSingle();
  if(readError||!card||!isJobFollowupFor(card.description,org,bookingId,leadId))
   throw Error('Cannot add a note to a task from a different booking.');
+ // A company comment can change an operator's next action just as much as
+ // a stage change. Never append new guidance to an obsolete or cancelled job.
+ const receipt=parseJobFollowupReceipt(card.description);
+ if(!receipt||!originalJobMatchesTask({
+  sourceDate:receipt.sourceDate,sourceTime:receipt.sourceTime,sourceStatus:receipt.sourceStatus,
+ },booking))
+  throw Error('The original booking changed or was cancelled. Refresh the exact job before posting new instructions.');
  const {data,error}=await client.from('oj_comments').insert({
   card_id:taskId,organization_id:org,author_id:user.id,body:body.trim(),
  }).select('id,card_id,body,created_at').single();
