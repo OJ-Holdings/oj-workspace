@@ -3,6 +3,15 @@
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
 
+## EXTERIOR COMMAND R33 JOB ECONOMICS REVIEW (2026-10-23)
+
+- **R33 merged:** [PR #109](https://github.com/OJ-Holdings/oj-workspace/pull/109) at source code commit `7fb0bb624ac52e9b00994e298b2a36a403e3ceb8`. Exact-head CI `40043642452` SUCCESS (npm ci, typecheck, full tests, build). Independently verify the latest merged-main CI, Windows port-served commit and founder iPhone acceptance.
+- **New workflow:** Exact booked job Field Command now displays source-original lead `quote_amount`, typed internal same-browser R29 planned direct costs, R31 operator-entered reviewed direct field costs/hours, a comparative cost chart, planned-vs-field variance and an internal-only copied review. Source estimate is read from `oj-exterior-estimate-v1:<org>:<lead_id>` on the **same browser**, never a new shared database or auto-approved quote.
+- **Strict scenario gates:** `data.coverage.bookings.total` must be known and fully loaded; original booking ID and source date/status must match; one and ONLY one active booking on that lead; positive lead quoted amount; corresponding local field log source current and all four direct cost categories reviewed. Otherwise quoted-price remainder/ratio is UNKNOWN. Cost bars and planned variance also require unique complete booking scope and current R29 lead estimate source stamp. This is still only a planning scenario, never customer-approved, invoiced, collected or settled cash.
+- **Legacy revenue safeguard:** historical `job_revenue` and `job_cost` belong to source lead, not provably each booking; do not multiply/allocate to job economics or use them to assert per-job actual profit. Multiple bookings for one lead always force an ambiguity warning.
+- **Safe scope:** No Supabase migration, invoice/payment updates, source edit, SMS, automated approval or payroll write. Portable brief is explicitly INTERNAL and requires user clipboard action. Missing local draft is UNKNOWN, not zero; two-founder cross-device sync still absent.
+- **Weighted plan milestone: 27% engineering completion** after merged R33 (W1=5 W2=3 W3=5 W4=6 W5=5 W7=2 W9=1). Next production gate is founder-run encrypted backup + independent isolated restore with member/RLS proof, then durable quote→booking cost/acceptance and actual bank/collection evidence.
+
 ## EXTERIOR COMMAND R32 FLEET-TO-FIELD EQUIPMENT READINESS (2026-10-23)
 
 - **R32 merged:** [PR #107](https://github.com/OJ-Holdings/oj-workspace/pull/107) at commit `03cfbdbac8e13c4540bd8e6df1138144b827cd2b`. Exact final feature-head CI `40041648800` SUCCESS (npm ci, typecheck, full tests, build). Check separate merged-main CI `40041943291`.
