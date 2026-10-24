@@ -9,14 +9,14 @@ import {internalCloseoutBrief,reviewInternalCloseout} from '@/lib/exterior-close
 type Props={
  booking:ExtBooking;lead:ExtLead;bookings:readonly ExtBooking[];
  bookingCoverageComplete:boolean;field:ExteriorFieldLog|null;
- readOnly:boolean;mode:'live'|'preview';
+ readOnly:boolean;mode:'live'|'preview';base:string;
 };
 const currency=(n:number|null)=>n===null?'Unknown':
  new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 
 /** R34: operator-only mobile review. No external messages, invoices, status writes or sync. */
 export function ExteriorCloseoutReview({
- booking,lead,bookings,bookingCoverageComplete,field,readOnly,mode,
+ booking,lead,bookings,bookingCoverageComplete,field,readOnly,mode,base,
 }:Props){
  const [feedback,setFeedback]=useState('');
  const state=useMemo(()=>{
@@ -60,7 +60,7 @@ export function ExteriorCloseoutReview({
     <strong>Resolve before handoff</strong>
     <ol>{result.blockers.map(f=><li key={f.code}>
      <span>{f.label}</span>
-     <a href={'#ecfield-'+f.location} aria-label={'Review '+f.label}>Review <ArrowUpRight size={13}/></a>
+     <a href={f.location==='bookings'?base+'/b/exterior/bookings':'#ecfield-'+f.location} aria-label={'Review '+f.label}>Review <ArrowUpRight size={13}/></a>
     </li>)}</ol>
    </div>}
    <details className="ecfield-handoff-caveats" open={!result.reviewable}>
