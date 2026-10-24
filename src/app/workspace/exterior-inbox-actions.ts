@@ -17,7 +17,7 @@ export type ExteriorInboxLoad=
  |{ok:true;report:ExteriorInboxReport;loadedAt:string}
  |{ok:false;reason:string};
 
-const selected='id,organization_id,title,description,business,stage,priority,assignee,due_date,revision,created_at,updated_at';
+const selected='id,organization_id,title,description,business,stage,priority,assignee,due_date,revision,checklist,created_at,updated_at';
 const candidateLimit=180;
 export async function loadExteriorOperationsInbox(org:string):Promise<ExteriorInboxLoad>{
  if(typeof org!=='string'||!uuid.test(org))
