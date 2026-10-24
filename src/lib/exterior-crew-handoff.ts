@@ -157,7 +157,8 @@ export function readHandoffMailbox(raw:string|null,org:string,bookingId:string,l
  if(!raw||raw.length>mailboxMaxChars)throw Error('Stored handoff mailbox is invalid or too large.');
  let data:unknown;
  try{data=JSON.parse(raw);}catch{throw Error('Stored handoff mailbox cannot be decoded.');}
- if(!record(data)||!exact(data,['schema','outgoing','incoming','outgoingReply','incomingReply'])||
+ const fields=['schema','outgoing','incoming','outgoingReply','incomingReply'] as const;
+ if(!record(data)||!exact(data,fields)||fields.some(k=>!Object.prototype.hasOwnProperty.call(data,k))||
     data.schema!==1)
   throw Error('Stored handoff mailbox schema is invalid; original data was preserved.');
  const outgoing=data.outgoing===null?null:parseFieldHandoffRequest(
