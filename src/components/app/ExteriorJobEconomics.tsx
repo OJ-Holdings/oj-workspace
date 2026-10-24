@@ -72,7 +72,7 @@ export function ExteriorJobEconomics({org,lead,booking,bookings,field,bookingCov
     <p>Original lead quoted amount minus fully reviewed, operator-entered direct costs, only when this lead has one active booking and sources are current.</p>
     <small>{report.quoteLessFieldCostRatio===null?'Scenario ratio unavailable':report.quoteLessFieldCostRatio+'% scenario remainder / quoted amount'} · Customer approval and money received remain unverified.</small>
    </div>
-   {max!==null&&report?.estimateSourceCurrent&&report?.fieldSourceCurrent&&<div className="ecfield-econ-bars" aria-label="Local planned and reviewed field cost comparison">
+   {max!==null&&report?.estimateSourceCurrent&&report?.fieldSourceCurrent&&report.sourceBookingCount===1&&report.bookingCoverageComplete&&<div className="ecfield-econ-bars" aria-label="Local planned and reviewed field cost comparison">
      <div><label>Local planned costs <strong>{money(report.planned?.cost)}</strong></label>
       <span><i style={{width:((report.planned!.cost??0)/max*100)+'%'}}/></span></div>
      <div><label>Operator-entered costs <strong>{money(report.field?.totalDirectCost)}</strong></label>
