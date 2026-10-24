@@ -105,6 +105,8 @@ export function parseFieldHandoffReply(
   throw Error('Owner reply belongs to a different organization or job.');
  if(v.request_id!==request.request_id||v.request_issued_at!==request.issued_at)
   throw Error('Owner reply references a different handoff revision; it was not applied.');
+ if(instant(v.replied_at)&&Date.parse(v.replied_at)<Date.parse(request.issued_at))
+  throw Error('Owner reply predates the original crew handoff request.');
  if(!instant(v.replied_at)||!name(v.reviewed_by,64)||
     (v.decision!=='follow-up-needed'&&v.decision!=='reviewed-internally')||
     (v.follow_up_to!=='crew'&&v.follow_up_to!=='owner'&&v.follow_up_to!=='none')||
@@ -189,4 +191,28 @@ export function serializeHandoffMailbox(
 export function handoffRevisionMatchesField(request:FieldHandoffRequest,field:ExteriorFieldLog):boolean{
  return isFieldLog(field,request.booking_id,request.lead_id)&&
   JSON.stringify(request.field)===JSON.stringify(field);
+}
+
+
+/** 
+ * An owner reply imported later is NOT a durable signoff. Re-check its
+ * "reviewed internally" claim against today's actual authorized booking
+ * window and the ORIGINAL field snapshot, not a subsequently edited draft.
+ */
+export function replyReviewStillCurrent(
+ request:FieldHandoffRequest,reply:FieldHandoffReply,
+ booking:ExtBooking,lead:ExtLead,allBookings:readonly ExtBooking[],
+ bookingCoverageComplete:boolean,
+):boolean{
+ if(request.organization_id!==reply.organization_id||
+    request.booking_id!==reply.booking_id||
+    request.lead_id!==reply.lead_id||
+    request.request_id!==reply.request_id||
+    request.issued_at!==reply.request_issued_at||
+    booking.id!==request.booking_id||lead.id!==request.lead_id)
+  return false;
+ if(reply.decision==='follow-up-needed')return true;
+ try{return reviewInternalCloseout(
+  booking,lead,allBookings,request.field,bookingCoverageComplete,
+ ).reviewable;}catch{return false;}
 }
