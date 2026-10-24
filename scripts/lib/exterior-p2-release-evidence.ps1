@@ -8,7 +8,7 @@ function Assert-OjP2PublicOrigin([string]$Origin) {
   throw 'App origin is not a valid absolute HTTPS URL.'
  }
  if ($url.Scheme -cne 'https' -or $url.UserInfo -or $url.Query -or $url.Fragment -or
-     $url.AbsolutePath -ne '/' -or $url.OriginalString -match '\\s' -or
+     $url.AbsolutePath -ne '/' -or $url.OriginalString -match '\s' -or
      $url.OriginalString -match '@') {
   throw 'Only a clean HTTPS app origin without credentials, path, query or fragment is allowed.'
  }
@@ -22,14 +22,24 @@ function Assert-OjP2PublicOrigin([string]$Origin) {
  if (-not $allowed) { throw 'Only an explicitly documented OJ production app origin is allowed.' }
  return $url.GetLeftPart([UriPartial]::Authority)
 }
+function Get-OjP2ResponseValue([object]$Response, [string]$Key) {
+ if ($null -eq $Response) { return $null }
+ if ($Response -is [System.Collections.IDictionary]) {
+  if ($Response.Contains($Key)) { return $Response[$Key] }
+  return $null
+ }
+ $property = $Response.PSObject.Properties[$Key]
+ if ($null -eq $property) { return $null }
+ return $property.Value
+}
 function ConvertTo-OjP2Probe([object]$Response, [string]$ExpectedSha) {
  if ($ExpectedSha -cnotmatch '^[a-fA-F0-9]{40}$') {
   throw 'A verified complete 40-character GitHub main SHA is required.'
  }
  # Missing, unauthenticated, redirected, stale, malformed and unmanaged
  # endpoints must NEVER be reported as a successful remote deployment.
- $status = if ($null -eq $Response) { $null } else { $Response.status }
- $release = if ($null -eq $Response) { $null } else { $Response.release }
+ $status = Get-OjP2ResponseValue $Response 'status'
+ $release = Get-OjP2ResponseValue $Response 'release'
  if ($status -cne 'ok') { return 'unavailable' }
  if ($release -ceq 'unmanaged') { return 'unmanaged' }
  if (-not ($release -is [string]) -or $release -cnotmatch '^[a-fA-F0-9]{40}$') { return 'invalid' }
