@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type {ExtBooking,ExtLead} from '@/lib/exterior';
 import type {ExteriorFieldLog} from '@/lib/exterior-field-log';
+import {ExteriorSharedFollowups} from './ExteriorSharedFollowups';
 import {reviewInternalCloseout} from '@/lib/exterior-closeout-review';
 import {
  createFieldHandoffReply,createFieldHandoffRequest,handoffFileMaxChars,
@@ -16,7 +17,7 @@ import {
 } from '@/lib/exterior-crew-handoff';
 
 type Props={
- org:string;booking:ExtBooking;lead:ExtLead;bookings:readonly ExtBooking[];
+ org:string;booking:ExtBooking;lead:ExtLead;bookings:readonly ExtBooking[];base:string;
  bookingCoverageComplete:boolean;field:ExteriorFieldLog|null;
  mode:'live'|'preview';readOnly:boolean;
 };
@@ -31,7 +32,7 @@ function downloadPrivateFile(data:string,name:string){
  window.setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 export function ExteriorCrewHandoff({
- org,booking,lead,bookings,bookingCoverageComplete,field,mode,readOnly,
+ org,booking,lead,bookings,bookingCoverageComplete,field,mode,readOnly,base,
 }:Props){
  const enabled=mode==='live'&&!readOnly;
  const [mailbox,setMailbox]=useState<HandoffMailbox>(newHandoffMailbox);
@@ -165,7 +166,7 @@ export function ExteriorCrewHandoff({
   <header className="ecfield-heading">
    <div><span className="ecfield-overline">12 / TWO-FOUNDER HANDOFF DESK</span>
     <h2>Field crew <ArrowRight size={17} aria-hidden="true"/> owner review</h2>
-    <p>Exchange a private job packet, review the evidence and return an actionable owner note. Files move manually; nothing synchronizes or messages anyone automatically.</p>
+    <p>Exchange a private job packet, review the evidence and return an actionable owner note. Private field report files move manually; shared follow-up tasks below synchronize through the existing authorized company board. No customer messaging is automatic.</p>
    </div><UsersRound size={23}/>
   </header>
   {!enabled&&<p className="ecfield-notice">Read-only/preview mode: private device records and file actions are disabled.</p>}
@@ -295,6 +296,8 @@ export function ExteriorCrewHandoff({
     </div>}
    </article>
   </div>
+  <ExteriorSharedFollowups org={org} booking={booking} lead={lead} base={base}
+   mode={mode} readOnly={readOnly} ownerReply={mailbox.outgoingReply}/>
   <div className="ecfield-crewbridge-foot">
    <p><ClipboardList size={16}/> All packages contain private operator-entered information. Store and share carefully. This is not shared cloud storage, a certified owner identity, a signed job, an invoice, payroll or evidence of customer payment.</p>
    <button type="button" disabled={!canAct} onClick={reset}><Trash2 size={14}/> Reset local handoff history</button>
