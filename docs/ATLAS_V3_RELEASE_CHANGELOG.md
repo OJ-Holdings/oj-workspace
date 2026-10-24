@@ -4,6 +4,16 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## Exterior Release 44 — Verify the Actual Served App (Integration P2)
+
+**Feature:** [PR #132](https://github.com/OJ-Holdings/oj-workspace/pull/132) merged `main` at `492b68687c5f6ade237118bac5d823480c4f1a97`. Exact head `e00022d5f57e6bbc229ace607fff38a7dd74fa2f` passed [CI 40141928898](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40141928898) with PowerShell trust-refusal tests, TypeScript, full tests, production Next build and synthetic PG17 restore. Post-merge [main CI 40142096003](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40142096003) completed SUCCESS in both jobs.
+
+**Problem corrected:** The repository documents both independent Netlify cloud hosting and the older Windows/Tailscale Funnel. The original release endpoint only supported Windows-injected commit identity, so the current published app could report "unmanaged". R44 now accepts only a valid, unambiguous 40-character Windows, Netlify or Vercel commit identity, never a raw invalid environment value.
+
+**Practical founder check:** An optional, mobile-friendly version checker is embedded in the existing exact original booking Job Continuity; each founder explicitly requests only a same-origin read-only release SHA, may copy a sanitized local manual observation, and sees UNKNOWN when unverified. A new Windows helper independently checks GitHub main against explicitly allowlisted OJ external origins: Netlify cloud requires public identity while Funnel requires both loopback and HTTPS parity. Offline PowerShell tests refuse suspicious hosts, stale/invalid/missing releases and invented actor/recovery acceptance; CI runs them. [P2 founder runbook](./EXTERIOR_R44_RELEASE_EVIDENCE.md).
+
+**No new DDL, no customer/booking writes, no release or backup approval.** Both real founder phones, actual hosted SHA, real encrypted production backup, isolated restore, role/RLS negatives and Storage file bytes remain unverified. Old schema PR #42 stays blocked. **Exterior 12-wave engineering: 42% unchanged (+0)** because these tools have not established real-world P2 acceptance. The founder-directed [Integration P1-P7](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) stays ahead of normal features, with a second full critique after P7.
+
 ## Exterior Release 43 — Two-Founder Job Action Loop (Integration P1.1)
 
 **Implementation:** [PR #130](https://github.com/OJ-Holdings/oj-workspace/pull/130), merged `main` `628e465f9c16fda82d08aa6d25c7959d18465c76`. Exact head `5fb3deba38bb5297dd663c3fa659088da6df54f6` passed [CI #40135901958](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40135901958); post-merge [main #40136080889](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40136080889) completed SUCCESS. Both application TypeScript/all automated tests/Next build and independent **synthetic** PostgreSQL restore jobs green.
