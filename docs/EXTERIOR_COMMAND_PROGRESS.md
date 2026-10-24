@@ -6,10 +6,10 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R39 estimate earned | Not yet done |
+| Plan wave | Weight | R41 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **6%** | R38 mobile-responsive, integrated multi-job company action queue with real filters and full empty/loading/source-drift states. Founder-specific saved layout/density, actual two-phone acceptance, accessibility audit and cross-route visual parity remain |
-| W2 Real Command | 10% | **7%** | R36 dispatch preflight + R37 protected job-specific task coordination + R38 live all-job founder work inbox, source-qualified by original bookings and customer identity, with overdue, mine, review and drift prioritization. Still missing signed two-founder acceptance, resource dispatch reservations, customer contact receipts, complete decision audit and verified collection data |
+| W2 Real Command | 10% | **8%** | R36 dispatch preflight + R37 authenticated booking follow-ups + R38 shared Operations Inbox + R41 one-tap delegated exception from exact source booking into authorized company tasks. Still missing signed two-founder mobile acceptance, real crew/rig capacity reservations, customer contact receipts, full decision audit and verified collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
 | W5 Field operations | 12% | **10%** | R31 private field work sheet, R33 costs, R34 closeout review, R35 private file exchange, and R37 actual cross-device member-scoped ACTION TASKS, status updates and comments tied to exact source booking. Durable shared field timestamps/costs/photos, authenticated signed review of originals, verified customer completion and payroll remain unbuilt |
@@ -20,7 +20,15 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | **1%** | R39 guard-verified recovery drill tool and synthetic PG17 archive→restore test; private encrypted ACTUAL backup and isolated source restore are not done, nor customer-accepted shared quote/field sync, Storage-byte recovery, approval gates or durable chat capture |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **39% (R39 merged; full exact-head CI + synthetic end-to-end restore passed; real backup/host/device gates separate)** | |
+| **TOTAL** | **100%** | **40% (R41 merged; exact-head full CI passed; post-merge main CI and actual Windows/device/recovery checks separate)** | |
+
+### R41 direct Dispatch → Shared Task delegation (+1 W2; October 24, 2026)
+
+- [Feature PR #126](https://github.com/OJ-Holdings/oj-workspace/pull/126) merged as `693483d091af50a4d3efaffb94dd0c0f2331873a`. Exact feature head `6137113489e91d7d1758c119eaf5822b5566a91e` passed both jobs in [CI 40121742079](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121742079): install, TypeScript, full regression suite, Next production build, synthetic PG17 and offline PowerShell guard tests. Post-merge main [CI 40121915030](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121915030) needs independent final-state verification.
+- **Actual operator flow:** Previously R36 preflight listed issues but creating a company follow-up required a private field packet; at an earlier production snapshot no structured booking tasks had been published. R41 embeds a mobile-responsive Assign Action desk in both HQ and Bookings Manager preflights. An operator chooses a real exception, reviews a safe generic note without customer name, phone, address, quote or private costs, selects an actual uniquely named company member, due day/priority and explicitly publishes to existing member-RLS `oj_cards`. Exact-job tasks display inline and the HQ Operations Inbox refetches on save; another founder sees it on refresh. No message, crew/vehicle reservation, booking approval, invoice or cash write.
+- **Source integrity and retry handling:** Original org/booking/lead identity and status/date/time verified under authenticated server RLS; missing, cancelled, denied, stale or mismatched sources fail closed. Read-only/preview never contact shared-task actions. Existing open job follow-ups are shown, exact duplicate note cautioned. Reused UUID only succeeds for original same note, assignee, deadline, priority, source and origin; divergent retries now rejected.
+- **Tests:** New behavioral dispatch-delegation suite covers exact source identity, denied/missing/stale links, pending approval as review task, safe suggested instructions, unrecognized codes, due/priority defaults and immutable inputs. Extended shared follow-up tests check all retry fields.
+- **Score 39→40%**, +1 W2 (7→8). No credit for docs and no false claim of accepted/reconciled money, full field sharing, customer approval, verified device runtime, or actual encrypted backup and independent restore. No migration or live DDL.
 
 ### R40 founder Windows recovery preflight — engineering delivery, 0 new points
 
