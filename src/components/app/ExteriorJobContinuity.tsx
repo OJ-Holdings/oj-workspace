@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,RefreshCw,ShieldAlert,UsersRound,X} from 'lucide-react';
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
+import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
 import {loadExteriorSharedFollowups} from '@/app/workspace/exterior-followup-actions';
 
 type Loaded=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:true}>;
@@ -55,6 +56,7 @@ export function ExteriorJobContinuity({
  const matchesSource=!!report&&report.source.date===booking.date&&
   report.source.time===booking.time_block&&report.source.status===booking.status;
  const active=report?.tasks.filter(x=>x.stage!=='Done')??[];
+ const stale=active.filter(x=>!originalJobMatchesTask(x,booking));
  const verifiedTasks=!!report&&matchesSource&&!report.limited;
  const routeFor=(step:typeof view.steps[number])=>{
   if(step.route==='finance')return base+'/finance';
@@ -116,9 +118,12 @@ export function ExteriorJobContinuity({
       <small>{report.limited?'Task listing is truncated at 100: do not treat the count as complete.':
        'Loaded directly from the protected existing OJ company task board.'}</small>
      </div>
+     {stale.length>0&&<p className="ecjourney-alert" role="alert"><AlertTriangle size={15}/>
+      {stale.length} open task(s) refer to an older appointment date, time or status. Review the original booking before treating their instructions as current.
+     </p>}
      {active.length?
        <ul>{active.slice(0,5).map(t=><li key={t.id}>
-         <div><strong>{t.assignee}</strong><span>{t.stage} · {t.dueDate?'Due '+shortDay(t.dueDate):'Due date not recorded'} · {t.priority} priority</span></div>
+         <div><strong>{t.assignee}</strong><span>{originalJobMatchesTask(t,booking)?t.stage:'STALE SOURCE — '+t.stage} · {t.dueDate?'Due '+shortDay(t.dueDate):'Due date not recorded'} · {t.priority} priority</span></div>
          <p>{t.note}</p>
         </li>)}</ul>:
        <p className="ecjourney-coverage">{verifiedTasks?'No active booking-linked company actions have been published. Use Dispatch Preflight to assign a real follow-up.':'No active task is shown in this partial task window. Absence has not been proved.'}</p>}
