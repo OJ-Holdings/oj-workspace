@@ -20,7 +20,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **27% (conditional on R33 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **27% (R33 merged, post-merge/Windows/device checks separate)** | |
 
 ### R26 actual scope
 
@@ -105,7 +105,7 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 
 ### Release gates and the next update rule
 
-R26–R32 now have a merged/verified engineering baseline of **24%**. R33 is credited an additional **2 points within W5 and 1 within W9** only if its exact PR-head typecheck, full tests and production build succeed and the PR merges; **27% target**. If CI/merge fails preserve 24%. Qualified quote-price scenarios are not financial closure or bank settlement. Actual Windows served SHA, two-founder device acceptance, and a private independently restored Supabase backup are separate checks.
+R26–R32 have merged/verified source-code releases totaling 24%; R33 passed exact-head CI and merged as 7fb0bb624ac52e9b00994e298b2a36a403e3ceb8 (PR #109), adding 2 W5 points and 1 W9 point for a weighted engineering completion of **27%**. Qualified quote-price scenarios are not financial closure or bank settlement. Actual Windows served SHA, two-founder device acceptance, and a private independently restored Supabase backup are separate checks.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
