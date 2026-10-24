@@ -30,17 +30,21 @@ function Read-Release([string]$url) {
 }
 $local=Read-Release 'http://127.0.0.1:3011/api/deploy-health'
 $public=Read-Release ($base+'/api/deploy-health')
-$proof=New-OjP2Evidence $expected $local $public
+$kind=if($base -eq 'https://ojworkspace.netlify.app'){'cloud'}else{'funnel'}
+$proof=New-OjP2Evidence $expected $local $public $kind
 if($EmitSanitizedJson) {
  $proof | ConvertTo-Json -Depth 4 -Compress
 }else{
  Write-Output ('GitHub main identity: '+$proof.expected_main_commit)
  Write-Output ('Local 3011 source: '+$proof.local_served_release)
  Write-Output ('Selected OJ public source: '+$proof.public_served_release)
- Write-Output ('Exact version parity only: '+$proof.release_route_parity_only)
+ Write-Output ('Release route parity only: '+$proof.release_route_parity_only)
+ Write-Output ('Required app release identity: '+$proof.required_release_identity_proven)
  Write-Output 'All data recovery, RLS actor and two-founder acceptance flags: FALSE (not evaluated).'
 }
-if(-not $proof.release_route_parity_only) {
- throw 'NOT VERIFIED: both app routes do not report the exact current GitHub main commit. No acceptance or migration approval can be inferred.'
+if(-not $proof.required_release_identity_proven) {
+ throw 'NOT VERIFIED: the selected OJ public app is not confirmed to serve current GitHub main (Windows Funnel additionally requires matching local origin). No acceptance or migration approval is inferred.'
 }
-Write-Output 'PASS: local and selected public app report GitHub main SHA. This is RELEASE IDENTITY ONLY, not a database or account health check.'
+if(-not $EmitSanitizedJson) {
+ Write-Output 'PASS: selected OJ public release identity is current. This does NOT test data, Auth, backups or two-founder acceptance.'
+}
