@@ -52,3 +52,12 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  isolated-restore-synthetic:
+    name: Synthetic isolated PostgreSQL 17 recovery (no production data)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise guarded restore against two temporary PostgreSQL 17 databases
+        shell: bash
+        run: bash scripts/tests/restore-synthetic-integration.sh
