@@ -22,6 +22,13 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
 | **TOTAL** | **100%** | **39% (R39 merged; full exact-head CI + synthetic end-to-end restore passed; real backup/host/device gates separate)** | |
 
+### R40 founder Windows recovery preflight — engineering delivery, 0 new points
+
+- [PR #124](https://github.com/OJ-Holdings/oj-workspace/pull/124) merged at `13c2774082c334756fbbbf01fd79e5fd3e36c7c1` after exact-head [CI #40092698720](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092698720) passed the application checks and synthetic restore job.
+- New `scripts/exterior-r40-recovery-preflight.ps1`: Windows-only, existing encrypted private backup and mirrored copy validation, BitLocker checks, archive manifest and format verification, protected delegation to R39 restore, and sanitized report fields.
+- October 24 production read-only metadata checks confirmed existing original records, RLS-enabled source tables and nonzero Storage object bytes. No source mutation, database migration or customer export occurred.
+- **No real private archive or restored OJ production database was accessible** through the connected tools. No Windows-host test, source parity, real actor/RLS negatives, independent physical media or recovered Storage files have been verified. The new helper is not production recovery proof.
+- **Engineering total remains 39%**, W10 remains 1/5. Completion only advances when additional source/restore/permission evidence supports a genuinely delivered operational capability. See [R40 private recovery runbook](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md).
 ### R39 isolated database recovery drill tooling (+1 W10; 2026-10-24)
 
 - [Feature PR #122](https://github.com/OJ-Holdings/oj-workspace/pull/122) merged `main` at SHA `674f929a633636a54edc192e678863d326580158`. Exact PR head `f81018cdbd7765f6456f09ba04c0413ed9927a07` passed [CI #40090540975](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090540975) with **both** jobs green: npm ci, PowerShell parsing and ten local refusal cases, TypeScript, all JS behavior tests, Next build, plus two real synthetic PostgreSQL 17 source/target containers, custom dump, manifest/checksum, transaction restore, target-row/RLS policy checks, private evidence receipt, fresh target recheck and tamper/drift/duplicate-target refusals. Merged-main [CI #40090651371](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090651371) completed SUCCESS, including both jobs.
