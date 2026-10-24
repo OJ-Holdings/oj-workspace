@@ -6,10 +6,10 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R37 estimate earned | Not yet done |
+| Plan wave | Weight | R38 estimate earned | Not yet done |
 |---|---:|---:|---|
-| W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
-| W2 Real Command | 10% | **6%** | R36 real dispatch preflight and R37 exact-booking authenticated company follow-up/task progress now linked to Command workflows. Still missing end-to-end two-founder phone QA, actual crew/rig capacity reservations, customer contact receipts, complete founder decision log, and verified collection data |
+| W1 Experience foundation | 8% | **6%** | R38 mobile-responsive, integrated multi-job company action queue with real filters and full empty/loading/source-drift states. Founder-specific saved layout/density, actual two-phone acceptance, accessibility audit and cross-route visual parity remain |
+| W2 Real Command | 10% | **7%** | R36 dispatch preflight + R37 protected job-specific task coordination + R38 live all-job founder work inbox, source-qualified by original bookings and customer identity, with overdue, mine, review and drift prioritization. Still missing signed two-founder acceptance, resource dispatch reservations, customer contact receipts, complete decision audit and verified collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
 | W5 Field operations | 12% | **10%** | R31 private field work sheet, R33 costs, R34 closeout review, R35 private file exchange, and R37 actual cross-device member-scoped ACTION TASKS, status updates and comments tied to exact source booking. Durable shared field timestamps/costs/photos, authenticated signed review of originals, verified customer completion and payroll remain unbuilt |
@@ -20,7 +20,16 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **36% (R37 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **38% (R38 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+
+### R38 Founder Operations Inbox / all-booking work triage (+1 W1, +1 W2; 2026-10-23)
+
+- [PR #120](https://github.com/OJ-Holdings/oj-workspace/pull/120) merged `main` at `fe280b377141379d22d890373125df5f4562dc7d`. Exact feature HEAD `d0c2257a488ca86a6774c48d547e05497a707a4b` passed full [CI 40057792411](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40057792411) (install, TypeScript, full regression suite, Next production build). Feature post-merge main [CI 40057951479](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40057951479) completed SUCCESS. Windows-served SHA and actual founder phones remain unverified.
+- **Original business problem solved:** R37 persisted job follow-ups, but a founder had to visit individual Field Command jobs or the generic task board to know what needed attention. R38 embeds a polished **Founder Operations Inbox** in Exterior Command using actual scoped `oj_cards` with original lead+booking verification, across every booking. Real source indicators: active assigned tasks, assigned-to-current-unique-member, overdue, due today, owner-review and altered/missing source booking. Full company/mine/overdue/review/stale/today filters, deterministic priority, exact links to source job/customer and protected company task board, responsive mobile controls, and original-task status changes that do not affect customer completion/cash.
+- **Security and correctness:** RLS/membership on live server, no service-role API. `loadExteriorOperationsInbox` filters 180 bounded company task records, verifies typed org+booking+lead ID receipt against live `bookings` and `leads` under the user's session, reports partial/unknown counts rather than claiming exhaustive coverage, rejects ambiguous member-name ownership in Mine mode, and exposes no fake preview tasks. R37 source-check hardened: a stale original booking date/time/status or cancelled booking **blocks task-stage update**. Refreshed on user focus and every 90 seconds while visible; source read errors explicitly clear old cached data.
+- **Initial live, read-only DB counts:** existing task-board policy count 5, no R39 shared new quote/field work tables; **zero** source-structured booking-linked follow-ups yet published. Empty state is intentional; live multiuser adoption remains untested by Oscar/Jacob, so do not infer operational usage from existence of source code.
+- **Tests:** 11 behavioral cases validate original org/lead/booking identity, stale/missing/cancelled source, legitimate assignment names, due-day/DST-agnostic classification, overdue/review priority, partial source windows, Done semantics and no false financial state. Original `oj_cards` and `oj_comments` RLS policy inspection remained read-only.
+- Full-plan engineering **36 → 38%**, W1 **5→6**, W2 **6→7**. Documentation earns zero. Backup/independent restore, role-tested new shared field, signed quote revision and verified invoice/bank closure remain outstanding.
 
 ### R37 authenticated booking-linked shared company task handoffs (+1 W2, +1 W5; 2026-10-23)
 
