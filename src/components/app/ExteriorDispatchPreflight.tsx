@@ -135,7 +135,7 @@ export function ExteriorDispatchPreflight({data,now,base,mode,org,readOnly,compa
      </div>
      {assignment?.bookingId===r.id&&canAssign&&<ExteriorDispatchAssignment
       key={r.id} org={org} row={r} booking={booking} lead={lead} base={base}
-      today={today} readOnly={readOnly} selectedIssue={assignment.issueCode}
+      today={report.today} readOnly={readOnly} selectedIssue={assignment.issueCode}
       onClose={()=>setAssignment(null)}/>} 
     </article>;
    })}
