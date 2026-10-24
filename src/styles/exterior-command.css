@@ -456,3 +456,23 @@
 @media(max-width:1080px){.ecjob-loop-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:540px){.ecjob-compose-pair{grid-template-columns:minmax(0,1fr)}.ecjob-compose,.ecjob-progress{padding:13px}.ecjob-comments>div input,.ecjob-comments>div button,.ecjob-foot-actions>*{width:100%}}
 @media(prefers-reduced-motion:reduce){.ecjob-loop *{animation:none!important;transition-duration:.01ms!important}}
+
+
+/* R44 / Integration P2: manual release provenance inside the same job.
+   Version identity != operator acceptance, correct authorization or backup. */
+.ecjourney-release{margin-top:14px;border:1px solid rgba(166,207,217,.23);background:rgba(142,192,209,.05);color:#d6e5e9;border-radius:10px;overflow:hidden}
+.ecjourney-release>summary{display:flex;align-items:center;flex-wrap:wrap;gap:6px 15px;min-height:44px;cursor:pointer;list-style-position:inside;padding:12px 14px;color:#d2eee6;font-size:11px;font-weight:850}
+.ecjourney-release>summary:focus-visible,.ecjourney-release button:focus-visible{outline:2px solid #ffc18a;outline-offset:3px}
+.ecjourney-release>summary span{font-size:10px;font-weight:600;color:#adc2cb}
+.ecjourney-release>div{padding:0 14px 16px}
+.ecjourney-release>div>p{color:#bbd1d8;font-size:10px;line-height:1.8;margin:0 0 12px}
+.ecjourney-release-actions{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:12px}
+.ecjourney-release-actions button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 13px;color:#e2f9ef;background:rgba(64,126,115,.22);border:1px solid rgba(142,207,196,.35);border-radius:8px;font-size:10px;font-weight:850}
+.ecjourney-release-actions button:disabled{opacity:.54;cursor:not-allowed}
+.ecjourney-release-result{display:flex;gap:10px;align-items:start;padding:12px 13px;border-radius:9px;border:1px solid rgba(146,209,197,.21);background:rgba(140,205,184,.085)}
+.ecjourney-release-result svg{flex-shrink:0;margin-top:2px}
+.ecjourney-release-result strong{color:#d1f1e6;font-size:11px}
+.ecjourney-release-result p{font-size:10px;line-height:1.7;margin:7px 0;color:#b9d1da}
+.ecjourney-release-result code{display:block;max-width:100%;color:#d4f5f1;font-size:10px;letter-spacing:.025em;overflow-wrap:anywhere}
+.ecjourney-release .ecjourney-release-note{margin-top:11px;margin-bottom:0;color:#aabfc9;font-size:9px;line-height:1.7}
+@media(max-width:570px){.ecjourney-release-actions button{width:100%}}
