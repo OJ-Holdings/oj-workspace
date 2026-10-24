@@ -6,13 +6,13 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R34 estimate earned | Not yet done |
+| Plan wave | Weight | R35 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
-| W5 Field operations | 12% | **7%** | R31 work sheet + R33 job economics + R34 exact-booking internal closeout action queue, issue/safety/cost check and private owner brief. Durable events, photos, shared signoff, payroll/time approval, authenticated sync and source-verified closeout remain |
+| W5 Field operations | 12% | **9%** | R31 field worksheet + R33 job economics + R34 closeout action queue + R35 private manual Crew ↔ Owner packet/return feedback. Actual durable shared field events, photo evidence, authenticated cross-device owner approval and source-verified completion remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
@@ -20,7 +20,16 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **29% (R34 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **31% (R35 merged; exact feature-head CI passed; Windows/device checks separate)** | |
+
+### R35 crew ↔ owner handoff desk (+2 points W5, 2026-10-23)
+
+- [PR #114](https://github.com/OJ-Holdings/oj-workspace/pull/114) merged `main` at `d6ce80cd019fb98486a65d8061b89ee7f129d750`. Exact feature head `92e98f6a44fb2d4ae6ee7f60a011b88eb0b5faee` passed [CI 40050826999](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40050826999): npm ci, TypeScript, **582/582 automated tests**, Next.js production build. Merged-main CI `40050990815` requires final independent outcome. Actual Windows-served SHA and founder device acceptance have NOT been confirmed.
+- New `ExteriorCrewHandoff` full-width, phone-first Field Command surface contains three distinct working applications: operator-saved versioned crew packet export; owner import with full job labor/materials/costs/site notes/issues and source-guarded review; and matching owner reply import on the origin device. No copying IDs across screens. Private requests and replies are **manual JSON file exchange** through a user-chosen trusted channel, NOT cloud sync or automatic transmission.
+- Strict exact organization, lead, booking, request ID and source revision guards; response must refer to the original request version, chrono-valid reply; invalid cross-company packets, forged approved/paid/finalized fields, corrupt mailboxes, unreviewed costs and unsafe or stale clear-review states are rejected. Local edited field notes or later booking changes invalidate assumptions rather than silently showing verified completion. Browser-local mailbox uses validation and explicit overwrite/reset.
+- Owner decides either `follow-up-needed` with `crew` or `owner` responsible, actionable instructions and optional target date; or `reviewed-internally` only if the original field source, unique visit coverage, costs and safety checks permit. Reviewer names are **self-entered, unauthenticated labels**; there is no cryptographic signature, company-wide task assignment or provider receipt. Even internal reviewed ≠ completed, accepted, invoiced, payroll-approved or paid.
+- New dedicated `src/lib/exterior-crew-handoff.ts`, `src/components/app/ExteriorCrewHandoff.tsx`, responsive stylesheet, `tests/exterior-crew-handoff.test.ts` with 14+ source/replay/role/safety cases. No Supabase migration, new storage table, booking mutations, outbound SMS, invoice, external financial transaction or personal/private STRATHOS use.
+- Weighted engineering scope **29 → 31%** (W5 7→9 points). Database backup with isolated restore, RLS, real shared data and two-founder device QA remain the critical production gates.
 
 ### R34 closeout review / owner field handoff (+2 points W5, 2026-10-23)
 
