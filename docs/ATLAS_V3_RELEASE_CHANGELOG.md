@@ -4,6 +4,15 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 36 — SOURCE-QUALIFIED DISPATCH
+
+**PR:** [#116](https://github.com/OJ-Holdings/oj-workspace/pull/116); **merged main SHA** `fa03afc8bc73c04269e916cdfdc77fb9a8cf6037`. Feature-head [CI 40053530134](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053530134) SUCCESS: install, TypeScript, complete tests, production build. Main post-merge CI [40053650435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053650435) must be checked independently. Windows host served SHA and two-founder device acceptance remain unverified.
+- **New:** integrated Today / 7-day / 14-day Dispatch Preflight on ATLAS HQ and Bookings. Users can focus on exceptions or all jobs, see source status, selected customer/site/scope/time, pending approvals, and overlapping time windows labeled as possible capacity conflicts, not a claim parallel crews are impossible. Each record links to existing exact-source booking, estimator, field sheet, or customer dossier; no automatic outbound action.
+- **Fix:** no more quoted-value multiplication across repeat source lead visits. Month/day Calendar, Booking KPI, Command confirmed-work KPI and next-job timeline use fully coverage-qualified original lead prices only for exactly one source-confirmed active visit with a positive quote. All missing, repeat, incomplete or pending pricing remains **withheld** and never stands in for acceptance, invoicing or paid money.
+- **Verification:** 14 new behavioral tests plus expanded Command financial regression cases for overlapping windows, multi-visit and past-repeat ambiguity, partial/unknown source coverage, date boundaries, invalid field source, and immutable source data. Full CI passed.
+- **Supabase review:** read-only current production catalog and security advisor checks completed; no new shared Exterior quote/work-order tables or recoverable encrypted backup/isolated restore were verified. Details, explicit recovery gate and advisor remediation references are in [R36 database audit](./EXTERIOR_R36_DATABASE_GATE_AUDIT.md).
+- **Total Exterior 12-wave engineering completion: 34%**, up **3** from R35 (W2 3→5, W9 1→2). Still no verified source-accepted quotes, invoice/collection reconciliation, final job completion, encrypted backup/isolated restore, authenticated field sync or actual Windows-hosted SHA.
+
 ## ATLAS V3 / Exterior Command Release 35 — PRIVATE CREW ↔ OWNER HANDOFF
 
 **PR:** [#114](https://github.com/OJ-Holdings/oj-workspace/pull/114). **Merged `main` SHA:** `d6ce80cd019fb98486a65d8061b89ee7f129d750`. Exact-head CI [40050826999](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40050826999) SUCCESS: dependencies, typecheck, **582/582 tests**, production build. Main post-merge CI `40050990815` and served Windows SHA separately verify.
