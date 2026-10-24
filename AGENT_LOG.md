@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-24 -- ChatGPT (Exterior R36 / Dispatch Preflight and Source Quote Integrity)
+**Summary:** Built full actionable source-linked Dispatch Preflight in Exterior Command HQ and original Bookings Manager (0/7/14-day exceptions, approval/contact/site/scope/time source gaps, time-overlap capacity review, immediate exact source destination links). Fixed accidental quote inflation from applying a legacy lead quote to multiple active booking visits across Command, Bookings and Calendar with a pure coverage-guarded attribution engine. Read-only Supabase inspection found no new shared Exterior quote tables and surfaced advisor warnings; no production data was mutated.
+**Feature:** `src/lib/exterior-dispatch-preflight.ts`, `src/components/app/ExteriorDispatchPreflight.tsx`, `src/components/app/ExteriorCommand.tsx`, `src/components/app/ExteriorManage.tsx`, `src/components/app/ExteriorCalendar.tsx`, `src/lib/exterior-command.ts`, CSS and regression tests. Persistent migration audit `docs/EXTERIOR_R36_DATABASE_GATE_AUDIT.md`.
+**CI/merge:** [PR #116](https://github.com/OJ-Holdings/oj-workspace/pull/116) merged to `main` `fa03afc8bc73c04269e916cdfdc77fb9a8cf6037`; exact-head CI [40053530134](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053530134) passed all four gates. Main post-merge CI `40053650435` final state verify. Host served SHA/iPhone acceptance not confirmed.
+**Progress:** whole Exterior engineering **34%** (+3, W2 +2 and W9 +1); docs add zero points.
+**Next:** actual founder-controlled encrypted Supabase logical backup, separate successful restore, role/RLS denied tests, safe staging migration, then shared Oscar/Jacob quote/work order/field persistence; preserve current SMS owner and source records.
+
 ## 2026-10-24 -- ChatGPT (Exterior R35 / Two-Founder Private Field Exchange)
 **Summary:** Built the complete booking-bound private crew/owner handoff loop: controlled local field packet generation, validated owner import and full evidence inspection, internal-only disposition or assigned follow-up, bounded matching return-reply import and original-version/source-drift safeguards. No client communication, shared sync, invoice or live Supabase changes. Explicit caution that self-entered reviewer names are unauthenticated.
 **Feature files:** `src/lib/exterior-crew-handoff.ts`; `src/components/app/ExteriorCrewHandoff.tsx`; `src/components/app/ExteriorFieldCommand.tsx`; `src/styles/exterior-field-command.css`; `tests/exterior-crew-handoff.test.ts`.
