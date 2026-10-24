@@ -37,10 +37,13 @@ export function ExteriorDispatchPreflight({data,now,base,mode,compact=false}:Pro
  const [windowChoice,setWindowChoice]=useState<WindowChoice>('week');
  const [filter,setFilter]=useState<IssueFilter>('action');
  const today=businessDay(now.toISOString());
- const report=useMemo(()=>buildDispatchPreflight(data,today,rangeDays[windowChoice]),[
+ const report=useMemo(()=>today?buildDispatchPreflight(data,today,rangeDays[windowChoice]):null,[
   data,today,windowChoice,
  ]);
  const root=base+'/b/exterior';
+ if(!report)return <section className="ecdispatch" role="alert">
+  Source business date is unavailable. No dispatch or quoted values were calculated.
+ </section>;
  const shown=report.rows.filter(r=>filter==='all'||r.findings.length>0);
  const rows=compact?shown.slice(0,3):shown.slice(0,30);
  const blockers=report.rows.filter(r=>r.findings.some(f=>f.level==='blocker')).length;
