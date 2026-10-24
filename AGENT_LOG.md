@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-24 -- ChatGPT (Exterior R35 / Two-Founder Private Field Exchange)
+**Summary:** Built the complete booking-bound private crew/owner handoff loop: controlled local field packet generation, validated owner import and full evidence inspection, internal-only disposition or assigned follow-up, bounded matching return-reply import and original-version/source-drift safeguards. No client communication, shared sync, invoice or live Supabase changes. Explicit caution that self-entered reviewer names are unauthenticated.
+**Feature files:** `src/lib/exterior-crew-handoff.ts`; `src/components/app/ExteriorCrewHandoff.tsx`; `src/components/app/ExteriorFieldCommand.tsx`; `src/styles/exterior-field-command.css`; `tests/exterior-crew-handoff.test.ts`.
+**Verification:** [PR #114](https://github.com/OJ-Holdings/oj-workspace/pull/114) merged `d6ce80cd019fb98486a65d8061b89ee7f129d750`; exact-head CI run `40050826999` passed npm ci, TypeScript, all **582** automated tests and production build. Post-merge main CI run `40050990815` should be verified independently; active Windows hosted SHA, both founders' phone QA, and independently isolated Supabase restore remain unproven.
+**Progress:** Whole Exterior Command plan **31%** (29→31, +2 W5 field points); no documentation-only progress.
+**Next:** real protected Supabase encrypted backup + isolated restore, staging RLS/role proof and supervised additive schema for actual shared quotes/field logs. Until proven, prioritize code-only founder workflows and do not mislabel local JSON handoffs as synchronized company state.
+
 ## 2026-10-24 -- ChatGPT (Exterior R34 / Crew Closeout Handoff)
 **Summary:** Delivered exact-booking mobile field closeout owner review with operator action links for source discrepancies, missing time/cost evidence, site safety/equipment checklist and unresolved stop-work issues, plus internal clipboard packet explicitly not a completed service, invoice, accepted price, payroll or payment. Reused R31 local field record; no shared backend changes.
 **Files:** src/lib/exterior-closeout-review.ts; src/components/app/ExteriorCloseoutReview.tsx; src/components/app/ExteriorFieldCommand.tsx; src/styles/exterior-field-command.css; tests/exterior-closeout-review.test.ts; permanent GitHub handoff/ledger/changelog updates in a follow-up docs PR.
