@@ -8,6 +8,10 @@ Oscar and Jacob must use their separate *existing authorized company accounts*. 
 
 R42 job source view [PR #128](https://github.com/OJ-Holdings/oj-workspace/pull/128) merged `098dd3fa1b32928a6449e180da17cb990321d02c`; R43 job action loop [PR #130](https://github.com/OJ-Holdings/oj-workspace/pull/130) merged `628e465f9c16fda82d08aa6d25c7959d18465c76`, exact feature [CI 40135901958](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40135901958) and [post-merge CI 40136080889](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40136080889) both SUCCESS.
 
+## Release 44 prerequisite: identify the actual site each phone is using
+
+The repository lists an independent Netlify application and an older Windows/Tailscale Funnel. They are not the same deployment. On each founder's own signed-in phone, open **Jobs & Bookings → Open job workflow → Device and deployment check** and press **Check my server version**. Compare the server-reported full commit with current GitHub `main` and compare the two devices. If unavailable or unmanaged, record UNKNOWN, not PASS. The optional [P2 release runbook](./EXTERIOR_R44_RELEASE_EVIDENCE.md) includes read-only checks for the trusted Windows computer. **Real host/version and two-founder use remain NOT TESTED.** Version matching alone is not proof of actual shared work, actor authorization, independent recovery or Storage restoration.
+
 ## Operator test steps
 
 1. **Real deployment:** On trusted Windows host verify served commit matches tested GitHub revision. Use existing `scripts/verify-production-windows.ps1` privately. GitHub green by itself isn't deployment proof. No private host configuration in chat.
