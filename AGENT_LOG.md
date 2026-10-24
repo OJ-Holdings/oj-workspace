@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-24 -- ChatGPT (Exterior R34 / Crew Closeout Handoff)
+**Summary:** Delivered exact-booking mobile field closeout owner review with operator action links for source discrepancies, missing time/cost evidence, site safety/equipment checklist and unresolved stop-work issues, plus internal clipboard packet explicitly not a completed service, invoice, accepted price, payroll or payment. Reused R31 local field record; no shared backend changes.
+**Files:** src/lib/exterior-closeout-review.ts; src/components/app/ExteriorCloseoutReview.tsx; src/components/app/ExteriorFieldCommand.tsx; src/styles/exterior-field-command.css; tests/exterior-closeout-review.test.ts; permanent GitHub handoff/ledger/changelog updates in a follow-up docs PR.
+**Verified:** feature PR #112 merged SHA `83b246a48626b520e235d80c15b9e621af6cf4b9`, exact-head CI `40049280505` SUCCESS (npm ci, TypeScript, all tests, production build). Post-merge main CI `40049454435` should be checked independently. Live Windows served SHA and real two-founder device checks unverified.
+**Progress:** **29% weighted Exterior Command plan**, up 2 points in W5 from R33. No documentation-only points.
+**Next:** Verified encrypted Supabase backup with isolated restore and role/RLS checks before shared field/quote/job schemas; otherwise another truly helpful founder field/quote operational slice with fail-closed source evidence.
+
 ## 2026-10-24 -- ChatGPT (Permanent GitHub Exterior Command continuation protocol)
 **Summary:** Established a single compact, canonical `docs/EXTERIOR_CONTINUE_HERE.md` handoff for any future ChatGPT/Claude/Codex session, with the R33 verified GitHub snapshot, 27% weighted roadmap, critical current product paths, local-vs-shared limitations, safeguarded Supabase gates, recommended R34 slice, every-release GitHub documentation rules and a ready-to-copy fresh-chat prompt. Added prominent pointers to the canonical entry point in `AGENTS.md` and the historical chat handoff. This is documentation only, no feature delivery or live-schema changes.
 **Files:** docs/EXTERIOR_CONTINUE_HERE.md; AGENTS.md; docs/START_HERE_CHAT_HANDOFF.md; AGENT_LOG.md.

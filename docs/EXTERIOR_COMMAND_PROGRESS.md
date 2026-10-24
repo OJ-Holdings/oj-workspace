@@ -6,13 +6,13 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R33 estimate earned | Not yet done |
+| Plan wave | Weight | R34 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
-| W5 Field operations | 12% | **5%** | R31 field work sheet + R33 exact-booking qualified local planned-versus-field-cost review and internal brief; durable events, media, payroll/time approval, authenticated cross-device sync and verified job closeout remain |
+| W5 Field operations | 12% | **7%** | R31 work sheet + R33 job economics + R34 exact-booking internal closeout action queue, issue/safety/cost check and private owner brief. Durable events, photos, shared signoff, payroll/time approval, authenticated sync and source-verified closeout remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
@@ -20,7 +20,16 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **27% (R33 merged, post-merge/Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **29% (R34 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+
+### R34 closeout review / owner field handoff (+2 points W5, 2026-10-23)
+
+- [PR #112](https://github.com/OJ-Holdings/oj-workspace/pull/112) merged main at `83b246a48626b520e235d80c15b9e621af6cf4b9`. Exact feature head `9853d994f7341f78d95ef328a74ee44e045549f5` passed full CI run [40049280505](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049280505): npm ci, TypeScript, all automated tests and Next production build. Post-merge main CI run `40049454435` and actual Windows-served SHA require separate confirmation.
+- New booking-bound **Crew Closeout Handoff** inside existing Field Command: summarizes entered direct costs/hours; flags missing crew/material/travel/other review, time stamps, stage, safety/equipment checklists, unresolved attention or stop-work issues, source booking drift, incomplete booking coverage, and multiple active visits under a lead. Direct correction links jump to each real form section or the original booking workbench.
+- Operator-initiated private clipboard packet for Oscar/Jacob distinctly labels quoted price, reviewed direct cost, source booking identities and all remaining issues. Even a green internal review is NOT certification of actual job completion, customer approval, final invoice, payroll or bank settlement.
+- Nine dedicated regression tests cover reviewed zeros vs missing dollars, critical safety failures, unresolved issues, duplicate bookings, truncated source, stale/absent booking, invalid/wrong-source field logs and nonpayment semantics. Mobile button target, keyboard/focus, responsive layouts, and reduced-motion inheritance included.
+- **No** Supabase migration, shared quote-version schema, customer send, bookings/job status write, actual invoice, field media upload or financial settlement; notes and field work remain **browser-local**. Multi-device Oscar/Jacob acceptance and isolated production backup/restore are still outstanding.
+- Weighted whole-program engineering progress moves **27% → 29%** (W5 5→7 of 12 points). Documentation updates do not earn further points.
 
 ### R26 actual scope
 

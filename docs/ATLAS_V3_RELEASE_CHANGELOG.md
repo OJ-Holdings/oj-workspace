@@ -4,6 +4,15 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 34 — FIELD CLOSEOUT OWNER HANDOFF
+
+**PR:** [#112](https://github.com/OJ-Holdings/oj-workspace/pull/112). **Merged main SHA:** `83b246a48626b520e235d80c15b9e621af6cf4b9`. **PR-head CI:** [40049280505](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049280505) SUCCESS (installation, typecheck, full tests, production build). Main CI [40049454435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049454435) requires independent observation; actual production host SHA is not verified.
+- Booking-specific mobile **Crew Closeout Handoff** extends the existing source-linked field app, not a new redundant dashboard. Shows local cost/hours, a reason-coded owner handoff status, and actionable in-page correction links for unfinished operator evidence and incident/safety observations.
+- Source invariants: exact original booking+lead, full booking coverage and a single active visit required before internal reviewability; reject source drift, unknown/unchecked costs, invalid field logs and cancelled jobs. Green means **locally reviewable**, never completed/approved/paid.
+- A click copies a private owner-only packet with source booking/customer identities, original lead quote labeled unaccepted, operator-entered direct costs, evidence blockers and explicit payment/invoice/signoff disclaimers. No customer send, booking write, database change, invoice, settlement or background automation.
+- New behavioral tests cover missing vs zero costs, critical stop-work, site/checklist states, multiple visits and source partiality, cross-record substitution, stale source, and no false accepted/settled semantics.
+- **Full 12-wave Exterior Command engineering progress: 29%** (W5 increases from 5/12 to 7/12; other waves unchanged). Windows served SHA, actual founder device QA, and independently recoverable protected Supabase backup/restore remain separate gates.
+
 ## ATLAS V3 / Exterior Command Release 33 — SOURCE-BOUND JOB ECONOMICS
 
 **PR:** [#109](https://github.com/OJ-Holdings/oj-workspace/pull/109). **Merged SHA:** `7fb0bb624ac52e9b00994e298b2a36a403e3ceb8`. **Exact PR-head CI:** `40043642452` SUCCESS.
