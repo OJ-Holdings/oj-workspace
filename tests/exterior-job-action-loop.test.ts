@@ -53,6 +53,16 @@ test('R43 pending approval can have INTERNAL review work, but is not approved di
  assert.notEqual(review.stage,'Done');
 });
 
+test('R45 unsupported status cannot be used to advance a task even if the task receipt is forged to match',()=>{
+ for(const status of ['completed','rescheduled','unknown',null]){
+  const same={...booking,status};
+  const original={...source,status};
+  const matchingTask={...task,sourceStatus:status};
+  assert.equal(originalBookingActionable(same,original),false);
+  assert.equal(linkedTaskActionable(matchingTask,same,original),false);
+ }
+});
+
 test('task commands require exact original task receipt, independently of current load snapshot',()=>{
  assert.equal(linkedTaskActionable(task,booking,source),true);
  assert.equal(originalJobMatchesTask(task,booking),true);

@@ -1,5 +1,5 @@
 import type {ExtBooking} from './exterior';
-import type {SharedJobFollowup} from './exterior-job-followup';
+import {actionableJobStatus,type SharedJobFollowup} from './exterior-job-followup';
 import {originalJobMatchesTask} from './exterior-operations-inbox';
 
 /**
@@ -14,7 +14,7 @@ export function originalBookingActionable(
  booking:ExtBooking,server:OriginalBookingSnapshot|null,
 ):boolean{
  return !!server&&booking.lead_id!==null&&
- (booking.status==='confirmed'||booking.status==='pending_approval')&&
+ actionableJobStatus(booking.status)&&
  booking.date===server.date&&booking.time_block===server.time&&
  booking.status===server.status;
 }

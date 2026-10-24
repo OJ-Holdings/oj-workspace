@@ -39,7 +39,14 @@ export const validDay=(v:unknown):v is string=>typeof v==='string'&&/^\d{4}-\d\d
 const safeSingle=(v:string|null,max=90)=>v===null||(
  v.length<=max&&!/[\r\n\x00-\x1F]/.test(v)
 );
-const active=(v:string|null)=>v!=='denied'&&v!=='cancelled'&&v!==null;
+/** Server-and-client policy: pending approval allows INTERNAL review tasks only. */
+export const actionableJobStatus=(v:string|null):boolean=>
+ v==='confirmed'||v==='pending_approval';
+/** Exact-count source windows must not silently masquerade as exhaustive. */
+export function sourceWindowComplete(total:number|null,received:number,limit:number):boolean{
+ return total!==null&&Number.isInteger(total)&&total>=0&&total<=limit&&
+  received===total;
+}
 const request=(v:unknown):v is string=>typeof v==='string'&&uuid.test(v);
 export function validateJobFollowup(
  org:string,booking:ExtBooking,input:NewJobFollowup,
@@ -47,7 +54,7 @@ export function validateJobFollowup(
  if(!request(org)||!request(booking.id)||!request(input.leadId)||booking.lead_id!==input.leadId)
   throw Error('A real, exact organization, booking and customer identity is required.');
  if(!request(input.taskId))throw Error('The shared task needs a valid unique identifier.');
- if(!active(booking.status))throw Error('This original booking is no longer active; refresh the source.');
+ if(!actionableJobStatus(booking.status))throw Error('This original booking is no longer active; refresh the source.');
  if(!validDay(booking.date)||!validDay(input.sourceDate)||
    booking.date!==input.sourceDate||booking.time_block!==input.sourceTime||
    booking.status!==input.sourceStatus)

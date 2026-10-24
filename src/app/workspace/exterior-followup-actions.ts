@@ -4,7 +4,7 @@ import {requireMember} from '@/lib/supabase';
 import type {Card} from '@/lib/board';
 import {
  allowedFollowupStages,isJobFollowupFor,makeJobFollowupCard,
- parseJobFollowupReceipt,projectJobFollowup,sameJobFollowupAttempt,uuid,validDay,
+ parseJobFollowupReceipt,projectJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,uuid,
  type FollowupStage,type NewJobFollowup,type SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
 import type {ExtBooking} from '@/lib/exterior';
@@ -14,7 +14,7 @@ import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
  * elevated/service-role token, private field report upload or customer write. */
 type TeamMember={name:string};
 type TaskNote={id:string;taskId:string;body:string;author:string;createdAt:string};
-type TaskResult={ok:true;tasks:SharedJobFollowup[];members:TeamMember[];notes:TaskNote[];limited:boolean;
+type TaskResult={ok:true;tasks:SharedJobFollowup[];members:TeamMember[];notes:TaskNote[];limited:boolean;notesLimited:boolean;
  source:{date:string;time:string|null;status:string|null}} |
  {ok:false;reason:string};
 const eligibleRole=(role:string)=>role==='owner'||role==='member';
@@ -36,9 +36,11 @@ async function source(client:Awaited<ReturnType<typeof requireMember>>['client']
  return b as ExtBooking;
 }
 async function memberNames(client:Awaited<ReturnType<typeof requireMember>>['client'],org:string){
- const {data,error}=await client.from('oj_memberships')
-  .select('display_name,role').eq('organization_id',org).order('display_name').limit(100);
+ const {data,count,error}=await client.from('oj_memberships')
+  .select('display_name,role',{count:'exact'}).eq('organization_id',org).order('display_name').limit(100);
  if(error||!data)throw Error('Current company members could not be loaded.');
+ if(!sourceWindowComplete(count,data.length,100))
+  throw Error('Company membership list is incomplete; refusing ambiguous team assignment.');
  const counts=new Map<string,number>();
  for(const row of data)if(eligibleRole(row.role)&&typeof row.display_name==='string'){
   counts.set(row.display_name,(counts.get(row.display_name)??0)+1);
@@ -66,21 +68,25 @@ export async function loadExteriorSharedFollowups(
    .filter((v):v is SharedJobFollowup=>v!==null);
   const ids=tasks.map(t=>t.id);
   let notes:TaskNote[]=[];
+  let notesLimited=false;
   if(ids.length){
-   const {data:comments,error:ce}=await client.from('oj_comments')
-    .select('id,card_id,body,author_id,created_at').eq('organization_id',org)
+   const {data:comments,count:commentCount,error:ce}=await client.from('oj_comments')
+    .select('id,card_id,body,author_id,created_at',{count:'exact'}).eq('organization_id',org)
     .in('card_id',ids).order('created_at',{ascending:false}).limit(200);
-   if(ce)throw Error('Shared task comments could not be loaded. No partial board state was shown.');
-   const {data:memberRows,error:me}=await client.from('oj_memberships')
-    .select('user_id,display_name').eq('organization_id',org).limit(100);
-   if(me)throw Error('Cannot attribute shared task comments to members.');
+   if(ce||!comments)throw Error('Shared task comments could not be loaded. No partial board state was shown.');
+   notesLimited=!sourceWindowComplete(commentCount,comments.length,200);
+   const {data:memberRows,count:memberCount,error:me}=await client.from('oj_memberships')
+    .select('user_id,display_name',{count:'exact'}).eq('organization_id',org).limit(100);
+   if(me||!memberRows||!sourceWindowComplete(memberCount,memberRows.length,100))
+    throw Error('Cannot safely attribute shared comments: membership source is incomplete.');
    const names=new Map((memberRows??[]).map(x=>[x.user_id,x.display_name]));
    notes=(comments??[]).map(c=>({
     id:c.id,taskId:c.card_id,body:c.body,author:names.get(c.author_id)??'Former member',
     createdAt:c.created_at,
    }));
   }
-  return {ok:true,tasks,members,notes,limited:(count??0)>100,
+  return {ok:true,tasks,members,notes,
+   limited:!sourceWindowComplete(count,data.length,100),notesLimited,
    source:{date:original.date,time:original.time_block,status:original.status}};
  }catch(e){return {ok:false,reason:errors(e)};}
 }

@@ -128,6 +128,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
    <AlertTriangle size={15}/>
    Original booking was denied, cancelled, is not in a supported active state, or changed since the latest company task snapshot. Task updates and assignment are disabled until you refresh the original booking.
   </p>}
+  {board.notesLimited&&<p className="ecjourney-coverage" role="status">Only the latest 200 company comments across loaded tasks are available. Older comments may not appear here; do not treat this as complete progress history.</p>}
   {board.limited&&<p className="ecjourney-alert" role="status">
    <AlertTriangle size={15}/>
    The job's matching company tasks exceed the 100-record source window. New assignment is paused until you inspect the full board for duplicates. Existing verified tasks can still be reviewed and updated.
