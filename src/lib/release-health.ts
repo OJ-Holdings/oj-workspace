@@ -7,6 +7,20 @@ export type ReleaseAssessment = {
   detail: string;
 };
 const shaPattern=/^[a-f0-9]{40}$/i;
+/** The same build may run on Windows/Tailscale, Netlify or Vercel.
+ * Only a verified-format SHA is exposed; never raw environment values.
+ * Conflicting valid identifiers mean ambiguous provenance.
+ */
+export function resolveServedRelease(env:{
+ explicit?:string;netlify?:string;vercel?:string;
+}):string {
+ const values=[env.explicit,env.netlify,env.vercel]
+  .filter((value):value is string=>typeof value==='string'&&shaPattern.test(value))
+  .map(value=>value.toLowerCase());
+ const unique=[...new Set(values)];
+ return unique.length===1?unique[0]:'unmanaged';
+}
+
 const object=(value:unknown):Record<string,unknown>|null=>
   value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null;
 const sha=(value:unknown):string|null=>
