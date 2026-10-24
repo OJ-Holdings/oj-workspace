@@ -44,6 +44,13 @@ foreach($key in @('real_signed_in_founder_A_tested','real_signed_in_founder_B_te
 }
 Assert ((New-OjP2Evidence $sha @{status='ok';release=$other} $matching).release_route_parity_only -eq $false) 'local mismatch'
 Assert ((New-OjP2Evidence $sha $matching $null).release_route_parity_only -eq $false) 'public route unavailable'
+$netlify=New-OjP2Evidence $sha $null $matching 'cloud'
+Assert ($netlify.required_release_identity_proven -eq $true) 'independent cloud requires only its own valid SHA'
+Assert ($netlify.release_route_parity_only -eq $false) 'cloud cannot prove Windows parity'
+$funnel=New-OjP2Evidence $sha $null $matching 'funnel'
+Assert ($funnel.required_release_identity_proven -eq $false) 'Funnel requires local AND HTTPS version match'
+Assert ((New-OjP2Evidence $sha $matching $matching 'funnel').required_release_identity_proven -eq $true) 'Windows double hop verified'
+Assert ((New-OjP2Evidence $sha $matching $null 'cloud').required_release_identity_proven -eq $false) 'no false cloud public result'
 $withSecrets=@{status='ok';release=$sha;customer_address='DO-NOT-PRINT';auth_cookie='DO-NOT-PRINT';backup_path='DO-NOT-PRINT'}
 $serialized=(New-OjP2Evidence $sha $withSecrets $withSecrets|ConvertTo-Json -Compress)
 Assert (-not $serialized.Contains('DO-NOT-PRINT')) 'only allowlisted sanitized output'
