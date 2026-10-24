@@ -6,7 +6,7 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R38 estimate earned | Not yet done |
+| Plan wave | Weight | R39 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **6%** | R38 mobile-responsive, integrated multi-job company action queue with real filters and full empty/loading/source-drift states. Founder-specific saved layout/density, actual two-phone acceptance, accessibility audit and cross-route visual parity remain |
 | W2 Real Command | 10% | **7%** | R36 dispatch preflight + R37 protected job-specific task coordination + R38 live all-job founder work inbox, source-qualified by original bookings and customer identity, with overdue, mine, review and drift prioritization. Still missing signed two-founder acceptance, resource dispatch reservations, customer contact receipts, complete decision audit and verified collection data |
@@ -17,10 +17,17 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
 | W9 Deep intelligence | 7% | **2%** | R33 guarded cost comparison + R36 corrected quote attribution across HQ, bookings and calendar: repeat visit, partial source, pending bookings no longer inflate value. Still no verified advertising spend, visit-level financial history, client profitability, geospatial intelligence, forecasting or settled cash |
-| W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
+| W10 Local Data Hub and Capture | 5% | **1%** | R39 guard-verified recovery drill tool and synthetic PG17 archive→restore test; private encrypted ACTUAL backup and isolated source restore are not done, nor customer-accepted shared quote/field sync, Storage-byte recovery, approval gates or durable chat capture |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **38% (R38 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **39% (R39 merged; full exact-head CI + synthetic end-to-end restore passed; real backup/host/device gates separate)** | |
+
+### R39 isolated database recovery drill tooling (+1 W10; 2026-10-24)
+
+- [Feature PR #122](https://github.com/OJ-Holdings/oj-workspace/pull/122) merged `main` at SHA `674f929a633636a54edc192e678863d326580158`. Exact PR head `f81018cdbd7765f6456f09ba04c0413ed9927a07` passed [CI #40090540975](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090540975) with **both** jobs green: npm ci, PowerShell parsing and ten local refusal cases, TypeScript, all JS behavior tests, Next build, plus two real synthetic PostgreSQL 17 source/target containers, custom dump, manifest/checksum, transaction restore, target-row/RLS policy checks, private evidence receipt, fresh target recheck and tamper/drift/duplicate-target refusals. Merged-main [CI #40090651371](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090651371) is a separate check; verify outcome independently.
+- **Meaningful recovery infrastructure:** `scripts/restore-supabase-isolated.ps1` provides `Inspect` (archive path/private manifest/project/byte hash/PG17 TOC), `Restore` (explicitly confirmed, empty, loopback-only, specially named scratch database at non-default port; single transaction; no --clean, no DROP or remote/source connection) and `VerifyTarget` (fresh OJ source/Auth/RLS snapshot consistency versus private receipt). No production credentials are read; no customer writes. Private receipt **intentionally keeps** source-to-restore parity, role/RLS negative tests, Storage object recovery, disabled messaging, full app recovery and production migration approval **false**.
+- **CRITICAL NOT COMPLETED:** The CI example contains **only synthetic sample data** and cannot prove real OJ production recoverability. No restored production archive, verified encrypted offsite archive, real source row parity, member-role/RLS actor tests, actual Storage bytes, customer message isolation or two-founder host/device acceptance was performed. Thus **production quote/field/work-order tables remain gated and absent**. The [R39 operator runbook](./EXTERIOR_R39_RESTORE_DRILL.md) records exact owner-host steps and recovery exclusions. Do not accept the synthetic receipt as migration permission.
+- **Engineering estimate 38→39%:** +1 W10 for working, safety-tested local recovery tooling, not for actual business records migrated, data synchronized, or founder adoption. No other wave advanced; documentation-only release earns zero points.
 
 ### R38 Founder Operations Inbox / all-booking work triage (+1 W1, +1 W2; 2026-10-23)
 
