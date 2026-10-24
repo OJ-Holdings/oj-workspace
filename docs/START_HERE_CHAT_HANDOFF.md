@@ -6,6 +6,14 @@
 
 
 
+## EXTERIOR COMMAND R35 PRIVATE CREW↔OWNER HANDOFF (2026-10-23)
+
+- **R35 source merged:** [PR #114](https://github.com/OJ-Holdings/oj-workspace/pull/114), `main` source SHA `d6ce80cd019fb98486a65d8061b89ee7f129d750`. Exact PR-head CI [40050826999](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40050826999) SUCCESS (npm ci, TypeScript, all 582 automated tests, Next.js build). Post-merge main CI `40050990815` independently recheck; do not claim Windows served version from GitHub alone.
+- **Crew workflow:** At `/workspace/b/exterior/field?booking=<exact booking ID>`, R35 adds a three-step **private handoff desk** beneath Field Command: (1) operator downloads a versioned exact booking/lead/org field snapshot with typed work costs, notes, checks and issues, (2) founder imports and inspects original field evidence, remaining blockers and cost/time completeness, then returns review or assigned follow-up action with optional target date as private JSON, and (3) crew imports that reply against its original versioned handoff on the same browser.
+- **Source/role/financial safety:** validated packages and organization/job/revision checks, isolated browser-local mailbox; mismatched, corrupted, cross-organization, stale, unreviewed or falsely finalized information must fail closed. Clear **internal field review** is allowed only when the field source is current, original booking unique and covered, direct costs reviewed and stop-work/attention/safety issues resolved. All review names are manually entered labels, not authenticated identities. Follow-up file is not a corporate task, receipt or notification. No job completion, customer approval, invoice, payroll, payment, database change or automatic transfer.
+- **Changed source:** `src/lib/exterior-crew-handoff.ts`, `src/components/app/ExteriorCrewHandoff.tsx`, `ExteriorFieldCommand.tsx`, corresponding CSS and `tests/exterior-crew-handoff.test.ts`. No change to original Field Log schema. A privacy-sensitive packet is never automatically sent by this app.
+- **Full 12-wave Exterior Command: 31%** (W5 Field Operations 9/12 points; R35 +2 from 29%). Manual two-founder device acceptance, production served SHA, encrypted Supabase backup with isolated restore, role/RLS tests and durable shared job persistence still unverified. Latest canonical handoff: `docs/EXTERIOR_CONTINUE_HERE.md`.
+
 ## EXTERIOR COMMAND R34 FIELD CLOSEOUT / OWNER HANDOFF (2026-10-23)
 
 - **R34 merged:** [PR #112](https://github.com/OJ-Holdings/oj-workspace/pull/112), main SHA `83b246a48626b520e235d80c15b9e621af6cf4b9`. Exact-head CI [40049280505](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049280505) SUCCESS: npm ci, TypeScript, all tests, production build. Main post-merge CI [40049454435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40049454435) must be independently checked. Actual Windows served SHA and founder phones unverified.
