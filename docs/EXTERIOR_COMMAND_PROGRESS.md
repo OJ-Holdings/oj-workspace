@@ -6,21 +6,30 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R35 estimate earned | Not yet done |
+| Plan wave | Weight | R36 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
-| W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
+| W2 Real Command | 10% | **5%** | R36 source-linked Dispatch Preflight with actionable 0/7/14-day job exceptions now live in code. Still missing verified daily two-founder acceptance, actual crew/vehicle capacity and customer contact receipts, persistent decisions, and verified collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
 | W5 Field operations | 12% | **9%** | R31 field worksheet + R33 job economics + R34 closeout action queue + R35 private manual Crew ↔ Owner packet/return feedback. Actual durable shared field events, photo evidence, authenticated cross-device owner approval and source-verified completion remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
-| W9 Deep intelligence | 7% | **1%** | R33 source-guarded, booking-unique cost comparison and transparent coverage/warning logic; verified attribution, multi-job history, client profitability, geo and forecasting not yet built |
+| W9 Deep intelligence | 7% | **2%** | R33 guarded cost comparison + R36 corrected quote attribution across HQ, bookings and calendar: repeat visit, partial source, pending bookings no longer inflate value. Still no verified advertising spend, visit-level financial history, client profitability, geospatial intelligence, forecasting or settled cash |
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **31% (R35 merged; exact feature-head CI passed; Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **34% (R36 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+
+### R36 source-qualified Dispatch Preflight + quote integrity (+2 W2, +1 W9; 2026-10-23)
+
+- [PR #116](https://github.com/OJ-Holdings/oj-workspace/pull/116) merged `main` at `fa03afc8bc73c04269e916cdfdc77fb9a8cf6037`. Exact feature head `a2363f04f85aabfd4e900b837e28cb0f526169b2` passed full [CI run 40053530134](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053530134): dependency install, TypeScript, all automated tests, Next.js production build. Merged-main [CI 40053650435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053650435) SUCCESS; Windows served SHA and both founders' phone acceptance unverified.
+- Source-backed Dispatch Preflight in **Exterior Command HQ and the real Bookings Manager** uses the existing authorized original lead + booking records, not new tables or invented metrics. Today, 7-day and 14-day work queues reveal pending/unconfirmed appointments, missing source customer/address/phone/scope/slot, ambiguous visit quote and overlapping crew/rig windows with capacity-review caution rather than declaring impossible scheduling. Each card opens actual Booking, Customer 360, Estimate and Field Command flows. Preview remains fictional; no customer action without human click.
+- **Financial correctness repair:** `qualifiedDispatchQuotes` requires confirmed booking, exact loaded source IDs, complete reported lead AND booking counts, positive original quote and exactly one active booking for that source lead across recorded history. Original lead quoted amount is no longer multiplied per repeated booking. If even one selected confirmed booking fails those criteria, total source-qualified quoted value is **withheld**, never treated as $0, accepted proposal, invoiced balance or paid revenue. Updated `ExteriorCommand` KPI/timeline, `BookingsManager`, `ExteriorCalendar` monthly/day qualified subtotals, with accurate source-qualification labels.
+- Pure projection `src/lib/exterior-dispatch-preflight.ts`, `ExteriorDispatchPreflight.tsx`, responsive styling, 14 focused tests + existing HQ regressions for partial coverage, repeat bookings, source mismatch, missing phone/address/time/scope, overlapping windows, DST, zero/unknown costs and no source mutation.
+- **Read-only Supabase inspection:** active PostgreSQL 17 source and base tables; no planned Exterior shared quote/work-order tables; no private backup/isolated restore evidence obtained. Security advisor identified anonymous-invocable privileged functions requiring contextual audit, not blind revocation. See [R36 database gate audit](./EXTERIOR_R36_DATABASE_GATE_AUDIT.md) with exact storage, RLS and migration release requirements.
+- Full 12-wave engineering scope **31 → 34%**: W2 **3→5** and W9 **1→2**; other waves unchanged. No schema migrations, source writes, SMS, payment, payroll or new synchronization. Documentation itself earns zero points.
 
 ### R35 crew ↔ owner handoff desk (+2 points W5, 2026-10-23)
 

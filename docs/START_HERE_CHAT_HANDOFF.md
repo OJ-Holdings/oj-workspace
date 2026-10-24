@@ -6,6 +6,14 @@
 
 
 
+## EXTERIOR COMMAND R36 DISPATCH PREFLIGHT / QUOTE INTEGRITY (2026-10-23)
+
+- **Feature PR #116** merged source SHA `fa03afc8bc73c04269e916cdfdc77fb9a8cf6037` on `main`. Exact-head CI [40053530134](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053530134) SUCCESS: npm ci, TypeScript, all tests, production build. Main CI [40053650435](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40053650435) SUCCESS; Windows hosted SHA and iPhone QA still unverified.
+- **New Dispatch Preflight:** real source-aware cards inside ATLAS Exterior HQ and the existing Bookings workbench. Today / next 7 / next 14 days; flagged/all toggles; validated confirmed vs pending booking status, original lead and address/contact/service, slot validity, overlapping capacity cautions, lead-to-visit quote attribution, and links into Customer 360 / Estimate / Bookings / Field. No record writes or fake crew/rig readiness.
+- **Critical calendar/reporting repair:** one original source lead's `quote_amount` can no longer be multiplied for each later booking. Qualified booked quote totals need complete source windows, one active visit across the lead's history, positive source amount and explicit confirmed status. Uncertain totals are **withheld** in HQ, bookings KPI and calendar month/day; never $0, accepted cash or invoice.
+- **Source safety:** read-only Supabase project inspection found the existing lead/booking/membership tables and no newly migrated shared Exterior quote/work-order tables; managed recovery evidence and two-founder device sync still absent. Production has security advisor warnings about some callable SECURITY DEFINER functions; these require an individual threat model before editing. Review `docs/EXTERIOR_R36_DATABASE_GATE_AUDIT.md` and `docs/BACKUP_FREE_TIER_WINDOWS.md` before any live migration.
+- **Program engineering estimate: 34%** (+2 W2 real command, +1 W9 source-qualified intelligence from 31%). New work is code-only, no database schema, real bank transactions, automatic messages, privileged services or private STRATHOS access. Canonical cross-chat handoff: `docs/EXTERIOR_CONTINUE_HERE.md`.
+
 ## EXTERIOR COMMAND R35 PRIVATE CREW↔OWNER HANDOFF (2026-10-23)
 
 - **R35 source merged:** [PR #114](https://github.com/OJ-Holdings/oj-workspace/pull/114), `main` source SHA `d6ce80cd019fb98486a65d8061b89ee7f129d750`. Exact PR-head CI [40050826999](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40050826999) SUCCESS (npm ci, TypeScript, all 582 automated tests, Next.js build). Post-merge main CI `40050990815` independently recheck; do not claim Windows served version from GitHub alone.
