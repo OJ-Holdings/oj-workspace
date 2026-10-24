@@ -6,7 +6,7 @@ import {
  createFieldHandoffRequest,createFieldHandoffReply,
  parseFieldHandoffRequest,parseFieldHandoffReply,
  newHandoffMailbox,readHandoffMailbox,serializeHandoffMailbox,
- handoffRevisionMatchesField,type FieldHandoffRequest,
+ handoffRevisionMatchesField,replyReviewStillCurrent,type FieldHandoffRequest,
 } from '../src/lib/exterior-crew-handoff';
 
 const org='org-exterior',otherOrg='org-unrelated';
@@ -148,4 +148,27 @@ test('all local info remains user-entered without any provider/authenticity guar
  assert.equal('verifiedByAuth' in feedback,false);
  assert.equal('certified' in feedback,false);
  assert.equal('externalMessageId' in req,false);
+});
+
+test('a returned internally reviewed packet becomes stale when source coverage or safety changes',()=>{
+ const req=request(),feedback=reply(req);
+ assert.equal(replyReviewStillCurrent(req,feedback,booking,lead,[booking],true),true);
+ assert.equal(replyReviewStillCurrent(req,feedback,booking,lead,[booking],false),false);
+ assert.equal(replyReviewStillCurrent(req,feedback,{...booking,date:'2026-10-24'},lead,[booking],true),false);
+ assert.equal(replyReviewStillCurrent(req,feedback,booking,lead,[booking,{...booking,id:'second'}],true),false);
+ const followUp=reply(req,{
+  decision:'follow-up-needed',followUpTo:'crew',note:'Check that the water access is still available.',
+ });
+ assert.equal(replyReviewStillCurrent(req,followUp,booking,lead,[booking],false),true);
+ assert.equal(replyReviewStillCurrent({...req,request_id:'wrong'},feedback,booking,lead,[booking],true),false);
+});
+test('reply timestamp cannot precede the crew handoff',()=>{
+ const req=request();
+ const d=JSON.parse(JSON.stringify(reply(req)));
+ d.replied_at='2026-10-23T18:29:59.000Z';
+ assert.throws(()=>parseFieldHandoffReply(JSON.stringify(d),org,booking.id,lead.id,req),/predates the original/);
+});
+test('malformed local mailbox with omitted keys is denied rather than replacing saved evidence',()=>{
+ const state={schema:1,outgoing:request(),incoming:null,incomingReply:null};
+ assert.throws(()=>readHandoffMailbox(JSON.stringify(state),org,booking.id,lead.id),/schema is invalid/);
 });
