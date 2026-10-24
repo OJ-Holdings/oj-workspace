@@ -49,7 +49,8 @@ function ConvertTo-OjP2Probe([object]$Response, [string]$ExpectedSha) {
 function New-OjP2Evidence(
  [string]$ExpectedSha,
  [object]$LocalProbe,
- [object]$PublicProbe
+ [object]$PublicProbe,
+ [ValidateSet('funnel','cloud')][string]$PublicKind='funnel'
 ) {
  $local = ConvertTo-OjP2Probe $LocalProbe $ExpectedSha
  $public = ConvertTo-OjP2Probe $PublicProbe $ExpectedSha
@@ -59,6 +60,11 @@ function New-OjP2Evidence(
   local_served_release = $local
   public_served_release = $public
   release_route_parity_only = ($local -eq 'matched' -and $public -eq 'matched')
+  public_origin_kind = $PublicKind
+  required_release_identity_proven = (
+   $public -eq 'matched' -and
+   ($PublicKind -eq 'cloud' -or $local -eq 'matched')
+  )
   real_signed_in_founder_A_tested = $false
   real_signed_in_founder_B_tested = $false
   shared_booking_task_comment_roundtrip = $false
