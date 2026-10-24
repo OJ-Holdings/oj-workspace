@@ -60,7 +60,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
   const maxSource=Math.max(1,...s.sales.bySource.map(m=>m.count));
   const stats=[
     {key:'recorded',label:'Recorded job revenue',value:money(s.production.recordedJobRevenue),caption:`${s.production.withRevenue} of ${s.production.completed} completed records · not verified cash`,icon:Wallet,href:`${parent}/jobs`,tag:'HISTORICAL'},
-    {key:'booked',label:'Upcoming quoted work',value:money(s.dispatch.quotedUpcomingValue),caption:`${s.dispatch.priced} priced of ${s.dispatch.confirmedUpcoming} confirmed bookings · not collected`,icon:CalendarDays,href:`${parent}/bookings`,tag:'SCHEDULED'},
+    {key:'booked',label:'Qualified confirmed quotes',value:money(s.dispatch.quotedUpcomingValue),caption:`${s.dispatch.priced} source-qualified of ${s.dispatch.confirmedUpcoming} confirmed visits · not accepted or collected`,icon:CalendarDays,href:`${parent}/bookings`,tag:'SOURCE / CONFIRMED'},
     {key:'pipeline',label:'Open quote exposure',value:money(s.sales.quotedOpenValue),caption:`${s.sales.openPriced} priced · ${s.sales.openUnpriced} unpriced active sales records`,icon:Target,href:`${parent}/leads`,tag:'POTENTIAL'},
     {key:'contribution',label:'Known job contribution',value:money(s.production.matchedContribution),caption:`${s.production.fullyCosted} completed jobs with revenue + cost · not total profit`,icon:BarChart3,href:`${parent}/jobs`,tag:'MATCHED SUBSET'},
   ];
