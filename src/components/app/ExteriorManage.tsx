@@ -10,6 +10,7 @@ import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFoc
 import { bookingWorkCounts, bookingWorkDescriptions, bookingWorkFocuses, bookingWorkLabels, matchesBookingWorkFocus, sortBookingsForWork, type BookingWorkFocus } from '@/lib/exterior-booking-workflow';
 import {qualifiedDispatchQuotes} from '@/lib/exterior-dispatch-preflight';
 import {ExteriorDispatchPreflight} from './ExteriorDispatchPreflight';
+import {ExteriorJobContinuity} from './ExteriorJobContinuity';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -451,9 +452,24 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [view, setView] = useState<'cards' | 'table'>('cards');
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(30);
+  const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const bookingParams = useSearchParams();
   const launchNewBooking = bookingParams.get('new');
+  const selectedJobId=selectedJob ?? bookingParams.get('booking');
+  const selectedBooking=data.bookings.find(b=>b.id===selectedJobId);
+  const openJob=(id:string)=>{
+    const url=new URL(window.location.href);
+    url.searchParams.set('booking',id);
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+    setSelectedJob(id);
+  };
+  const closeJob=()=>{
+    const url=new URL(window.location.href);
+    url.searchParams.delete('booking');
+    window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+    setSelectedJob(null);
+  };
   useEffect(() => {
     if (readOnly || launchNewBooking !== '1') return;
     setFlow('');
@@ -510,6 +526,16 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       <p className="atlas-booking-queue-note" role="status"><b>{bookingWorkLabels[focus]}:</b> {bookingWorkDescriptions[focus]}</p>
     </section>
     <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'} org={org} readOnly={readOnly}/>
+    {selectedJobId&&!selectedBooking&&<p className="ecjourney-alert" role="alert">
+      The requested exact booking is not in this authorized source window. No customer, job or field data was substituted.
+      <button type="button" onClick={closeJob}>Clear selection</button>
+    </p>}
+    {selectedBooking&&<ExteriorJobContinuity
+      key={selectedBooking.id} data={data} booking={selectedBooking} org={org}
+      base={base} mode={base==='/preview'?'preview':'live'} readOnly={readOnly}
+      crew={{available:!!crew,employeeName:crew?.assignments.find(a=>a.booking_id===selectedBooking.id)?.employee_name??null}}
+      close={closeJob}
+    />}
     <section className="panel atlas-booking-workbench">
       <header className="panel-head"><h2>Job workbench <small className="quiet">{rows.length} matching record{rows.length === 1 ? '' : 's'}</small></h2>
         <Link className="secondary small" href={`${base}/b/exterior/calendar`}>View calendar</Link>
@@ -544,6 +570,10 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               </div>
               <footer>
                 <div className="atlas-booking-contact-actions">
+                  <button type="button" className="primary small" aria-expanded={selectedJobId===b.id}
+                    aria-controls="exterior-job-continuity" onClick={()=>selectedJobId===b.id?closeJob():openJob(b.id)}>
+                    {selectedJobId===b.id?'Close job view':'Open job workflow'}
+                  </button>
                   {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
                   {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                   {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
@@ -569,6 +599,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               <td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td>
               <td className="num" data-label="Quoted, not paid">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && <td data-label="Actions"><div className="row-actions">
+                <button type="button" className="primary small" onClick={()=>openJob(b.id)}>Open job workflow</button>
                 {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
                 {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                 {actionable(b) && <>
