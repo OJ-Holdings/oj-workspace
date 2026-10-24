@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type {ExtBooking,ExtLead} from '../src/lib/exterior';
 import {newExteriorEstimate,type ExteriorEstimate} from '../src/lib/exterior-estimate';
 import {newFieldLog,type ExteriorFieldLog} from '../src/lib/exterior-field-log';
-import {jobEconomicsInternalBrief,reviewJobEconomics} from '../src/lib/exterior-job-economics';
+import {jobEconomicsInternalBrief,reviewJobEconomics as sourceReviewJobEconomics} from '../src/lib/exterior-job-economics';
 
 const leadId='11111111-1111-4111-8111-111111111111';
 const bookingId='22222222-2222-4222-8222-222222222222';
@@ -24,6 +24,7 @@ const completeField=():ExteriorFieldLog=>({
  travelMiles:10,vehicleCostPerMile:.6,otherDirectCost:4,
  review:{labor:true,materials:true,travel:true,other:true},
 });
+const reviewJobEconomics=(...args:[ExtBooking,ExtLead,readonly ExtBooking[],ExteriorFieldLog|null,ExteriorEstimate|null])=>sourceReviewJobEconomics(...args,true);
 const localPlan=():ExteriorEstimate=>({
  ...newExteriorEstimate(lead()),
  lines:[{id:'scope',service:'Exterior clean',quantity:1,unit:'flat',pricePerUnit:325,costPerUnit:30,notes:''}],
