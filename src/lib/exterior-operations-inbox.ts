@@ -41,7 +41,7 @@ export function inboxTiming(date:string,today:string,done:boolean):InboxTiming{
 }
 export function selectExteriorInbox(items:readonly ExteriorInboxItem[],focus:InboxFilter):ExteriorInboxItem[]{
  const result=items.filter(x=>focus==='all'||
-  (focus==='mine'&&x.isMine)||
+  (focus==='mine'&&x.isOpen&&x.isMine)||
   (focus==='overdue'&&x.timing==='overdue')||
   (focus==='today'&&x.timing==='today')||
   (focus==='review'&&x.isOpen&&x.task.stage==='Review')||
