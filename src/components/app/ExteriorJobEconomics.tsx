@@ -10,11 +10,11 @@ import {jobEconomicsInternalBrief,reviewJobEconomics} from '@/lib/exterior-job-e
 
 type Props={
  org:string;lead:ExtLead;booking:ExtBooking;bookings:readonly ExtBooking[];
- field:ExteriorFieldLog|null;mode:'live'|'preview';readOnly:boolean;base:string;
+ field:ExteriorFieldLog|null;bookingCoverageComplete:boolean;mode:'live'|'preview';readOnly:boolean;base:string;
 };
 const money=(n:number|null|undefined)=>n===null||n===undefined?'Unknown':
  new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
-export function ExteriorJobEconomics({org,lead,booking,bookings,field,mode,readOnly,base}:Props){
+export function ExteriorJobEconomics({org,lead,booking,bookings,field,bookingCoverageComplete,mode,readOnly,base}:Props){
  const [localEstimate,setLocalEstimate]=useState<ExteriorEstimate|null>(null);
  const [sourceNotice,setSourceNotice]=useState('');
  const [copyNotice,setCopyNotice]=useState('');
@@ -38,9 +38,9 @@ export function ExteriorJobEconomics({org,lead,booking,bookings,field,mode,readO
  },[org,lead.id,mode,readOnly]);
  useEffect(()=>{refresh();},[refresh]);
  const review=useMemo(()=>{
-  try{return {ok:true as const,data:reviewJobEconomics(booking,lead,bookings,field,localEstimate)};}
+  try{return {ok:true as const,data:reviewJobEconomics(booking,lead,bookings,field,localEstimate,bookingCoverageComplete)};}
   catch(e){return {ok:false as const,message:e instanceof Error?e.message:'Economics sources are incomplete.'};}
- },[booking,lead,bookings,field,localEstimate]);
+ },[booking,lead,bookings,field,localEstimate,bookingCoverageComplete]);
  const report=review.ok?review.data:null;
  const copy=async()=>{
   if(!report)return;
