@@ -171,13 +171,14 @@ test('R41 retry is idempotent ONLY if all original instructions and ownership ma
  assert.ok(saved);
  assert.equal(sameJobFollowupAttempt(saved,first),true);
  assert.equal(sameJobFollowupAttempt(saved,{...first,note:'  '+first.note+'  '}),true);
- for(const divergent of [
+ const divergentAttempts:Partial<NewJobFollowup>[] = [
   {note:'Call the customer instead of checking pump coupling.'},
   {assignee:'Oscar'}, {dueOn:'2026-10-28'},{priority:'normal'},
   {sourceDate:'2026-10-28'}, {sourceTime:'12-3'},
   {sourceStatus:'pending_approval'},{handoffRequestId:requestId},
-  {origin:'private-owner-reply-reference' as const},
- ]){
+  {origin:'private-owner-reply-reference'},
+ ];
+ for(const divergent of divergentAttempts){
   assert.equal(sameJobFollowupAttempt(saved,{...first,...divergent}),false,
    JSON.stringify(divergent));
  }
