@@ -13,6 +13,7 @@ import {statusLabel} from '@/lib/exterior';
 import {ExteriorJobEquipment} from './ExteriorJobEquipment';
 import {ExteriorJobEconomics} from './ExteriorJobEconomics';
 import {ExteriorCloseoutReview} from './ExteriorCloseoutReview';
+import {ExteriorCrewHandoff} from './ExteriorCrewHandoff';
 import {
   fieldCheckLabels,fieldSourceMatches,isFieldLog,newFieldLog,parseFieldPackage,
   reviewFieldLog,serializeFieldPackage,fieldLogMaxChars,
@@ -310,6 +311,9 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      field={log} readOnly={readOnly} mode={mode} base={base}/>
    </aside>
   </div>
+  <ExteriorCrewHandoff org={org} booking={booking} lead={lead} bookings={data.bookings}
+   bookingCoverageComplete={data.coverage?.bookings.total!==null&&data.coverage?.bookings.total!==undefined&&data.coverage.bookings.loaded>=data.coverage.bookings.total}
+   field={log} mode={mode} readOnly={readOnly}/>
   {notice&&<p className="ecfield-toast" role="status">{notice}</p>}
  </main>;
 }
