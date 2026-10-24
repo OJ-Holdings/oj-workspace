@@ -12,6 +12,7 @@ import type {ExteriorData,ExtBooking} from '@/lib/exterior';
 import {statusLabel} from '@/lib/exterior';
 import {ExteriorJobEquipment} from './ExteriorJobEquipment';
 import {ExteriorJobEconomics} from './ExteriorJobEconomics';
+import {ExteriorCloseoutReview} from './ExteriorCloseoutReview';
 import {
   fieldCheckLabels,fieldSourceMatches,isFieldLog,newFieldLog,parseFieldPackage,
   reviewFieldLog,serializeFieldPackage,fieldLogMaxChars,
@@ -193,7 +194,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
   </section>
   <div className="ecfield-columns">
    <div className="ecfield-maincol">
-    <section className="ecfield-panel">
+    <section id="ecfield-status" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">01 / FIELD STATUS</span><h2>Job progression</h2>
       <p>This is a local operator note, not a change to the booking's confirmed/completed state.</p></div><Clock3 size={20}/></header>
      <div className="ecfield-stage" role="group" aria-label="Local field stage">
@@ -210,7 +211,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      </div>
      <p className="ecfield-disclaimer">Timestamps are entered from this device when the button is tapped—not independently verified arrival, GPS location, or customer signoff.</p>
     </section>
-    <section className="ecfield-panel">
+    <section id="ecfield-labor" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">02 / RESOURCE ACCOUNTING</span><h2>Crew labor</h2>
       <p>Enter actual time worked and your estimated loaded labor rate; no payroll is posted.</p></div>
       {canEdit&&<button className="ecfield-add" type="button" onClick={addCrew} disabled={log.labor.length>=20}><Plus size={14}/> Add crew time</button>}</header>
@@ -226,7 +227,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      {!log.labor.length&&<p className="ecfield-empty">No crew hours entered. This does not mean zero labor.</p>}</div>
      <label className="ecfield-reviewed"><input type="checkbox" checked={log.review.labor} disabled={!canEdit} onChange={e=>patch(v=>({...v,review:{...v.review,labor:e.target.checked}}))}/> Labor entries reviewed, including any genuine zero activity</label>
     </section>
-    <section className="ecfield-panel">
+    <section id="ecfield-materials" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">03 / CONSUMABLES</span><h2>Materials used</h2><p>Capture real quantities and estimated actual costs—not the quote's planned amounts.</p></div>
       {canEdit&&<button className="ecfield-add" type="button" onClick={addMaterial} disabled={log.materials.length>=30}><Plus size={14}/> Add material</button>}</header>
      <div className="ecfield-entries">{log.materials.map(row=><div className="ecfield-entry" key={row.id}>
@@ -241,7 +242,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      {!log.materials.length&&<p className="ecfield-empty">No materials entered; empty does not prove none were consumed.</p>}</div>
      <label className="ecfield-reviewed"><input type="checkbox" checked={log.review.materials} disabled={!canEdit} onChange={e=>patch(v=>({...v,review:{...v.review,materials:e.target.checked}}))}/> Materials reviewed (zero only when genuinely none)</label>
     </section>
-    <section className="ecfield-panel">
+    <section id="ecfield-travel" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">04 / MOBILIZATION</span><h2>Mileage & other costs</h2></div><Truck size={20}/></header>
      <div className="ecfield-trip">
       <label>Vehicle miles<input type="number" min="0" max="10000" step=".1" value={log.travelMiles??''} disabled={!canEdit} placeholder="Unknown" onChange={e=>patch(v=>({...v,travelMiles:amount(e.target.value),review:{...v.review,travel:false}}))}/></label>
@@ -253,7 +254,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
     </section>
    </div>
    <aside className="ecfield-sidecol">
-    <section className="ecfield-panel">
+    <section id="ecfield-safety" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">05 / SITE SAFETY</span><h2>Conditions & equipment</h2><p>Manual checklist only. Never a substitute for site inspection, SDS/PPE, equipment instructions or runoff rules.</p></div><ShieldCheck size={20}/></header>
      <div className="ecfield-checklist">{(Object.keys(fieldCheckLabels) as (keyof FieldChecklist)[]).map(k=><label key={k}>
       <span>{fieldCheckLabels[k]}</span>
@@ -263,7 +264,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      </label>)}</div>
      {result?.criticalIssues? <p className="ecfield-stop"><AlertTriangle size={17}/> An unresolved stop-work issue is recorded. Investigate and resolve before proceeding.</p>:null}
     </section>
-    <section className="ecfield-panel">
+    <section id="ecfield-issues" className="ecfield-panel">
      <header className="ecfield-heading"><div><span className="ecfield-overline">06 / EXCEPTIONS</span><h2>Issues & disruptions</h2></div><Wrench size={20}/></header>
      <div className="ecfield-issues">{log.issues.map(issue=><article key={issue.id} className={issue.severity==='stop-work'&&!issue.resolved?'ecfield-issue critical':'ecfield-issue'}>
       <div><strong>{issue.severity.replace('-',' ')} · {issue.category}</strong><small>{issue.resolved?'Marked resolved locally':'Needs review'}</small></div>
@@ -304,6 +305,9 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      <Link href={root+'/bookings'}>Source booking workbench <ArrowUpRight size={14}/></Link>
      <p>No “Complete job,” “Submit invoice,” “Mark paid” or corporate profitability update occurs from this local draft.</p>
     </section>
+    <ExteriorCloseoutReview booking={booking} lead={lead} bookings={data.bookings}
+     bookingCoverageComplete={data.coverage?.bookings.total!==null&&data.coverage?.bookings.total!==undefined&&data.coverage.bookings.loaded>=data.coverage.bookings.total}
+     field={log} readOnly={readOnly} mode={mode} base={base}/>
    </aside>
   </div>
   {notice&&<p className="ecfield-toast" role="status">{notice}</p>}
