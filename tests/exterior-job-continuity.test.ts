@@ -82,6 +82,13 @@ test('customer with source gaps is linked but requires review, without assumptio
  assert.equal(s.steps.find(q=>q.key==='customer')?.evidence,'review');
  assert.equal(s.steps.find(q=>q.key==='quote')?.evidence,'source');
 });
+test('linked original customer with missing name remains a review, not verified identity',()=>{
+ const anonymous={...lead,name:null};
+ const x=buildJobContinuity(data([booking],[anonymous]),booking,crew);
+ assert.equal(x.steps.find(s=>s.key==='customer')?.evidence,'review');
+ assert.match(x.steps.find(s=>s.key==='customer')!.detail,/name is not recorded/);
+});
+
 test('crew source unavailable is an unknown, not a false empty assignment',()=>{
  const a=buildJobContinuity(data(),booking,{available:false,employeeName:null});
  const b=buildJobContinuity(data(),booking,{available:true,employeeName:null});
