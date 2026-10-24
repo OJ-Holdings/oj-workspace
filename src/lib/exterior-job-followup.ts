@@ -54,13 +54,14 @@ export function validateJobFollowup(
  if(!request(org)||!request(booking.id)||!request(input.leadId)||booking.lead_id!==input.leadId)
   throw Error('A real, exact organization, booking and customer identity is required.');
  if(!request(input.taskId))throw Error('The shared task needs a valid unique identifier.');
+ // Reject injected separators before interpreting the booking state itself.
+ if(!safeSingle(booking.time_block,50)||!safeSingle(booking.status,50))
+  throw Error('The original booking time or status is not safely formatted.');
  if(!actionableJobStatus(booking.status))throw Error('This original booking is no longer active; refresh the source.');
  if(!validDay(booking.date)||!validDay(input.sourceDate)||
    booking.date!==input.sourceDate||booking.time_block!==input.sourceTime||
    booking.status!==input.sourceStatus)
   throw Error('The original booking date, time or status changed. Refresh before publishing.');
- if(!safeSingle(booking.time_block,50)||!safeSingle(booking.status,50))
-  throw Error('The original booking time or status is not safely formatted.');
  if(typeof input.note!=='string'||input.note.trim().length<10||input.note.length>1200||
     /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(input.note))
   throw Error('Write a specific internal next action of 10 to 1200 characters.');
