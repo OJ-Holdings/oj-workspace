@@ -4,16 +4,18 @@ import {useMemo,useState} from 'react';
 import Link from 'next/link';
 import {
  AlertTriangle,ArrowRight,ArrowUpRight,CalendarClock,CheckCircle2,
- ClipboardList,Clock3,MapPin,Phone,ShieldAlert,
+ ClipboardList,Clock3,MapPin,Phone,ShieldAlert,UsersRound,
 } from 'lucide-react';
 import type {ExteriorData} from '@/lib/exterior';
 import {businessDay} from '@/lib/reporting';
+import {eligibleDispatchAssignment} from '@/lib/exterior-dispatch-delegation';
+import {ExteriorDispatchAssignment} from './ExteriorDispatchAssignment';
 import {
  buildDispatchPreflight,type DispatchFinding,type DispatchPreflightRow,
 } from '@/lib/exterior-dispatch-preflight';
 
 type Props={
- data:ExteriorData;now:Date;base:string;mode:'preview'|'live';compact?:boolean;
+ data:ExteriorData;now:Date;base:string;mode:'preview'|'live';org:string;readOnly:boolean;compact?:boolean;
 };
 type WindowChoice='today'|'week'|'two-weeks';
 type IssueFilter='action'|'all';
@@ -33,9 +35,10 @@ const destination=(root:string,r:DispatchPreflightRow,flag:DispatchFinding)=>{
  * route. A missing lead, time, phone, safety certificate or source total is
  * never inferred. No writes, automatic customer messages or payroll claims.
  */
-export function ExteriorDispatchPreflight({data,now,base,mode,compact=false}:Props){
+export function ExteriorDispatchPreflight({data,now,base,mode,org,readOnly,compact=false}:Props){
  const [windowChoice,setWindowChoice]=useState<WindowChoice>('week');
  const [filter,setFilter]=useState<IssueFilter>('action');
+ const [assignment,setAssignment]=useState<{bookingId:string;issueCode:string}|null>(null);
  const today=businessDay(now.toISOString());
  const report=useMemo(()=>today?buildDispatchPreflight(data,today,rangeDays[windowChoice]):null,[
   data,today,windowChoice,
@@ -89,6 +92,9 @@ export function ExteriorDispatchPreflight({data,now,base,mode,compact=false}:Pro
    {rows.map(r=>{
     const hard=r.findings.filter(f=>f.level==='blocker');
     const soft=r.findings.filter(f=>f.level==='attention');
+    const booking=data.bookings.find(b=>b.id===r.id);
+    const lead=data.leads.find(l=>l.id===r.leadId);
+    const canAssign=mode==='live'&&!readOnly&&eligibleDispatchAssignment(r,booking,lead);
     return <article key={r.id} className="ecdispatch-job" data-severity={hard.length?'blocker':soft.length?'attention':'reviewed'}>
      <div className="ecdispatch-job-left">
       <div className="ecdispatch-job-time">
@@ -119,8 +125,18 @@ export function ExteriorDispatchPreflight({data,now,base,mode,compact=false}:Pro
        <Link href={root+'/field?booking='+encodeURIComponent(r.id)}><ClipboardList size={14}/> Field sheet</Link>
        {r.leadId&&<Link href={root+'/customer?lead='+encodeURIComponent(r.leadId)}>Customer <ArrowUpRight size={13}/></Link>}
        {r.phone&&mode==='live'&&<a href={'tel:'+r.phone}><Phone size={14}/> Call</a>}
+       {canAssign&&<button type="button" className="ecdispatch-assign-btn"
+        aria-expanded={assignment?.bookingId===r.id}
+        aria-label={'Assign source review for '+r.customer}
+        onClick={()=>setAssignment(prev=>prev?.bookingId===r.id?null:{bookingId:r.id,issueCode:r.findings[0].code})}>
+        <UsersRound size={14}/> {assignment?.bookingId===r.id?'Close assignment':'Assign action'}
+       </button>}
       </div>
      </div>
+     {assignment?.bookingId===r.id&&canAssign&&<ExteriorDispatchAssignment
+      key={r.id} org={org} row={r} booking={booking} lead={lead} base={base}
+      today={today} readOnly={readOnly} selectedIssue={assignment.issueCode}
+      onClose={()=>setAssignment(null)}/>} 
     </article>;
    })}
    {!shown.length&&<div className="ecdispatch-empty"><Clock3 size={20}/>
