@@ -1,8 +1,16 @@
 # Exterior Command — CONTINUE HERE (canonical active handoff)
 
-> **Snapshot:** October 24, 2026, America/Chicago, after merged Release 42 / Integration P1 One Job, One Truth. This file is a *checkpoint*, not a live feed. A new agent MUST inspect GitHub `main`, open PRs, exact-head CI, production/host release evidence, and the current progress ledger before asserting current status or changing code.
+> **Snapshot:** October 24, 2026, America/Chicago, after merged Release 43 / Integration P1.1 live job action loop. This file is a *checkpoint*, not a live feed. A new agent MUST inspect GitHub `main`, open PRs, exact-head CI, production/host release evidence, and the current progress ledger before asserting current status or changing code.
 >
-> **Repo:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace) · **Branch:** `main` · **Workstream:** Exterior Command · **Latest feature:** R42 / Integration P1 [PR #128](https://github.com/OJ-Holdings/oj-workspace/pull/128), merged SHA `098dd3fa1b32928a6449e180da17cb990321d02c`, exact head `8c573b648f1d52bbd798c6c5390d2f25dd0c6d3b` [CI #40130639857](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130639857) SUCCESS for npm dependencies, TypeScript, full automated tests, Next production build and synthetic PG17 recovery. Post-merge main [CI #40130932237](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130932237) completed SUCCESS (both app and synthetic restore jobs). **Engineering 41/100** (+1 W1), real Windows-served commit and two independent founder phones still UNVERIFIED. The active [seven-pass Integration & Adoption Program](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) takes priority over ordinary Exterior feature expansion; P7 requires a new full critique before restoring the prior roadmap. Private encrypted real production backup/restore, authorized actor RLS and Storage file-byte recovery remain unverified; NO new quote/field/work-order production schema or bank receipt.
+> **Repo:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace) · **Branch:** `main` · **Workstream:** Exterior Command · **Latest feature:** R43 / Integration P1.1 [PR #130](https://github.com/OJ-Holdings/oj-workspace/pull/130), merged SHA `628e465f9c16fda82d08aa6d25c7959d18465c76`, exact head `5fb3deba38bb5297dd663c3fa659088da6df54f6` [CI #40135901958](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40135901958) SUCCESS (install, TypeScript, all regression tests, Next production build, isolated synthetic PG17). Post-merge [main CI #40136080889](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40136080889) completed SUCCESS, both application and synthetic recovery jobs. **Engineering 42/100** (+1 W2 Real Command to 9/10). Actual Windows-host served SHA, two-founder phone actions and private real backup/restore/actor-RLS/Storage bytes remain UNVERIFIED. The active [Integration & Adoption P1–P7](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) precedes unrelated regular development; new full critique at P7, then normal roadmap resumes.
+
+## Current R43 checkpoint — P1.1 complete job-specific company work loop
+
+- [R43 PR #130](https://github.com/OJ-Holdings/oj-workspace/pull/130) merged at `628e465f9c16fda82d08aa6d25c7959d18465c76`, exact feature-head [CI #40135901958](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40135901958) SUCCESS in both app and synthetic PG17 jobs. The merged-main [CI #40136080889](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40136080889) completed SUCCESS for both jobs.
+- Real in-app integration: The existing R42 **Bookings → Job Continuity** now supports explicitly creating a current, exact-booking, member-assigned company task on the existing protected `oj_cards`, progressing Ready → In progress → Review → Done with revision conflict checks and honest task-vs-job warning, and posting authenticated author-attributed progress into existing `oj_comments`. The Founder Operations Inbox's “Open job” link now points straight to the exact Bookings Job Continuity deep link instead of the separate private Field screen.
+- **No new persistence:** This is *real already-existing multiuser task persistence* only, NOT durable quote, field evidence, crew shifts, rig reservations, accepted proposal, signed owner closeout, customer messages, bank settlement or invoice. External messages remain OFF. Preview/read-only never load/write protected tasks. The new pure source guards require confirmed or pending-approval active original booking and exact current member-session booking snapshot; duplicate open assignee+instruction cautioned, new task UUID supports safe network retry.
+- **Security correction:** `addExteriorSharedFollowupNote` previously checked only that source booking and task identity existed; R43 now refuses new company instructions/comments after original booking changed date, time, status or was cancelled/denied. Per-task source drift also locks client controls. Server stage update already had this protection; now comments match.
+- **Score: 41→42/100**, +1 W2 Real Command (8→9); W1 stays 7/8. P1 source-connected engineering is built but **Oscar/Jacob actual two-device task/comment round-trip and Windows served SHA are still NOT TESTED**, so no W12 acceptance credit. [P1 founder acceptance](./EXTERIOR_INTEGRATION_P1_FOUNDER_ACCEPTANCE.md) now uses the direct in-job controls. No production DDL. **Next priority:** real P1 acceptance and P2 encrypted owner-host production backup, isolated real restore, signed-in actor RLS negative checks, separate Storage bytes and rollback before quote/work-order/field tables or PR #42.
 
 ## CURRENT EXECUTION PRIORITY: Integration & Adoption P1–P7 (founder instruction)
 
@@ -44,12 +52,12 @@ Build a *real*, highly interconnected and ambitious command center for the two f
 
 At this snapshot open PRs #17, #34 and #42 existed. They are separate older workstreams, **not** automatic permission to merge or overwrite them. Re-check actual open PRs every session.
 
-## 3. Confirmed full-plan engineering score: 41 / 100
+## 3. Confirmed full-plan engineering score: 42 / 100
 
-| Wave | Max | Earned at R42 P1 |
+| Wave | Max | Earned at R43 P1.1 |
 |---|---:|---:|
 | W1 Experience foundation | 8 | 7 |
-| W2 Real Command | 10 | 8 |
+| W2 Real Command | 10 | 9 |
 | W3 Customer 360 | 14 | 5 |
 | W4 Quote & booking | 12 | 6 |
 | W5 Field operations | 12 | 10 |
@@ -60,9 +68,9 @@ At this snapshot open PRs #17, #34 and #42 existed. They are separate older work
 | W10 Local Data Hub and Capture | 5 | 1 |
 | W11 Governed automation | 3 | 0 |
 | W12 Adoption / independent review | 2 | 0 |
-| **TOTAL** | **100** | **41** |
+| **TOTAL** | **100** | **42** |
 
-This is **weighted engineering delivery**, not 41% user acceptance or a deployed-facility measurement. A new release increases it only if a genuinely delivered, tested, merged vertical slice earns a defensible share of remaining wave scope. Do not increase it for documentation-only PRs, test fixes, proposed UI, unverified production changes, or speculative architecture.
+This is **weighted engineering delivery**, not 42% user acceptance or a deployed-facility measurement. A new release increases it only if a genuinely delivered, tested, merged vertical slice earns a defensible share of remaining wave scope. Do not increase it for documentation-only PRs, test fixes, proposed UI, unverified production changes, or speculative architecture.
 
 ## 4. What actually ships in the current repository
 
@@ -112,7 +120,7 @@ Relevant product files: `src/components/app/ExteriorCommand.tsx`, `ExteriorCusto
 
 ## 8. Copy/paste prompt for a fresh chat
 
-> Continue engineering the OJ Exterior Care **Exterior Command / ATLAS** system in GitHub repository **OJ-Holdings/oj-workspace** using the connected GitHub tools. Do not assume any prior chat context. **FIRST read** `docs/EXTERIOR_CONTINUE_HERE.md`, `AGENTS.md`, `docs/BUILD_PLAN.md`, `docs/EXTERIOR_COMMAND_PROGRESS.md` and the newest entries in `docs/START_HERE_CHAT_HANDOFF.md` and `AGENT_LOG.md`. Verify current `main` SHA, open PRs, CI and host deployment separately. Latest verified Exterior engineering delivery is **R42 P1 at 41% of the full 12-wave plan**, but prefer live GitHub facts if newer. Continue the founder-directed **P1–P7 Integration & Adoption Program** before unrelated normal Exterior feature expansion; complete the **second full product critique at P7**, then resume the original roadmap. Implement the next useful, production-safe integrated slice for Oscar and Jacob; mobile simplicity and real quote → booking → field work → job economics matter more than placeholder dashboards. **No production database schema changes** until private backup, isolated restore, RLS and rollback are verified. Run exact PR-head tests and production build, merge only after success, verify post-merge CI, and **update the canonical handoff, progress ledger, release changelog and AGENT_LOG in GitHub**. Report the total-plan percentage, increment, PR links, verified status and outstanding blockers in your response. Do the engineering rather than merely plan it.
+> Continue engineering the OJ Exterior Care **Exterior Command / ATLAS** system in GitHub repository **OJ-Holdings/oj-workspace** using the connected GitHub tools. Do not assume any prior chat context. **FIRST read** `docs/EXTERIOR_CONTINUE_HERE.md`, `AGENTS.md`, `docs/BUILD_PLAN.md`, `docs/EXTERIOR_COMMAND_PROGRESS.md` and the newest entries in `docs/START_HERE_CHAT_HANDOFF.md` and `AGENT_LOG.md`. Verify current `main` SHA, open PRs, CI and host deployment separately. Latest verified Exterior engineering delivery is **R43 P1.1 at 42% of the full 12-wave plan**, but prefer live GitHub facts if newer. Continue the founder-directed **P1–P7 Integration & Adoption Program** before unrelated normal Exterior feature expansion; complete the **second full product critique at P7**, then resume the original roadmap. Implement the next useful, production-safe integrated slice for Oscar and Jacob; mobile simplicity and real quote → booking → field work → job economics matter more than placeholder dashboards. **No production database schema changes** until private backup, isolated restore, RLS and rollback are verified. Run exact PR-head tests and production build, merge only after success, verify post-merge CI, and **update the canonical handoff, progress ledger, release changelog and AGENT_LOG in GitHub**. Report the total-plan percentage, increment, PR links, verified status and outstanding blockers in your response. Do the engineering rather than merely plan it.
 
 ---
 Last human-requested maintenance of the handoff: October 23, 2026 (America/Chicago).
