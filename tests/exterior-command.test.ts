@@ -43,9 +43,9 @@ test('money states remain distinct: pipeline, quoted booked, recorded job and co
  assert.equal(x.sales.quotedOpenValue,610);
  assert.equal(x.sales.openUnpriced,1);
  assert.equal(x.dispatch.confirmedUpcoming,2);
- assert.equal(x.dispatch.quotedUpcomingValue,500);
- assert.equal(x.dispatch.priced,1);
- assert.equal(x.dispatch.unpriced,1);
+ assert.equal(x.dispatch.quotedUpcomingValue,null, 'partial source cannot substantiate a visit-specific quoted total');
+ assert.equal(x.dispatch.priced,0);
+ assert.equal(x.dispatch.unpriced,2);
  assert.equal(x.production.completed,3);
  assert.equal(x.production.withRevenue,3);
  assert.equal(x.production.withCosts,2);
@@ -73,6 +73,7 @@ test('source completeness is disclosed; missing linked lead cannot get a fake cu
  assert.ok(x.decisions.some(d=>d.id==='missing-customer'));
  assert.equal(x.dispatch.next[1].leadId,null);
  assert.equal(x.dispatch.next[1].quote,null);
+ assert.equal(x.dispatch.next[0].quote,null, 'price is not attributable while lead source coverage is incomplete');
 });
 test('does not count denied/past bookings as upcoming, completed lead fields as bank transfers, or foreign tasks',()=>{
  const x=buildExteriorCommand(data,[
@@ -102,4 +103,32 @@ test('dates are validated rather than displaying unsupported financial periods',
  const x=buildExteriorCommand({...data,coverage:undefined},[],'2026-10-23');
  assert.equal(x.source.partial,false);
  assert.equal(x.source.leadCoverage,'Full-history coverage not reported');
+});
+
+test('full source with one active confirmed visit can show lead quote in command',()=>{
+ const d:ExteriorData={...data,
+  leads:[lead('a','booked',650)],
+  bookings:[{id:'one',lead_id:'a',date:'2026-10-26',time_block:'9-12',status:'confirmed'}],
+  coverage:{leads:{loaded:1,total:1},bookings:{loaded:1,total:1},sessions:{loaded:0,total:0}},
+ };
+ const x=buildExteriorCommand(d,[],'2026-10-23');
+ assert.equal(x.dispatch.quotedUpcomingValue,650);
+ assert.equal(x.dispatch.priced,1);
+ assert.equal(x.dispatch.unpriced,0);
+ assert.equal(x.dispatch.next[0].quote,650);
+});
+test('two visits for one lead never inflate the command quote or per-visit timeline',()=>{
+ const d:ExteriorData={...data,
+  leads:[lead('a','booked',650)],
+  bookings:[
+   {id:'one',lead_id:'a',date:'2026-10-26',time_block:'9-12',status:'confirmed'},
+   {id:'repeat',lead_id:'a',date:'2026-10-28',time_block:'9-12',status:'confirmed'},
+  ],
+  coverage:{leads:{loaded:1,total:1},bookings:{loaded:2,total:2},sessions:{loaded:0,total:0}},
+ };
+ const x=buildExteriorCommand(d,[],'2026-10-23');
+ assert.equal(x.dispatch.quotedUpcomingValue,null);
+ assert.equal(x.dispatch.priced,0);
+ assert.equal(x.dispatch.unpriced,2);
+ assert.equal(x.dispatch.next.every(row=>row.quote===null),true);
 });
