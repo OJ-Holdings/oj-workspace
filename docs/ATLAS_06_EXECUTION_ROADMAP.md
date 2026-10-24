@@ -2,6 +2,10 @@
 
 > **Planning only, no release dates or implementation are promised.** V2 baseline: `main` `04a077d340fe44c842cc005fe3d9d846aa938986` on 2026-10-22. The 413-feature atlas is deliberately larger than one executable season. See [master](./ATLAS_V3_MASTER_INDEX.md), [features](./ATLAS_03_FEATURE_ATLAS.md), [architecture](./ATLAS_04_CONNECTED_DATA_AND_WORKFLOWS.md).
 
+## Priority override: Exterior integration-before-expansion pass train
+
+**Current founder instruction (October 24, 2026):** Execute [Exterior Integration & Adoption P1–P7](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) **before returning to normal standalone Exterior feature releases**. This is a dependency-first reshuffle of this roadmap, not deletion of any original AT-01…AT-30 goals. Phase G0 genuine production recoverability still gates *all* new shared schema. Start with safe in-place source-connected job continuity. Preserve existing implementation and source IDs, and do not invent completed cloud persistence, field evidence or money. A final second full product critique and prioritized remaining backlog at P7 is explicitly required **before restoring the prior feature sequence**. Track progress only in [the existing 12-wave ledger](./EXTERIOR_COMMAND_PROGRESS.md).
+
 ## One program, four parallel tracks
 
 - **PLATFORM/TRUTH:** source identities, backups, auth/RLS, audit, data contracts, integration quality and safe event/outbox.
