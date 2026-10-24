@@ -22,6 +22,13 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-24 -- ChatGPT (Exterior R40 / Founder Private Recovery Preflight)
+**Summary:** Read-only checked production Supabase source table/RLS structure and Storage metadata. Created an encrypted-at-rest, mirror-checking Windows-only operator preflight for existing private backup/restore tooling, plus offline fail-closed checks and a sanitized status output. No production database writes, data export, schema migration, private archive upload or customer communication.
+**Files:** scripts/exterior-r40-recovery-preflight.ps1; scripts/tests/exterior-r40-recovery-preflight.Tests.ps1; .github/workflows/ci.yml; docs/EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md; source recovery guidance and continuity docs.
+**Verified:** Feature PR #124 merged at 13c2774082c334756fbbbf01fd79e5fd3e36c7c1, exact-head CI 40092698720 successful (two jobs), merged-main CI 40092863472 successful. R39 synthetic PG17 restore again green. Real owner Windows disk/production archive/isolated restore/Auth and Storage still NOT verified.
+**Progress:** Whole Exterior plan 39%, no additional points awarded for unexecuted founder recovery preflight.
+**Next:** Founder runs read-only R40 Status on trusted Windows account and shares only sanitized result; configure encrypted off-device archive, perform backup and isolated restore, prove source parity/RLS/file objects before any new production tables.
+
 ## 2026-10-24 -- ChatGPT (Exterior R39 / Tested Isolated Recovery Infrastructure)
 **Summary:** Replaced pg_restore--list-only backup gate with a safe operator-run PostgreSQL 17 isolated restore drill, original archive manifest/checksum validation, strict local empty target naming/confirmation, transactional pg_restore, RLS/table-count scan, private mechanical receipt, and fresh target anti-drift query. Added offline refusal tests and a real two-container PG17 *synthetic* archive/restore/negative regression CI job. No OJ production credentials, data copies, SMS, schema migrations or deployed runtime modified. Includes detailed founder Windows operator runbook.
 **Files:** `scripts/restore-supabase-isolated.ps1`, `scripts/tests/restore-supabase-isolated.Tests.ps1`, `scripts/tests/restore-synthetic-fixture.sql`, `scripts/tests/restore-synthetic-integration.sh`, `.github/workflows/ci.yml`, `docs/EXTERIOR_R39_RESTORE_DRILL.md`, `docs/BACKUP_FREE_TIER_WINDOWS.md`, plus canonical release and roadmap docs.
