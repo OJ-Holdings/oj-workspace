@@ -6,21 +6,21 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R32 estimate earned | Not yet done |
+| Plan wave | Weight | R33 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
 | W2 Real Command | 10% | **3%** | Verified real founder acceptance, full shift readiness, integrated decision receipts, true collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
-| W5 Field operations | 12% | **3%** | R31 booking-bound, mobile-oriented local work sheet for crew time, material usage, mileage/cost, equipment/site checks and issues; durable shared job events, media uploads, offline sync/replay, payroll/time approval and verified closeout remain |
+| W5 Field operations | 12% | **5%** | R31 field work sheet + R33 exact-booking qualified local planned-versus-field-cost review and internal brief; durable events, media, payroll/time approval, authenticated cross-device sync and verified job closeout remain |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
-| W9 Deep intelligence | 7% | 0% | Verified attribution, geo, recurring-service, unit economics |
+| W9 Deep intelligence | 7% | **1%** | R33 source-guarded, booking-unique cost comparison and transparent coverage/warning logic; verified attribution, multi-job history, client profitability, geo and forecasting not yet built |
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **24% (conditional on R32 exact-head CI + merge)** | |
+| **TOTAL** | **100%** | **27% (conditional on R33 exact-head CI + merge)** | |
 
 ### R26 actual scope
 
@@ -93,16 +93,26 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 - Cross-tenant local assignment validation, strict whitelisting, corrupt-storage fail-closed, source-date/status drift warnings, responsive mobile visual cards. Pure regression tests cover original booking identity, overdue service, payload, warnings, false-availability avoidance, same-day overlaps and forged states.
 - **This is a device-local operational bridge**, not shared persistent field-fleet integration. Production DB unchanged; protected backup+independent isolated restore and RLS gate still blocks adding new durable quote/job/event tables.
 
+### R33 Job Economics Review (+2 W5 points, +1 W9 point conditional on merge)
+
+- Integrates exact authorized booking, original linked lead, R29 same-browser estimate draft, and R31 same-browser field work sheet into a **source-provenance-labeled, read-only** job economics review inside mobile Field Command.
+- Displays original *lead-level* quoted amount, local planned line-item direct costs, operator-entered labor/material/travel/other direct-cost estimate and reviewed hours with explicit coverage and source-staleness states. Never calls a quote a customer acceptance, collection, profit or posted revenue.
+- Only calculates a clearly labeled **hypothetical quoted-price headroom scenario** when the authorized source snapshot contains the exact booking, exactly one active booking for that lead, current booking field data, positive source quote amount, and reviewed direct cost across all four categories. Otherwise withholds numeric margin scenarios and lists explicit reasons. It still does not assert the source quote was approved or booking-specific.
+- Local planned cost less field direct-cost estimate is shown only when original lead stamp, booking stamp, complete numeric fields and source booking uniqueness are satisfied. Incomplete or unknown cost remains unknown rather than zero. Historical lead-level `job_revenue`/`job_cost` is **not allocated to bookings** or entered into these calculations.
+- Responsive comparison instruments, cost bars, scenario ratio, missing-evidence explanations, links back to the exact lead estimator, manual local refresh, and an explicitly INTERNAL-only clipboard report. No new customer data collection, shared write endpoint, payments, provider sends, migration or source changes.
+- Regression tests cover repeat bookings, cancelled duplicates, stale source, missing quote, null/known-zero direct cost, historical revenue non-attribution and source identity mismatch.
+- **Still local to the browser**: not a durable ledger, posted invoice, bank receipt, labor approval, job completion, tax/net-profit calculation, or independent founder acceptance.
+
 ### Release gates and the next update rule
 
-R26–R31 earned **22%** after passing exact-head CI and merged feature releases. R32's safe same-device Fleet ↔ Field equipment-planning bridge adds **2 W7 points** only after CI passes (TypeScript, full tests, production build) and the feature PR merges, reaching **24%**. If R32 is unmerged/failed, preserve 22%. GitHub merging is not proof that the Windows host serves that SHA; two-founder desktop/iPhone QA and independent backup/restore remain separate release gates.
+R26–R32 now have a merged/verified engineering baseline of **24%**. R33 is credited an additional **2 points within W5 and 1 within W9** only if its exact PR-head typecheck, full tests and production build succeed and the PR merges; **27% target**. If CI/merge fails preserve 24%. Qualified quote-price scenarios are not financial closure or bank settlement. Actual Windows served SHA, two-founder device acceptance, and a private independently restored Supabase backup are separate checks.
 
 For **every future Exterior Command development response** report: (a) estimated overall completion %, (b) specific earned plan waves, (c) merged PR / CI state, (d) next blocker and immediate implementation slice. Do not increase completion for documentation-only or redundant tooling.
 
 ### Next prioritized implementation
 
-1. **Database safety first:** founder-run, encrypted private backup and separate restored copy with reconciliation; test real cross-org RLS, viewer/user removal, version races, replay and rollback before migrating any shared business schema. Existing Windows scripts provide a path, not proof of completion.
-2. Add real organization-scoped, immutable shared quote versions, booking-related field events and audited asset reservations with explicit single-resource conflicts, member permissions, and provenance timestamps.
-3. Advance W5: mobile field write queue/recovery, real photo ingestion and permission design, crew-time review, invoice/closeout evidence and actual-cost reconciliations rather than browser-only figures.
-4. Advance W7: durable rig readiness and maintenance schedules that distinguish physically inspected vs manually entered condition; no dangerous assumption from a previous-day checklist.
-5. Verify Windows served SHA and conduct Oscar/Jacob authenticated iPhone/desktop adoption including corrupted storage and missing assets/booking reassignment.
+1. **Restore proof / permissions:** complete the existing Windows private production dump procedure and independently tested isolated restore with RLS membership cases; do not apply production schema from a GitHub merge alone.
+2. **Shared quote/job/asset schemas:** member-scoped append-only quote versions, acceptance events, booking-specific costs and asset reservations with source/role checks, transactional idempotency and rollback evidence.
+3. **Job Economics 2.0:** approved quote-to-work-order-to-booking link, genuine booking-specific cost receipts, independently verified invoiced/collected money and separate actual financial posting before any true profitability or AR scoreboard.
+4. **Field reliability:** authorized phone offline outbox, field photo/receipt attachment security and retention, labor review/crew attribution, reusable rig checklists and handling changed bookings safely.
+5. **Real acceptance:** Windows port served SHA and both Oscar/Jacob authenticated desktop/iPhone tests, including stale estimate, multiple bookings on one lead, incomplete cost and manual bank/collection separation.
