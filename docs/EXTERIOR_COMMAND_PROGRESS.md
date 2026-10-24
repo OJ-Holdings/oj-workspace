@@ -6,13 +6,13 @@
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R36 estimate earned | Not yet done |
+| Plan wave | Weight | R37 estimate earned | Not yet done |
 |---|---:|---:|---|
 | W1 Experience foundation | 8% | **5%** | Founder-specific saved density/layout, final mobile field QA, cross-route visual parity |
-| W2 Real Command | 10% | **5%** | R36 source-linked Dispatch Preflight with actionable 0/7/14-day job exceptions now live in code. Still missing verified daily two-founder acceptance, actual crew/vehicle capacity and customer contact receipts, persistent decisions, and verified collection data |
+| W2 Real Command | 10% | **6%** | R36 real dispatch preflight and R37 exact-booking authenticated company follow-up/task progress now linked to Command workflows. Still missing end-to-end two-founder phone QA, actual crew/rig capacity reservations, customer contact receipts, complete founder decision log, and verified collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
-| W5 Field operations | 12% | **9%** | R31 field worksheet + R33 job economics + R34 closeout action queue + R35 private manual Crew ↔ Owner packet/return feedback. Actual durable shared field events, photo evidence, authenticated cross-device owner approval and source-verified completion remain |
+| W5 Field operations | 12% | **10%** | R31 private field work sheet, R33 costs, R34 closeout review, R35 private file exchange, and R37 actual cross-device member-scoped ACTION TASKS, status updates and comments tied to exact source booking. Durable shared field timestamps/costs/photos, authenticated signed review of originals, verified customer completion and payroll remain unbuilt |
 | W6 Commercial Project 360 | 10% | 0% | Unified shared property, estimate, approval and job project |
 | W7 Equipment integration | 8% | **2%** | R32 device-local exact-booking fleet asset selection, maintenance/payload/same-day warnings and operator review. Shared reservations, persistent crew/vehicle dispatch, verified equipment safety and real asset telemetry remain |
 | W8 Financial closure | 9% | 0% | Source-verified invoices, costs, AR and bank reconciliation after database gates |
@@ -20,7 +20,16 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | 0% | Encrypted archive, sync, durable chat input approvals |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **34% (R36 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+| **TOTAL** | **100%** | **36% (R37 merged and exact feature-head CI passed; Windows/device checks separate)** | |
+
+### R37 authenticated booking-linked shared company task handoffs (+1 W2, +1 W5; 2026-10-23)
+
+- [Feature PR #118](https://github.com/OJ-Holdings/oj-workspace/pull/118) merged `main` at `ef09092d1e019413ea3314a65b42079eb46d77cf`; exact PR head `9baa704c2f0f0347a8b27efb0cbca259263d58ef` passed full [CI 40055459400](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40055459400): `npm ci`, TypeScript, all automated tests and Next.js production build. Post-merge main run `40055569744` was triggered and its final result is tracked separately. Active Windows-served SHA and two-founder device acceptance unverified.
+- **Real organizational coordination, no new schema:** R35 Crew ↔ Owner Handoff now embeds a responsive Shared Job Follow-Ups desk with signed-in current-member assignment, priority, target date, progress status and comments against **existing production** `oj_cards`/`oj_comments`—not merely browser-local files. Same authorized original lead and booking are checked on every server call; source snapshot date/time/status is compared on creation. This data is visible to authorized OJ members across their devices upon refresh and in the task board.
+- **Security/integrity:** RLS read-only production policy audit confirms existing board `card_read/card_create/card_update` plus member-scoped `comment_read/comment_create` policies; source `leads` and `bookings` are independently queried under the authenticated session. No service-role client or elevated SQL. Ambiguous current assignee display names are rejected; view-only/preview paths never call shared task actions. Replies use local R35 request UUID only as idempotent reference; server authenticates the task publisher, **not** the handwritten identity of any local reviewer. Card receipt is editable member text, not a protected foreign key/certified signature. Revision compare-and-swap plus source checks prevent silent cross-job updates and stale task state overwrites.
+- **User flow:** Prepare owner follow-up from private field packet → explicitly choose company assignee → publish brief action (no full private field log or costs) → other founder refreshes job or common task board → updates Ready/In progress/Review/Done and writes scoped progress comments. A Done task means only a done *task*. No job completion, source booking status, final acceptance, payroll, invoice or bank movement is triggered.
+- **Scope limits:** Shared actual field times, material and cost evidence remain private/browser-local; no photos, signed customer scope, shared quote versions, authenticated field closeout, or actual payment reconciliation. This is a **limited existing-schema collaboration slice**, not the full record-persistence milestone. Actual encrypted backup + separate restore and RLS actor tests are still required before new tables. Current production safeguards and gaps: [R36 database audit](./EXTERIOR_R36_DATABASE_GATE_AUDIT.md).
+- Engineering progress **34% → 36%**, W2 **5→6** and W5 **9→10**; no points for code-only documentation or test assertions and no false claim of live founder-device acceptance.
 
 ### R36 source-qualified Dispatch Preflight + quote integrity (+2 W2, +1 W9; 2026-10-23)
 
