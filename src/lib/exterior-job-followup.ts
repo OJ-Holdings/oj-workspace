@@ -27,6 +27,7 @@ export type SharedJobFollowup={
  id:string;title:string;assignee:string;stage:Stage;priority:'normal'|'high';
  dueDate:string;revision:number;createdAt:string;updatedAt:string;
  note:string;origin:FollowupOrigin;handoffRequestId:string|null;
+ sourceDate:string;sourceTime:string|null;sourceStatus:string|null;
 };
 export const allowedFollowupStages:readonly FollowupStage[]=['Ready','In progress','Review','Done'];
 const mark='OJ_EXTERIOR_JOB_FOLLOWUP_V1';
@@ -137,6 +138,7 @@ export function projectJobFollowup(
   priority:row.priority,dueDate:row.due_date??'',revision:row.revision,
   createdAt:row.created_at??'',updatedAt:row.updated_at??'',
   note:source.note,origin:source.origin,handoffRequestId:source.handoffRequestId,
+  sourceDate:source.sourceDate,sourceTime:source.sourceTime,sourceStatus:source.sourceStatus,
  };
 }
 export function makeJobFollowupCard(org:string,booking:ExtBooking,input:NewJobFollowup):Card{
