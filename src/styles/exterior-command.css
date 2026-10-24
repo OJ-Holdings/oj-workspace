@@ -406,3 +406,53 @@
 @media(max-width:950px){.ecjourney-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.ecjourney{padding:13px;margin:12px 0}.ecjourney-steps{grid-template-columns:1fr}.ecjourney-bottom>button,.ecjourney-team-top>button{width:100%}.ecjourney-step{padding:13px}.ecjourney-team-top>div{min-width:0}}
 @media(prefers-reduced-motion:reduce){.ecjourney *{animation:none!important;transition-duration:.01ms!important}}
+
+
+/* R43: source-bound job action loop. Operational controls within the existing
+   Job Continuity desk; no new top-level app or shadow task database. */
+.ecjob-loop{margin-top:16px;min-width:0;color:#eaf3f6}
+.ecjob-loop :is(button,input,textarea,select,a):focus-visible{outline:2px solid #ffd196;outline-offset:3px}
+.ecjob-loop-grid{display:grid;grid-template-columns:minmax(0,.87fr) minmax(0,1.13fr);gap:13px;margin-top:13px;align-items:start}
+.ecjob-compose,.ecjob-progress{min-width:0;padding:clamp(13px,2vw,19px);border:1px solid rgba(160,215,204,.23);border-radius:11px;background:linear-gradient(135deg,rgba(10,36,42,.45),rgba(12,34,51,.52))}
+.ecjob-compose header,.ecjob-progress>header{display:grid;gap:7px;margin-bottom:16px}
+.ecjob-compose header>span,.ecjob-progress>header>span{font-size:9px;font-weight:850;letter-spacing:.14em;color:#94dcca}
+.ecjob-compose h5,.ecjob-progress h5{display:flex;align-items:center;gap:9px;font:850 19px/1.2 var(--font-display);color:#f2fbfa;margin:0}
+.ecjob-compose header p,.ecjob-progress header p{font-size:10px;line-height:1.7;color:#b5cad2;margin:0}
+.ecjob-compose>label,.ecjob-compose-pair label,.ecjob-work>label{display:grid;gap:8px;margin-bottom:12px;font-size:10px;font-weight:820;line-height:1.4;color:#dce9ec;min-width:0}
+.ecjob-compose :is(textarea,input,select),.ecjob-work :is(input,select){width:100%;min-width:0;min-height:44px;padding:11px 12px;border:1px solid rgba(179,212,219,.3);border-radius:8px;background:#1b3342;color:#effaf9;font:600 11px/1.5 var(--font-ui)}
+.ecjob-compose textarea{min-height:98px;resize:vertical;line-height:1.65}
+.ecjob-compose :is(textarea,input,select):disabled,.ecjob-work :is(input,select):disabled{opacity:.5;cursor:not-allowed}
+.ecjob-compose-pair{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.ecjob-compose-pair label{min-width:0}
+.ecjob-primary{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;padding:11px 13px;background:linear-gradient(118deg,#21685a,#1c5861);border:1px solid rgba(134,222,194,.45);border-radius:9px;color:#effff8;font-size:11px;font-weight:870}
+.ecjob-primary:disabled{opacity:.46;cursor:not-allowed}
+.ecjob-compose>small{display:block;margin-top:11px;color:#b4cbd3;font-size:9px;line-height:1.68}
+.ecjob-progress>header{margin-bottom:10px}
+.ecjob-worklist{display:grid;gap:11px;max-width:100%;min-width:0}
+.ecjob-work{min-width:0;display:grid;gap:10px;padding:14px;border:1px solid rgba(167,218,216,.2);border-radius:10px;background:rgba(9,23,37,.39)}
+.ecjob-work[data-stale="true"]{border-color:rgba(255,194,142,.43)}
+.ecjob-work-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.ecjob-work-head strong{font-size:12px;color:#c4f4e4}
+.ecjob-work-head span{font-size:9px;font-weight:750;color:#b5cdda}
+.ecjob-work>p{font-size:11px;line-height:1.66;margin:0;color:#f0f7f8;white-space:pre-wrap;overflow-wrap:anywhere}
+.ecjob-work>small{font-size:9px;line-height:1.5;color:#aabfc9}
+.ecjob-work>label{margin:0}
+.ecjob-comments{min-width:0;display:grid;gap:10px;border-top:1px solid rgba(160,215,204,.18);padding-top:10px}
+.ecjob-comments>p{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 9px;margin:0;padding:8px 10px;border-radius:7px;background:rgba(159,217,212,.055);font-size:10px;line-height:1.65;color:#d7e6e9}
+.ecjob-comments b{color:#b2eddb}
+.ecjob-comments time{color:#97b4c0;font-size:9px}
+.ecjob-comments span{flex-basis:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+.ecjob-comments>div{display:flex;flex-wrap:wrap;gap:7px}
+.ecjob-comments>div input{flex:1;min-width:140px}
+.ecjob-comments>div button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 15px;border:1px solid rgba(153,220,194,.35);border-radius:8px;color:#e1fcf5;background:rgba(49,127,107,.34);font-size:10px;font-weight:840}
+.ecjob-comments>div button:disabled{opacity:.45;cursor:not-allowed}
+.ecjob-foot-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:13px}
+.ecjob-foot-actions button,.ecjob-foot-actions a{display:flex;justify-content:center;align-items:center;gap:7px;min-height:43px;padding:11px 12px;border:1px solid rgba(158,213,205,.25);border-radius:8px;background:rgba(158,213,205,.08);color:#cff4e9;font-size:10px;font-weight:810;text-decoration:none}
+.ecjob-foot-actions button:disabled{opacity:.4;cursor:not-allowed}
+.ecjob-disclaimer{display:flex;align-items:flex-start;gap:8px;margin:15px 0 0;font-size:10px;line-height:1.7;color:#a8bfca}
+.ecjob-disclaimer svg{flex-shrink:0;margin-top:1px}
+.ecjourney-good{display:flex;align-items:flex-start;gap:8px;margin:12px 0;padding:12px;border-radius:9px;border:1px solid rgba(127,223,181,.3);background:rgba(127,223,181,.085);color:#b4f4d1;font-size:10px;line-height:1.65}
+.ecjourney-good svg{flex-shrink:0}
+@media(max-width:1080px){.ecjob-loop-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:540px){.ecjob-compose-pair{grid-template-columns:minmax(0,1fr)}.ecjob-compose,.ecjob-progress{padding:13px}.ecjob-comments>div input,.ecjob-comments>div button,.ecjob-foot-actions>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.ecjob-loop *{animation:none!important;transition-duration:.01ms!important}}

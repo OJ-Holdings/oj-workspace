@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,RefreshCw,ShieldAlert,UsersRound,X} from 'lucide-react';
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
-import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
+import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
 import {loadExteriorSharedFollowups} from '@/app/workspace/exterior-followup-actions';
 
 type Loaded=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:true}>;
@@ -49,15 +49,18 @@ export function ExteriorJobContinuity({
  },[org,booking.id,leadId,liveAccess,attempt]);
  useEffect(()=>{
   if(!liveAccess)return;
-  const onSaved=()=>setAttempt(n=>n+1);
-  window.addEventListener('oj-exterior-followup-saved',onSaved);
-  return()=>window.removeEventListener('oj-exterior-followup-saved',onSaved);
+  const refresh=()=>{if(document.visibilityState==='visible')setAttempt(n=>n+1);};
+  window.addEventListener('oj-exterior-followup-saved',refresh);
+  window.addEventListener('focus',refresh);
+  document.addEventListener('visibilitychange',refresh);
+  return()=>{
+   window.removeEventListener('oj-exterior-followup-saved',refresh);
+   window.removeEventListener('focus',refresh);
+   document.removeEventListener('visibilitychange',refresh);
+  };
  },[liveAccess]);
  const matchesSource=!!report&&report.source.date===booking.date&&
   report.source.time===booking.time_block&&report.source.status===booking.status;
- const active=report?.tasks.filter(x=>x.stage!=='Done')??[];
- const stale=active.filter(x=>!originalJobMatchesTask(x,booking));
- const verifiedTasks=!!report&&matchesSource&&!report.limited;
  const routeFor=(step:typeof view.steps[number])=>{
   if(step.route==='finance')return base+'/finance';
   const root=base+'/b/exterior';
@@ -97,38 +100,25 @@ export function ExteriorJobContinuity({
   </div>
   <section className="ecjourney-team" aria-label="Current shared team actions on this job">
    <div className="ecjourney-team-top">
-    <div><span>LIVE COMPANY BOARD / EXACT JOB</span>
-     <h4><UsersRound size={19}/> Team handoffs and next actions</h4>
-     <p>These alone are synced between authorized founders. They are not a signed field report, crew dispatch, final job completion or customer payment.</p>
+    <div><span>REAL COMPANY WORK / EXACT ORIGINAL BOOKING</span>
+     <h4><UsersRound size={19}/> Assign. Work. Report back.</h4>
+     <p>Both founders use the same authenticated company action record. The next step and progress comments stay with this booked job, not in a separate private field packet.</p>
     </div>
     {liveAccess&&<button type="button" disabled={loading} onClick={()=>setAttempt(n=>n+1)}>
-     <RefreshCw size={14}/> Refresh shared tasks
+     <RefreshCw size={14}/> Refresh shared actions
     </button>}
    </div>
-   {mode==='preview'?<p className="ecjourney-coverage">Fictional preview: no company task request is sent.</p>:
-    readOnly?<p className="ecjourney-coverage">A member role is needed to inspect booking-linked operational tasks. No hidden team data are assumed.</p>:
-    !view.sourceLinked?<p className="ecjourney-alert"><AlertTriangle size={16}/> Original customer and booking are not linked in the loaded source. The team board was not queried.</p>:
-    loading?<p className="ecjourney-coverage" role="status">Checking authenticated, booking-specific shared tasks…</p>:
-    failed?<p className="ecjourney-alert" role="alert"><AlertTriangle size={16}/>{failed} Counts and task state are unknown.</p>:
-    !report?<p className="ecjourney-coverage">Team task state is not loaded. This is not evidence that zero tasks exist.</p>:
-    !matchesSource?<p className="ecjourney-alert" role="alert"><AlertTriangle size={16}/> This booking changed since the original schedule was loaded. Refresh the bookings source before relying on team action status.</p>:
-    <>
-     <div className="ecjourney-team-summary">
-      <strong>{report.limited?'At least '+active.length:active.length} open job task{active.length===1?'':'s'}</strong>
-      <small>{report.limited?'Task listing is truncated at 100: do not treat the count as complete.':
-       'Loaded directly from the protected existing OJ company task board.'}</small>
-     </div>
-     {stale.length>0&&<p className="ecjourney-alert" role="alert"><AlertTriangle size={15}/>
-      {stale.length} open task(s) refer to an older appointment date, time or status. Review the original booking before treating their instructions as current.
-     </p>}
-     {active.length?
-       <ul>{active.slice(0,5).map(t=><li key={t.id}>
-         <div><strong>{t.assignee}</strong><span>{originalJobMatchesTask(t,booking)?t.stage:'STALE SOURCE — '+t.stage} · {t.dueDate?'Due '+shortDay(t.dueDate):'Due date not recorded'} · {t.priority} priority</span></div>
-         <p>{t.note}</p>
-        </li>)}</ul>:
-       <p className="ecjourney-coverage">{verifiedTasks?'No active booking-linked company actions have been published. Use Dispatch Preflight to assign a real follow-up.':'No active task is shown in this partial task window. Absence has not been proved.'}</p>}
-     <Link href={base+'/b/exterior'}>Open founder Operations Inbox <ArrowRight size={14}/></Link>
-    </>}
+   {mode==='preview'?<p className="ecjourney-coverage">Fictional preview: no company tasks were read or changed.</p>:
+    readOnly?<p className="ecjourney-coverage">This account does not have permission to view booking-linked company tasks. No private company work was retrieved.</p>:
+    !view.sourceLinked?<p className="ecjourney-alert"><AlertTriangle size={16}/> Original customer/booking link is missing. The team board was not queried.</p>:
+    loading?<p className="ecjourney-coverage" role="status">Loading authenticated job assignments and progress…</p>:
+    failed?<p className="ecjourney-alert" role="alert"><AlertTriangle size={16}/>{failed} Shared progress is unavailable, not zero.</p>:
+    !report?<p className="ecjourney-coverage">The company task source has not loaded. No assignments or task results have been inferred.</p>:
+    !matchesSource?<p className="ecjourney-alert" role="alert"><AlertTriangle size={16}/> The original booking changed since this page loaded. Refresh Jobs & Bookings before assigning or updating any team tasks.</p>:
+    <ExteriorJobActionLoop
+     key={booking.id} org={org} booking={booking} leadId={leadId} base={base}
+     board={report} onRefresh={()=>setAttempt(n=>n+1)}
+    />}
   </section>
   <footer className="ecjourney-bottom">
    <button type="button" onClick={()=>void copyLink()}><ClipboardList size={15}/>{linkCopied?'Job link copied':'Copy this exact job link'}</button>
