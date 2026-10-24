@@ -20,16 +20,27 @@ docker run --rm -d --name "$source_container" \
   -e POSTGRES_PASSWORD="$PGPASSWORD" postgres:17 >/dev/null
 docker run --rm -d --name "$target_container" \
   -e POSTGRES_PASSWORD="$PGPASSWORD" -p 127.0.0.1:15432:5432 postgres:17 >/dev/null
+# Docker's first-launch initdb brings up a TEMPORARY socket-only server,
+# runs bootstrapping SQL, shuts it down and only THEN starts final PostgreSQL.
+# An unqualified socket pg_isready can report success for that temporary
+# server, followed by an intermittent psql socket failure on clean CI runners.
+# TCP loopback is available only on the final database server. Verify a
+# successful query too, not just a briefly responsive socket.
 for c in "$source_container" "$target_container"; do
   ready=0
-  for attempt in $(seq 1 45); do
-    if docker exec "$c" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+  for attempt in $(seq 1 60); do
+    if docker exec "$c" pg_isready -h 127.0.0.1 -U postgres -d postgres >/dev/null 2>&1 &&
+       [[ "$(docker exec "$c" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc 'SELECT 1' 2>/dev/null)" == "1" ]]; then
       ready=1
       break
     fi
     sleep 1
   done
-  if [[ "$ready" != 1 ]]; then echo "Synthetic $c not ready" >&2; exit 1; fi
+  if [[ "$ready" != 1 ]]; then
+    echo "Synthetic PostgreSQL did not become queryable on TCP after 60 seconds." >&2
+    docker logs "$c" 2>&1 | tail -n 25 >&2 || true
+    exit 1
+  fi
 done
 echo "[synthetic] Preparing public/auth OJ fixture; no production data"
 docker exec -i "$source_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
