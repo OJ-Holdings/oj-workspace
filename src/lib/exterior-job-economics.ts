@@ -15,7 +15,7 @@ import {
  */
 export type JobEconomicsReview={
  bookingId:string;leadId:string;
- sourceBookingCount:number;sourceBookingCurrent:boolean;
+ sourceBookingCount:number;sourceBookingCurrent:boolean;bookingCoverageComplete:boolean;
  quoteAmount:number|null;quoteAccepted:'unverified';
  localEstimateAvailable:boolean;estimateSourceCurrent:boolean;
  planned:ExteriorEstimateTotals|null;field:FieldCostReview|null;
@@ -29,7 +29,7 @@ const known=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>
 
 export function reviewJobEconomics(
  booking:ExtBooking,lead:ExtLead,allBookings:readonly ExtBooking[],
- field:ExteriorFieldLog|null,estimate:ExteriorEstimate|null,
+ field:ExteriorFieldLog|null,estimate:ExteriorEstimate|null,bookingCoverageComplete=false,
 ):JobEconomicsReview{
  if(booking.lead_id!==lead.id)throw Error('Booking is not linked to this exact customer.');
  const count=allBookings.filter(b=>b.lead_id===lead.id&&b.status!=='cancelled'&&b.status!=='denied').length;
@@ -45,6 +45,7 @@ export function reviewJobEconomics(
  const fieldHoursReviewed=fieldValid&&field?.review.labor&&field.labor.every(l=>l.hours!==null)
   ?cents(field.labor.reduce((sum,l)=>sum+(l.hours??0),0)):null;
  const reasons:string[]=[];
+ if(!bookingCoverageComplete)reasons.push('Authorized booking result is truncated or its total count is unknown; unique visit attribution is not proven.');
  if(!sourceBookingCurrent)reasons.push('Original booking source is no longer in the currently loaded matching snapshot.');
  if(count!==1)reasons.push(count>1?
    'This original lead has multiple non-cancelled bookings; its quoted amount cannot be assigned to this particular visit.':
@@ -74,7 +75,7 @@ export function reviewJobEconomics(
  if(reviewed&&reviewed.totalDirectCost===null)warnings.push('Local actual work expenses are operator-entered and cost coverage is incomplete.');
  if(reviewed&&reviewed.criticalIssues>0)warnings.push('Unresolved stop-work issue(s) in the field log; no work completion clearance can be inferred.');
  warnings.push('Customer approval, final invoice, payment, payroll and verified booked-job revenue are not established by this review.');
- return {bookingId:booking.id,leadId:lead.id,sourceBookingCount:count,sourceBookingCurrent,
+ return {bookingId:booking.id,leadId:lead.id,sourceBookingCount:count,sourceBookingCurrent,bookingCoverageComplete,
   quoteAmount,quoteAccepted:'unverified',localEstimateAvailable,estimateSourceCurrent,
   planned,field:reviewed,fieldSourceCurrent,fieldHoursReviewed,
   quoteLessFieldCost,quoteLessFieldCostRatio,plannedCostMinusFieldCost,
@@ -88,6 +89,7 @@ export function jobEconomicsInternalBrief(report:JobEconomicsReview,lead:ExtLead
   'Booking ID: '+report.bookingId,'Original lead ID: '+report.leadId,
   'Customer: '+(lead.name??'Unknown'),'Service address: '+(lead.address??'Unknown'),
   'Booking date: '+booking.date+' / source booking status '+(booking.status??'unknown'),
+  'Complete booking source coverage: '+(report.bookingCoverageComplete?'yes':'not proven'),
   'Lead-level quote: '+money(report.quoteAmount)+' (NOT accepted or booking-revenue evidence)',
   'Local estimate source current: '+(report.estimateSourceCurrent?'yes':'no or missing'),
   'Local planned direct cost: '+money(report.planned?.cost??null),
