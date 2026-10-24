@@ -32,7 +32,9 @@ jobs:
             'scripts/install-supabase-backup-task.ps1',
             'scripts/verify-production-windows.ps1',
             'scripts/restore-supabase-isolated.ps1',
-            'scripts/tests/restore-supabase-isolated.Tests.ps1'
+            'scripts/tests/restore-supabase-isolated.Tests.ps1',
+            'scripts/exterior-r40-recovery-preflight.ps1',
+            'scripts/tests/exterior-r40-recovery-preflight.Tests.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -48,6 +50,9 @@ jobs:
       - name: Reject unsafe isolated restore targets (offline, no credentials)
         shell: pwsh
         run: ./scripts/tests/restore-supabase-isolated.Tests.ps1
+      - name: Validate founder recovery preflight trust boundary (offline)
+        shell: pwsh
+        run: ./scripts/tests/exterior-r40-recovery-preflight.Tests.ps1
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
