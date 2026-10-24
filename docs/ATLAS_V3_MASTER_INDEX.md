@@ -22,6 +22,12 @@ Examples of natural flows, from any relevant screen:
 
 **The smallest visible unit of ATLAS is a business decision attached to real evidence.** Page counts and module counts are not success metrics.
 
+## Active Exterior Care Integration & Adoption Program (begins October 24, 2026)
+
+After a full code-and-live-source critique at Exterior Release 41, the founders directed us to **execute an integration and usability improvement program FIRST**, before resuming the normal ATLAS/Exterior feature expansion. The existing 12-wave Exterior master plan and its single weighted completion score remain in force; the new pass sequence is an ordered overlay, not a second or conflicting program.
+
+**[Read the active seven-pass Exterior Integration & Adoption Program](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md).** P1 consolidates exact-source booking/customer/quote, protected team tasks and explicit local/absent field/finance stages inside Bookings (no new tab). P2 demands the real founder-host deployment, two-phone and independent encrypted production recovery/Storage/RLS proofs. P3 durable quote/work-order spine; P4 field/crew/fleet; P5 invoice-to-bank collection; P6 commercial/analytics integration; P7 remove redundant navigation **after parity**, run a new comprehensive critique, and **resume the pre-existing regular roadmap**. Documentation and synthetic tests alone earn no completion points.
+
 ## Non-negotiable product calls
 
 1. **Do not preserve a redundant Connected Operations tab as permanent top-level navigation.** Integration is a horizontal **record relationship layer**: shared entity panels, contextual actions, history, search, universal activity, related resources, and normal navigation inside every room. Existing `/tools/operations` may be used as temporary compatibility / diagnostics, then retire its sidebar entry after parity tests; do not delete existing code/data blindly.

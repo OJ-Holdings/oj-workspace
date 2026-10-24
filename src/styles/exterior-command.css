@@ -348,3 +348,61 @@
 @media(max-width:730px){.ecdispatch-delegate-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ecdispatch-delegate-fields label:first-child,.ecdispatch-delegate-message{grid-column:1/-1}}
 @media(max-width:520px){.ecdispatch-delegate{padding:15px 11px}.ecdispatch-delegate-fields{grid-template-columns:minmax(0,1fr)}.ecdispatch-delegate-fields label:first-child,.ecdispatch-delegate-message{grid-column:auto}.ecdispatch-delegate-toolbar{align-items:stretch}.ecdispatch-delegate-toolbar button{width:100%;justify-content:center}.ecdispatch-delegate-publish,.ecdispatch-delegate-bottom a{width:100%}.ecdispatch-actions .ecdispatch-assign-btn{flex:1}}
 @media(prefers-reduced-motion:reduce){.ecdispatch-delegate *{animation:none!important;transition-duration:.01ms!important}}
+
+
+/* Exterior Integration & Adoption P1: one exact job, one visible record trail.
+   This is embedded inside Bookings, not another top-level app. */
+.ecjourney{--ej-ink:#eaf0f4;--ej-edge:rgba(177,207,222,.22);margin:18px 0;padding:clamp(15px,2.6vw,28px);border:1px solid var(--ej-edge);border-radius:16px;background:linear-gradient(145deg,#10202e,#142437 70%,#1a2b37);color:var(--ej-ink);box-shadow:0 18px 34px rgba(8,14,24,.12)}
+.ecjourney button,.ecjourney a{cursor:pointer}
+.ecjourney :is(button,a):focus-visible{outline:2px solid #ffbe83;outline-offset:3px}
+.ecjourney-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.ecjourney-head>div{min-width:0}
+.ecjourney-head span,.ecjourney-team-top span{display:block;font-size:9px;font-weight:830;letter-spacing:.14em;color:#95d5c5}
+.ecjourney-head h3{margin:5px 0 8px;color:#f3f9fb;font:850 clamp(21px,2.8vw,33px)/1.12 var(--font-display);letter-spacing:-.035em}
+.ecjourney-head p{margin:0;font-size:11px;line-height:1.65;color:#b5c6d1}
+.ecjourney-head>button{min-width:42px;min-height:42px;display:flex;align-items:center;justify-content:center;border:1px solid var(--ej-edge);border-radius:9px;color:#dbebed;background:rgba(180,208,213,.07)}
+.ecjourney-meta{display:flex;flex-wrap:wrap;gap:9px 16px;margin:16px 0 19px;padding:11px 13px;border:1px solid rgba(177,207,222,.15);border-radius:9px;color:#afc4d0;background:rgba(177,207,222,.045);font-size:10px;font-weight:650}
+.ecjourney-meta span{display:flex;align-items:center;gap:7px}
+.ecjourney-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ecjourney-step{display:flex;flex-direction:column;align-items:stretch;gap:11px;padding:16px;border:1px solid rgba(177,207,222,.17);border-radius:11px;background:rgba(235,248,255,.038);min-width:0}
+.ecjourney-step[data-evidence="source"]{border-top:2px solid #79c6aa}
+.ecjourney-step[data-evidence="review"]{border-top:2px solid #e9b47e}
+.ecjourney-step[data-evidence="local-only"]{border-top:2px solid #7bafd5}
+.ecjourney-step[data-evidence="not-built"]{border-top:2px solid #8296a7}
+.ecjourney-step-heading{display:flex;align-items:flex-start;gap:11px}
+.ecjourney-number{flex-shrink:0;color:#8eabb8;font-size:10px;font-weight:850;letter-spacing:.12em;margin-top:4px}
+.ecjourney-step-heading div{min-width:0}
+.ecjourney-step-heading h4{font:800 14px/1.25 var(--font-display);color:#eef4f5;margin:0 0 5px}
+.ecjourney-step-heading small{font-size:10px;font-weight:700;color:#c2d3dc}
+.ecjourney-step[data-evidence="source"] .ecjourney-step-heading small{color:#9ce1c9}
+.ecjourney-step[data-evidence="review"] .ecjourney-step-heading small{color:#ffd4aa}
+.ecjourney-step[data-evidence="local-only"] .ecjourney-step-heading small{color:#a9d5f1}
+.ecjourney-step p{flex:1;margin:0;color:#b9cbd5;font-size:10px;line-height:1.72;overflow-wrap:anywhere}
+.ecjourney-step>a{display:flex;align-items:center;gap:6px;align-self:flex-start;color:#afdfe0;font-size:10px;font-weight:800;text-decoration:none;min-height:30px}
+.ecjourney-team{margin-top:13px;padding:clamp(13px,2vw,19px);border:1px solid rgba(143,217,199,.22);border-radius:11px;background:rgba(127,204,186,.045)}
+.ecjourney-team-top{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:14px}
+.ecjourney-team-top>div{flex:1;min-width:220px}
+.ecjourney-team-top h4{display:flex;align-items:center;gap:8px;margin:7px 0;font:820 17px/1.25 var(--font-display);color:#ecf8f3}
+.ecjourney-team-top p{margin:0;max-width:850px;font-size:10px;color:#aec8c7;line-height:1.65}
+.ecjourney-team-top>button,.ecjourney-bottom button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:10px 13px;border:1px solid rgba(171,216,203,.33);border-radius:8px;background:rgba(114,184,169,.1);color:#e0f8f1;font-size:10px;font-weight:800}
+.ecjourney-team-top>button:disabled{opacity:.55;cursor:not-allowed}
+.ecjourney-team-summary{display:flex;align-items:baseline;flex-wrap:wrap;gap:9px;margin-top:15px}
+.ecjourney-team-summary strong{font-size:13px;color:#c5f3e8}
+.ecjourney-team-summary small{font-size:10px;color:#b1c6c7}
+.ecjourney-team ul{padding:0;margin:14px 0;display:grid;gap:9px;list-style:none}
+.ecjourney-team li{padding:10px 12px;border:1px solid rgba(171,216,203,.2);border-radius:8px;background:rgba(11,24,31,.24)}
+.ecjourney-team li>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px}
+.ecjourney-team li>div span{font-size:10px;color:#b0c5d0}
+.ecjourney-team li p{font-size:10px;line-height:1.6;margin:7px 0 0;color:#cadce4;overflow-wrap:anywhere}
+.ecjourney-team>a{display:inline-flex;align-items:center;gap:6px;padding:9px 0;color:#9cdbc9;text-decoration:none;font-size:10px;font-weight:800}
+.ecjourney-alert,.ecjourney-coverage{display:flex;align-items:flex-start;gap:10px;margin:12px 0;padding:12px;border:1px solid rgba(235,175,125,.31);border-radius:9px;background:rgba(235,175,125,.07);color:#f1c9a3;font-size:11px;line-height:1.65}
+.ecjourney-alert button{border:0;color:inherit;background:none;text-decoration:underline}
+.ecjourney-coverage{border-color:rgba(167,209,214,.19);background:rgba(167,209,214,.045);color:#bacbd4}
+.ecjourney-alert svg{flex-shrink:0;margin-top:1px}
+.ecjourney-bottom{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding-top:13px}
+.ecjourney-bottom small{flex:1;font-size:10px;color:#b4cad1;line-height:1.55;min-width:220px}
+.ecjourney-note{display:flex;align-items:flex-start;gap:9px;margin:12px 0 0;color:#98afbc;font-size:10px;line-height:1.65}
+.ecjourney-note svg{flex-shrink:0;margin-top:1px}
+@media(max-width:950px){.ecjourney-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.ecjourney{padding:13px;margin:12px 0}.ecjourney-steps{grid-template-columns:1fr}.ecjourney-bottom>button,.ecjourney-team-top>button{width:100%}.ecjourney-step{padding:13px}.ecjourney-team-top>div{min-width:0}}
+@media(prefers-reduced-motion:reduce){.ecjourney *{animation:none!important;transition-duration:.01ms!important}}
