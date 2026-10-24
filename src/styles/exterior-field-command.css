@@ -147,3 +147,46 @@
 .ecfield-equip-review:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:520px){.ecfield-equip-head{grid-template-columns:repeat(2,minmax(0,1fr))}.ecfield-equip-actions>a,.ecfield-equip-actions>button{flex:1}.ecfield-equip-head>div:last-child{grid-column:1/-1}}
 @media(max-width:360px){.ecfield-equip-head{grid-template-columns:minmax(0,1fr)}.ecfield-equip-head>div:last-child{grid-column:auto}}
+
+
+/* Exterior R33 / booking-bound estimate vs field economics. Never displays unverified cash as earned revenue. */
+.ecfield-economics{display:grid;gap:15px}
+.ecfield-economics .ecfield-heading{margin:0}
+.ecfield-econ-context{margin:0;font-size:10px;line-height:1.65;color:var(--ink-3);padding:10px 12px;border:1px solid var(--fld-line);border-radius:8px;background:var(--bg-2)}
+.ecfield-econ-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ecfield-econ-grid>div{display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--bg-2);border:1px solid var(--fld-line);border-radius:9px;padding:13px}
+.ecfield-econ-grid small{font-size:10px;color:var(--ink-3);line-height:1.4}
+.ecfield-econ-grid strong{font:820 clamp(21px,2.25vw,30px)/1.1 var(--font-display);letter-spacing:-.04em;overflow-wrap:anywhere}
+.ecfield-econ-grid span{font-size:9px;color:var(--ink-3);line-height:1.55;margin-top:auto}
+.ecfield-econ-scenario{display:grid;gap:11px;padding:20px 17px;border-radius:10px;border:1px solid rgba(145,212,187,.3);background:radial-gradient(ellipse at 95% 0%,rgba(139,223,194,.13),transparent 70%),var(--bg-2)}
+.ecfield-econ-scenario>div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ecfield-econ-scenario>div svg{color:var(--fld-green)}
+.ecfield-econ-scenario>strong{font:850 clamp(28px,4vw,42px)/1 var(--font-display);letter-spacing:-.06em;color:var(--ink)}
+.ecfield-econ-scenario>p{font-size:10px;line-height:1.65;color:var(--ink-2);margin:0}
+.ecfield-econ-scenario>small{font-size:9px;line-height:1.55;color:var(--ink-3)}
+.ecfield-econ-bars{display:grid;gap:12px;padding:14px;border:1px solid var(--fld-line);border-radius:9px;background:var(--bg-2)}
+.ecfield-econ-bars>div{display:grid;gap:6px}
+.ecfield-econ-bars label{display:flex;gap:10px;justify-content:space-between;align-items:baseline;color:var(--ink-3);font-size:10px}
+.ecfield-econ-bars label strong{color:var(--ink);font-size:10px}
+.ecfield-econ-bars>div>span{display:block;height:9px;border-radius:99px;background:rgba(155,185,211,.13);overflow:hidden}
+.ecfield-econ-bars i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#e4ab79,#f0d4a3);transition:width 240ms}
+.ecfield-econ-bars>div:nth-child(2) i{background:linear-gradient(90deg,#68b59d,#afe7c5)}
+.ecfield-econ-bars p{margin:0;font-size:9px;line-height:1.55;color:var(--ink-3)}
+.ecfield-econ-variance{display:grid;gap:8px;border:1px solid var(--fld-line);padding:15px;border-radius:9px;background:var(--bg-2)}
+.ecfield-econ-variance>span{font-size:10px;color:var(--ink-3);line-height:1.5}
+.ecfield-econ-variance>strong{font:820 24px/1.2 var(--font-display)}
+.ecfield-econ-variance>small{font-size:10px;color:var(--ink-3);line-height:1.6}
+.ecfield-econ-eligible{display:flex;gap:8px;align-items:start;padding:12px;border:1px solid rgba(142,214,186,.3);border-radius:8px;background:rgba(142,214,186,.08);color:var(--ink-2);font-size:10px;line-height:1.65;margin:0}
+.ecfield-econ-eligible svg{flex-shrink:0;color:var(--fld-green)}
+.ecfield-econ-gaps,.ecfield-econ-warnings{padding:14px 15px;border:1px solid rgba(241,167,106,.26);border-radius:9px;background:rgba(241,167,106,.06);display:grid;gap:9px}
+.ecfield-econ-gaps>strong{font-size:11px;color:var(--ink)}
+.ecfield-econ-gaps ul,.ecfield-econ-warnings ul{padding-left:18px;margin:0;display:grid;gap:7px}
+.ecfield-econ-gaps li,.ecfield-econ-warnings li{font-size:10px;color:var(--ink-2);line-height:1.55}
+.ecfield-econ-warnings{border-color:var(--fld-line);background:var(--bg-2)}
+.ecfield-econ-actions{display:grid;gap:8px}
+.ecfield-econ-actions>a,.ecfield-econ-actions>button{display:flex;align-items:center;gap:8px;min-height:41px;padding:11px 12px;border-radius:8px;border:1px solid rgba(142,214,186,.25);background:rgba(142,214,186,.07);color:var(--fld-green);font-size:10px;font-weight:830;text-decoration:none;cursor:pointer}
+.ecfield-econ-actions>a:hover,.ecfield-econ-actions>button:not(:disabled):hover{background:rgba(142,214,186,.14)}
+.ecfield-econ-actions>a svg:last-child{margin-left:auto}
+.ecfield-econ-actions>button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:450px){.ecfield-econ-grid{grid-template-columns:minmax(0,1fr)}.ecfield-econ-scenario{padding:15px}.ecfield-econ-scenario>strong{font-size:32px}}
+@media(prefers-reduced-motion:reduce){.ecfield-econ-bars i{transition:none}}
