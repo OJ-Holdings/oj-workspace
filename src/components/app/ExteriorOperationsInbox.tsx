@@ -16,7 +16,7 @@ import {allowedFollowupStages,type FollowupStage} from '@/lib/exterior-job-follo
 type Props={org:string;mode:'live'|'preview';base:string;readOnly:boolean};
 const followupLabel=(s:string)=>s==='Ready'?'To do':s==='In progress'?'In progress':
  s==='Review'?'Owner review':s==='Done'?'Task done':s;
-const shortDate=(s:string)=>new Date(s+'T12:00:00').toLocaleDateString('en-US',{
+const shortDate=(s:string)=>new Date(s+'T12:00:00Z').toLocaleDateString('en-US',{
  month:'short',day:'numeric',timeZone:'America/Chicago',
 });
 const time=(s:string)=>new Date(s).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -35,6 +35,7 @@ export function ExteriorOperationsInbox({org,mode,base,readOnly}:Props){
  const [shown,setShown]=useState(8);
  const [reload,setReload]=useState(0);
  const [pendingTask,setPendingTask]=useState<string|null>(null);
+ useEffect(()=>{setLatest(null);setError('');setNotice('');},[org,live]);
  useEffect(()=>{
   if(!live){setLatest(null);setError('');return;}
   let cancelled=false;
@@ -111,7 +112,7 @@ export function ExteriorOperationsInbox({org,mode,base,readOnly}:Props){
    <div className="ecinbox-toolbar">
     <div className="ecinbox-tabs" role="group" aria-label="Filter shared job work">
      {([
-      ['all','Team queue',total?.active],
+      ['all','Team queue',total?.visible],
       ['mine','Assigned to me',total?.mine],
       ['overdue','Overdue',total?.overdue],
       ['review','Needs review',total?.review],
