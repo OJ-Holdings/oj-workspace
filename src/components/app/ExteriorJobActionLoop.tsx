@@ -126,7 +126,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
  return <div className="ecjob-loop" aria-label="Act on this booking with the company">
   {!canWrite&&<p className="ecjourney-alert" role="alert">
    <AlertTriangle size={15}/>
-   Original booking was denied, cancelled, has no current confirmed source status, or changed since the latest company task snapshot. Task updates and assignment are disabled until you refresh the original booking.
+   Original booking was denied, cancelled, is not in a supported active state, or changed since the latest company task snapshot. Task updates and assignment are disabled until you refresh the original booking.
   </p>}
   {board.limited&&<p className="ecjourney-alert" role="status">
    <AlertTriangle size={15}/>
