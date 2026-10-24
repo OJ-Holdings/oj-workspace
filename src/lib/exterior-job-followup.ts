@@ -1,0 +1,151 @@
+import type {Card,Stage} from './board';
+import type {ExtBooking} from './exterior';
+
+/**
+ * R37: shared, authenticated COMPANY TASKS on the existing oj_cards board.
+ * This is intentionally NOT a synced field worksheet, protected quote version,
+ * certified owner review, employee timesheet, invoice or paid job.
+ *
+ * The receipt is a structured LINK HINT in editable task text; it is not a
+ * relational FK or tamper-proof provenance claim. Server actions must re-check
+ * org membership and exact original booking/lead on EVERY read/write.
+ */
+export type FollowupOrigin='manual-job-task'|'private-owner-reply-reference';
+export type FollowupStage=Extract<Stage,'Ready'|'In progress'|'Review'|'Done'>;
+export type NewJobFollowup={
+ taskId:string;sourceDate:string;sourceTime:string|null;sourceStatus:string|null;
+ leadId:string;assignee:string;note:string;dueOn:string;priority:'normal'|'high';
+ origin:FollowupOrigin;handoffRequestId:string|null;
+};
+export type JobFollowupReceipt={
+ organizationId:string;bookingId:string;leadId:string;
+ sourceDate:string;sourceTime:string|null;sourceStatus:string|null;
+ origin:FollowupOrigin;handoffRequestId:string|null;
+ note:string;
+};
+export type SharedJobFollowup={
+ id:string;title:string;assignee:string;stage:Stage;priority:'normal'|'high';
+ dueDate:string;revision:number;createdAt:string;updatedAt:string;
+ note:string;origin:FollowupOrigin;handoffRequestId:string|null;
+};
+export const allowedFollowupStages:readonly FollowupStage[]=['Ready','In progress','Review','Done'];
+const mark='OJ_EXTERIOR_JOB_FOLLOWUP_V1';
+const actionMarker='ACTION:\n';
+export const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const validDay=(v:unknown):v is string=>typeof v==='string'&&/^\d{4}-\d\d-\d\d$/.test(v)&&
+ Number.isFinite(Date.parse(v+'T12:00:00Z'))&&
+ new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
+const safeSingle=(v:string|null,max=90)=>v===null||(
+ v.length<=max&&!/[\r\n\x00-\x1F]/.test(v)
+);
+const active=(v:string|null)=>v!=='denied'&&v!=='cancelled'&&v!==null;
+const request=(v:unknown):v is string=>typeof v==='string'&&uuid.test(v);
+export function validateJobFollowup(
+ org:string,booking:ExtBooking,input:NewJobFollowup,
+):NewJobFollowup{
+ if(!request(org)||!request(booking.id)||!request(input.leadId)||booking.lead_id!==input.leadId)
+  throw Error('A real, exact organization, booking and customer identity is required.');
+ if(!request(input.taskId))throw Error('The shared task needs a valid unique identifier.');
+ if(!active(booking.status))throw Error('This original booking is no longer active; refresh the source.');
+ if(!validDay(booking.date)||!validDay(input.sourceDate)||
+   booking.date!==input.sourceDate||booking.time_block!==input.sourceTime||
+   booking.status!==input.sourceStatus)
+  throw Error('The original booking date, time or status changed. Refresh before publishing.');
+ if(!safeSingle(booking.time_block,50)||!safeSingle(booking.status,50))
+  throw Error('The original booking time or status is not safely formatted.');
+ if(typeof input.note!=='string'||input.note.trim().length<10||input.note.length>1200||
+    /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(input.note))
+  throw Error('Write a specific internal next action of 10 to 1200 characters.');
+ if(typeof input.assignee!=='string'||input.assignee.length>120||!input.assignee.trim()||
+    /[\r\n\x00-\x1F]/.test(input.assignee))
+  throw Error('Choose a current company member to own this follow-up.');
+ if(!['normal','high'].includes(input.priority))throw Error('Select a valid urgency.');
+ if(input.dueOn!==''&&!validDay(input.dueOn))throw Error('Follow-up date is invalid.');
+ if(input.origin!=='manual-job-task'&&input.origin!=='private-owner-reply-reference')
+  throw Error('Unknown follow-up source.');
+ if(input.origin==='private-owner-reply-reference'&&!request(input.handoffRequestId))
+  throw Error('The imported private reply must have a valid request identifier.');
+ if(input.origin==='manual-job-task'&&input.handoffRequestId!==null)
+  throw Error('Manually entered actions cannot claim to be an imported owner reply.');
+ return {...input,note:input.note.trim(),assignee:input.assignee.trim()};
+}
+export function buildJobFollowupDescription(
+ org:string,booking:ExtBooking,input:NewJobFollowup,
+):string{
+ const x=validateJobFollowup(org,booking,input);
+ return [
+  mark,'Organization ID: '+org,'Exterior booking ID: '+booking.id,
+  'Exterior lead ID: '+x.leadId,'Source booking day: '+booking.date,
+  'Source booking time: '+(booking.time_block??'NONE'),
+  'Source booking status: '+(booking.status??'NONE'),
+  'Origin: '+x.origin,'Local handoff request: '+(x.handoffRequestId??'NONE'),
+  '',
+  'INTERNAL SHARED COMPANY TASK — not proof of completed work,',
+  'customer consent, source price acceptance, reviewed payroll or payment.',
+  'Private field notes and labor/cost files remain on their originating device.',
+  '',
+  actionMarker+x.note,
+ ].join('\n');
+}
+export function parseJobFollowupReceipt(value:unknown):JobFollowupReceipt|null{
+ if(typeof value!=='string'||value.length>8000)return null;
+ const parts=value.split('\n');
+ if(parts.length<15||parts[0]!==mark)return null;
+ const field=(n:number,prefix:string)=>{
+  const s=parts[n];return typeof s==='string'&&s.startsWith(prefix)?s.slice(prefix.length):null;
+ };
+ const organizationId=field(1,'Organization ID: ');
+ const bookingId=field(2,'Exterior booking ID: ');
+ const leadId=field(3,'Exterior lead ID: ');
+ const sourceDate=field(4,'Source booking day: ');
+ const rawTime=field(5,'Source booking time: ');
+ const rawStatus=field(6,'Source booking status: ');
+ const origin=field(7,'Origin: ');
+ const rawRequest=field(8,'Local handoff request: ');
+ const idx=value.indexOf('\n'+actionMarker);
+ const note=idx>=0?value.slice(idx+1+actionMarker.length):'';
+ if(!request(organizationId)||!request(bookingId)||!request(leadId)||
+    !validDay(sourceDate)||rawTime===null||rawStatus===null||rawRequest===null||
+    (origin!=='manual-job-task'&&origin!=='private-owner-reply-reference')||
+    (rawRequest!=='NONE'&&!request(rawRequest))||
+    (origin==='private-owner-reply-reference'&&rawRequest==='NONE')||
+    (origin==='manual-job-task'&&rawRequest!=='NONE')||
+    note.trim().length<10||note.length>1200)return null;
+ const sourceTime=rawTime==='NONE'?null:rawTime;
+ const sourceStatus=rawStatus==='NONE'?null:rawStatus;
+ if(!safeSingle(sourceTime,50)||!safeSingle(sourceStatus,50))return null;
+ return {
+  organizationId,bookingId,leadId,sourceDate,sourceTime,sourceStatus,
+  origin,handoffRequestId:rawRequest==='NONE'?null:rawRequest,note,
+ };
+}
+export function isJobFollowupFor(
+ description:unknown,org:string,bookingId:string,leadId:string,
+):boolean{
+ const p=parseJobFollowupReceipt(description);
+ return !!p&&p.organizationId===org&&p.bookingId===bookingId&&p.leadId===leadId;
+}
+export function projectJobFollowup(
+ row:Card&{created_at?:string;updated_at?:string},
+ org:string,bookingId:string,leadId:string,
+):SharedJobFollowup|null{
+ if(row.organization_id!==org||row.business!=='exterior'||
+    !isJobFollowupFor(row.description,org,bookingId,leadId))return null;
+ const source=parseJobFollowupReceipt(row.description)!;
+ return {
+  id:row.id,title:row.title,assignee:row.assignee,stage:row.stage,
+  priority:row.priority,dueDate:row.due_date??'',revision:row.revision,
+  createdAt:row.created_at??'',updatedAt:row.updated_at??'',
+  note:source.note,origin:source.origin,handoffRequestId:source.handoffRequestId,
+ };
+}
+export function makeJobFollowupCard(org:string,booking:ExtBooking,input:NewJobFollowup):Card{
+ const x=validateJobFollowup(org,booking,input);
+ return {
+  id:x.taskId,organization_id:org,
+  title:'Exterior job follow-up • '+booking.date,
+  description:buildJobFollowupDescription(org,booking,x),business:'exterior',
+  stage:'Ready',priority:x.priority,assignee:x.assignee,due_date:x.dueOn,
+  revision:0,checklist:[],
+ };
+}
