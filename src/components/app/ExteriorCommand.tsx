@@ -12,6 +12,7 @@ import {loadExterior} from '@/app/workspace/exterior-actions';
 import {sampleExterior} from '@/lib/exterior-sample';
 import {businessDay} from '@/lib/reporting';
 import {buildExteriorCommand,type ExteriorCommandSnapshot} from '@/lib/exterior-command';
+import {ExteriorDispatchPreflight} from './ExteriorDispatchPreflight';
 import type {Card} from '@/lib/board';
 import type {ExteriorResult} from '@/lib/exterior';
 
@@ -108,6 +109,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,onNewTask}:Props){
       </Link>)}
     </section>
 
+    <ExteriorDispatchPreflight data={result.data} now={loadedAt} base={base} mode={mode} compact/>
     <section className="excmd-workspace" aria-label="Operations and founder decisions">
       <div className="excmd-mission-board">
         <header className="excmd-section-header">
