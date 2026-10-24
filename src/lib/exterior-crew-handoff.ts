@@ -82,7 +82,7 @@ export function createFieldHandoffRequest(
 ):FieldHandoffRequest{
  if(!id(org)||!id(requestId)||booking.lead_id!==lead.id||
     !Number.isFinite(issuedAt.getTime())||!name(preparedBy,64))
-  throw Error('A valid exact source booking, author label and new request ID are required.');
+  throw Error('A valid exact original source booking, author label and new request ID are required.');
  const draft={
   format:'oj-exterior-crew-handoff',version:1,purpose:'internal-review-only',
   organization_id:org,booking_id:booking.id,lead_id:lead.id,
