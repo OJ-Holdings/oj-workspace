@@ -2,6 +2,9 @@
 
 **Snapshot:** 2026-10-23 (America/Chicago). This is a **handoff snapshot, not a live status feed**. **Always re-check GitHub `main`, open PRs, current CI checks, production release receipt, and Supabase migration history before acting.** Do not infer that any pending item was merged after this snapshot.
 
+> **FAST START / NEW CHAT:** Read [`EXTERIOR_CONTINUE_HERE.md`](./EXTERIOR_CONTINUE_HERE.md) FIRST. It contains a compact verified 27% R33 checkpoint, active wave scores, exact merge/CI evidence, no-production-migration rules, next task options, the mandatory GitHub handoff checklist, and a ready-to-paste continuation prompt. This long file is the historical release archive and is NOT the easiest entry point for a fresh chat.
+
+
 
 ## EXTERIOR COMMAND R33 JOB ECONOMICS REVIEW (2026-10-23)
 
