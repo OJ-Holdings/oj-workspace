@@ -1,8 +1,15 @@
 # Exterior Command — CONTINUE HERE (canonical active handoff)
 
-> **Snapshot:** October 24, 2026, America/Chicago, after merged Release 41 dispatch quick delegation. This file is a *checkpoint*, not a live feed. A new agent MUST inspect GitHub `main`, open PRs, exact-head CI, production/host release evidence, and the current progress ledger before asserting current status or changing code.
+> **Snapshot:** October 24, 2026, America/Chicago, after merged Release 42 / Integration P1 One Job, One Truth. This file is a *checkpoint*, not a live feed. A new agent MUST inspect GitHub `main`, open PRs, exact-head CI, production/host release evidence, and the current progress ledger before asserting current status or changing code.
 >
-> **Repo:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace) · **Branch:** `main` · **Workstream:** Exterior Command · **Latest feature:** Release 41 [PR #126](https://github.com/OJ-Holdings/oj-workspace/pull/126), merged SHA `693483d091af50a4d3efaffb94dd0c0f2331873a`, exact feature head `6137113489e91d7d1758c119eaf5822b5566a91e` full [CI #40121742079](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121742079) SUCCESS for npm CI, typecheck, all tests, Next production build and synthetic PG17 recovery. Merged-main [CI #40121915030](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40121915030) completed SUCCESS, both normal code and synthetic restore jobs. **Engineering 40/100** (W2 +1). R40 private backup/restore still UNVERIFIED, no new shared quote/field tables or production SQL, Windows served SHA / actual two founder phones not verified.
+> **Repo:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace) · **Branch:** `main` · **Workstream:** Exterior Command · **Latest feature:** R42 / Integration P1 [PR #128](https://github.com/OJ-Holdings/oj-workspace/pull/128), merged SHA `098dd3fa1b32928a6449e180da17cb990321d02c`, exact head `8c573b648f1d52bbd798c6c5390d2f25dd0c6d3b` [CI #40130639857](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130639857) SUCCESS for npm dependencies, TypeScript, full automated tests, Next production build and synthetic PG17 recovery. Post-merge main [CI #40130932237](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130932237) must be independently checked. **Engineering 41/100** (+1 W1), real Windows-served commit and two independent founder phones still UNVERIFIED. The active [seven-pass Integration & Adoption Program](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) takes priority over ordinary Exterior feature expansion; P7 requires a new full critique before restoring the prior roadmap. Private encrypted real production backup/restore, authorized actor RLS and Storage file-byte recovery remain unverified; NO new quote/field/work-order production schema or bank receipt.
+
+## CURRENT EXECUTION PRIORITY: Integration & Adoption P1–P7 (founder instruction)
+
+- [**Integrated master priority program**](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) is linked from [ATLAS master index](./ATLAS_V3_MASTER_INDEX.md), [execution roadmap](./ATLAS_06_EXECUTION_ROADMAP.md), and `AGENTS.md`. **Do this first**; don't return to unrelated normal Exterior feature development until the integration passes are complete enough and a **new second comprehensive critique** of the actual product/records/founder use has been conducted. The original 12-wave plan and score stay intact.
+- **R42 / P1 "One Job, One Truth" [PR #128](https://github.com/OJ-Holdings/oj-workspace/pull/128):** Embedded source-anchored booking workflow in **existing** Bookings cards and table. Open a job with exact `?booking=<id>`, copy an auth-protected same-job deep link, see verified customer/contact/site, qualified per-visit *lead* quote without repeated-visit inflation, original scheduling/crew assignment as actually loaded, explicitly device-local Field and absent invoice/bank closeout. Authenticated existing-source `loadExteriorSharedFollowups` supplies true booking-specific team task counts; loading, failed, read-only, preview, partial history, stale booking snapshot and each stale team task are distinctly labeled. No new tab, SQL migration or private cost upload. Eight+ behavioral cases for exact source, repeat booking, pending/denied, stale, incomplete source/unknown crew, privacy and money truth; all original booking actions preserved.
+- R42 **earns +1 W1 = 41/100 engineering** for in-place experience integration after source-backed functionality/test/merge. The plan alone earns 0. P1 **human acceptance remains pending**: verify Windows actually serves merged SHA and have both founders open an exact job, assign one real consenting booking-linked task and confirm it on each of their own phones under current membership. Do not claim that happened because CI passed. Current real prior source snapshot showed 0 structured booking follow-ups.
+- **Next:** Finish P1 founder/host smoke and **P2** actual encrypted, separate-media production backup and true isolated restore, source parity, owner/member/revoked/outsider actor RLS negatives and Supabase Storage file bytes. Until proven, P3 shared quote/work-order/field event schema and PR #42 remain BLOCKED. Safe source-connected improvements can continue, but don't create more local islands.
 
 ## Current R41 checkpoint — Dispatch actions now produce shared work
 
@@ -37,11 +44,11 @@ Build a *real*, highly interconnected and ambitious command center for the two f
 
 At this snapshot open PRs #17, #34 and #42 existed. They are separate older workstreams, **not** automatic permission to merge or overwrite them. Re-check actual open PRs every session.
 
-## 3. Confirmed full-plan engineering score: 40 / 100
+## 3. Confirmed full-plan engineering score: 41 / 100
 
-| Wave | Max | Earned at R41 |
+| Wave | Max | Earned at R42 P1 |
 |---|---:|---:|
-| W1 Experience foundation | 8 | 6 |
+| W1 Experience foundation | 8 | 7 |
 | W2 Real Command | 10 | 8 |
 | W3 Customer 360 | 14 | 5 |
 | W4 Quote & booking | 12 | 6 |
@@ -53,9 +60,9 @@ At this snapshot open PRs #17, #34 and #42 existed. They are separate older work
 | W10 Local Data Hub and Capture | 5 | 1 |
 | W11 Governed automation | 3 | 0 |
 | W12 Adoption / independent review | 2 | 0 |
-| **TOTAL** | **100** | **40** |
+| **TOTAL** | **100** | **41** |
 
-This is **weighted engineering delivery**, not 40% user acceptance or a deployed-facility measurement. A new release increases it only if a genuinely delivered, tested, merged vertical slice earns a defensible share of remaining wave scope. Do not increase it for documentation-only PRs, test fixes, proposed UI, unverified production changes, or speculative architecture.
+This is **weighted engineering delivery**, not 41% user acceptance or a deployed-facility measurement. A new release increases it only if a genuinely delivered, tested, merged vertical slice earns a defensible share of remaining wave scope. Do not increase it for documentation-only PRs, test fixes, proposed UI, unverified production changes, or speculative architecture.
 
 ## 4. What actually ships in the current repository
 
@@ -87,7 +94,7 @@ Relevant product files: `src/components/app/ExteriorCommand.tsx`, `ExteriorCusto
 
 ## 6. Recommended next work (not already done)
 
-**R42 (next high-value release):** The blocking **real Windows-owned production restore gate** remains open: use [R40 private preflight](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md) on the owner's encrypted host, independent mirrored disk, isolated *real* database restore, current source parity, signed-in Auth/RLS negative actor tests, and separately backed-up Supabase Storage object bytes. Until these are proven, preserve existing source and do not merge PR #42 or introduce quote/work-order/field-events tables. Meanwhile, prioritize workflow adoption on real Oscar/Jacob phones and source-backed operational follow-ups, not new unsynced modules. Confirm served Windows version and task synchronization independently.
+**P2 (priority after P1 founder acceptance):** The blocking **real Windows-owned production restore gate** remains open: use [R40 private preflight](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md) on the owner's encrypted host, independent mirrored disk, isolated *real* database restore, current source parity, signed-in Auth/RLS negative actor tests, and separately backed-up Supabase Storage object bytes. Until these are proven, preserve existing source and do not merge PR #42 or introduce quote/work-order/field-events tables. Meanwhile, prioritize workflow adoption on real Oscar/Jacob phones and source-backed operational follow-ups, not new unsynced modules. Confirm served Windows version and task synchronization independently.
 
 **Primary infrastructure dependency:** Verify independently restorable encrypted Supabase backup and cross-org auth/RLS tests. Once verified, implement actual shared `quote_versions`, `quote_events`, `work_orders`, `field_events` and source-aware asset reservations with immutable snapshots, version conflict protection, idempotent writes and audit receipts. Do not mark synchronized state complete until Oscar and Jacob can see matching authorized records on separate devices.
 
@@ -105,7 +112,7 @@ Relevant product files: `src/components/app/ExteriorCommand.tsx`, `ExteriorCusto
 
 ## 8. Copy/paste prompt for a fresh chat
 
-> Continue engineering the OJ Exterior Care **Exterior Command / ATLAS** system in GitHub repository **OJ-Holdings/oj-workspace** using the connected GitHub tools. Do not assume any prior chat context. **FIRST read** `docs/EXTERIOR_CONTINUE_HERE.md`, `AGENTS.md`, `docs/BUILD_PLAN.md`, `docs/EXTERIOR_COMMAND_PROGRESS.md` and the newest entries in `docs/START_HERE_CHAT_HANDOFF.md` and `AGENT_LOG.md`. Verify current `main` SHA, open PRs, CI and host deployment separately. Latest verified Exterior engineering delivery is **R41 at 40% of the full 12-wave plan**, but prefer live GitHub facts if newer. Continue implementing the **next useful, production-safe vertical slice** for Oscar and Jacob; mobile simplicity and real quote → booking → field work → job economics matter more than placeholder dashboards. **No production database schema changes** until private backup, isolated restore, RLS and rollback are verified. Run exact PR-head tests and production build, merge only after success, verify post-merge CI, and **update the canonical handoff, progress ledger, release changelog and AGENT_LOG in GitHub**. Report the total-plan percentage, increment, PR links, verified status and outstanding blockers in your response. Do the engineering rather than merely plan it.
+> Continue engineering the OJ Exterior Care **Exterior Command / ATLAS** system in GitHub repository **OJ-Holdings/oj-workspace** using the connected GitHub tools. Do not assume any prior chat context. **FIRST read** `docs/EXTERIOR_CONTINUE_HERE.md`, `AGENTS.md`, `docs/BUILD_PLAN.md`, `docs/EXTERIOR_COMMAND_PROGRESS.md` and the newest entries in `docs/START_HERE_CHAT_HANDOFF.md` and `AGENT_LOG.md`. Verify current `main` SHA, open PRs, CI and host deployment separately. Latest verified Exterior engineering delivery is **R42 P1 at 41% of the full 12-wave plan**, but prefer live GitHub facts if newer. Continue the founder-directed **P1–P7 Integration & Adoption Program** before unrelated normal Exterior feature expansion; complete the **second full product critique at P7**, then resume the original roadmap. Implement the next useful, production-safe integrated slice for Oscar and Jacob; mobile simplicity and real quote → booking → field work → job economics matter more than placeholder dashboards. **No production database schema changes** until private backup, isolated restore, RLS and rollback are verified. Run exact PR-head tests and production build, merge only after success, verify post-merge CI, and **update the canonical handoff, progress ledger, release changelog and AGENT_LOG in GitHub**. Report the total-plan percentage, increment, PR links, verified status and outstanding blockers in your response. Do the engineering rather than merely plan it.
 
 ---
 Last human-requested maintenance of the handoff: October 23, 2026 (America/Chicago).
