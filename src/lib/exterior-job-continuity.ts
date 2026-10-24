@@ -37,6 +37,7 @@ export function buildJobContinuity(
    key:'customer',title:'Customer & site',route:'customer',
    evidence:linked&&goodText(lead?.name)&&goodText(lead?.address)&&goodText(lead?.service_requested)&&isRealPhone(lead?.phone??null)?'source':'review',
    detail:!linked?'Original linked customer is missing from the loaded source. Never substitute a matching name.':
+    !goodText(lead?.name)?'Customer is linked, but its name is not recorded in the source.':
     !goodText(lead?.address)?'Customer is linked, but no verified service address is recorded.':
     !goodText(lead?.service_requested)?'Customer is linked, but requested scope is incomplete.':
     !isRealPhone(lead?.phone??null)?'Customer is linked, but usable contact information is not verified.':
