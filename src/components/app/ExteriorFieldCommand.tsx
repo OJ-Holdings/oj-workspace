@@ -11,6 +11,7 @@ import {
 import type {ExteriorData,ExtBooking} from '@/lib/exterior';
 import {statusLabel} from '@/lib/exterior';
 import {ExteriorJobEquipment} from './ExteriorJobEquipment';
+import {ExteriorJobEconomics} from './ExteriorJobEconomics';
 import {
   fieldCheckLabels,fieldSourceMatches,isFieldLog,newFieldLog,parseFieldPackage,
   reviewFieldLog,serializeFieldPackage,fieldLogMaxChars,
@@ -289,6 +290,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
      <p className="ecfield-disclaimer">No photographs or signatures are uploaded in this release. Sensitive customer content stays on this device and in explicitly exported private files only.</p>
     </section>
     <ExteriorJobEquipment org={org} booking={booking} data={data} readOnly={readOnly} mode={mode} base={base}/>
+    <ExteriorJobEconomics org={org} booking={booking} lead={lead} bookings={data.bookings} bookingCoverageComplete={data.coverage?.bookings.total!==null&&data.coverage?.bookings.total!==undefined&&data.coverage.bookings.loaded>=data.coverage.bookings.total} field={log} readOnly={readOnly} mode={mode} base={base}/>
         <section className="ecfield-panel ecfield-closeout">
      <span className="ecfield-overline">08 / COMPLETENESS REVIEW</span><h2>What's still unknown?</h2>
      {result?<ul>{result.flags.map(f=><li key={f}>{f}</li>)}</ul>:<p>The local entries need correction before any calculated review is displayed.</p>}
