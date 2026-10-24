@@ -175,7 +175,7 @@ export function ExteriorSharedFollowups({
   {error&&<p className="ecfield-shared-warning" role="alert"><AlertTriangle size={16}/>{error}</p>}
   {notice&&<p className="ecfield-shared-notice" role="status"><CheckCircle2 size={16}/>{notice}</p>}
   {loaded?.notesLimited&&<p className="ecfield-shared-warning">The latest 200 company task comments may not include older progress. This is a partial comment history.</p>}
-  {loaded?.limited&&<p className="ecfield-shared-warning">The matching board query exceeded 100 source tasks. This view is partial; use the full company task board to inspect history.</p>}
+  {loaded?.limited&&<p className="ecfield-shared-warning">The matching board source window could not be proven complete (100-record cap or unavailable count). This view is partial; use the full company task board to inspect history.</p>}
   {sharedSourceChanged&&<p className="ecfield-shared-warning"><AlertTriangle size={16}/>The original booking is not in a supported active state or this field screen is stale. Reload the original job before changing linked tasks.</p>}
   {loaded&&<>
    <div className="ecfield-shared-layout">
@@ -225,7 +225,7 @@ export function ExteriorSharedFollowups({
     </div>
     <div className="ecfield-shared-tasks">
      <div className="ecfield-shared-section-title"><UsersRound size={17}/><h3>Exact-job shared work</h3></div>
-     {!all.length&&<div className="ecfield-shared-empty">
+     {!all.length&&!loaded.limited&&<div className="ecfield-shared-empty">
       <CheckCircle2 size={20}/><strong>No shared follow-ups linked to this booking yet.</strong>
       <p>This does not imply the job is complete or that the crew is prepared. The original field worksheet is still local.</p>
      </div>}

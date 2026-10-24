@@ -131,7 +131,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
   {board.notesLimited&&<p className="ecjourney-coverage" role="status">Only the latest 200 company comments across loaded tasks are available. Older comments may not appear here; do not treat this as complete progress history.</p>}
   {board.limited&&<p className="ecjourney-alert" role="status">
    <AlertTriangle size={15}/>
-   The job's matching company tasks exceed the 100-record source window. New assignment is paused until you inspect the full board for duplicates. Existing verified tasks can still be reviewed and updated.
+   The booking task source window is incomplete or its count is unavailable (100-record cap). New assignment is paused until you inspect the full board for duplicates. Existing verified tasks can still be reviewed and updated.
   </p>}
   {error&&<p className="ecjourney-alert" role="alert"><AlertTriangle size={15}/>{error}</p>}
   {notice&&<p className="ecjourney-good" role="status"><CheckCircle2 size={15}/>{notice}</p>}
@@ -179,7 +179,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
     <header><span>TEAM → FOUNDER</span><h5><UsersRound size={18}/> Work and progress</h5>
      <p>{board.limited?'At least '+active.length:active.length} open task{active.length===1?'':'s'} · {all.length-active.length} marked done in the loaded source.</p>
     </header>
-    {all.length===0&&<p className="ecjourney-coverage">No booking-specific company tasks are recorded in this complete source window. This does not mean the job or its field evidence is complete.</p>}
+    {all.length===0&&!board.limited&&<p className="ecjourney-coverage">No booking-specific company tasks are recorded in this complete source window. This does not mean the job or its field evidence is complete.</p>}
     <div className="ecjob-worklist">
      {all.slice(0,10).map(task=>{
       const valid=linkedTaskActionable(task,booking,source);
