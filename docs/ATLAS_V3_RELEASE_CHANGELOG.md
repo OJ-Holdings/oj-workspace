@@ -4,6 +4,17 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## ATLAS V3 / Exterior Command Release 33 — SOURCE-BOUND JOB ECONOMICS
+
+**PR:** [#109](https://github.com/OJ-Holdings/oj-workspace/pull/109). **Merged SHA:** `7fb0bb624ac52e9b00994e298b2a36a403e3ceb8`. **Exact PR-head CI:** `40043642452` SUCCESS.
+
+- Connects lead/booking authorized source records and both R29 internal estimate and R31 field-cost operator drafts into a new dedicated exact-job economics section.
+- Source-labeled lead quote, current local planned direct cost, operator-reviewed direct field cost and crew hours; scenario quote-minus-field-cost arithmetic and planned-cost-minus-field-cost variance when rigorous source and cost completeness criteria hold.
+- The comparison is withheld for truncated/unknown booking coverage, more than one active booking attached to the source lead, wrong/stale booking, missing direct-cost review, absent positive source quote, or invalid source ID. Planned comparison additionally requires the estimate's original source timestamp/amount to match the current lead.
+- Historic lead-level recorded job revenue/cost are NOT attributed to any single booking or called cash settlement; no invoice, customer approval, labor payroll or audited financial records inferred. Source confidence and safety blockers remain prominent.
+- Responsive scenario instruments and evidence gaps with link back to original estimator, manual browser-local refresh, and user-initiated INTERNAL clipboard report. Pure tests exercise provenance/null money/repeat bookings/partial source data/staleness/known zero and no false paid-profit inference.
+- **Full Exterior plan: estimated 27% completed engineering** (W1 5, W2 3, W3 5, W4 6, W5 5, W7 2, W9 1). Production backup/isolated restore and RLS proof, Windows served SHA, actual founder device acceptance, immutable shared job costs and bank reconciliation remain unverified/not delivered.
+
 ## ATLAS V3 / Exterior Command Release 32 — BOOKING-BOUND FLEET READINESS
 
 **PR:** [#107](https://github.com/OJ-Holdings/oj-workspace/pull/107). **Merged SHA:** `03cfbdbac8e13c4540bd8e6df1138144b827cd2b`. **Final exact-head CI:** `40041648800` SUCCESS.
