@@ -1,14 +1,14 @@
 # Exterior Command — implementation ledger and measured scope
 
-> **2026-10-23.** Product plan: `ATLAS_Exterior_Command_Master_Plan_2026-10-23.md` (user-reviewed external master planning artifact). This score is a founder-facing **engineering estimate**, not a timer or an assertion of real-device acceptance. Recheck merged commit, CI and exact live Windows SHA before marking anything deployed.
+> **2026-10-24.** Active founder-priority [Integration & Adoption P1–P7](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md), with a **mandatory second full critique** before resuming normal development. Original 12-wave score remains the only score. Historic master Product plan: `ATLAS_Exterior_Command_Master_Plan_2026-10-23.md` (user-reviewed external master planning artifact). This score is a founder-facing **engineering estimate**, not a timer or an assertion of real-device acceptance. Recheck merged commit, CI and exact live Windows SHA before marking anything deployed.
 
 ## Definition of 100%
 
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
-| Plan wave | Weight | R41 estimate earned | Not yet done |
+| Plan wave | Weight | R42 P1 earned | Not yet done |
 |---|---:|---:|---|
-| W1 Experience foundation | 8% | **6%** | R38 mobile-responsive, integrated multi-job company action queue with real filters and full empty/loading/source-drift states. Founder-specific saved layout/density, actual two-phone acceptance, accessibility audit and cross-route visual parity remain |
+| W1 Experience foundation | 8% | **7%** | R38 company action queue + R42 one-job source-linked workflow inline within Bookings cards/table, exact job deep link, real team tasks and clear source-vs-local-vs-absent markers. Founder-specific saved density, actual independent two-phone acceptance, accessibility audit, deployed Windows SHA and cross-route parity remain |
 | W2 Real Command | 10% | **8%** | R36 dispatch preflight + R37 authenticated booking follow-ups + R38 shared Operations Inbox + R41 one-tap delegated exception from exact source booking into authorized company tasks. Still missing signed two-founder mobile acceptance, real crew/rig capacity reservations, customer contact receipts, full decision audit and verified collection data |
 | W3 Customer 360 | 14% | **5%** | R27 exact-lead dossier + R28 website intake candidate review and prefilled drafts; canonical contact/property, approved durable source links and full customer journey not yet complete |
 | W4 Quote & booking | 12% | **6%** | R28 intake + R29 line-item estimating + R30 validated private export/import and source/approval/booking preflight; actual durable shared revisions, evidence-backed acceptance and atomic scheduled work orders not yet built |
@@ -20,7 +20,16 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W10 Local Data Hub and Capture | 5% | **1%** | R39 guard-verified recovery drill tool and synthetic PG17 archive→restore test; private encrypted ACTUAL backup and isolated source restore are not done, nor customer-accepted shared quote/field sync, Storage-byte recovery, approval gates or durable chat capture |
 | W11 Automation assist | 3% | 0% | Owner-approved bounded workflows, pause/stop, receipts |
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
-| **TOTAL** | **100%** | **40% (R41 merged; exact-head full CI passed; post-merge main CI and actual Windows/device/recovery checks separate)** | |
+| **TOTAL** | **100%** | **41% (R42 P1 integrated code merged, exact feature-head full CI passed; real Windows/device/recovery gates separate)** | |
+
+### R42 / Integration P1 — One Job, One Truth (+1 W1; October 24, 2026)
+
+- **Master priority updated:** [Integration & Adoption Program P1–P7](./EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) now takes precedence over new standalone Exterior features. Retains all original 12 waves, returns to the regular roadmap AFTER P7 and a **new full critique** comparing delivered behavior against the earlier architectural review. Plan-only edits have no points.
+- [Feature PR #128](https://github.com/OJ-Holdings/oj-workspace/pull/128) merged `main` SHA `098dd3fa1b32928a6449e180da17cb990321d02c`. Exact head `8c573b648f1d52bbd798c6c5390d2f25dd0c6d3b` succeeded on [CI #40130639857](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130639857): npm install, TypeScript, complete behavioral tests, production Next build, isolated PostgreSQL 17 synthetic restore and PowerShell safety. Feature post-merge `main` [CI #40130932237](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40130932237) completed SUCCESS, including both application and synthetic restore jobs.
+- **Actual new operator flow:** Bookings workbench cards and table open a contextual **exact original booking Job Continuity panel** and share a safe `?booking=<id>` deep link. Same loaded original source gives customer/address/contact/scope, status/time, an **eligible uniquely-attributable original quote only with full source coverage and no duplicate active lead visits**, and employee assignment only if the actual crew source supplied it. Device-local detailed field worksheet and not-yet-built invoice/bank settlement are explicitly labeled as such, not sold as shared capabilities.
+- **True team read:** Existing `loadExteriorSharedFollowups` server action checks authenticated org + exact original booking+lead via RLS and loads current company task details. Task count is unknown during source failure; partial 100-item history shows at least-N rather than false totals. Wrong/unlinked lead, changed current booking snapshot, and individual stale task's source date/time/status are surfaced. Preview/read-only never fetch company tasks and no client mutation occurs from this panel; task writes still belong to existing R41 dispatch/delegation.
+- **Negative tests:** original source match, repeated lead visit quote withheld, pending/denied/cancelled date-status, missing slot/site/name/phone, partial source windows, unknown crew, immutable projection and no phantom field/cash claims. No new schema, invoice, signed proposal, customer contact, payroll, real deployment or device acceptance inferred.
+- **Score 40→41/100**, +1 W1 Experience (6→7). Progress counts only the verified merged integrated functionality. **P1 human acceptance is still outstanding**, as is P2 founder-private genuine recoverable production backup, independently restored source, signed-in actor RLS and Supabase Storage byte recovery; PR #42 stays blocked.
 
 ### R41 direct Dispatch → Shared Task delegation (+1 W2; October 24, 2026)
 
