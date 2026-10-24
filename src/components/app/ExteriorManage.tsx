@@ -509,7 +509,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       </div>
       <p className="atlas-booking-queue-note" role="status"><b>{bookingWorkLabels[focus]}:</b> {bookingWorkDescriptions[focus]}</p>
     </section>
-    <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'}/>
+    <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'} org={org} readOnly={readOnly}/>
     <section className="panel atlas-booking-workbench">
       <header className="panel-head"><h2>Job workbench <small className="quiet">{rows.length} matching record{rows.length === 1 ? '' : 's'}</small></h2>
         <Link className="secondary small" href={`${base}/b/exterior/calendar`}>View calendar</Link>
