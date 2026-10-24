@@ -11,7 +11,7 @@ import {reviewInternalCloseout} from '@/lib/exterior-closeout-review';
 import {
  createFieldHandoffReply,createFieldHandoffRequest,handoffFileMaxChars,
  handoffRevisionMatchesField,newHandoffMailbox,parseFieldHandoffReply,
- parseFieldHandoffRequest,readHandoffMailbox,serializeHandoffMailbox,
+ parseFieldHandoffRequest,readHandoffMailbox,replyReviewStillCurrent,serializeHandoffMailbox,
  type FollowUpOwner,type HandoffDecision,type HandoffMailbox,
 } from '@/lib/exterior-crew-handoff';
 
@@ -134,6 +134,9 @@ export function ExteriorCrewHandoff({
   try{
    if(!mailbox.outgoing)throw Error('First prepare the matching crew request on this browser; no original handoff revision is saved.');
    const packet=parseFieldHandoffReply(await file.text(),org,booking.id,lead.id,mailbox.outgoing);
+   if(packet.decision==='reviewed-internally'&&!replyReviewStillCurrent(
+    mailbox.outgoing,packet,booking,lead,bookings,bookingCoverageComplete,
+   ))throw Error('The review is no longer source-current or safe. Import requires a fresh crew handoff, not an outdated clear status.');
    if(mailbox.incomingReply&&!window.confirm(
     'Replace the existing private owner reply for this original handoff? The field log and booking will remain unchanged.'
    ))return;
@@ -153,6 +156,8 @@ export function ExteriorCrewHandoff({
  const incoming=mailbox.incoming;
  const incomingField=incoming?.field;
  const receipt=mailbox.incomingReply;
+ const receiptStillCurrent=Boolean(receipt&&mailbox.outgoing&&replyReviewStillCurrent(
+  mailbox.outgoing,receipt,booking,lead,bookings,bookingCoverageComplete));
  const canReply=!!incomingResult&&canAct&&reviewer.trim().length>0&&
   (decision!=='reviewed-internally'||incomingResult.reviewable)&&
   (decision!=='follow-up-needed'||(followUpTo!=='none'&&note.trim().length>=10));
@@ -285,6 +290,7 @@ export function ExteriorCrewHandoff({
       {receipt.due_on?' · Target '+receipt.due_on:''}</p>}
      <p className="ecfield-crewbridge-note">{receipt.note||'No reviewer note entered.'}</p>
      {outgoingChanged&&<p className="ecfield-crewbridge-alert">Field notes changed after the reviewed packet. This reply references the earlier request and is not a review of current edits.</p>}
+     {!receiptStillCurrent&&<p className="ecfield-crewbridge-alert">The original booking or its source evidence has changed. Do not treat this reply as a current review; return to the source booking and create a new crew handoff.</p>}
      <small>Reply identity is not cryptographically verified. Confirm the sender through your trusted private channel.</small>
     </div>}
    </article>
