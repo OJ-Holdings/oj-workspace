@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessRelease } from '../src/lib/release-health';
+import { assessRelease,resolveServedRelease } from '../src/lib/release-health';
 const a='4f749b2199fc657522277f93bffe01bb32cc1aec';
 const b='e6274f43b6160082ab9ce8e1daa3ad706c0e8343';
 
@@ -50,4 +50,20 @@ test('remote response injection fields are ignored and SHAs are validated',()=>{
   assert.deepEqual(Object.keys(r).sort(),['detail','label','mainSha','runningSha','state'].sort());
   assert.equal(JSON.stringify(r).includes('secret'),false);
   assert.equal(JSON.stringify(r).includes('authorization'),false);
+});
+
+
+test('R44 Netlify build SHA, explicit Windows SHA, and Vercel build SHA resolve safely',()=>{
+ assert.equal(resolveServedRelease({netlify:a}),a);
+ assert.equal(resolveServedRelease({explicit:a}),a);
+ assert.equal(resolveServedRelease({vercel:a.toUpperCase()}),a);
+ assert.equal(resolveServedRelease({netlify:a,explicit:a.toUpperCase()}),a);
+});
+test('R44 conflicting or invalid hosting release environments never leak arbitrary values',()=>{
+ assert.equal(resolveServedRelease({}), 'unmanaged');
+ assert.equal(resolveServedRelease({explicit:'SECRET-PASSWORD'}),'unmanaged');
+ assert.equal(resolveServedRelease({explicit:'SECRET-PASSWORD',netlify:a}),a);
+ assert.equal(resolveServedRelease({explicit:a,netlify:b}),'unmanaged');
+ assert.equal(resolveServedRelease({explicit:a,netlify:a,vercel:b}),'unmanaged');
+ assert.equal(resolveServedRelease({netlify:'abc',vercel:'nope'}),'unmanaged');
 });

@@ -34,7 +34,10 @@ jobs:
             'scripts/restore-supabase-isolated.ps1',
             'scripts/tests/restore-supabase-isolated.Tests.ps1',
             'scripts/exterior-r40-recovery-preflight.ps1',
-            'scripts/tests/exterior-r40-recovery-preflight.Tests.ps1'
+            'scripts/tests/exterior-r40-recovery-preflight.Tests.ps1',
+            'scripts/exterior-p2-release-evidence.ps1',
+            'scripts/lib/exterior-p2-release-evidence.ps1',
+            'scripts/tests/exterior-p2-release-evidence.Tests.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -53,6 +56,9 @@ jobs:
       - name: Validate founder recovery preflight trust boundary (offline)
         shell: pwsh
         run: ./scripts/tests/exterior-r40-recovery-preflight.Tests.ps1
+      - name: Validate P2 release and public origin trust boundary (offline)
+        shell: pwsh
+        run: ./scripts/tests/exterior-p2-release-evidence.Tests.ps1
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
