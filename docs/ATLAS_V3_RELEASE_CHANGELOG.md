@@ -4,6 +4,14 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## Exterior Release 40 — Founder private backup readiness (real recovery not yet executed)
+
+**Feature:** [PR #124](https://github.com/OJ-Holdings/oj-workspace/pull/124), merged SHA `13c2774082c334756fbbbf01fd79e5fd3e36c7c1`. Exact-head CI [#40092698720](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092698720) and merged-main CI [#40092863472](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40092863472) both successful, including the synthetic PostgreSQL 17 recovery job.
+- Built a Windows-only private founder preflight checking configured production backup, encrypted primary and mirrored volumes, matching archive/hash and R39 readable archive. Operator can initiate backup or guarded scratch restore only through existing scripts on the trusted host; the outputs omit private files and account data.
+- Live Supabase was checked read-only: existing source tables and RLS are present, new quote/work-order/field schema absent, and uploaded Storage objects require a separate encrypted object recovery.
+- No real Windows machine connection, local encrypted archive, actual isolated OJ production restore, source parity, actor RLS matrix, Storage object bytes, or two-founder acceptance is verified. GitHub synthetic restore success is not an approval for production migration.
+- **Engineering progress remains 39%**; Release 40 prepares a controlled founder action but has not crossed the actual production recovery gate. Runbook: [R40 private recovery](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md).
+
 ## ATLAS V3 / Exterior Command Release 39 — GUARDED DATABASE RECOVERY DRILL
 
 **Feature:** [PR #122](https://github.com/OJ-Holdings/oj-workspace/pull/122) merged `main` `674f929a633636a54edc192e678863d326580158`. Exact feature head `f81018cdbd7765f6456f09ba04c0413ed9927a07` passed [CI #40090540975](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090540975), including **two independent jobs**: npm ci, PowerShell parser, 10 negative restore-target policy tests, TypeScript, all application tests, Next build, and a real synthetic PG17 restore integration test. Feature post-merge [main CI #40090651371](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40090651371) completed SUCCESS, both jobs.
