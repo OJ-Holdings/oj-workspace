@@ -30,7 +30,9 @@ jobs:
           $scripts = @(
             'scripts/backup-supabase-windows.ps1',
             'scripts/install-supabase-backup-task.ps1',
-            'scripts/verify-production-windows.ps1'
+            'scripts/verify-production-windows.ps1',
+            'scripts/restore-supabase-isolated.ps1',
+            'scripts/tests/restore-supabase-isolated.Tests.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -43,7 +45,19 @@ jobs:
               throw ("Invalid PowerShell syntax in " + $script)
             }
           }
+      - name: Reject unsafe isolated restore targets (offline, no credentials)
+        shell: pwsh
+        run: ./scripts/tests/restore-supabase-isolated.Tests.ps1
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  isolated-restore-synthetic:
+    name: Synthetic isolated PostgreSQL 17 recovery (no production data)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise guarded restore against two temporary PostgreSQL 17 databases
+        shell: bash
+        run: bash scripts/tests/restore-synthetic-integration.sh

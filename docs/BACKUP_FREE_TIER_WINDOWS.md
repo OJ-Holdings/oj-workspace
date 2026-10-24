@@ -56,6 +56,12 @@ Custom-format pg_dump captures the accessible database's non-system schemas and 
 
 A successful pg_restore --list and SHA256 comparison indicate a readable archive, **not** that you could recover a fully functioning Supabase project after a major error.
 
+## Release 39: mechanical restore drill tooling now exists
+
+In addition to `-Action Verify` (checks file SHA-256 + custom-format archive readability), the new `scripts/restore-supabase-isolated.ps1` supports an **isolated disposable-target restore** and creates a deliberately incomplete *private* evidence receipt. Read the [R39 recovery drill runbook](./EXTERIOR_R39_RESTORE_DRILL.md) before executing it.
+
+**This feature does not mean the real Supabase production database has been backed up or successfully restored.** A true Supabase restore may require locally provisioned roles/extensions and a separately verified storage-object recovery. The helper refuses remote hosts, ordinary database names, port 5432, unconfirmed destinations and nonempty targets; it does not overwrite existing tables. Synthetic two-container PostgreSQL 17 CI checks exercise the mechanical code using completely fictional data. Actual source reconciliation and authenticated member/RLS tests remain independent operator-run gates.
+
 ## Required restore drill before Oscar Jacob schema migration
 
 A founder/database administrator must restore the archive into a **separate, disposable, Supabase-compatible PostgreSQL 17 environment**, never the live database. Prepare matching Supabase-managed schemas, roles and extensions. Reconcile table counts, historic record IDs, database RLS policies, functions, permission grants, authentication records, and application source compatibility. Keep all customer notification services disabled in the test environment. Test any separately downloaded Storage objects. Record the archive hash, restore timestamp and verifications privately.
