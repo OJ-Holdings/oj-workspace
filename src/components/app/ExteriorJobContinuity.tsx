@@ -6,6 +6,7 @@ import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,RefreshCw,ShieldAler
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
 import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
+import {ExteriorDeviceReleaseProof} from './ExteriorDeviceReleaseProof';
 import {loadExteriorSharedFollowups} from '@/app/workspace/exterior-followup-actions';
 
 type Loaded=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:true}>;
@@ -124,6 +125,7 @@ export function ExteriorJobContinuity({
    <button type="button" onClick={()=>void copyLink()}><ClipboardList size={15}/>{linkCopied?'Job link copied':'Copy this exact job link'}</button>
    <small>Link opens the same booking on another authorized device; it does not share local estimates or field evidence. A reader without current organization access cannot use the link to bypass permissions.</small>
   </footer>
+  <ExteriorDeviceReleaseProof mode={mode}/>
   <p className="ecjourney-note"><CheckCircle2 size={14}/> Project-stage labels describe evidence that has actually been loaded. A booking date does not certify completed work; a finished team task does not close the booking; a quote is not revenue; unknown costs or paid amounts are never treated as zero.</p>
  </section>;
 }
