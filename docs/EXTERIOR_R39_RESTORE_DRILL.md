@@ -18,6 +18,10 @@ Strict default behavior: **fail closed**. Remote targets, pooler hosts, port 543
 
 All logs and receipts stay in private non-repository directories. A successful receipt intentionally records `complete_application_recovery_verified: false`, `source_vs_restore_reconciled: false`, `authenticated_rls_actor_tests_passed: false`, `storage_objects_restored: false` and `production_migration_approved: false`. A mechanical restore is never a release authorization.
 
+## R40 companion operator preflight
+
+Before using the R39 tool directly with actual private data, follow the [R40 founder recovery gate](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md). Its Windows-only helper verifies encrypted primary and mirrored off-device logical volume protection, exact latest custom archive SHA-256 + manifest and PostgreSQL 17 TOC. It delegates guarded backup and local restore to these existing scripts, but will **not** mark actual source parity, actor RLS, Storage file bytes, physical disk separation or migration authorization as verified. Do not share private receipts or files with chat/GitHub.
+
 ## Operator-controlled rehearsal on the trusted Windows computer
 
 First ensure a verified private encrypted primary/off-device backup exists. Do not send credentials, archive files, manifest, exact database host, Auth users or backups into chats, GitHub, email, tickets or SaaS upload tools.

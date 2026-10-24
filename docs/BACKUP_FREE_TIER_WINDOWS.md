@@ -8,6 +8,16 @@ Supabase Free does not include platform-managed automatic backups, but the proje
 
 **No data is backed up just by merging this documentation or scripts.** An authorized founder must run the backup on a computer with database connectivity.
 
+## R40: Simplified private recovery status and guarded backup
+
+The new [R40 operator runbook](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md) includes a Windows-only preflight that checks DPAPI configuration without revealing it, both volumes' BitLocker encryption, matching private/independent mirror SHA-256, and R39 archive readability. Start with this **read-only** command from the trusted checkout:
+
+~~~powershell
+.\scripts\exterior-r40-recovery-preflight.ps1 -Action Status -EmitSanitizedJson
+~~~
+
+Once a genuinely separate encrypted off-device destination is configured, the same tool supports **-Action Backup** and **-Action Restore** using the existing private scripts. It cannot access the private archive from ChatGPT, cannot verify physical drive separation by different letters alone, and never upgrades a restore receipt into proof of real RLS, Storage bytes or migration approval. No real production backup/restore is established by GitHub CI.
+
 ## Prepare on your Windows host
 
 1. Install PostgreSQL 17 **command-line client utilities** (pg_dump.exe and pg_restore.exe). The app database uses PostgreSQL 17. Use the standard official PostgreSQL Windows installer and select the CLI utilities where supported.
