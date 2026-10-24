@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '..\lib\exterior-p2-release-evidence.ps1')
 $sha='abcdef0123456789abcdef0123456789abcdef01'
-$other='123456789abcdef0123456789abcdef012345678'
+$other=('1' * 40)
 function Assert([bool]$Pass,[string]$Why){if(-not $Pass){throw ('P2 offline evidence refusal failed: '+$Why)}}
 $permitted=@('https://ojworkspace.netlify.app','https://ojworkspace.netlify.app/',
  'https://desktop-lbi2ein.tail3f006f.ts.net:10000')
