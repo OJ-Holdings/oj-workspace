@@ -15,7 +15,7 @@ import { newEstimate } from '@/lib/commercial-estimate';
 import type { FleetWorkbook } from '@/lib/fleet-command';
 import { parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
 import { loadCommercialProject, loadCommercialProjects, saveCommercialProject } from '@/app/workspace/commercial-actions';
-import type { CommercialProjectCursor } from '@/lib/commercial-persistence';
+import { planCommercialSaveAttempt, type CommercialProjectCursor, type CommercialSaveAttempt } from '@/lib/commercial-persistence';
 import { recoveryProjectId } from '@/lib/commercial-persistence';
 import {
   decodeCommercialPortfolio, emptyCommercialPortfolio,
@@ -63,7 +63,8 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   const [pageCursor,setPageCursor]=useState<CommercialProjectCursor>(null);
   const [hasMore,setHasMore]=useState(false);
   const [loadingMore,setLoadingMore]=useState(false);
-  const saveCommandRef=useRef<{seed:string;commandId:string}|null>(null);
+  const saveCommandRef=useRef<CommercialSaveAttempt|null>(null);
+  const saveInFlightRef=useRef(false);
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const [expectedRevision,setExpectedRevision]=useState<number|null>(null);
   const [phase,setPhase]=useState<ProjectPhase>('scoping');
@@ -113,6 +114,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     }
   },[canEdit,fleetKey,org]);
   useEffect(()=>{
+    saveCommandRef.current=null;
     setReady(false);setSelectedId(null);setExpectedRevision(null);setPortfolio(emptyCommercialPortfolio(org));
     setRecoveryPortfolio(emptyCommercialPortfolio(org));setStorageState('loading');setStorageDetail('');setPageCursor(null);setHasMore(false);
     setPhase('scoping');setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
@@ -154,7 +156,9 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   const linkedTasks=selectedId?cards.filter(card=>card.organization_id===org&&card.business==='exterior'&&exactLocalProjectIds(card.description).includes(selectedId)).slice(0,20):[];
 
   function loadProject(project:CommercialProject,source:'shared'|'recovery'='shared'){
+    if(saveInFlightRef.current)return;
     if(!window.confirm('Load "'+project.name+'"? This replaces unsaved scope and pricing edits in the current editor.'))return;
+    saveCommandRef.current=null;
     if(source==='shared'){
       setSelectedId(project.id);setExpectedRevision(project.revision);
     }else{
@@ -189,7 +193,9 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
   },[ready,canEdit,targetProject,org,portfolio.projects,recoveryPortfolio.projects]);
 
   function newProject(){
+    if(saveInFlightRef.current)return;
     if(!window.confirm('Begin a new project? Unsaved changes to the currently open estimate will be discarded. Previously saved portfolio entries remain.'))return;
+    saveCommandRef.current=null;
     setSelectedId(null);setExpectedRevision(null);setPhase('scoping');
     setBookingId(null);setPlannedAssetIds([]);setFieldCrewPlan(emptyFieldCrewPlan());
     onLoad({name:'New commercial opportunity',input:newEstimate(),review:[false,false,false,false,false]});
@@ -208,15 +214,18 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     setRecoveryPortfolio(next);setNotice(message);
   }
   async function saveCurrent():Promise<string|null>{
-    if(!canEdit||!ready)return null;
+    // Lock synchronously: rapid double clicks must never create two projects.
+    if(!canEdit||!ready||saveInFlightRef.current)return null;
+    saveInFlightRef.current=true;
     try{
-      const id=selectedId??crypto.randomUUID();
-      const commandSeed=JSON.stringify({id,revision:expectedRevision,draft});
-      const pending=saveCommandRef.current;
-      const commandId=pending?.seed===commandSeed?pending.commandId:crypto.randomUUID();
-      saveCommandRef.current={seed:commandSeed,commandId};
+      // Retain the same project+command UUIDs across a dropped response.
+      const attempt=planCommercialSaveAttempt(
+        saveCommandRef.current,selectedId,expectedRevision,draft,()=>crypto.randomUUID(),
+      );
+      saveCommandRef.current=attempt;
+      const id=attempt.projectId;
       setStorageState('saving');setStorageDetail('Saving a versioned internal estimate to shared OJ storage.');
-      const result=await saveCommercialProject(org,id,expectedRevision,commandId,draft);
+      const result=await saveCommercialProject(org,id,expectedRevision,attempt.commandId,draft);
       if(result.status==='conflict'){
         setStorageState('conflict');setStorageDetail('This project changed on another device. Your edits remain in the current page and the browser recovery copy is untouched. Reload the shared version before retrying.');
         setNotice('Shared project conflict. Your unsaved editor values were kept.');
@@ -232,6 +241,8 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       const message=error instanceof Error?error.message:'Project could not be saved.';
       setStorageState(message.includes('not installed')?'setup-required':'offline');setStorageDetail(message);setNotice(message);
       return null;
+    }finally{
+      saveInFlightRef.current=false;
     }
   }
   async function prepareProjectTask(){
@@ -240,7 +251,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     if(id)router.push(base+'/tasks?sourceProject='+encodeURIComponent(id));
   }
   async function archiveCurrent(){
-    if(!canEdit||!selectedId||expectedRevision===null)return;
+    if(saveInFlightRef.current||!canEdit||!selectedId||expectedRevision===null)return;
     const target=portfolio.projects.find(p=>p.id===selectedId);
     if(!target||target.phase==='archived'||!window.confirm('Archive "'+target.name+'"? This preserves the project, every estimate version, private costs and history. No source booking or task is changed.'))return;
     const id=await saveCommercialProject(org,selectedId,expectedRevision,crypto.randomUUID(),{...draft,phase:'archived'}).then(result=>{
@@ -263,7 +274,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
     }finally{setLoadingMore(false);}
   }
   async function importRecoveryProject(project:CommercialProject){
-    if(!canEdit||!ready)return;
+    if(!canEdit||!ready||saveInFlightRef.current)return;
     if(portfolio.projects.some(item=>item.id===project.id)){
       setNotice('This exact project ID is already shared. The browser recovery record remains unchanged; compare revisions before reconciling.');return;
     }
@@ -278,6 +289,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         setNotice('Import conflict: shared project exists. Keep both copies and reconcile manually.');return;
       }
       setPortfolio(current=>({...current,projects:[result.project,...current.projects]}));
+      saveCommandRef.current=null;
       setSelectedId(sharedId);setExpectedRevision(result.project.revision);
       setStorageState('saved');setStorageDetail('One browser recovery project was copied to shared storage. Original local data remains intact.');
       setNotice(sharedId===project.id?'Recovery copy imported as a shared project. Its original browser record remains unchanged.':'Recovery copy imported using a stable organization-scoped shared ID. The original browser ID and record remain unchanged.');
@@ -365,9 +377,9 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <button type="button" className="secondary" disabled={storageState==='loading'||storageState==='saving'} onClick={()=>void reload()}>Refresh shared records</button>
       </div>
       <div className="atlas-project-toolbar">
-        <button type="button" className="secondary" onClick={newProject}><Plus size={15}/> New project</button>
+        <button type="button" className="secondary" disabled={storageState==='saving'} onClick={newProject}><Plus size={15}/> New project</button>
         <button type="button" className="primary" disabled={!ready||storageState==='setup-required'||storageState==='saving'} onClick={()=>void saveCurrent()}><Save size={15}/> {selectedId?'Save shared project version':'Save as shared project'}</button>
-        <button type="button" className="secondary" disabled={!ready||phase==='archived'} onClick={prepareProjectTask}>Save & prepare project task <ArrowUpRight size={15}/></button>
+        <button type="button" className="secondary" disabled={!ready||storageState==='saving'||storageState==='setup-required'||phase==='archived'} onClick={prepareProjectTask}>Save & prepare project task <ArrowUpRight size={15}/></button>
         <Link className="secondary nexus-editor-link" href={base+"/b/exterior/projects"+(selectedId?"?project="+encodeURIComponent(selectedId):"")}>NEXUS / Shared project 360 <ArrowUpRight size={14}/></Link>
         <button type="button" className="secondary" disabled={!ready} onClick={exportPortfolio}><Download size={15}/> Export browser recovery</button>
         <button type="button" className="secondary" disabled={!ready} onClick={()=>fileInput.current?.click()}><FileInput size={15}/> Import recovery file</button>
@@ -403,7 +415,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       <div className="atlas-project-list" aria-label="Shared commercial projects">
         {portfolio.projects.length===0&&<p>No shared commercial projects are loaded. The current estimate and every old browser recovery record remain untouched.</p>}
         {portfolio.projects.slice().sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(p=>
-          <button key={p.id} type="button" onClick={()=>loadProject(p)} aria-pressed={selectedId===p.id}>
+          <button key={p.id} type="button" disabled={storageState==='saving'} onClick={()=>loadProject(p)} aria-pressed={selectedId===p.id}>
             <Building2 size={17}/><span><strong>{p.name}</strong><small>{p.input.sites.length} building(s) · {p.phase==='founder-review'?'Queued for internal review':p.phase==='archived'?'Archived':'Scoping'} · Shared version {p.revision}</small></span>
             <ArrowUpRight size={14}/>
           </button>)}
@@ -412,7 +424,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       {recoveryPortfolio.projects.length>0&&<section className="atlas-project-recovery" aria-label="Browser-only commercial recovery records">
         <header><div><small>THIS DEVICE / RECOVERY ONLY</small><h4>{recoveryPortfolio.projects.length} saved browser project(s)</h4><p>These originals have not been changed or copied automatically. Export a checksum archive before moving records into shared storage.</p></div><button type="button" className="secondary" onClick={exportPortfolio}><Download size={14}/> Export recovery copy</button></header>
         {recoveryPortfolio.projects.map(project=><div className="atlas-project-recovery-row" key={project.id}>
-          <button type="button" className="secondary" onClick={()=>loadProject(project,'recovery')}><Building2 size={15}/>{project.name} · local v{project.revision}</button>
+          <button type="button" className="secondary" disabled={storageState==='saving'} onClick={()=>loadProject(project,'recovery')}><Building2 size={15}/>{project.name} · local v{project.revision}</button>
           <button type="button" className="secondary" disabled={!ready||storageState==='setup-required'||storageState==='saving'||portfolio.projects.some(item=>item.id===project.id)} onClick={()=>void importRecoveryProject(project)}><Plus size={14}/>Copy this record to shared</button>
         </div>)}
       </section>}
