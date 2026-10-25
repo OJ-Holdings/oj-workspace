@@ -114,6 +114,27 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
     assert.equal(doc.rows[0].v.revision,1);
     assert.equal(doc.rows[0].v.payload.bookingId,bookingId);
   });
+  await t.test('crew handoff mailbox remains organization-bound internal history',async()=>{
+    const envelope={bookingId,leadId:lead,mailbox:{
+      outgoing:null,incoming:null,outgoingReply:null,incomingReply:null
+    }};
+    await as(owner);
+    const save=await db.query<{v:{revision:number}}>(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb) v',
+      [org,'exterior_handoff',bookingId,0,'00000000-0000-4000-8000-000000000080',JSON.stringify(envelope)]);
+    assert.equal(save.rows[0].v.revision,1);
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb)',
+      [org,'exterior_handoff',bookingId,1,'00000000-0000-4000-8000-000000000081',
+        JSON.stringify({...envelope,leadId:otherOrg})]));
+    await as(member);
+    const loaded=await db.query<{v:{revision:number;payload:{bookingId:string}}}>(
+      'select public.oj_module_document_get($1,$2,$3) v',[org,'exterior_handoff',bookingId]);
+    assert.equal(loaded.rows[0].v.revision,1);
+    await as(viewer);
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_get($1,$2,$3)',[org,'exterior_handoff',bookingId]));
+  });
   await t.test('viewer, anonymous, outsider and revoked member cannot read or write',async()=>{
     for(const subject of [viewer,outsider]){
       await as(subject);
