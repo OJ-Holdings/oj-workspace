@@ -191,6 +191,20 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
    setNotice(error instanceof Error?error.message:'Unable to protect the existing local report. Shared copy not opened.');
   }
  }
+ function rebaseFieldSource(){
+  if(!canEdit||!booking||!lead||!logRef.current||!drift)return;
+  if(logRef.current.leadId!==lead.id||logRef.current.bookingId!==booking.id){
+   setNotice('Field report has mismatched customer identity and cannot be rebased.');return;
+  }
+  if(!window.confirm('The original booking date/status changed. Preserve the current field report privately, then update ONLY its source stamp? Existing work notes, costs and issues will remain for review.'))return;
+  try{
+   const previous=serializeFieldPackage(org,logRef.current);
+   window.localStorage.setItem('oj-field-before-source-rebase:'+org+':'+booking.id+':'+Date.now(),previous);
+   setLog({...logRef.current,sourceDate:booking.date,sourceStatus:booking.status});
+   if(sharedStatus==='ready')setSharedStatus('local-only');
+   setNotice('Field source stamp updated. Verify all field entries before saving to Supabase; prior local source was preserved.');
+  }catch(e){setNotice(e instanceof Error?e.message:'Could not preserve earlier source. Rebase cancelled.');}
+ }
  const reset=()=>{
   if(!booking||!lead||readonly)return;
   if(!window.confirm('Delete this local field draft and any entered crew/cost/safety notes on THIS browser? The original booking and customer will not change.'))return;
@@ -276,7 +290,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
    </div>
   </header>
   {mode==='preview'&&<p className="ecfield-notice">Preview uses fictional data and allows no persistent edits.</p>}
-  {drift&&<p className="ecfield-warning" role="alert"><AlertTriangle size={16}/> Original booking date or status changed after this draft was created. Revalidate the local work sheet against dispatch before using it.</p>}
+  {drift&&<p className="ecfield-warning" role="alert"><AlertTriangle size={16}/> Original booking date or status changed after this draft was created. Revalidate the local work sheet against dispatch before using it. {canEdit&&<button type="button" onClick={rebaseFieldSource}>Preserve &amp; rebase source</button>}</p>}
   {storageError&&<p className="ecfield-warning" role="alert"><ShieldAlert size={16}/>{storageError}</p>}
   {!reviewed?.ok&&<p className="ecfield-warning" role="alert">{reviewed?.message??'Some field values are invalid.'} Valid edits must be completed before autosave/export.</p>}
   <section className="ecfield-metrics" aria-label="Logged field work and cost evidence">
