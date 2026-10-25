@@ -48,7 +48,7 @@ export type P3BookingProjection={
 };
 export type P3ProjectionResult=
  |{ok:true;state:'source-only'|'linked';projection:P3BookingProjection}
- |{ok:false;reason:'invalid-source'|'not-found'|'inconsistent-source'|'changed-source'};
+ |{ok:false;reason:'invalid-source'|'not-found'|'not-linked'|'inconsistent-source'|'changed-source'};
 const matches=(a:OriginalBooking,b:OriginalBooking)=>
  a.id===b.id&&a.lead_id===b.lead_id&&a.date===b.date&&
  a.time_block===b.time_block&&a.status===b.status;
@@ -97,6 +97,9 @@ export async function readP3BookingProjection(
   service:lead.service_requested,site:lead.address,
  };
  const linked=await port.link(org,lead.id);
+ // Legacy leads/bookings may predate organization scoping. NEVER return their
+ // contact/site fields across tenants without an exact tenant-owned mapping.
+ if(!linked)return {ok:false,reason:'not-linked'};
  let canonical:P3BookingProjection['canonical']=null;
  let quote:P3BookingProjection['quote']=null;
  let quoteCheck:Quote|null=null;
@@ -153,7 +156,7 @@ export async function readP3BookingProjection(
     id:order.id,versionId:order.version_id,status:order.status,priceCents:order.price_cents,
    }));
   }else flags.push('no-exact-opportunity');
- }else flags.push('not-linked');
+ }
  if(!quote)flags.push('no-accepted-quote-evidence');
  if(!orders.length)flags.push('no-work-order');
  const [fresh,freshLead,freshHead]=await Promise.all([
