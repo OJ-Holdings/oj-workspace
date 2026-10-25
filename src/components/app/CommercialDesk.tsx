@@ -11,7 +11,7 @@ import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasCommercialPortfolio } from './AtlasCommercialPortfolio';
-import { exportLocalBusinessArchive } from '@/lib/local-business-archive';
+import { exportLocalBusinessArchive, localBusinessArchiveMaxBytes, restoreMissingLocalBusinessArchive, validateLocalBusinessArchive } from '@/lib/local-business-archive';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -35,6 +35,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
   const [review,setReview]=useState<boolean[]>(checklist.map(()=>false));
   const [notice,setNotice]=useState('');
   const transferInput=useRef<HTMLInputElement>(null);
+  const archiveInput=useRef<HTMLInputElement>(null);
   const [ready,setReady]=useState(false);
   const estimate=useMemo(()=>calculateEstimate(input),[input]);
   const text=useMemo(()=>brief(name,input),[name,input]);
@@ -96,6 +97,23 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       window.setTimeout(()=>URL.revokeObjectURL(url),1000);
       setNotice(`Exported ${archive.records.length} organization-scoped local record(s); SHA-256 ${archive.archiveSha256}. Originals were left unchanged. Repeat from each authorized origin, browser profile and founder device.`);
     }catch(error){setNotice(error instanceof Error?error.message:'Local business data export failed; originals were left unchanged.');}
+  };
+  const restoreLocalBusinessData=async(file:File|undefined)=>{
+    if(!file)return;
+    if(preview||readOnly){setNotice('This mode cannot restore private company data.');return;}
+    try{
+      if(file.size>localBusinessArchiveMaxBytes){setNotice('Recovery archive exceeds the 20 MiB limit. The selected file and browser data were not changed.');return;}
+      const archive=await validateLocalBusinessArchive(await file.text(),org);
+      const missing=archive.records.filter(record=>window.localStorage.getItem(record.key)===null).length;
+      const existing=archive.records.length-missing;
+      const sourceDate=new Date(archive.exportedAt).toLocaleString();
+      if(!window.confirm(`Restore ${missing} missing local record(s) from ${archive.sourceOrigin}, exported ${sourceDate}? ${existing} key(s) already exist and will be kept exactly as they are. This only restores this organization’s browser-local data; it does not write shared records. The archive is unencrypted and may contain private property details and costs.`)){
+        setNotice('Restore cancelled; the archive and browser data are unchanged.');return;
+      }
+      const result=await restoreMissingLocalBusinessArchive(window.localStorage,archive,org);
+      setNotice(`Restored ${result.restoredKeys.length} missing local record(s); kept ${result.skippedExistingKeys.length} existing record(s) unchanged. Reloading this workspace…`);
+      if(result.restoredKeys.length>0)window.setTimeout(()=>window.location.reload(),500);
+    }catch(error){setNotice(error instanceof Error?error.message:'Local business recovery failed; existing browser records were preserved.');}
   };
   const reset=()=>{
     if(readOnly||preview)return;
@@ -173,6 +191,10 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
         <div className="com-actions">
           <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save browser recovery copy</button>
           <button className="secondary" type="button" disabled={preview||readOnly||!ready} onClick={()=>void exportLocalBusinessData()}><Download size={16}/> Export local business data</button>
+          <button className="secondary" type="button" disabled={preview||readOnly} onClick={()=>archiveInput.current?.click()}><FileInput size={16}/> Restore missing from archive</button>
+          <input ref={archiveInput} type="file" accept=".json,application/json" hidden aria-label="Restore missing OJ local business data from an archive" onChange={e=>{
+            const file=e.currentTarget.files?.[0];e.currentTarget.value='';void restoreLocalBusinessData(file);
+          }}/>
           <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
           <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
           <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Save browser copy & prepare task</button>
