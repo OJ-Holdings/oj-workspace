@@ -12,7 +12,7 @@ Companion to `OJ-Holdings/ojsolutions-site` branch `feat/phase1-live-audit-align
 
 ## Release dependencies
 1. Founder approval of consent copy and real messaging practices.
-2. Apply `supabase/pending/oj_solutions_sms_consent_phase1.sql` in the shared Supabase project, confirm constraint and RLS policies/grants remain intact.
+2. Apply `docs/db-change-proposals/oj_solutions_sms_consent_phase1.sql` in the shared Supabase project, confirm constraint and RLS policies/grants remain intact.
 3. Deploy revised `supabase/functions/oj-solutions-consultations/index.ts` with `verify_jwt=false` preserved. The allowed public origins are the real website only.
 4. Deploy Workspace UI (Netlify) after schema is live; verify authenticated member read and negative consent value, while viewers/anonymous users cannot inspect records.
 5. Only then merge the **website** PR, whose preview currently blocks live submissions.
