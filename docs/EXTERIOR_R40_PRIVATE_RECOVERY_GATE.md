@@ -27,15 +27,15 @@ git pull origin main
 .\scripts\exterior-r40-recovery-preflight.ps1 -Action Status -EmitSanitizedJson
 ~~~
 
-Status does NOT connect to the source database or create a backup. It requires exact source project configuration, a correct SHA-256 archive+manifest, byte-identical private mirror, BitLocker protection ON for primary and mirror volumes, and PostgreSQL 17 archive readability. It prints no local path, password, customer record or archive hash.
+Status does NOT connect to the source database or create a backup. It requires exact source project configuration, a correct SHA-256 age-encrypted archive+manifest, byte-identical mirror, distinct physical disks, and successful age authentication plus PostgreSQL 17 archive readability. It prints no local path, password, customer record or archive hash. Distinct attached disks are not proof of off-device storage.
 
-If the configuration is missing, connect a genuinely separate encrypted external drive and run the existing interactive setup privately. Replace E: with the real external drive; confirm the destination directory exists and the drive is BitLocker-protected.
+If configuration is missing, use the existing interactive setup privately. The archive is encrypted with age before it reaches disk, so BitLocker is not required. The configured E: mirror must be a different physical disk from the C: primary. It becomes off-device protection only after you disconnect and store it separately. Setup asks for the database host, username and hidden password, prints a recovery identity once, and then stores a DPAPI-protected copy under your Windows user. Save that recovery identity in a separate secure vault before confirming `SAVED`.
 
 ~~~powershell
 .\scripts\backup-supabase-windows.ps1 -Action Configure -OffsiteDirectory "E:\OJ-Holdings-Encrypted-Backups\Supabase"
 ~~~
 
-When configuration and both encrypted volumes are ready, create a new private archive and verified mirrored copy:
+When configuration is complete, create a new private encrypted archive and verified mirrored copy:
 
 ~~~powershell
 .\scripts\exterior-r40-recovery-preflight.ps1 -Action Backup -EmitSanitizedJson
@@ -64,7 +64,7 @@ If the raw archive cannot restore successfully, STOP. Diagnose in private, prepa
 |---|---|
 | Production metadata accessible and RLS enabled on original source | Verified |
 | R39 two-container synthetic PG17 restore pipeline | Verified |
-| R40 encrypted media, mirror and recovery preflight code | Implemented, owner Windows acceptance pending |
+| R40 age-encrypted archive, separate-disk mirror and recovery preflight code | Implemented, owner Windows acceptance pending |
 | Real private archived source + separate encrypted off-device copy | Not verified |
 | Actual restored production archive + source parity | Not verified |
 | Authenticated RLS negative tests and Data API grants | Not verified |

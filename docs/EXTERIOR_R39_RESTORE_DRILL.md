@@ -6,11 +6,13 @@
 
 The previously available `scripts/backup-supabase-windows.ps1` creates a PostgreSQL 17 custom-format logical archive, a SHA-256 manifest, and can verify archive readability. Readability is **not restoration**.
 
-`scripts/restore-supabase-isolated.ps1` introduces three separately gated actions:
+`scripts/backup-supabase-windows.ps1` now streams `pg_dump` directly through age encryption into `.dump.age` files. It verifies age authentication and PostgreSQL archive readability without writing plaintext archive bytes to disk. `scripts/restore-supabase-isolated.ps1` decrypts to `pg_restore` through a pipe; it does not create a plaintext temporary archive. The utility still supports legacy synthetic `.dump` fixtures only for the existing mechanical regression suite.
+
+The restore helper introduces three separately gated actions:
 
 | Action | What it proves | What it cannot prove |
 |---|---|---|
-| `Inspect` | Local archive path, pinned production project reference, size and SHA-256 match its private manifest; PostgreSQL 17 `pg_restore --list` can read it | Restore, completeness, Storage object bytes, member RLS, app availability |
+| `Inspect` | Local archive path, pinned production project reference, size and SHA-256 match its private manifest; age authentication and PostgreSQL 17 `pg_restore --list` can read it | Restore, completeness, Storage object bytes, member RLS, app availability |
 | `Restore` | Operator confirmed a specially named, **empty, loopback-only disposable** Postgres target and the archive was restored in one transaction without PostgreSQL errors; required OJ business/auth tables and RLS policy definitions exist and can be queried by the administrator | Production source row equivalence, actual signed-in user authorization, global roles/grants, storage objects, SMS suppression, application recovery |
 | `VerifyTarget` | Fresh query matches the **private mechanical receipt** from the earlier restore | Independent production recovery or permission/role tests |
 
@@ -20,7 +22,7 @@ All logs and receipts stay in private non-repository directories. A successful r
 
 ## R40 companion operator preflight
 
-Before using the R39 tool directly with actual private data, follow the [R40 founder recovery gate](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md). Its Windows-only helper verifies encrypted primary and mirrored off-device logical volume protection, exact latest custom archive SHA-256 + manifest and PostgreSQL 17 TOC. It delegates guarded backup and local restore to these existing scripts, but will **not** mark actual source parity, actor RLS, Storage file bytes, physical disk separation or migration authorization as verified. Do not share private receipts or files with chat/GitHub.
+Before using the R39 tool directly with actual private data, follow the [R40 founder recovery gate](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md). Its Windows-only helper verifies age-encrypted archive integrity, exact latest archive SHA-256 + manifest, matching mirror on a separate physical disk, and PostgreSQL 17 TOC. It delegates guarded backup and local restore to these existing scripts, but will **not** mark actual source parity, actor RLS, Storage file bytes, truly off-device storage or migration authorization as verified. Do not share private receipts or files with chat/GitHub.
 
 ## Operator-controlled rehearsal on the trusted Windows computer
 

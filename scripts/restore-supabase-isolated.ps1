@@ -14,12 +14,13 @@ param(
   [string]$TargetDatabase = '',
   [string]$TargetUser = 'postgres',
   [string]$TargetConfirmation = '',
-  [string]$EvidenceDirectory = ''
+  [string]$EvidenceDirectory = '',
+  [string]$AgeIdentity = ''
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRef = 'vgckpcktsfuithqggknd'
-$archivePattern = '^supabase-' + $projectRef + '-\d{8}T\d{6}Z\.dump$'
+$archivePattern = '^supabase-' + $projectRef + '-\d{8}T\d{6}Z\.dump(?:\.age)?$'
 $privateRoot = if ($env:LOCALAPPDATA) {
   Join-Path $env:LOCALAPPDATA 'OJWorkspace\PrivateBackups\supabase'
 } else { '' }
@@ -80,6 +81,10 @@ function PgTool([string]$name) {
     $fixed = Join-Path $env:ProgramFiles ('PostgreSQL\17\bin\' + $name + '.exe')
     if (Test-Path -LiteralPath $fixed) { $candidate = $fixed }
   }
+  if (-not $candidate -and $env:LOCALAPPDATA) {
+    $portable = Join-Path $env:LOCALAPPDATA ('OJWorkspace\tools\pg17\portable\pgsql\bin\' + $name + '.exe')
+    if (Test-Path -LiteralPath $portable) { $candidate = $portable }
+  }
   if (-not $candidate) { throw "$name not found. Install PostgreSQL 17 client tools." }
   $version = (& $candidate --version | Out-String)
   if ($LASTEXITCODE -ne 0 -or $version -notmatch '(?i)(?:PostgreSQL\s+)?(\d+)\.(\d+)') {
@@ -87,6 +92,68 @@ function PgTool([string]$name) {
   }
   if ([int]$Matches[1] -ne 17) { throw "$name must be PostgreSQL 17." }
   return $candidate
+}
+function AgeTool {
+  $command = Get-Command age.exe -ErrorAction SilentlyContinue
+  if ($command) { return $command.Source }
+  if ($env:LOCALAPPDATA) {
+    $pinned = Join-Path $env:LOCALAPPDATA 'OJWorkspace\tools\age\1.3.2\age\age.exe'
+    if (Test-Path -LiteralPath $pinned) { return $pinned }
+  }
+  throw 'The approved age encryption tool is missing.'
+}
+function QuoteProcessArgument([string]$value) { return '"' + $value.Replace('"','\"') + '"' }
+function StartByteProcess([string]$file,[string[]]$arguments,[bool]$redirectInput,[bool]$redirectOutput) {
+  $info = New-Object System.Diagnostics.ProcessStartInfo
+  $info.FileName = $file
+  $info.Arguments = (($arguments | ForEach-Object { QuoteProcessArgument ([string]$_) }) -join ' ')
+  $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+  $info.RedirectStandardInput = $redirectInput; $info.RedirectStandardOutput = $redirectOutput
+  $info.RedirectStandardError = $true
+  $process = New-Object System.Diagnostics.Process; $process.StartInfo = $info
+  if (-not $process.Start()) { throw "Could not start $([IO.Path]::GetFileName($file))." }
+  return $process
+}
+function GetAgeIdentityText {
+  if ($AgeIdentity) {
+    if (-not (Test-Path -LiteralPath $AgeIdentity -PathType Leaf)) { throw 'Age recovery identity file was not found.' }
+    return (Get-Content -LiteralPath $AgeIdentity -Raw).Trim()
+  }
+  $protectedIdentity = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup\age-identity.dpapi'
+  if (-not (Test-Path -LiteralPath $protectedIdentity -PathType Leaf)) {
+    throw 'No local age identity is configured. Supply a separately stored recovery identity with -AgeIdentity.'
+  }
+  $secure = ConvertTo-SecureString ((Get-Content -LiteralPath $protectedIdentity -Raw).Trim())
+  $handle = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($handle) }
+  finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($handle) }
+}
+function PipeAgeToPgRestore([string]$archivePath,[string]$identity,[string[]]$restoreArguments) {
+  $age = AgeTool; $restoreTool = PgTool 'pg_restore'
+  $decryptor = $null; $restorer = $null
+  try {
+    $decryptor = StartByteProcess $age @('-d','-i','-','-o','-',$archivePath) $true $true
+    $restorer = StartByteProcess $restoreTool $restoreArguments $true $true
+    $ageError = $decryptor.StandardError.ReadToEndAsync()
+    $pgError = $restorer.StandardError.ReadToEndAsync()
+    $pgOutput = $restorer.StandardOutput.ReadToEndAsync()
+    $decryptor.StandardInput.WriteLine($identity)
+    $decryptor.StandardInput.Close()
+    $decryptor.StandardOutput.BaseStream.CopyTo($restorer.StandardInput.BaseStream)
+    $restorer.StandardInput.Close()
+    $decryptor.WaitForExit(); $restorer.WaitForExit()
+    [void]$ageError.GetAwaiter().GetResult()
+    $restoreOutput = $pgOutput.GetAwaiter().GetResult()
+    $restoreError = $pgError.GetAwaiter().GetResult()
+    if ($decryptor.ExitCode -ne 0 -or $restorer.ExitCode -ne 0) {
+      throw 'Encrypted archive authentication/decryption or PostgreSQL restore failed.'
+    }
+    return $restoreOutput + $restoreError
+  } finally {
+    if ($decryptor -and -not $decryptor.HasExited) { $decryptor.Kill(); $decryptor.WaitForExit() }
+    if ($restorer -and -not $restorer.HasExited) { $restorer.Kill(); $restorer.WaitForExit() }
+    if ($decryptor) { $decryptor.Dispose() }; if ($restorer) { $restorer.Dispose() }
+  }
 }
 function ValidateTargetArguments {
   if ($TargetHost -ne '127.0.0.1' -and $TargetHost -ne 'localhost' -and $TargetHost -ne '::1') {
@@ -120,7 +187,7 @@ function RunPsql([string]$sql,[string]$psql) {
 if ($Action -ne 'Inspect') { ValidateTargetArguments }
 if (-not $ArchivePath) {
   if (-not $privateRoot) { throw 'Supply -ArchivePath explicitly. Local private backup directory is unknown.' }
-  $backups = @(Get-ChildItem -LiteralPath $privateRoot -Filter "supabase-$projectRef-*.dump" -File -ErrorAction SilentlyContinue |
+  $backups = @(Get-ChildItem -LiteralPath $privateRoot -Filter "supabase-$projectRef-*.dump.age" -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending)
   if ($backups.Count -eq 0) { throw 'No private backup archive was found; run backup-supabase-windows.ps1 -Action Backup.' }
   $ArchivePath = $backups[0].FullName
@@ -131,16 +198,29 @@ $manifestFile = CanonicalFile ($archive.FullName + '.manifest.json') 'Archive ma
 $manifest = Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json
 $hash = (Get-FileHash -LiteralPath $archive.FullName -Algorithm SHA256).Hash
 if ($manifest.project_ref -cne $projectRef -or
-    $manifest.format -cne 'pg_dump-custom' -or
+    ($manifest.format -cne 'pg_dump-custom' -and $manifest.format -cne 'pg_dump-custom+age-v1') -or
     [int64]$manifest.size_bytes -ne [int64]$archive.Length -or
     $manifest.sha256 -cne $hash -or
     [int]$manifest.client_major -ne 17) {
   throw 'ARCHIVE BLOCKED: project, format, client version, byte length or SHA-256 mismatch.'
 }
 $restore = PgTool 'pg_restore'
-$archiveToc = @(& $restore --list $archive.FullName 2>&1)
-if ($LASTEXITCODE -ne 0 -or $archiveToc.Count -lt 3) {
-  throw 'ARCHIVE BLOCKED: PostgreSQL 17 pg_restore could not enumerate the custom-format archive.'
+$isEncrypted = $manifest.format -eq 'pg_dump-custom+age-v1'
+if ($isEncrypted -and ($manifest.encrypted -ne $true -or $archive.Extension -ne '.age')) {
+  throw 'ARCHIVE BLOCKED: age encryption metadata or filename is inconsistent.'
+}
+if ($isEncrypted) {
+  $identityText = GetAgeIdentityText
+  $archiveTocText = PipeAgeToPgRestore $archive.FullName $identityText @('--list','-')
+  $identityText = $null
+  if (-not $archiveTocText -or $archiveTocText -notmatch '(?m)^; Archive created at ') {
+    throw 'ARCHIVE BLOCKED: decrypted PostgreSQL 17 archive table of contents is incomplete.'
+  }
+} else {
+  $archiveToc = @(& $restore --list $archive.FullName 2>&1)
+  if ($LASTEXITCODE -ne 0 -or $archiveToc.Count -lt 3) {
+    throw 'ARCHIVE BLOCKED: PostgreSQL 17 pg_restore could not enumerate the custom-format archive.'
+  }
 }
 if ($Action -eq 'Inspect') {
   Write-Output ('ARCHIVE READABLE: ' + $archive.Name)
@@ -177,15 +257,23 @@ SELECT current_database() || '|' ||
   $restoreArgs = @(
     '--host',$TargetHost,'--port',"$TargetPort",'--username',$TargetUser,
     '--dbname',$TargetDatabase,'--single-transaction','--exit-on-error',
-    '--no-owner','--no-acl','--verbose',$archive.FullName
+    '--no-owner','--no-acl','--verbose'
   )
   Write-Output 'Single-transaction archive restore to the explicitly confirmed EMPTY LOCAL disposable target.'
   $restoreExit = -1
   $oldPref = $ErrorActionPreference
   try {
     $ErrorActionPreference = 'Continue'
-    & $restore @restoreArgs 2>&1 | Out-File -LiteralPath $restoreLogPath -Encoding UTF8
-    $restoreExit = $LASTEXITCODE
+    if ($isEncrypted) {
+      $identityText = GetAgeIdentityText
+      $restoreOutput = PipeAgeToPgRestore $archive.FullName $identityText $restoreArgs
+      $identityText = $null
+      $restoreOutput | Out-File -LiteralPath $restoreLogPath -Encoding UTF8
+      $restoreExit = 0
+    } else {
+      & $restore ($restoreArgs + @($archive.FullName)) 2>&1 | Out-File -LiteralPath $restoreLogPath -Encoding UTF8
+      $restoreExit = $LASTEXITCODE
+    }
   } finally {
     $ErrorActionPreference = $oldPref
   }

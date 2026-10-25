@@ -35,6 +35,7 @@ jobs:
             'scripts/tests/restore-supabase-isolated.Tests.ps1',
             'scripts/exterior-r40-recovery-preflight.ps1',
             'scripts/tests/exterior-r40-recovery-preflight.Tests.ps1',
+            'scripts/tests/age-stream-helper-smoke.ps1',
             'scripts/exterior-p2-release-evidence.ps1',
             'scripts/lib/exterior-p2-release-evidence.ps1',
             'scripts/tests/exterior-p2-release-evidence.Tests.ps1'

@@ -10,26 +10,26 @@ Supabase Free does not include platform-managed automatic backups, but the proje
 
 ## R40: Simplified private recovery status and guarded backup
 
-The new [R40 operator runbook](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md) includes a Windows-only preflight that checks DPAPI configuration without revealing it, both volumes' BitLocker encryption, matching private/independent mirror SHA-256, and R39 archive readability. Start with this **read-only** command from the trusted checkout:
+The [R40 operator runbook](./EXTERIOR_R40_PRIVATE_RECOVERY_GATE.md) includes a Windows-only preflight that checks DPAPI configuration without revealing it, age-encrypted archive integrity, matching mirror SHA-256, separate physical-disk placement, and R39 archive readability. Start with this **read-only** command from the trusted checkout:
 
 ~~~powershell
 .\scripts\exterior-r40-recovery-preflight.ps1 -Action Status -EmitSanitizedJson
 ~~~
 
-Once a genuinely separate encrypted off-device destination is configured, the same tool supports **-Action Backup** and **-Action Restore** using the existing private scripts. It cannot access the private archive from ChatGPT, cannot verify physical drive separation by different letters alone, and never upgrades a restore receipt into proof of real RLS, Storage bytes or migration approval. No real production backup/restore is established by GitHub CI.
+Once a separate physical-disk destination is configured, the same tool supports **-Action Backup** and **-Action Restore** using the existing private scripts. It cannot access the private archive from ChatGPT and never upgrades a restore receipt into proof of real RLS, Storage bytes or migration approval. No real production backup/restore is established by GitHub CI. Two disks attached to one computer are still not an off-device backup.
 
 ## Prepare on your Windows host
 
-1. Install PostgreSQL 17 **command-line client utilities** (pg_dump.exe and pg_restore.exe). The app database uses PostgreSQL 17. Use the standard official PostgreSQL Windows installer and select the CLI utilities where supported.
+1. Install PostgreSQL 17 **command-line client utilities** (pg_dump.exe and pg_restore.exe). The app database uses PostgreSQL 17. The utility checks the normal install location, PATH, and `%LOCALAPPDATA%\OJWorkspace\tools\pg17\portable\pgsql\bin`.
 2. In the [Supabase dashboard](https://supabase.com/dashboard/project/vgckpcktsfuithqggknd), choose **Connect -> Session pooler**, port **5432**. Copy the exact hostname and username (typically postgres.vgckpcktsfuithqggknd). Do not share the URI/password in chat, GitHub, email or logs.
 3. On the same Windows user that runs OJ deployments, execute:
 
 ~~~powershell
-cd C:\STRATHOS\apps\oj-workspace-deploy-test
-.\scripts\backup-supabase-windows.ps1 -Action Configure
+cd C:\STRATHOS\oj-workspace-commercial-persist
+.\scripts\backup-supabase-windows.ps1 -Action Configure -OffsiteDirectory 'E:\OJEncryptedBackups\supabase'
 ~~~
 
-Enter the hostname, session pooler username and database password in the prompts. The password is stored as **Windows DPAPI-encrypted ciphertext**, decryptable only by the same Windows user. Settings and credentials go under %APPDATA%\OJWorkspace\supabase-backup; backups are written under %LOCALAPPDATA%\OJWorkspace\PrivateBackups\supabase by default (avoiding potentially cloud-synced Documents folders), **outside the repository**.
+Enter the hostname, session pooler username and database password in the prompts. The password and age recovery identity are stored as **Windows DPAPI-encrypted ciphertext**, decryptable only by the same Windows user. The setup prints the age recovery identity once; save it in a password manager or a separate encrypted offline vault and confirm by typing `SAVED`. Do not lose it: DPAPI data alone cannot recover archives on another account or computer. Settings and credentials go under `%APPDATA%\OJWorkspace\supabase-backup`; backups are written under `%LOCALAPPDATA%\OJWorkspace\PrivateBackups\supabase` by default, **outside the repository**. The example mirror path is on E: and must resolve to a different physical disk from the primary C: backup.
 
 4. Take and verify a backup:
 
@@ -38,16 +38,16 @@ Enter the hostname, session pooler username and database password in the prompts
 .\scripts\backup-supabase-windows.ps1 -Action Verify
 ~~~
 
-The tool creates a custom-format pg_dump archive, a SHA256 manifest and validates that pg_restore can enumerate the archive. It refuses to write into known OJ Workspace source/release paths. An incomplete backup is discarded.
+The tool streams the custom-format `pg_dump` output directly into age encryption, writes a `.dump.age` archive and SHA-256 manifest, then decrypts through a pipe into `pg_restore --list` to authenticate and inspect it. It never writes an unencrypted dump file. It refuses to write into known OJ Workspace source/release paths, and removes an incomplete encrypted archive.
 
-**Critical: The archive itself is NOT encrypted.** NTFS folder permissions alone are not disk encryption. Use BitLocker for the backup drive and make a second off-device copy onto a separately encrypted drive. To set that up, repeat Configure with an actual external-drive path:
+The archive is encrypted independently of BitLocker, so Windows Home and unencrypted removable drives can store ciphertext. The recovery key is separate from the PC and must remain available. The E: mirror is only another copy while the disk is attached; physically remove it and store it separately to create off-device protection. Keep a second recovery-key copy separate from both backup disks. Do not put archives or secrets into GitHub, AI chat attachments, or public cloud buckets.
 
 ~~~powershell
 .\scripts\backup-supabase-windows.ps1 -Action Configure -OffsiteDirectory "E:\OJ-Holdings-Encrypted-Backups\Supabase"
 .\scripts\backup-supabase-windows.ps1 -Action Backup
 ~~~
 
-Replace E: with your actual encrypted volume. Verify both archive and copy checksums. Do not put archives or secrets into GitHub, AI chat attachments, public cloud buckets, or unencrypted shared folders.
+Use an E: directory on the second physical disk. Verify both archive and copy checksums. This copy is encrypted at file level; do not describe it as off-device until the drive is disconnected and stored separately.
 
 ## Optional Windows daily backup task
 
