@@ -227,15 +227,19 @@ function TestEncryptedArchive([string]$archivePath,[string]$identity) {
     $decryptor.StandardInput.WriteLine($identity)
     $decryptor.StandardInput.Close()
     $copyFailure = $null
-    try {
-      $decryptor.StandardOutput.BaseStream.CopyTo($inspector.StandardInput.BaseStream)
-    } catch {
-      $copyFailure = $_.Exception
-    }
-    if ($copyFailure -and -not $decryptor.HasExited) {
-      # pg_restore can reject a truncated or invalid stream and close stdin;
-      # stop age before waiting so it cannot block on a full stdout pipe.
-      $decryptor.Kill()
+    $buffer = New-Object byte[] 65536
+    while (($read = $decryptor.StandardOutput.BaseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+      if (-not $copyFailure) {
+        try {
+          $inspector.StandardInput.BaseStream.Write($buffer, 0, $read)
+        } catch {
+          # pg_restore --list reads the archive header and TOC, then exits
+          # without consuming the payload. Keep draining age's output so it
+          # can reach EOF and verify the authenticated-encryption trailer.
+          $copyFailure = $_.Exception
+          try { $inspector.StandardInput.Close() } catch { }
+        }
+      }
     }
     try { $inspector.StandardInput.Close() } catch { }
     $decryptor.WaitForExit()
@@ -243,7 +247,9 @@ function TestEncryptedArchive([string]$archivePath,[string]$identity) {
     $decryptErrorText = $decryptErrors.GetAwaiter().GetResult()
     $inspectErrorText = $inspectErrors.GetAwaiter().GetResult()
     [void]$inspectOutput.GetAwaiter().GetResult()
-    if ($copyFailure -or $decryptor.ExitCode -ne 0 -or $inspector.ExitCode -ne 0) {
+    # A broken pipe alone is expected when --list exits after reading the TOC;
+    # success requires age to drain/authenticate to EOF and pg_restore to pass.
+    if ($decryptor.ExitCode -ne 0 -or $inspector.ExitCode -ne 0) {
       if ($inspector.ExitCode -ne 0) {
         $cause = DescribeStreamChildFailure 'pg_restore' $inspectErrorText
       } elseif ($decryptor.ExitCode -ne 0) {

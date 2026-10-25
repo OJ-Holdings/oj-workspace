@@ -53,7 +53,7 @@ try {
   RunChecked (Join-Path $pgRoot 'pg_ctl.exe') @('-D',$dataDirectory,'-l',$logPath,'-o',"-h 127.0.0.1 -p $port",'-w','-t','30','start')
   $serverStarted = $true
   RunChecked (Join-Path $pgRoot 'createdb.exe') @('-h','127.0.0.1','-p',"$port",'-U','postgres',$sourceDatabase)
-  RunChecked (Join-Path $pgRoot 'psql.exe') @('-h','127.0.0.1','-p',"$port",'-U','postgres','-d',$sourceDatabase,'-v','ON_ERROR_STOP=1','-c',"CREATE TABLE smoke (id integer primary key, payload text not null); INSERT INTO smoke VALUES (1,'synthetic exact-text recovery');")
+  RunChecked (Join-Path $pgRoot 'psql.exe') @('-h','127.0.0.1','-p',"$port",'-U','postgres','-d',$sourceDatabase,'-v','ON_ERROR_STOP=1','-c',"CREATE TABLE smoke (id integer primary key, payload text not null); INSERT INTO smoke VALUES (1,'synthetic exact-text recovery'); INSERT INTO smoke SELECT n, md5(random()::text)||md5(random()::text)||md5(random()::text)||md5(random()::text) FROM generate_series(2,30002) AS n;")
   $keygenInfo = New-Object Diagnostics.ProcessStartInfo
   $keygenInfo.FileName = $keygen
   $keygenInfo.UseShellExecute = $false; $keygenInfo.CreateNoWindow = $true

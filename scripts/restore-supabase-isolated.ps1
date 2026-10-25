@@ -140,8 +140,20 @@ function PipeAgeToPgRestore([string]$archivePath,[string]$identity,[string[]]$re
     $pgOutput = $restorer.StandardOutput.ReadToEndAsync()
     $decryptor.StandardInput.WriteLine($identity)
     $decryptor.StandardInput.Close()
-    $decryptor.StandardOutput.BaseStream.CopyTo($restorer.StandardInput.BaseStream)
-    $restorer.StandardInput.Close()
+    $copyFailure = $false
+    $buffer = New-Object byte[] 65536
+    while (($read = $decryptor.StandardOutput.BaseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+      if (-not $copyFailure) {
+        try { $restorer.StandardInput.BaseStream.Write($buffer, 0, $read) }
+        catch {
+          # pg_restore --list exits after the archive TOC. Continue draining
+          # so age can authenticate the complete ciphertext before success.
+          $copyFailure = $true
+          try { $restorer.StandardInput.Close() } catch { }
+        }
+      }
+    }
+    try { $restorer.StandardInput.Close() } catch { }
     $decryptor.WaitForExit(); $restorer.WaitForExit()
     [void]$ageError.GetAwaiter().GetResult()
     $restoreOutput = $pgOutput.GetAwaiter().GetResult()
