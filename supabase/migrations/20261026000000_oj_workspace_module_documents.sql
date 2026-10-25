@@ -77,7 +77,7 @@ declare
   v_record oj_private.oj_module_documents%rowtype;
 begin
   if auth.uid() is null or
-     oj_private.member_role(p_organization_id) not in ('owner','member') then
+     coalesce(oj_private.member_role(p_organization_id),'') not in ('owner','member') then
     raise exception 'Organization membership required' using errcode = '42501';
   end if;
   select * into v_record from oj_private.oj_module_documents
@@ -108,7 +108,7 @@ declare
   v_valid_source boolean;
 begin
   if v_actor is null or
-     oj_private.member_role(p_organization_id) not in ('owner','member') then
+     coalesce(oj_private.member_role(p_organization_id),'') not in ('owner','member') then
     raise exception 'Organization membership required' using errcode = '42501';
   end if;
   if p_command_id is null or p_expected_revision is null
