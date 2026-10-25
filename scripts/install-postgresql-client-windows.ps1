@@ -44,7 +44,7 @@ try {
 
   $actualSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($actualSha256 -ne $expectedSha256) {
-    throw 'The downloaded PostgreSQL archive did not match EDB’s published SHA-256. Nothing was installed.'
+    throw 'The downloaded PostgreSQL archive did not match the published SHA-256. Nothing was installed.'
   }
 
   Expand-Archive -LiteralPath $archivePath -DestinationPath $expandedRoot
