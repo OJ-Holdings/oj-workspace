@@ -18,6 +18,12 @@ Each pass must move an operator through an original customer or booked job and p
 
 This is permissible safe P3 groundwork while **P2 production safety is still a migration gate**, not authorization to merge the older schema PR #42 or execute SQL. Only a real signed provider adapter can validate approval; an object shaped like `P3Attestation` is not security evidence. The original 12-wave total remains **42/100** until a genuinely shared working application earns points.
 
+## P3.1 staging schema and synthetic access-control progress (October 24, 2026)
+
+- [PR #146](https://github.com/OJ-Holdings/oj-workspace/pull/146) adds a **production-inert** relational staging schema for canonical customer/property, explicit legacy source links, per-visit opportunities, immutable quote versions, unverified claims, private provider evidence, work orders and event receipts. Legacy lead and booking IDs remain exact opaque text. No actual production DDL or code-path provider approval was authorized.
+- A new disposable PostgreSQL 17 CI job executes real owner/member/viewer/revoked/outsider/anonymous RLS checks and cross-company FK, quote revision, private cost-leakage, provider replay and one-work-order-per-original-booking tests. This is legitimate architecture/testing progress but not completion of the separately required founder-owned P2 **real-source recovery and actor tests**.
+- **Sequencing:** Continue P2 independent encrypted actual database/Storage backup+restore and signed actor negative tests. P3.1's SQL is deliberately not a Supabase CLI migration, nor does it expose INSERT/RPC to existing users. After P2, stage a reviewed migration and trusted provider/transactional server adapter; then connect it to existing Estimating and Jobs in P3.2. The original master roadmap stays **42/100** until a real shared operation earns credit; legacy migration PR #42 remains on hold.
+
 ## Active ordered implementation passes
 
 | Pass | Outcome to deliver | Evidence required | Precondition | Original 12-wave allocation |
