@@ -12,6 +12,12 @@ The system has a genuine protected customer/booking/task core, but its most elab
 
 Each pass must move an operator through an original customer or booked job and preserve the **exact source identity and evidence**. Oscar should be able to trace scope, decision, cost, invoice and cash. Jacob should be able to open assigned work and log real field evidence in a simple phone workflow. A new screen without connected action or source provenance is not a pass.
 
+## P3.0 domain foundation prepared before live migration (October 24, 2026)
+
+[PR #144](https://github.com/OJ-Holdings/oj-workspace/pull/144) implements **server-only-compatible pure domain business rules** for canonical tenant/customer/property/legacy lead/quote identity, immutable numbered public quote versions, conflict-safe/idempotent revisions, unverified acceptance claims and strict original-booking-bound work-order preflight. It returns only a `transaction-not-executed` candidate. A separate [P3 trusted server/SQL contract](./EXTERIOR_P3_DOMAIN_CONTRACT.md) lays out P3.1 transactional RLS tables and provider verification, then P3.2 integration into existing Estimate/Bookings.
+
+This is permissible safe P3 groundwork while **P2 production safety is still a migration gate**, not authorization to merge the older schema PR #42 or execute SQL. Only a real signed provider adapter can validate approval; an object shaped like `P3Attestation` is not security evidence. The original 12-wave total remains **42/100** until a genuinely shared working application earns points.
+
 ## Active ordered implementation passes
 
 | Pass | Outcome to deliver | Evidence required | Precondition | Original 12-wave allocation |
