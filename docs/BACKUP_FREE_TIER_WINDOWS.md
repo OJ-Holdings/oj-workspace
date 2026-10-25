@@ -20,7 +20,7 @@ Once a separate physical-disk destination is configured, the same tool supports 
 
 ## Prepare on your Windows host
 
-1. Install PostgreSQL 17 **command-line client utilities** (pg_dump.exe and pg_restore.exe). The app database uses PostgreSQL 17. The utility checks the normal install location, PATH, and `%LOCALAPPDATA%\OJWorkspace\tools\pg17\portable\pgsql\bin`.
+1. If PostgreSQL 17 command-line tools are missing, run `scripts/install-postgresql-client-windows.ps1` from the trusted checkout. It downloads EDB's PostgreSQL 17.11-5 x64 binaries, verifies the published SHA-256, and places only the client tools under `%LOCALAPPDATA%\OJWorkspace\tools\pg17\portable\pgsql\bin`; it does not register or start a database service. The backup utility also checks the normal install location and PATH.
 2. In the [Supabase dashboard](https://supabase.com/dashboard/project/vgckpcktsfuithqggknd), choose **Connect -> Session pooler**, port **5432**. Copy the exact hostname and username (typically postgres.vgckpcktsfuithqggknd). Do not share the URI/password in chat, GitHub, email or logs.
 3. On the same Windows user that runs OJ deployments, execute:
 
