@@ -46,7 +46,9 @@ export function GhlView({ tab, org, mode }: { tab: string; org: string; mode: 'p
       </div>
       <section className="panel">
         <header className="panel-head"><h2>Upcoming 15-minute consultations</h2></header>
-        {data.appointmentsConfigured
+        {data.appointmentsError
+          ? <div className="empty" role="alert"><p>The consultation calendar is not responding. Contacts and pipeline are still available; verify the calendar ID and permissions.</p></div>
+          : data.appointmentsConfigured
           ? data.appointments.length
             ? <div className="tablewrap"><table className="table">
                 <thead><tr><th>Date & time (Central)</th><th>Consultation</th><th>Contact</th><th>Status</th></tr></thead>
