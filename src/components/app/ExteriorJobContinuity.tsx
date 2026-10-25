@@ -5,9 +5,10 @@ import Link from 'next/link';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,RefreshCw,ShieldAlert,UsersRound,X} from 'lucide-react';
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
+import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
 import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
 import {ExteriorDeviceReleaseProof} from './ExteriorDeviceReleaseProof';
-import {loadExteriorSharedFollowups} from '@/app/workspace/exterior-followup-actions';
+import {loadExteriorSharedFollowups,loadMoreExteriorJobTasks} from '@/app/workspace/exterior-followup-actions';
 
 type Loaded=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:true}>;
 type Props={
@@ -34,12 +35,14 @@ export function ExteriorJobContinuity({
  const [failed,setFailed]=useState('');
  const [attempt,setAttempt]=useState(0);
  const [linkCopied,setLinkCopied]=useState(false);
+ const [moreBusy,setMoreBusy]=useState(false);
+ const [moreError,setMoreError]=useState('');
  const liveAccess=mode==='live'&&!readOnly&&view.sourceLinked;
  const leadId=view.leadId??'';
  useEffect(()=>{
   if(!liveAccess){setReport(null);setFailed('');setLoading(false);return;}
   let active=true;
-  setLoading(true);setReport(null);setFailed('');
+  setLoading(true);setReport(null);setFailed('');setMoreError('');
   loadExteriorSharedFollowups(org,booking.id,leadId).then(result=>{
    if(!active)return;
    if(result.ok){setReport(result);setFailed('');}
@@ -60,6 +63,18 @@ export function ExteriorJobContinuity({
    document.removeEventListener('visibilitychange',refresh);
   };
  },[liveAccess]);
+ const loadOlder=async()=>{
+  if(!report||!report.limited||moreBusy||
+   !canPageSourceWindow(report.taskWindow,report.taskTotal,100))return;
+  setMoreBusy(true);setMoreError('');
+  try{
+   const response=await loadMoreExteriorJobTasks(org,booking.id,leadId,report.taskWindow);
+   if(!response.ok)throw Error(response.reason);
+   const merged=mergeOlderJobTasks(report,response);
+   setReport(current=>current===report?{...current,...merged}:current);
+  }catch(e){setMoreError(e instanceof Error?e.message:'Earlier job tasks unavailable; refresh the job.');}
+  finally{setMoreBusy(false);}
+ };
  const matchesSource=!!report&&report.source.date===booking.date&&
   report.source.time===booking.time_block&&report.source.status===booking.status;
  const routeFor=(step:typeof view.steps[number])=>{
@@ -119,6 +134,7 @@ export function ExteriorJobContinuity({
     <ExteriorJobActionLoop
      key={booking.id} org={org} booking={booking} leadId={leadId} base={base}
      board={report} onRefresh={()=>setAttempt(n=>n+1)}
+     onLoadOlder={()=>void loadOlder()} moreBusy={moreBusy} moreError={moreError}
     />}
   </section>
   <footer className="ecjourney-bottom">

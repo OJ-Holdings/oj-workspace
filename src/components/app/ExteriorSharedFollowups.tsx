@@ -13,9 +13,11 @@ import type {
 } from '@/lib/exterior-job-followup';
 import {actionableJobStatus,allowedFollowupStages} from '@/lib/exterior-job-followup';
 import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
+import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
+import {ExteriorTaskCommentHistory} from './ExteriorTaskCommentHistory';
 import {
  addExteriorSharedFollowupNote,createExteriorSharedFollowup,
- loadExteriorSharedFollowups,updateExteriorSharedFollowupStage,
+ loadExteriorSharedFollowups,loadMoreExteriorJobTasks,updateExteriorSharedFollowupStage,
 } from '@/app/workspace/exterior-followup-actions';
 
 type Props={
@@ -50,6 +52,9 @@ export function ExteriorSharedFollowups({
   ownerReply.booking_id===booking.id&&ownerReply.lead_id===lead.id&&
   ownerReply.organization_id===org?ownerReply:null;
  const [reload,setReload]=useState(0);
+ const [moreBusy,setMoreBusy]=useState(false);
+ const [moreError,setMoreError]=useState('');
+ const [visible,setVisible]=useState(10);
 
  useEffect(()=>{
   setLoaded(null);setError('');setNotice('');setLoading(false);
@@ -143,6 +148,18 @@ export function ExteriorSharedFollowups({
   }catch(e){setError(e instanceof Error?e.message:'The note was not saved.');}
   finally{setBusy(false);}
  };
+ const loadOlder=async()=>{
+  if(!loaded||!loaded.limited||moreBusy||
+    !canPageSourceWindow(loaded.taskWindow,loaded.taskTotal,100))return;
+  setMoreBusy(true);setMoreError('');
+  try{
+   const response=await loadMoreExteriorJobTasks(org,booking.id,lead.id,loaded.taskWindow);
+   if(!response.ok)throw Error(response.reason);
+   const merged=mergeOlderJobTasks(loaded,response);
+   setLoaded(current=>current===loaded?{...current,...merged}:current);
+  }catch(e){setMoreError(e instanceof Error?e.message:'Earlier company work cannot be loaded. Refresh the source.');}
+  finally{setMoreBusy(false);}
+ };
  const status=loaded?.tasks??[];
  const active=status.filter(t=>t.stage!=='Done');
  const finished=status.filter(t=>t.stage==='Done');
@@ -229,7 +246,7 @@ export function ExteriorSharedFollowups({
       <CheckCircle2 size={20}/><strong>No shared follow-ups linked to this booking yet.</strong>
       <p>This does not imply the job is complete or that the crew is prepared. The original field worksheet is still local.</p>
      </div>}
-     {all.map(task=><article className="ecfield-shared-task" key={task.id} data-state={task.stage}>
+     {all.slice(0,visible).map(task=><article className="ecfield-shared-task" key={task.id} data-state={task.stage}>
       <header>
        <div><strong>{task.note}</strong><small>Assigned to {task.assignee} · {task.priority==='high'?'High attention':'Normal'}</small></div>
        <span>{readable(task.stage)}</span>
@@ -250,9 +267,8 @@ export function ExteriorSharedFollowups({
        <Link href={base+'/tasks'}>Open company board <ArrowRight size={13}/></Link>
       </div>
       <div className="ecfield-shared-task-notes">
-       {loaded.notes.filter(n=>n.taskId===task.id).slice(0,6).map(n=><p key={n.id}>
-        <strong>{n.author}</strong><small>{moment(n.createdAt)}</small><span>{n.body}</span>
-       </p>)}
+       <ExteriorTaskCommentHistory org={org} bookingId={booking.id} leadId={lead.id}
+        taskId={task.id} initialNotes={loaded.notes.filter(n=>n.taskId===task.id).slice(0,6)}/>
        <div><input type="text" maxLength={600} aria-label={'Add shared progress note for '+task.assignee}
         placeholder="Post a concise progress update…"
         disabled={!available||busy||sharedSourceChanged||!taskSourceCurrent(task,booking)} value={commentDrafts[task.id]??''}
@@ -261,6 +277,19 @@ export function ExteriorSharedFollowups({
          onClick={()=>{void addNote(task);}}>Post</button></div>
       </div>
      </article>)}
+     {all.length>visible&&<button type="button" onClick={()=>setVisible(n=>n+10)}>
+      Show 10 more loaded team tasks ({all.length-visible} remain)
+     </button>}
+     {loaded.limited&&<div className="ecfield-shared-warning">
+      {moreError&&<p role="alert">{moreError}</p>}
+      <button type="button" onClick={()=>void loadOlder()}
+       disabled={moreBusy||!canPageSourceWindow(loaded.taskWindow,loaded.taskTotal,100)}>
+       {moreBusy?'Loading older company tasks…':loaded.taskWindow>=1000?
+        'Further paging unavailable at this source boundary':'Load earlier company tasks'}
+      </button>
+      <small>Scoped source rows loaded: {loaded.taskWindow}
+       {loaded.taskTotal===null?' · total unknown':' of '+loaded.taskTotal}</small>
+     </div>}
     </div>
    </div>
    <footer className="ecfield-shared-footer">These are member-visible, editable company task notes on the existing \`oj_cards\`/\`oj_comments\` board, not protected field or financial evidence. A completed task is not a completed booking or payment. The source IDs are checked by the server before writes; descriptions are still editable by authorized members.</footer>

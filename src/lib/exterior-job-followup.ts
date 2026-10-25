@@ -23,12 +23,51 @@ export type JobFollowupReceipt={
  origin:FollowupOrigin;handoffRequestId:string|null;
  note:string;
 };
+export type JobSourceSnapshot={date:string;time:string|null;status:string|null};
 export type SharedJobFollowup={
  id:string;title:string;assignee:string;stage:Stage;priority:'normal'|'high';
  dueDate:string;revision:number;createdAt:string;updatedAt:string;
  note:string;origin:FollowupOrigin;handoffRequestId:string|null;
  sourceDate:string;sourceTime:string|null;sourceStatus:string|null;
 };
+/** R46: distinguish raw scoped query windows from validated job tasks.
+ * A page's raw scanned count may exceed its number of valid task receipts. */
+export type OlderJobTaskPage={
+ tasks:SharedJobFollowup[];source:JobSourceSnapshot;
+ offset:number;scanned:number;total:number|null;
+};
+export type JobTaskWindow={
+ tasks:SharedJobFollowup[];source:JobSourceSnapshot;
+ taskWindow:number;taskTotal:number|null;limited:boolean;
+};
+/** Pagination is only safe on full-size prior pages with a stable offset.
+ * Partial or unknown count still means incomplete evidence; it does not
+ * authorize requesting arbitrary offsets or claiming history exhaustion. */
+export function canPageSourceWindow(
+ scanned:number,total:number|null,pageSize:50|100,cap=1000,
+):boolean{
+ return Number.isInteger(scanned)&&scanned>=pageSize&&scanned%pageSize===0&&
+  scanned<cap&&(total===null||scanned<total);
+}
+export function mergeOlderJobTasks<T extends JobTaskWindow>(current:T,page:OlderJobTaskPage):T{
+ if(page.offset!==current.taskWindow||page.total!==current.taskTotal||
+  page.source.date!==current.source.date||page.source.time!==current.source.time||
+  page.source.status!==current.source.status)
+  throw Error('Company job source changed while loading earlier tasks. Refresh the original job.');
+ if(!Number.isInteger(page.scanned)||page.scanned<1||page.scanned>100||
+    current.taskWindow<0||current.taskWindow>=1000||
+    current.taskWindow+page.scanned>1000||
+    (page.total!==null&&current.taskWindow+page.scanned>page.total))
+  throw Error('Task page is incomplete or outside the bounded source window. Refresh.');
+ const ids=new Set(current.tasks.map(t=>t.id));
+ for(const task of page.tasks){
+  if(ids.has(task.id))throw Error('Overlapping company task pages detected. Refresh before acting.');
+  ids.add(task.id);
+ }
+ const taskWindow=current.taskWindow+page.scanned;
+ return {...current,tasks:[...current.tasks,...page.tasks],
+  taskWindow,limited:!sourceWindowComplete(page.total,taskWindow,1000)};
+}
 export const allowedFollowupStages:readonly FollowupStage[]=['Ready','In progress','Review','Done'];
 const mark='OJ_EXTERIOR_JOB_FOLLOWUP_V1';
 const actionMarker='ACTION:\n';

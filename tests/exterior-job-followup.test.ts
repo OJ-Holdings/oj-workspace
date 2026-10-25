@@ -4,7 +4,8 @@ import type {ExtBooking} from '../src/lib/exterior';
 import {
  allowedFollowupStages,buildJobFollowupDescription,isJobFollowupFor,
  makeJobFollowupCard,parseJobFollowupReceipt,projectJobFollowup,
- validateJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,actionableJobStatus,type NewJobFollowup,
+ validateJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,actionableJobStatus,
+ mergeOlderJobTasks,canPageSourceWindow,type NewJobFollowup,type SharedJobFollowup,
 } from '../src/lib/exterior-job-followup';
 
 const org='11111111-1111-4111-8111-111111111111';
@@ -103,6 +104,38 @@ test('R45 bounded source completeness never treats a partial or unknown page as 
  assert.equal(sourceWindowComplete(0,1,100),false);
  assert.equal(sourceWindowComplete(201,200,200),false);
  assert.equal(sourceWindowComplete(200,200,200),true);
+});
+
+test('R46 merges stable, verified older task pages but refuses overlapping or drifted pages',()=>{
+ const task=projectJobFollowup(makeJobFollowupCard(org,booking,input()),org,bookingId,leadId)!;
+ const second:SharedJobFollowup={...task,id:'66666666-6666-4666-8666-666666666666'};
+ const source={date:booking.date,time:booking.time_block,status:booking.status};
+ const current={tasks:[task],source,taskWindow:100,taskTotal:200,limited:true};
+ const page={tasks:[second],source,offset:100,scanned:100,total:200};
+ const merged=mergeOlderJobTasks(current,page);
+ assert.equal(merged.taskWindow,200);
+ assert.equal(merged.taskTotal,200);
+ assert.equal(merged.limited,false);
+ assert.deepEqual(merged.tasks.map(t=>t.id),[task.id,second.id]);
+ assert.equal(current.tasks.length,1);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,offset:200}),/changed/);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,total:201}),/changed/);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,source:{...source,status:'pending_approval'}}),/changed/);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,tasks:[task]}),/Overlapping/);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,scanned:0}),/incomplete/);
+ assert.throws(()=>mergeOlderJobTasks(current,{...page,scanned:101}),/incomplete/);
+});
+
+test('R46 paging refuses short or unknown-gap source pages instead of looping or inventing completeness',()=>{
+ assert.equal(canPageSourceWindow(100,200,100),true);
+ assert.equal(canPageSourceWindow(200,200,100),false);
+ assert.equal(canPageSourceWindow(100,null,100),true);
+ assert.equal(canPageSourceWindow(75,null,100),false);
+ assert.equal(canPageSourceWindow(150,250,100),false);
+ assert.equal(canPageSourceWindow(1000,1001,100),false);
+ assert.equal(canPageSourceWindow(50,100,50),true);
+ assert.equal(canPageSourceWindow(0,null,50),false);
+ assert.equal(canPageSourceWindow(15,null,50),false);
 });
 
 test('missing, malformed and cross-record IDs cannot create a linked task',()=>{
