@@ -6,6 +6,7 @@ import {
 } from '../src/lib/oj-shared-documents';
 import { emptyFleet } from '../src/lib/fleet-command';
 import type { LocalEstimateBook } from '../src/lib/exterior-estimate';
+import { newFieldLog } from '../src/lib/exterior-field-log';
 
 const org = '11111111-1111-4111-8111-111111111111';
 const lead = '22222222-2222-4222-8222-222222222222';
@@ -31,6 +32,17 @@ test('shared estimate validation refuses unrelated customers and unsupported pay
   assert.deepEqual(validateSharedPayload(org,'exterior_estimate',lead,estimate),estimate);
   assert.throws(() => validateSharedPayload(org,'exterior_estimate',org,estimate));
   assert.throws(() => validateSharedPayload(org,'exterior_estimate',lead,{...estimate,revisions:[{id:'bad',savedAt:'bad',estimate:estimate.current}]}));
+});
+
+test('field reports are bound to their original booking IDs and validated', () => {
+  const booking = '33333333-3333-4333-8333-333333333333';
+  const record = newFieldLog({ id:booking,lead_id:lead,date:'2026-10-26',status:'confirmed' } as Parameters<typeof newFieldLog>[0]);
+  assert.deepEqual(validateSharedPayload(org,'exterior_field',booking,record),record);
+  assert.throws(()=>validateSharedPayload(org,'exterior_field',lead,record));
+  assert.throws(()=>validateSharedPayload(org,'exterior_field',booking,{...record,materials:[{id:'bad',name:'',quantity:-1}]}));
+  assert.equal(parseSharedDocument(org,'exterior_field',booking,{
+    revision:1,payload:record,updatedAt:'2026-10-26T12:00:00.000Z'
+  })?.payload.leadId,lead);
 });
 
 test('fleet validator rejects foreign-company records and accepts empty local recovery', () => {
