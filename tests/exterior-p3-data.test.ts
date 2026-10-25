@@ -83,7 +83,7 @@ test('R50 refuses invalid org/booking IDs without querying protected records',as
 });
 test('R50 avoids cross-org customer/property/work-order projection',async()=>{
  const {port}=sample();const fn=port.property;
- port.property=async(...args)=>({...await fn(...args)!,organization_id:ids.org2});
+ port.property=async(...args)=>({...((await fn(...args))!),organization_id:ids.org2});
  await assert.rejects(readP3BookingProjection(port,ids.org,ids.booking),/inconsistent/);
 });
 test('R50 refuses wrong canonical lead ID or exact opportunity visit',async()=>{
@@ -92,24 +92,24 @@ test('R50 refuses wrong canonical lead ID or exact opportunity visit',async()=>{
   customer_id:ids.customer,property_id:ids.property});
  await assert.rejects(readP3BookingProjection(a,ids.org,ids.booking),/inconsistent/);
  const b=sample().port;const fn=b.opportunity;
- b.opportunity=async(...args)=>({...await fn(...args)!,target_booking_id:'wrong-booking'});
+ b.opportunity=async(...args)=>({...((await fn(...args))!),target_booking_id:'wrong-booking'});
  await assert.rejects(readP3BookingProjection(b,ids.org,ids.booking),/inconsistent/);
 });
 test('R50 quote revisions changing mid-read fail closed (two-device conflict)',async()=>{
  const {port}=sample();const fn=port.quote;let calls=0;
- port.quote=async(...args)=>({...await fn(...args)!,revision:++calls});
+ port.quote=async(...args)=>({...((await fn(...args))!),revision:++calls});
  const r=await readP3BookingProjection(port,ids.org,ids.booking);
  assert.deepEqual(r,{ok:false,reason:'changed-source'});
 });
 test('R50 original booking moving to a new time mid-read cannot be claimed current',async()=>{
  const {port}=sample();const fn=port.booking;let calls=0;
- port.booking=async id=>({...await fn(id)!,time_block:++calls>1?'12-3':'9-12'});
+ port.booking=async id=>({...((await fn(id))!),time_block:++calls>1?'12-3':'9-12'});
  const r=await readP3BookingProjection(port,ids.org,ids.booking);
  assert.deepEqual(r,{ok:false,reason:'changed-source'});
 });
 test('R50 original lead revision drift fails closed',async()=>{
  const {port}=sample();let calls=0;const fn=port.lead;
- port.lead=async id=>({...await fn(id)!,updated_at:++calls>1?'2026-11-01T00:00:00Z':lead.updated_at});
+ port.lead=async id=>({...((await fn(id))!),updated_at:++calls>1?'2026-11-01T00:00:00Z':lead.updated_at});
  assert.deepEqual(await readP3BookingProjection(port,ids.org,ids.booking),
   {ok:false,reason:'changed-source'});
 });
@@ -134,7 +134,7 @@ test('R50 two work orders for one original booking are an integrity failure',asy
 });
 test('R50 booking cancelled remains source truth, even with a historical planned order',async()=>{
  const {port}=sample();const fn=port.booking;
- port.booking=async id=>({...await fn(id)!,status:'cancelled'});
+ port.booking=async id=>({...((await fn(id))!),status:'cancelled'});
  const r=await readP3BookingProjection(port,ids.org,ids.booking);
  assert.equal(r.ok,true);
  if(!r.ok)return;
@@ -143,7 +143,7 @@ test('R50 booking cancelled remains source truth, even with a historical planned
 });
 test('R50 source quote edits are flagged, never treated as accepted or collected',async()=>{
  const {port}=sample();const fn=port.version;
- port.version=async(...args)=>({...await fn(...args)!,source_quote_cents:1000});
+ port.version=async(...args)=>({...((await fn(...args))!),source_quote_cents:1000});
  const r=await readP3BookingProjection(port,ids.org,ids.booking);
  assert.equal(r.ok,true);
  if(r.ok)assert.ok(r.projection.flags.includes('source-quote-changed'));
