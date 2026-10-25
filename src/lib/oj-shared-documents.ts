@@ -1,5 +1,6 @@
 import { parseLocalEstimateBook, type LocalEstimateBook } from './exterior-estimate';
 import { validateFleet, type FleetWorkbook } from './fleet-command';
+import { isFieldLog, reviewFieldLog, type ExteriorFieldLog } from './exterior-field-log';
 
 /**
  * One explicit source of authority per business record. This interim document
@@ -8,10 +9,11 @@ import { validateFleet, type FleetWorkbook } from './fleet-command';
  *
  * Never save arbitrary localStorage keys, preview fixtures or STRATHOS state.
  */
-export type SharedDraftKind = 'exterior_estimate' | 'fleet';
+export type SharedDraftKind = 'exterior_estimate' | 'fleet' | 'exterior_field';
 
 export type SharedDraftPayload<K extends SharedDraftKind> =
-  K extends 'exterior_estimate' ? LocalEstimateBook : FleetWorkbook;
+  K extends 'exterior_estimate' ? LocalEstimateBook :
+  K extends 'exterior_field' ? ExteriorFieldLog : FleetWorkbook;
 
 export type SharedDraftRecord<T> = Readonly<{
   revision: number;
@@ -25,8 +27,8 @@ export function assertSharedReference(organizationId: string, kind: SharedDraftK
   if (!uuidPattern.test(organizationId)) throw new Error('Invalid company identifier.');
   if (kind === 'fleet') {
     if (sourceId !== 'main') throw new Error('Fleet records belong to the company registry.');
-  } else if (kind === 'exterior_estimate') {
-    if (!uuidPattern.test(sourceId)) throw new Error('Estimate requires an original lead ID.');
+  } else if (kind === 'exterior_estimate' || kind === 'exterior_field') {
+    if (!uuidPattern.test(sourceId)) throw new Error('Draft requires an original lead or booking UUID.');
   } else {
     throw new Error('This shared-data module has not passed domain validation.');
   }
@@ -45,6 +47,11 @@ export function validateSharedPayload<K extends SharedDraftKind>(
   }
   if (kind === 'exterior_estimate') {
     return parseLocalEstimateBook(encoded, sourceId) as SharedDraftPayload<K>;
+  }
+  if (kind === 'exterior_field') {
+    if (!isFieldLog(raw, sourceId)) throw new Error('Invalid booking-bound field record.');
+    reviewFieldLog(raw);
+    return structuredClone(raw) as SharedDraftPayload<K>;
   }
   return validateFleet(raw, organizationId) as SharedDraftPayload<K>;
 }
