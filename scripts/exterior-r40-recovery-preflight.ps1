@@ -154,7 +154,23 @@ if($Action -eq 'Restore' -or $Action -eq 'VerifyTarget') {
   TargetDatabase=$TargetDatabase;TargetUser='postgres';TargetConfirmation=$TargetConfirmation
  }
  try { & $restoreScript @args *> $null }
- catch { Block 'Isolated local target restore verification failed; check PRIVATE local logs and prepare a new disposable target if needed.' }
+ catch {
+   $diagnostic='OTHER_GUARDED_RESTORE_FAILURE'
+   # The R39 helper emits only an allowlisted constant category; all private
+   # PostgreSQL stderr, connection details and SQL remain hidden from this wrapper.
+   $message=[string]$_.Exception.Message
+   if($message -match 'OJ_RECOVERY_CODE:([A-Z_]+)') {
+     $candidate=[string]$Matches[1]
+     if($candidate -in @(
+       'TARGET_UNREACHABLE','TARGET_AUTHENTICATION','MISSING_TARGET_ROLE',
+       'MISSING_TARGET_EXTENSION','TARGET_PRIVILEGES',
+       'TARGET_NOT_EMPTY_OR_DUPLICATE','MISSING_TARGET_DEPENDENCY',
+       'OTHER_POSTGRES_RESTORE_FAILURE'
+     )) { $diagnostic=$candidate }
+   }
+   Block ('Isolated restore blocked. Diagnostic code: '+$diagnostic+
+     '. Review the underlying cause only on this private Windows host; create a fresh disposable database before retrying.')
+ }
  if($Action -eq 'Restore') { $restoreWasRun=$true }
 }
 $report=[ordered]@{
