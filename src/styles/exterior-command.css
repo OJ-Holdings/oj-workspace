@@ -488,3 +488,24 @@
 .ecjob-suggestion button{flex-shrink:0;min-height:38px;padding:8px 10px;border:1px solid rgba(176,222,212,.36);border-radius:7px;background:rgba(111,185,167,.15);color:#d7f8ee;font-size:10px;font-weight:800}
 .ecjob-suggestion button:disabled{opacity:.6;cursor:not-allowed}
 @media(max-width:560px){.ecjob-suggestion{align-items:stretch;flex-direction:column}.ecjob-suggestion button{width:100%}}
+
+/* R49 — source-qualified, phone-first internal crew briefing within original job */
+.ecjob-crew-brief{margin-top:13px;padding:clamp(13px,2vw,19px);border:1px solid rgba(139,185,210,.26);border-radius:11px;background:rgba(91,145,182,.045);color:#dbe9ef}
+.ecjob-crew-brief-head{display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:13px}
+.ecjob-crew-brief-head>div{flex:1;min-width:210px}
+.ecjob-crew-brief-head span{font-size:10px;letter-spacing:.12em;color:#9ebdcc;font-weight:800}
+.ecjob-crew-brief-head h4{margin:6px 0;font:820 18px/1.3 var(--font-display);color:#f0f9fb}
+.ecjob-crew-brief-head p{margin:0;color:#b5cad4;font-size:11px;line-height:1.6;max-width:740px}
+.ecjob-crew-brief-head button{display:flex;gap:8px;align-items:center;justify-content:center;min-height:43px;padding:9px 14px;border-radius:8px;border:1px solid rgba(165,205,222,.38);background:rgba(144,195,213,.12);font:750 11px var(--font-display);color:#e5f5fa;cursor:pointer}
+.ecjob-crew-brief-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.ecjob-crew-brief-grid>div{display:flex;flex-direction:column;gap:5px;min-width:0;padding:12px;border:1px solid rgba(155,194,211,.16);border-radius:9px;background:rgba(207,230,242,.04)}
+.ecjob-crew-brief-grid small{font-size:10px;color:#afc9d8;font-weight:700}
+.ecjob-crew-brief-grid strong{font-size:13px;color:#edf7fa;overflow-wrap:anywhere}
+.ecjob-crew-brief-grid span{font-size:11px;color:#afc7d1;line-height:1.5;overflow-wrap:anywhere}
+.ecjob-crew-brief-status{display:flex;flex-wrap:wrap;gap:9px 14px;padding:12px 0;font-size:11px;color:#b7d1df}
+.ecjob-crew-brief-status strong{color:#d7f2f5}
+.ecjob-crew-brief details{padding:10px 13px;border:1px solid rgba(231,178,131,.28);border-radius:8px;color:#e9c6a3;font-size:11px;line-height:1.6}
+.ecjob-crew-brief summary{font-weight:750;cursor:pointer;min-height:24px}
+.ecjob-crew-brief ul{padding-left:18px;margin:9px 0 2px}
+.ecjob-crew-brief-privacy{font-size:10px;line-height:1.5;color:#aabfcb;margin:11px 0 0}
+@media(max-width:700px){.ecjob-crew-brief-grid{grid-template-columns:minmax(0,1fr)}.ecjob-crew-brief-head button{width:100%}}
