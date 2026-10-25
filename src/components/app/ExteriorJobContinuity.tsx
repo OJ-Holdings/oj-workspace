@@ -8,6 +8,7 @@ import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-
 import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
 import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
 import {buildJobNextActions} from '@/lib/exterior-job-next-actions';
+import {buildExteriorCrewBrief} from '@/lib/exterior-crew-brief';
 import {ExteriorDeviceReleaseProof} from './ExteriorDeviceReleaseProof';
 import {loadExteriorSharedFollowups,loadMoreExteriorJobTasks} from '@/app/workspace/exterior-followup-actions';
 
@@ -36,6 +37,8 @@ export function ExteriorJobContinuity({
  const [failed,setFailed]=useState('');
  const [attempt,setAttempt]=useState(0);
  const [linkCopied,setLinkCopied]=useState(false);
+ const [crewCopied,setCrewCopied]=useState(false);
+ const [crewCopyError,setCrewCopyError]=useState('');
  const [moreBusy,setMoreBusy]=useState(false);
  const [moreError,setMoreError]=useState('');
  const liveAccess=mode==='live'&&!readOnly&&view.sourceLinked;
@@ -79,6 +82,18 @@ export function ExteriorJobContinuity({
  const nextActions=report?buildJobNextActions(view,booking,report.source,report.tasks,report.limited):null;
  const matchesSource=!!report&&report.source.date===booking.date&&
   report.source.time===booking.time_block&&report.source.status===booking.status;
+ const crewBrief=liveAccess&&matchesSource?
+  buildExteriorCrewBrief(data,booking,view,crew,report):null;
+ async function copyCrewBrief(){
+  if(!crewBrief)return;
+  setCrewCopyError('');setCrewCopied(false);
+  try{
+   await navigator.clipboard.writeText(crewBrief.text);
+   setCrewCopied(true);
+  }catch{
+   setCrewCopyError('Could not copy the internal brief on this device.');
+  }
+ }
  const routeFor=(step:typeof view.steps[number])=>{
   if(step.route==='finance')return base+'/finance';
   const root=base+'/b/exterior';
@@ -116,6 +131,41 @@ export function ExteriorJobContinuity({
     <Link href={routeFor(step)}>{step.route==='finance'?'Review accounting context':step.route==='field'?'Open private field log':step.route==='customer'?'Open original customer':step.route==='estimate'?'Open estimator':'Open original booking'} <ArrowRight size={14}/></Link>
    </section>)}
   </div>
+  <section className="ecjob-crew-brief" aria-label="Booking-specific internal crew brief">
+   <header className="ecjob-crew-brief-head">
+    <div>
+     <span>OPERATIONS / SOURCE-BOUND FIELD HANDOFF</span>
+     <h4>One job. One crew brief.</h4>
+     <p>A compact field reference assembled from this original booking and authorized company tasks. It is never proof of dispatched staff, accepted scope, completed work or safety clearance.</p>
+    </div>
+    {crewBrief&&<button type="button" onClick={()=>void copyCrewBrief()}>
+     <ClipboardList size={15}/>{crewCopied?'Internal brief copied':'Copy internal crew brief'}
+    </button>}
+   </header>
+   {!crewBrief?<p className="ecjourney-coverage">
+    {mode==='preview'?'Fictional preview: no internal customer brief can be copied.':
+     readOnly?'This account cannot export a company crew brief.':
+     'Authenticated source, current original booking and matching company tasks must finish loading before an internal brief can be produced.'}
+   </p>:<>
+    <div className="ecjob-crew-brief-grid">
+     <div><small>Service and appointment</small><strong>{crewBrief.scope}</strong><span>{crewBrief.appointment}</span></div>
+     <div><small>Customer and site (source recorded)</small><strong>{crewBrief.customer}</strong><span>{crewBrief.address}</span></div>
+     <div><small>Customer contact (source recorded)</small><strong>{crewBrief.phone}</strong><span>Do not assume an outreach message was sent</span></div>
+     <div><small>Assigned crew evidence</small><strong>{crewBrief.crew}</strong><span>Not a confirmed shift or vehicle reservation</span></div>
+    </div>
+    <div className="ecjob-crew-brief-status">
+     <strong>{crewBrief.openTasks} loaded open internal task{crewBrief.openTasks===1?'':'s'}</strong>
+     <span>{crewBrief.taskCoverage==='partial'?'Incomplete shared task source':'Current company task window complete'}</span>
+     <span>Dispatch and safety clearance NOT VERIFIED</span>
+    </div>
+    {crewBrief.exceptions.length>0&&<details>
+     <summary>{crewBrief.exceptions.length} source gap{crewBrief.exceptions.length===1?'':'s'} requiring review</summary>
+     <ul>{crewBrief.exceptions.map(issue=><li key={issue}>{issue}</li>)}</ul>
+    </details>}
+    <p className="ecjob-crew-brief-privacy">Copy is an explicit internal-only action containing customer address/contact data. It does not send a message, reserve a crew or record a job completion.</p>
+    {crewCopyError&&<p role="alert" className="ecjourney-alert">{crewCopyError}</p>}
+   </>}
+  </section>
   <section className="ecjourney-team" aria-label="Current shared team actions on this job">
    <div className="ecjourney-team-top">
     <div><span>REAL COMPANY WORK / EXACT ORIGINAL BOOKING</span>
