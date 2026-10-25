@@ -69,6 +69,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
             )}
             <div><span>Open tasks</span><strong><NumberFlow value={open.length} /></strong></div>
           </div>
+          {venture === 'solutions' && <SolutionsConsultations org={organizationId} mode={mode} />}
           <h2 className="section-title">Work in progress</h2>
           <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />
         </div>
