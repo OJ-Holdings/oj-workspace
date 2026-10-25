@@ -52,7 +52,7 @@ export type P3ProjectionResult=
 const matches=(a:OriginalBooking,b:OriginalBooking)=>
  a.id===b.id&&a.lead_id===b.lead_id&&a.date===b.date&&
  a.time_block===b.time_block&&a.status===b.status;
-const assert=(yes:unknown):void=>{if(!yes)throw Error('P3 source relationship is inconsistent.');};
+function assert(yes:unknown):asserts yes {if(!yes)throw Error('P3 source relationship is inconsistent.');}
 function publicScope(v:unknown):ReadonlyArray<P3PublicLine>{
  assert(Array.isArray(v)&&v.length>0&&v.length<=24);
  const ids=new Set<string>();
