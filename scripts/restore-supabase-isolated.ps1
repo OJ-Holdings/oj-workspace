@@ -115,6 +115,33 @@ function StartByteProcess([string]$file,[string[]]$arguments,[bool]$redirectInpu
   if (-not $process.Start()) { throw "Could not start $([IO.Path]::GetFileName($file))." }
   return $process
 }
+# Only constant, allowlisted diagnostic categories may escape a private restore.
+# PostgreSQL stderr may contain SQL, object paths, roles or customer data;
+# never include it in a public error, PR log or sanitized preflight report.
+function SafePgRestoreCode([string]$errorText) {
+  if ($errorText -match '(?i)(could not connect to server|connection refused|could not translate host name|no route to host|connection timed out)') {
+    return 'TARGET_UNREACHABLE'
+  }
+  if ($errorText -match '(?i)(password authentication failed|no password supplied|authentication failed|no pg_hba.conf entry)') {
+    return 'TARGET_AUTHENTICATION'
+  }
+  if ($errorText -match '(?i)(role .+ does not exist|must be member of role|permission denied to set role)') {
+    return 'MISSING_TARGET_ROLE'
+  }
+  if ($errorText -match '(?i)(extension .+ is not available|extension .+ does not exist|could not open extension control file)') {
+    return 'MISSING_TARGET_EXTENSION'
+  }
+  if ($errorText -match '(?i)(permission denied|must be owner|must be superuser|insufficient privilege)') {
+    return 'TARGET_PRIVILEGES'
+  }
+  if ($errorText -match '(?i)(already exists|duplicate key value violates unique constraint)') {
+    return 'TARGET_NOT_EMPTY_OR_DUPLICATE'
+  }
+  if ($errorText -match '(?i)(schema .+ does not exist|relation .+ does not exist|function .+ does not exist|type .+ does not exist)') {
+    return 'MISSING_TARGET_DEPENDENCY'
+  }
+  return 'OTHER_POSTGRES_RESTORE_FAILURE'
+}
 function GetAgeIdentityText {
   if ($AgeIdentity) {
     if (-not (Test-Path -LiteralPath $AgeIdentity -PathType Leaf)) { throw 'Age recovery identity file was not found.' }
@@ -160,9 +187,8 @@ function PipeAgeToPgRestore([string]$archivePath,[string]$identity,[string[]]$re
     $restoreError = $pgError.GetAwaiter().GetResult()
     if ($decryptor.ExitCode -ne 0) { throw "Encrypted archive authentication/decryption failed (age exit $($decryptor.ExitCode))." }
     if ($restorer.ExitCode -ne 0) {
-      $safeDetail = ($restoreError -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
-      if ($safeDetail.Length -gt 240) { $safeDetail = $safeDetail.Substring(0,240) }
-      throw "PostgreSQL restore failed (pg_restore exit $($restorer.ExitCode)): $safeDetail"
+      $code = SafePgRestoreCode $restoreError
+      throw ('OJ_RECOVERY_CODE:' + $code + ' — PostgreSQL refused the isolated restore. Raw stderr remains private.')
     }
     return $restoreOutput + $restoreError
   } finally {
