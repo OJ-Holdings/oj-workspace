@@ -1,5 +1,7 @@
 # OJ Workspace data and local recovery inventory
 
+Current production update: [PR #159 shared-save activation](./OJ_SHARED_SAVE_ACTIVATION.md) is LIVE for commercial projects, residential estimates, fleet, booking field/equipment reports and internal crew handoffs. Existing browser copies remain recovery inputs; company saving is explicit. Earlier absence/preflight findings below are dated historical inventory. Storage file-byte recovery and two-device acceptance remain outstanding.
+
 Latest verification: [October 25 save audit](./OJ_WORKSPACE_SAVE_VERIFICATION_2026-10-25.md). The owner-run R40 database restore/parity/actor checks now pass. Shared commercial schema is still absent in production; local browser records and Storage bytes are not covered by that database result. Earlier backup-preflight blockers below are historical snapshots.
 
 Snapshot: 2026-10-25. Repository reviewed at feature branch `feature/commercial-estimate-persistence`, based on `origin/main` `22e0b2c`. Live Supabase inventory was read-only. No production rows were read or written, no migration was applied, and no browser profile files were inspected.

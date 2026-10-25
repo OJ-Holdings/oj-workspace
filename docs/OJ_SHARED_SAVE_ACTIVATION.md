@@ -1,6 +1,6 @@
 # Shared Workspace saves: activation handoff
 
-Implementation branch: `codex/workspace-durable-saves`, stacked on the completed R40 recovery branch. Integrates the existing `feature/workspace-unified-supabase-documents` implementation without replacing the recovery runner. This is implemented and tested code, not a production activation receipt.
+LIVE: PR #159 merged as `8b684d1cf867a539d6fc61e58f4ccc21bc148886` and deployed on October 25, 2026 at 23:06:58 UTC. The Windows release receipt and an independent HTTP `/api/deploy-health` request both report this SHA. The previous release `5650b8911b56b4c3302c5959dc94c4ffa6dceb07` remains available for rollback. The latest main's U0 fixes and Solutions consultation inbox are preserved.
 
 ## Save paths
 
@@ -25,12 +25,22 @@ These migrations add tables/functions and do not rewrite customer rows or import
 ## Verification
 
 - TypeScript and Next production build PASS.
-- Full unit/permission suite: 727 PASS, zero failed/skipped; includes commercial and module persistence, private tables, source/tenant checks, versions, conflicts, replay, missing membership and browser recovery.
+- Full unit/permission suite after integrating current main: 730 PASS, zero failed/skipped; includes commercial and module persistence, private tables, source/tenant checks, versions, conflicts, replay, missing membership and browser recovery. All four PR CI jobs and all main CI jobs PASS ([main run](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40242913452)).
 - `scripts/tests/oj-workspace-save-integration.ps1`: PASS on a NEW PostgreSQL 17 container using the pinned Supabase image, network disabled, no published ports, no production credentials or data mounts. Applies both actual proposed migrations to generated fixture tables. Confirms owner save and independent member read-back, stale two-founder conflict, idempotent lost-response replay, altered replay refusal, protected history, viewer/outsider/anonymous/direct-table denial and immediate revoked-membership denial. Only the disposable synthetic container/volumes are removed.
 - Owner-supplied R40 evidence confirms real database restore, 23-table/current record-count parity, policies/RLS and member/outsider/anonymous read tests. This does not establish production write or browser/device acceptance for the proposed save schema.
 
-## Activation gate still open
+## Production activation evidence
 
-Production has not been migrated or deployed by this change. Both existing Storage objects are private; independent encrypted byte backup/restore and off-PC recovery are still outstanding. The owner's earlier instruction requires completion of that recovery gate and explicit production-migration approval before activation. A generic request to make saves work has not been treated as permission to bypass this gate.
+The owner explicitly approved production migrations/deployment and accepted proceeding before independent backup verification of the two existing private files. Only the two reviewed additive migrations were applied: database migration versions `20261025230132` and `20261025230134`. Counts in all 23 original public tables, Auth users and Storage objects matched before/after. RLS is enabled and authenticated direct reads of private module tables are denied.
 
-After recovery and approval: apply only the two reviewed additive migrations, use the existing guarded deployment/release process, preserve browser recovery exports from each actual origin/profile/device, then perform designated owner/member save/reload/second-device acceptance without touching existing customer records. Review and explicitly synchronize pre-existing local drafts using the new controls. Production rollout requires its own recorded results and rollback evidence.
+- A clearly titled **SYSTEM SAVE VERIFICATION - synthetic archived** project was persisted through the commercial RPC under an authorized database owner role and read back in a separate transaction under another actual member role. It is archived and has no customer, booking, asset or commercial commitment attached.
+- The typed empty fleet payload was saved and exactly read back under the member role in a production rollback-only verification transaction. The outsider was denied. The rollback left zero module documents and did not replace any founder's fleet records.
+- Anonymous HTTP requests to both new RPC families return HTTP 401 / PostgreSQL 42501; the functions are present in the public API schema and refuse unauthenticated access.
+- The production deployer built a separate release, reran dependency install/typecheck/full tests/build, health-checked staging, then switched port 3011. Independent HTTP checks: health SHA matches, preview returns 200 and signed-out Workspace redirects (307). Tailscale routing and STRATHOS services were not changed.
+- Five old untracked infrastructure files blocking source fast-forward were moved to a private infrastructure backup with SHA-256 verification; no secrets or browser data were moved. The current tracked auto-deployer retains its normal SQL/environment gate. This one authorized rollout used a local copy of that deployer pinned to the exact approved SHA, preserving CI, clean-tree, staging, lock, port ownership and rollback checks.
+
+## Remaining owner workflow and limits
+
+Refresh Workspace. Use **Save shared project**, **Save internal revision**, or the module's **Save to company** control. Local autosave alone remains a browser recovery copy. Existing browser records require an explicit company save/reconciliation; no data was silently imported or discarded. Other authorized devices read shared versions after reload. Conflicting copies are retained for explicit review.
+
+The real database role/RPC and HTTP access checks above are not authenticated browser-cookie or two-physical-device acceptance; that user interaction remains to be demonstrated. Content Studio stays its existing gated preview. Independent encrypted backup/restoration of both private Storage file bytes and off-PC recovery remain outstanding; the files themselves and the old encrypted database archives were preserved.

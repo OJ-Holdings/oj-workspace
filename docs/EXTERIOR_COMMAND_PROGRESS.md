@@ -4,6 +4,8 @@
 
 ## Definition of 100%
 
+October 25 live checkpoint: PR #159 deployed SHA `8b684d1cf867a539d6fc61e58f4ccc21bc148886` enables the existing operational editors' protected shared saves after explicit owner authorization. All CI green and 730 local tests PASS; production original record counts preserved and member-role save/read-back verified. [Evidence and remaining limits](./OJ_SHARED_SAVE_ACTIVATION.md). Twelve-wave weighted score remains 42/100 (+0); independent file/off-PC recovery and physical-device acceptance are not completed by this release.
+
 A redesign is complete when the 12 master-plan waves are implemented, production-safe, validated on real founder devices, and accepted as part of one connected Exterior operating system. Shipping a beautiful screen does not equal a complete customer/dispatch/accounting application. Existing standalone tools and legacy records are preserved but do **not** automatically count as redesigned/connected workflow acceptance.
 
 | Plan wave | Weight | R43 P1.1 earned | Not yet done |
