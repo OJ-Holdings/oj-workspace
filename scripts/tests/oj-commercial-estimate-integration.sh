@@ -20,7 +20,7 @@ sql(){ docker exec "$container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pos
 actor(){
   local user="$1" statement="$2"
   docker exec "$container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -Atc \
-    "BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$user',true); $statement ROLLBACK;" | tail -n 1
+    "BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$user',true); $statement COMMIT;" | tail -n 1
 }
 anon(){
   local statement="$1"
