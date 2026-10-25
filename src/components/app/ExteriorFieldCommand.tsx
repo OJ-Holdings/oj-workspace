@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type {ExteriorData,ExtBooking} from '@/lib/exterior';
 import {statusLabel} from '@/lib/exterior';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import {ExteriorJobEquipment} from './ExteriorJobEquipment';
 import {ExteriorJobEconomics} from './ExteriorJobEconomics';
 import {ExteriorCloseoutReview} from './ExteriorCloseoutReview';
@@ -45,6 +46,12 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  const [loaded,setLoaded]=useState(false);
  const [storageError,setStorageError]=useState('');
  const [notice,setNotice]=useState('');
+ const [sharedStatus,setSharedStatus]=useState<'checking'|'ready'|'local-only'|'saving'|'conflict'|'offline'>('checking');
+ const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+ const [sharedCopy,setSharedCopy]=useState<ExteriorFieldLog|null>(null);
+ const [hadLocal,setHadLocal]=useState(false);
+ const logRef=useRef<ExteriorFieldLog|null>(null);
+ const savePending=useRef<{data:ExteriorFieldLog;expected:number;commandId:string}|null>(null);
  const [query,setQuery]=useState('');
  const [issueText,setIssueText]=useState('');
  const [issueKind,setIssueKind]=useState<FieldIssue['category']>('equipment');
@@ -52,11 +59,14 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  const upload=useRef<HTMLInputElement|null>(null);
 
  useEffect(()=>{
-  setLog(null);setLoaded(false);setStorageError('');setNotice('');
+  setLog(null);setLoaded(false);setHadLocal(false);
+  setSharedStatus('checking');setSharedRevision(null);setSharedCopy(null);savePending.current=null;
+  setStorageError('');setNotice('');
   if(!booking||!lead){setLoaded(true);return;}
   if(readonly){setLog(newFieldLog(booking));setLoaded(true);return;}
   try{
    const raw=window.localStorage.getItem(key(org,booking.id));
+   setHadLocal(Boolean(raw));
    if(raw){
     const val:unknown=JSON.parse(raw);
     if(!isFieldLog(val,booking.id,lead.id))throw Error('invalid existing draft');
@@ -71,6 +81,30 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
   }
   setLoaded(true);
  },[org,booking?.id,lead?.id,readonly]); // eslint-disable-line react-hooks/exhaustive-deps
+ logRef.current=log;
+ useEffect(()=>{
+  if(!loaded||!booking||!lead||readonly||storageError)return;
+  let cancelled=false;
+  setSharedStatus('checking');
+  void loadSharedDraft(org,'exterior_field',booking.id).then(remote=>{
+   if(cancelled)return;
+   setSharedRevision(remote?.revision??0);
+   setSharedCopy(remote?.payload??null);
+   if(!remote){setSharedStatus('local-only');return;}
+   const local=logRef.current;
+   const untouched=!hadLocal&&local&&JSON.stringify(local)===JSON.stringify(newFieldLog(booking));
+   if(untouched||(local&&JSON.stringify(local)===JSON.stringify(remote.payload))){
+    setLog(remote.payload);setSharedStatus('ready');
+   }else{
+    setSharedStatus('conflict');
+    setNotice('A different company field report already exists. No local records were replaced. Export and review both copies.');
+   }
+  }).catch(error=>{
+   if(cancelled)return;setSharedStatus('offline');
+   setNotice(error instanceof Error?error.message:'Shared field storage unavailable. Your device-local report is preserved.');
+  });
+  return ()=>{cancelled=true;};
+ },[org,booking?.id,lead?.id,loaded,readonly,storageError,hadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
  const reviewed=useMemo(()=>{
   if(!log)return null;
   try{return {ok:true as const,result:reviewFieldLog(log)};}
@@ -88,7 +122,9 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  const canEdit=Boolean(!readonly&&booking&&lead&&!storageError);
  const patch=(fn:(v:ExteriorFieldLog)=>ExteriorFieldLog)=>{
   if(!canEdit)return;
-  setLog(old=>old?fn(old):old);setNotice('');
+  setLog(old=>old?fn(old):old);
+  if(sharedStatus==='ready')setSharedStatus('local-only');
+  setNotice('');
  };
  const modifyCrew=(id:string,part:Partial<FieldLabor>)=>patch(v=>({...v,labor:v.labor.map(r=>r.id===id?{...r,...part}:r),review:{...v.review,labor:false}}));
  const modifyMaterial=(id:string,part:Partial<FieldMaterial>)=>patch(v=>({...v,materials:v.materials.map(r=>r.id===id?{...r,...part}:r),review:{...v.review,materials:false}}));
