@@ -71,10 +71,9 @@ export async function saveCommercialProject(
   const receipt = validateCommercialSaveReceipt(data, projectId);
   if (!receipt.ok) return { status: 'conflict', currentRevision: receipt.currentRevision };
 
-  // The updated row becomes the newest keyset item. Re-read through the same
-  // member-only RPC; never trust a client copy as the authoritative receipt.
-  const page = await loadCommercialProjects(organizationId);
-  const project = page.projects.find(item => item.id === projectId);
+  // Re-read the exact ID through the member-only RPC. Paging through the
+  // first 50 projects is not a reliable confirmation under simultaneous writes.
+  const project = await loadCommercialProject(organizationId, projectId);
   if (!project) throw new Error('The save receipt was recorded, but the shared project could not be reloaded. Refresh before retrying.');
   if (project.revision !== receipt.revision) {
     throw new Error('Another founder saved a newer revision. Reload the shared project before continuing.');
