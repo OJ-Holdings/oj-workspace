@@ -242,7 +242,7 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
     {goal !== null && goal !== undefined && goal > 0 && <section className="panel">
       <header className="panel-head"><h2>{monthLabel(currentMonth)} job revenue goal</h2><span className="quiet">{cash(monthFigures.revenue)} of {dollars(goal)}</span></header>
       <progress className="upgrade-bar" value={Math.min(monthFigures.revenue ?? 0, goal)} max={goal} aria-label="Monthly recorded job revenue against goal" />
-      <p className="quiet">All services and sources; independent of the filters above. Based on recorded job revenue grouped by job date, not collection dates. {monthFigures.missingRevenue} completed jobs have no payment entered.</p>
+      <p className="quiet">All services and sources; independent of the filters above. Based on recorded job revenue grouped by job date, not collection dates. {monthFigures.missingRevenue} completed source records have no valid job revenue entered.</p>
     </section>}
 
     <section className="panel">
@@ -272,7 +272,7 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
       {rows.length ? <div className="tablewrap"><table className="table">
         <caption className="sr-only">Source job records for the selected report and completeness filter</caption>
         <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Recorded job revenue</th><th scope="col" className="num">Cost entered</th></tr></thead>
-        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{lead.job_revenue === null ? 'Not recorded' : cash(lead.job_revenue)}</td><td className="num">{lead.job_cost === null ? 'Not recorded' : cash(lead.job_cost)}</td></tr>)}</tbody>
+        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{isRecordedJobAmount(lead.job_revenue)?cash(lead.job_revenue):'Not recorded'}</td><td className="num">{isRecordedJobAmount(lead.job_cost)?cash(lead.job_cost):'Not recorded'}</td></tr>)}</tbody>
       </table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(value => value + 50)}>Show {Math.min(50, rows.length - shown)} more jobs</button>}</div> : <div className="empty"><p><b>No jobs in this selection.</b> Choose another completeness filter to return to the source records.</p></div>}
     </section>
   </>;
