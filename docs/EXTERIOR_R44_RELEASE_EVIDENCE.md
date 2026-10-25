@@ -11,6 +11,12 @@ The repository documents **two materially different delivery paths**:
 
 These are *documented candidate origins*, not claims that either is responding or currently used. Netlify cloud availability, Tailscale forwarding and latest served SHA have **not** been verified here. An invalid, missing, conflicting or arbitrary environment release value returns `unmanaged` instead of leaking secrets or reporting a false SHA.
 
+## October 24 founder observation (limited)
+
+**Founder observation:** A screenshot provided in chat on October 24 showed one founder iPhone's same-origin checker reporting `0d1bbdf6fa8bf9c0c71326b43ce5afcddcb903a9`, matching GitHub `main` at that earlier R44 checkpoint. The screenshot did not show the browser hostname or a sanitized copy, and it does not demonstrate current R45 hosting, Jacob's separate account, cross-device persisted task/comments, real backup restore, Storage bytes or RLS actor matrix.
+
+The source code for R45 later merged as [PR #134](https://github.com/OJ-Holdings/oj-workspace/pull/134). Its actual deployment still requires a new current-origin check; the earlier R44 screenshot cannot prove a newer release.
+
 ## Check the exact version on two real phones
 
 Using each founder's **existing separately authorized company account**, open **Jobs & Bookings → Open job workflow**, then expand **Device and deployment check** and choose **Check my server version**.

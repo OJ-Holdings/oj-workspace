@@ -6,6 +6,12 @@
 
 
 
+## EXTERIOR R45 / P1.2 — SERVER JOB STATE AND SOURCE WINDOW INTEGRITY (October 24, 2026)
+
+- **R45 / Integration P1.2** [PR #134](https://github.com/OJ-Holdings/oj-workspace/pull/134) merged at `d0a4c22e8cbd449a961497dfcc2d3441b2992fc3`; tested head `3251309e4c7292419b7df6e4edf4eead8f580a1c` passed [feature CI #40144860067](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40144860067): TypeScript, all 655 tests, production build and separate synthetic PG17 restore. Post-merge main CI requires independent confirmation. Shared exact-job task creation, status and comments now have the same server-enforced `confirmed` / `pending_approval` booking-state gate (pending means INTERNAL review, not dispatch confirmation); the field copy refuses stale actions too. Company member and comment-author identity pages must be source-complete, and task/comment partial source windows are visibly marked; no more misleading zero-task messages on incomplete pages. No DDL, customer messages, bank writes, private field sync or production data changes.
+- **Founder observation:** A screenshot provided in chat on October 24 showed one founder iPhone's same-origin checker reporting `0d1bbdf6fa8bf9c0c71326b43ce5afcddcb903a9`, matching GitHub `main` at that earlier R44 checkpoint. The screenshot did not show the browser hostname or a sanitized copy, and it does not demonstrate current R45 hosting, Jacob's separate account, cross-device persisted task/comments, real backup restore, Storage bytes or RLS actor matrix.
+- Overall Exterior engineering **42/100**; no new earned point for defensive code or unverified acceptance. Live R45 site and second founder workflow remain to be proven; full real encrypted private archive, independent recovery, actor RLS, Storage bytes and rollback remain blocked. P3 schema PR #42 stays unmerged. Canonical live-recheck instructions: `docs/EXTERIOR_CONTINUE_HERE.md`.
+
 ## EXTERIOR R44 / P2 — READ-ONLY DEPLOYMENT / FOUNDER DEVICE EVIDENCE (October 24, 2026)
 
 - **Feature [PR #132](https://github.com/OJ-Holdings/oj-workspace/pull/132)** merged `main` at `492b68687c5f6ade237118bac5d823480c4f1a97`. Exact feature head `e00022d5f57e6bbc229ace607fff38a7dd74fa2f` green on [CI 40141928898](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40141928898), including TypeScript, all tests, production Next build, new P2 PowerShell tests and synthetic PostgreSQL recovery. Feature post-merge [CI 40142096003](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40142096003) completed SUCCESS in both jobs.
