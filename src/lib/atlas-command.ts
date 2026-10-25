@@ -70,6 +70,7 @@ export function buildAtlasSnapshot({cards,dashboard,jobs,today,limited=false}:At
     const active=id!=='content'||contentPersistenceEnabled;
     const sourceId=id==='exterior'?'exterior':id==='solutions'?'ghl':null;
     const source=sourceId?dashboard?.reporting?.sources.find(s=>s.id===sourceId):null;
+    const sourceState:AtlasVenture['sourceState']=source?.state??'unknown';
     // Original Exterior leads are not the separate Workspace CRM. Missing
     // source coverage must be unknown rather than a falsely confident zero.
     const sourceOpen=sourceId&&dashboard&&Object.hasOwn(dashboard.openElsewhere??{},id)
@@ -77,7 +78,7 @@ export function buildAtlasSnapshot({cards,dashboard,jobs,today,limited=false}:At
     return {id,active,
       openTasks:currentCards.filter(c=>c.business===id).length,
       leads:active&&dashboard?dashboard.leads.filter(l=>l.venture===id&&l.stage!=='Won'&&l.stage!=='Lost').length:null,
-      sourceOpen,sourceState:source?.state??'unknown',
+      sourceOpen,sourceState,
       upcomingBookings:id==='exterior'?activeBookings.length: null,
       primarySignal:intelligence.signals.find(s=>s.business===id)??null,
     };
