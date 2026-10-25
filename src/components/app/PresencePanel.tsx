@@ -151,7 +151,7 @@ export function PresencePanel({ mode, organizationId, members, cards, onOpenCard
               {task && <button type="button" className="presence-task" onClick={() => onOpenCard(task)}>{task.title}<ArrowUpRight size={13} aria-hidden="true" /></button>}
               {!task && boardAssignments.map(assigned=><button key={assigned.id} type="button" className="presence-task" onClick={()=>onOpenCard(assigned)}>Assigned task: {assigned.title}<ArrowUpRight size={13} aria-hidden="true"/></button>)}
               {mode === 'live' && state !== 'unknown' && <small>{state === 'offline' ? presenceAge(availability.lastSeen, now) : state === 'online' ? 'Workspace connected' : 'Away from this workspace'}{work && ' · Status set explicitly'}</small>}
-              {!work?.note && !task && boardAssignments.length===0 && <small>No assigned work in the loaded task board</small>
+              {!work?.note && !task && boardAssignments.length===0 && <small>No assigned work in the loaded task board</small>}
             </div>
           </li>;
         })}</ul>
