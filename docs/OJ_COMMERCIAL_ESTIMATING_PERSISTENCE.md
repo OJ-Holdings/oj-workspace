@@ -32,6 +32,15 @@ RPCs: `oj_commercial_project_save`, `oj_commercial_projects_list`, and `oj_comme
 
 PGlite is a PostgreSQL-compatible WASM test, not a substitute for the required isolated PostgreSQL 17 RLS/restore acceptance. No production RLS test, real two-device acceptance, source restore or browser-origin export has been performed. Those items are explicit before-merge/deployment requirements.
 
+## Review hardening after PR #150
+
+- **Lost-response retries:** The shared Project 360 editor now keeps a pending new-project UUID and command UUID through an interrupted network response. An unchanged retry reuses both IDs, not a second project. A synchronous in-flight lock prevents two rapid Save clicks from generating duplicate records; changing to a different project resets the pending command. Dedicated regression tests cover dropped-response and edited-draft cases.
+- **Exact saved-row confirmation:** Server-side save re-reads the exact project ID through the existing current-member RPC instead of assuming a concurrent save remains on the first 50-item page.
+- **Real immutability:** PostgreSQL append-only triggers now deny updates/deletes to estimate-version snapshots, building scope, internal cost assumptions, history and idempotency receipts, even from a privileged SQL test actor. Project metadata and current-version pointers remain updateable via the existing guarded RPC.
+- **Revoked access:** The isolated PostgreSQL 17 test suite also confirms that removal from current company membership immediately blocks reads and new saves even with the same previous JWT subject.
+- **Verified feature head:** `360aa623399ef7942ca9ae853a9a9d093a98c3a8` passed all four [CI jobs #40193314041](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40193314041). The PR has **not** been deployed or merged.
+- **Activation sequence stays unchanged:** Export privately stored browser records from every authorized origin/profile/device; configure a founder-owned encrypted database backup destination and DPAPI credential; install/test compatible DB utilities; create independent off-host DB and Storage-byte backup; restore both into a safe isolated target; exercise original production-like actor permissions; obtain explicit owner production-migration authorization. The existing deployment guard is intentionally retained and blocks executable `supabase/migrations/**` changes.
+
 ## Operational release guard
 
 The active local deployer lives as untracked owner-controlled Windows infrastructure outside this PR. It currently blocks every changed `supabase/` path (including staging-only SQL) and environment/connection changes. Keep this fail-closed guard intact for the current branch: the feature contains an executable migration, and the recovery gate is blocked. The PR is for code/schema review only; production remains unchanged.
