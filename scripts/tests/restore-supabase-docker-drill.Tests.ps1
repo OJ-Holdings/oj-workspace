@@ -8,6 +8,15 @@ $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script).Path,[ref]$tokens,[ref]$errors) | Out-Null
 if ($errors.Count) { throw 'Docker restore-drill helper has PowerShell syntax errors.' }
 $source = Get-Content -LiteralPath $script -Raw
+$functionAst = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script).Path,[ref]$tokens,[ref]$errors)
+$catalogDiffFunction = $functionAst.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-CatalogSetDifference' },$true)
+if (-not $catalogDiffFunction) { throw 'Catalog comparison helper is missing.' }
+. ([scriptblock]::Create($catalogDiffFunction.Extent.Text))
+$identicalRows = @(Get-CatalogSetDifference -Left @('schema_item') -Right @('schema_item'))
+$differentRows = @(Get-CatalogSetDifference -Left @('source_item') -Right @('target_item'))
+if ($identicalRows.Count -ne 0 -or $differentRows.Count -ne 1 -or $differentRows[0] -cne 'source_item') {
+  throw 'Catalog comparison helper must return flat, exact set differences.'
+}
 $admin = $source.IndexOf('IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)')
 $docker = $source.IndexOf('$dockerInfo = @(& $docker info')
 $egress = $source.IndexOf("'ip','route','del','default'")

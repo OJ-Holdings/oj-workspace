@@ -166,7 +166,7 @@ function Get-LastNumericValue([string]$Text) {
 function Get-CatalogSetDifference($Left,$Right) {
   $rightSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
   foreach ($entry in @($Right)) { $null = $rightSet.Add([string]$entry) }
-  return ,@($Left | Where-Object { -not $rightSet.Contains([string]$_) })
+  return @($Left | Where-Object { -not $rightSet.Contains([string]$_) })
 }
 
 try {
