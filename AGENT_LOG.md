@@ -482,3 +482,8 @@ this file is how work gets handed over.
 - Diagnosed the live backup failure: pg_restore --list exits after reading the PostgreSQL archive table of contents. On larger dumps, the validation helper mistook that normal early close for an age failure and killed age before it verified the encrypted stream trailer.
 - Updated validation and isolated restore streaming to drain age output after the inspector closes, letting age authenticate the complete ciphertext. Expanded the synthetic source with 30,000 incompressible rows to exercise early consumer exit.
 - Verified the Windows PostgreSQL 17 + age smoke test, isolated restore, exact row comparison, invalid archive rejection and ciphertext tamper rejection; git diff --check passes. No production database operation was run.
+
+# 2026-10-25 - supervised Supabase restore drill
+- Added a one-command elevated Windows restore helper using the pinned official Supabase PostgreSQL 17 image. It validates the archive, creates a unique empty target, binds only to loopback, removes the container outbound route before restoring, runs Restore and VerifyTarget, then removes its plaintext volume/container while retaining private receipts.
+- Docker Desktop was installed and is running. The host port relay works on a private single-container bridge after deleting the container default route; Docker internal networks do not publish correctly on this host. The Codex process is not elevated, so the actual archive restore remains pending the helper run from Administrator PowerShell.
+- CI now parses the helper; real restore has not yet passed. The verified production archive remains encrypted on D: and E:; no production schema was changed.

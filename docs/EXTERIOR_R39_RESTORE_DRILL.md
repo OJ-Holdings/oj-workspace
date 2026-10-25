@@ -28,6 +28,16 @@ Before using the R39 tool directly with actual private data, follow the [R40 fou
 
 First ensure a verified private encrypted primary/off-device backup exists. Do not send credentials, archive files, manifest, exact database host, Auth users or backups into chats, GitHub, email, tickets or SaaS upload tools.
 
+### Disposable Docker drill helper
+
+On Windows with Docker Desktop running, an elevated PowerShell can run the guarded restore through the pinned Supabase PostgreSQL 17 image:
+
+~~~powershell
+.\scripts\restore-supabase-docker-drill.ps1 -ArchivePath 'D:\OJPrivateBackups\supabase\supabase-vgckpcktsfuithqggknd-YYYYMMDDTHHMMSSZ.dump.age'
+~~~
+
+Replace the timestamp with the actual archive filename. The helper authenticates the archive first, creates a unique empty database on a disposable container, binds PostgreSQL only to Windows loopback, removes the container's outbound route before restoring, runs both `Restore` and `VerifyTarget`, and removes the plaintext Docker database, network and volume afterward. Its private restore receipt and log remain under `restore-drills` beside the archive. It never connects to production. The pinned Supabase image is the database component only; Auth, Storage object bytes, webhooks, and application services are not started.
+
 ~~~powershell
 cd C:\STRATHOS\apps\oj-workspace-deploy-test
 .\scripts\backup-supabase-windows.ps1 -Action Verify
