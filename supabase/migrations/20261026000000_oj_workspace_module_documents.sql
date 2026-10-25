@@ -169,7 +169,7 @@ begin
   end if;
   if p_kind = 'exterior_field' and (
     p_payload->>'schema' is distinct from '1' or
-    p_payload->>'stage' not in ('preparation','on-site','wrap-up') or
+    coalesce(p_payload->>'stage','') not in ('preparation','on-site','wrap-up') or
     jsonb_typeof(p_payload->'labor') is distinct from 'array' or
     jsonb_typeof(p_payload->'materials') is distinct from 'array' or
     jsonb_typeof(p_payload->'issues') is distinct from 'array' or
