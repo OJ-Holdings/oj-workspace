@@ -30,6 +30,7 @@ jobs:
           $scripts = @(
             'scripts/backup-supabase-windows.ps1',
             'scripts/install-postgresql-client-windows.ps1',
+            'scripts/install-age-windows.ps1',
             'scripts/install-supabase-backup-task.ps1',
             'scripts/verify-production-windows.ps1',
             'scripts/restore-supabase-isolated.ps1',
