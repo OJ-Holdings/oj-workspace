@@ -63,7 +63,7 @@ export async function residentialArchiveHash(data:string):Promise<string>{
 const validated=(leadId:string,raw:string):boolean=>{
  try{parseLocalEstimateBook(raw,leadId);return true;}catch{return false;}
 };
-const fail=(reason:string):never=>{throw Error(reason);};
+function fail(reason:string):never {throw new Error(reason);}
 
 function reviewItems(
  entries:ResidentialArchiveEntry[],org:string,
