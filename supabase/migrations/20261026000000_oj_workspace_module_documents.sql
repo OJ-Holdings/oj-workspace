@@ -113,7 +113,7 @@ begin
   end if;
   if p_command_id is null or p_expected_revision is null
      or p_expected_revision < 0 or p_kind is null or p_source_id is null
-     or p_kind not in ('exterior_estimate','fleet','exterior_field','exterior_equipment')
+     or p_kind not in ('exterior_estimate','fleet','exterior_field','exterior_equipment','exterior_handoff')
      or jsonb_typeof(p_payload) is distinct from 'object'
      or octet_length(p_payload::text) > 262144 then
     raise exception 'Invalid shared document request' using errcode = '22023';
@@ -140,6 +140,15 @@ begin
       select exists(select 1 from public.leads where id = p_source_id::uuid) into v_valid_source;
       if not v_valid_source or p_payload->'current'->>'leadId' is distinct from p_source_id then
         raise exception 'Estimate is not linked to its original lead' using errcode = '22023';
+      end if;
+    elsif p_kind = 'exterior_handoff' then
+      select exists (
+        select 1 from public.bookings b
+         where b.id=p_source_id::uuid
+           and b.lead_id::text=p_payload->>'leadId'
+      ) into v_valid_source;
+      if not v_valid_source or p_payload->>'bookingId' is distinct from p_source_id then
+        raise exception 'Crew handoff must refer to its exact original booking and customer' using errcode = '22023';
       end if;
     else
       select exists(
@@ -180,6 +189,15 @@ begin
     jsonb_array_length(p_payload->'issues') > 25
   ) then
     raise exception 'Invalid field report structure' using errcode = '22023';
+  end if;
+  if p_kind = 'exterior_handoff' and (
+    jsonb_typeof(p_payload->'mailbox') is distinct from 'object' or
+    (p_payload->'mailbox'->'outgoing' is null and
+      p_payload->'mailbox'->'incoming' is null and
+      p_payload->'mailbox'->'outgoingReply' is null and
+      p_payload->'mailbox'->'incomingReply' is null)
+  ) then
+    raise exception 'Invalid crew handoff storage envelope' using errcode = '22023';
   end if;
   if p_kind = 'exterior_equipment' and (
     p_payload->>'format' is distinct from 'oj-field-equipment-local-v1' or
