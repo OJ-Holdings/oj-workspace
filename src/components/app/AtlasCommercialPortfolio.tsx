@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
 import { Archive, ArrowUpRight, Building2, Download, FileInput, Plus, Save, ShieldAlert, Trash2, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,11 +24,13 @@ import {
   type CommercialPortfolio, type CommercialProject, type ProjectDraft, type ProjectPhase,
 } from '@/lib/atlas-commercial-portfolio';
 
+export type CommercialSaveHandle={save:()=>Promise<string|null>};
 type Props={
   org:string;base:string;mode:'preview'|'live';readOnly:boolean;
   name:string;input:EstimateInput;review:boolean[];
   bookings:ExtBooking[];cards:Card[];
   onLoad:(project:Pick<CommercialProject,'name'|'input'|'review'>)=>void;
+  saveHandle?:Ref<CommercialSaveHandle>;
 };
 const dateChicago=()=>{
   const pieces=new Intl.DateTimeFormat('en-US',{
@@ -44,7 +46,7 @@ const short=(id:string)=>id.length>11?id.slice(0,9)+'…':id;
  * Explicit booking IDs are only linked after selecting currently loaded records;
  * an editor cannot join a project to a customer by name/address similarity.
  */
-export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad}:Props){
+export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad,saveHandle}:Props){
   const router=useRouter();
   const params=useSearchParams();
   const targetProject=params.get('project');
@@ -245,6 +247,7 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
       saveInFlightRef.current=false;
     }
   }
+  useImperativeHandle(saveHandle,()=>({save:saveCurrent}));
   async function prepareProjectTask(){
     if(phase==='archived'){setNotice('Restore the project to scoping or review before preparing a shared task.');return;}
     const id=await saveCurrent();

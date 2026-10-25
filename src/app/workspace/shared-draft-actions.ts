@@ -1,6 +1,7 @@
 'use server';
 
 import { requireMember } from '@/lib/supabase';
+import { isDeepStrictEqual } from 'node:util';
 import {
   assertSharedReference, parseSharedDocument, parseSharedSaveReceipt,
   validateSharedPayload, type SharedDraftKind, type SharedDraftPayload,
@@ -86,5 +87,13 @@ export async function saveSharedDraft<K extends SharedDraftKind>(
   if (error) throw new Error(sharedError(error.code));
   const result = parseSharedSaveReceipt(data);
   if (!result.ok) return { status: 'conflict', currentRevision: result.currentRevision };
+  // A command receipt is not proof that a subsequent device can read the data.
+  // Re-read under the same member contract before claiming a shared save.
+  const stored = await loadSharedDraft(organizationId, kind, sourceId);
+  if (!stored) throw new Error('The save receipt exists, but the shared record could not be read back. Retry the original save command.');
+  if (stored.revision !== result.revision) return { status: 'conflict', currentRevision: stored.revision };
+  if (!isDeepStrictEqual(JSON.parse(JSON.stringify(stored.payload)), JSON.parse(JSON.stringify(payload)))) {
+    throw new Error('Shared save read-back did not match the submitted record. Keep the local recovery copy and retry the original command.');
+  }
   return { status: 'saved', revision: result.revision, replayed: result.replayed };
 }

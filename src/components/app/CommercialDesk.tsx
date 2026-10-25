@@ -10,7 +10,7 @@ import { commercialTransferMaxChars, exportCommercialEstimate, importCommercialE
 import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
-import { AtlasCommercialPortfolio } from './AtlasCommercialPortfolio';
+import { AtlasCommercialPortfolio, type CommercialSaveHandle } from './AtlasCommercialPortfolio';
 import { exportLocalBusinessArchive, localBusinessArchiveMaxBytes, restoreMissingLocalBusinessArchive, validateLocalBusinessArchive } from '@/lib/local-business-archive';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
@@ -36,6 +36,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
   const [notice,setNotice]=useState('');
   const transferInput=useRef<HTMLInputElement>(null);
   const archiveInput=useRef<HTMLInputElement>(null);
+  const sharedSaveHandle=useRef<CommercialSaveHandle>(null);
   const [ready,setReady]=useState(false);
   const estimate=useMemo(()=>calculateEstimate(input),[input]);
   const text=useMemo(()=>brief(name,input),[name,input]);
@@ -189,7 +190,8 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
         <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
         <p>Develop multi-building scope, model true direct costs, and prepare an internal proposal brief. Nothing here is treated as booked, paid, or contractually approved.</p>
         <div className="com-actions">
-          <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save browser recovery copy</button>
+          <button className="primary" disabled={preview||readOnly||!ready} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save shared project</button>
+          <button className="secondary" disabled={preview||readOnly||!ready} onClick={save}><Save size={16}/> Save browser recovery copy</button>
           <button className="secondary" type="button" disabled={preview||readOnly||!ready} onClick={()=>void exportLocalBusinessData()}><Download size={16}/> Export local business data</button>
           <button className="secondary" type="button" disabled={preview||readOnly} onClick={()=>archiveInput.current?.click()}><FileInput size={16}/> Restore missing from archive</button>
           <input ref={archiveInput} type="file" accept=".json,application/json" hidden aria-label="Restore missing OJ local business data from an archive" onChange={e=>{
@@ -209,7 +211,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
     </header>
     <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
     {ready && <div className="atlas-nexus-editor-entry"><Link href={base+'/b/exterior/projects'}><Network size={16}/> Open NEXUS · Project 360 <ArrowUpRight size={14}/></Link></div>}
-    {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly}
+    {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly} saveHandle={sharedSaveHandle}
       name={name} input={input} review={review} bookings={data.bookings} cards={cards}
       onLoad={project=>{setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}
     <div className="com-snapshot">
