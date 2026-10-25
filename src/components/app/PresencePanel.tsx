@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { UsersRound, ArrowUpRight } from 'lucide-react';
 import type { Card } from '@/lib/board';
 import { ojConnection } from '@/lib/oj-connection';
-import { memberPresence, presenceAge, PRESENCE_HEARTBEAT_MS, type PresenceSnapshot, type PresenceStatus, type CurrentWork } from '@/lib/presence';
+import { memberBoardAssignments, memberPresence, presenceAge, PRESENCE_HEARTBEAT_MS, type PresenceSnapshot, type PresenceStatus, type CurrentWork } from '@/lib/presence';
 import '@/styles/presence.css';
 
 type Props = { mode: 'preview' | 'live'; organizationId: string; members: string[]; cards: Card[]; onOpenCard: (card: Card) => void };
@@ -136,18 +137,21 @@ export function PresencePanel({ mode, organizationId, members, cards, onOpenCard
       <div className="presence-body">
         <p className="presence-explainer">{mode === 'preview' ? 'Availability below is a local demonstration. No other person is connected.' : 'Share what you choose to work on. Hidden tabs show away; lost connections expire within 90 seconds. You stay online while any tab is available.'}</p>
         {mode === 'live' && detail && <p role="status" className="presence-notice">{detail} <button type="button" onClick={() => void refreshRef.current()}>Check again</button></p>}
+        {mode === 'live' && phase === 'unavailable' && <p className="presence-notice">Live availability is not active. Existing shared task assignments below still work; they are not proof anyone is online. <Link href="/workspace/tasks">Open team tasks</Link></p>
         <ul className="presence-roster">{roster.map(member => {
           const availability = memberPresence(snapshot?.sessions ?? [], member.user_id, now);
           const work = mode === 'preview' ? member.user_id === 'local-demo' ? localWork : null : snapshot?.work.find(w => w.user_id === member.user_id);
           const task = cards.find(c => c.id === work?.card_id);
+          const boardAssignments=memberBoardAssignments(cards,roster,member.user_id);
           const state = mode === 'preview' || phase !== 'connected' ? 'unknown' : availability.state;
           return <li key={member.user_id}>
             <span className="avatar presence-avatar" data-state={state}>{member.display_name.charAt(0).toUpperCase()}</span>
             <div className="presence-person"><div><strong>{member.display_name}</strong><span className="presence-state" data-state={state}>{state === 'unknown' ? mode === 'preview' ? 'Sample member' : 'Unknown' : state === 'online' ? 'Online' : state === 'away' ? 'Away' : 'Offline'}</span></div>
               {work?.note && <p>{work.note}</p>}
               {task && <button type="button" className="presence-task" onClick={() => onOpenCard(task)}>{task.title}<ArrowUpRight size={13} aria-hidden="true" /></button>}
+              {!task && boardAssignments.map(assigned=><button key={assigned.id} type="button" className="presence-task" onClick={()=>onOpenCard(assigned)}>Assigned task: {assigned.title}<ArrowUpRight size={13} aria-hidden="true"/></button>)}
               {mode === 'live' && state !== 'unknown' && <small>{state === 'offline' ? presenceAge(availability.lastSeen, now) : state === 'online' ? 'Workspace connected' : 'Away from this workspace'}{work && ' · Status set explicitly'}</small>}
-              {!work?.note && !task && <small>No current work shared</small>}
+              {!work?.note && !task && boardAssignments.length===0 && <small>No assigned work in the loaded task board</small>
             </div>
           </li>;
         })}</ul>
