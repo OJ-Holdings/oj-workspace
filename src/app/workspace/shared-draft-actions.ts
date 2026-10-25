@@ -48,7 +48,7 @@ export async function loadSharedDraft<K extends SharedDraftKind>(
   });
   if (error) throw new Error(sharedError(error.code));
   const document = parseSharedDocument(organizationId, kind, sourceId, data);
-  if (kind === 'exterior_field' && document) {
+  if ((kind === 'exterior_field' || kind === 'exterior_equipment') && document) {
     const field = document.payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
     await verifyFieldSource(client, sourceId, field, false);
   }
@@ -70,7 +70,7 @@ export async function saveSharedDraft<K extends SharedDraftKind>(
   }
   const payload = validateSharedPayload(organizationId, kind, sourceId, raw);
   const { client } = await requireMember(organizationId, true);
-  if (kind === 'exterior_field') {
+  if (kind === 'exterior_field' || kind === 'exterior_equipment') {
     const field = payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
     await verifyFieldSource(client, sourceId, field, true);
   }
