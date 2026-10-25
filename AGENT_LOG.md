@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 23:07 UTC -- Codex (production shared-save activation)
+**Summary:** Integrated the existing typed internal document implementation with R40/commercial persistence; connected Commercial Desk's primary Save to versioned shared records and added exact revision/payload read-back before module success. Owner explicitly approved production DDL and proceeding despite incomplete private-file recovery. Applied only the two reviewed migrations; merged PR #159 and deployed `8b684d1cf867a539d6fc61e58f4ccc21bc148886` through CI, staging health and rollback checks.
+**Verified:** 730 local tests, TypeScript/build and all PR/main CI jobs PASS. Synthetic real PostgreSQL 17 shared save/member read-back, conflict/replay and denied/revoked roles PASS. Production original table/Auth/Storage counts unchanged by DDL; a labeled archived commercial test persisted and was independently read by another authorized member role. Module/fleet verification rolled back; anonymous public API access denied. Live port 3011 health reports exact release SHA, preview 200, signed-out Workspace 307. Previous release retained.
+**Notes:** [Live acceptance and remaining limits](docs/OJ_SHARED_SAVE_ACTIVATION.md). Existing browser drafts need an explicit company save/reconciliation. Content remains preview. Independent recovery of two private Storage files/off-PC copies and physical two-device authenticated GUI acceptance remain incomplete. No client messages, customer work, commitments or financial operations were performed.
+
 ## 2026-10-25 18:23 UTC -- Codex (archive validation pipe diagnostics)
 **Summary:** The repeated user error came from the separate decrypted-archive validation pipe into `pg_restore`, which was not covered by the earlier stream diagnostic fix. Added bounded process cleanup and safe classifications for age/pg_restore early exits without emitting raw stderr or credentials.
 **Files:** `scripts/backup-supabase-windows.ps1`; `scripts/tests/age-stream-helper-smoke.ps1`.

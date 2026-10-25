@@ -6,6 +6,8 @@
 
 ## Exterior Release 50 — authenticated read graph and private quote-save command (October 25, 2026)
 
+**Later shared-save activation:** PR #159 merged and deployed `8b684d1cf867a539d6fc61e58f4ccc21bc148886` on October 25 at 23:06:58 UTC. Two owner-approved additive migrations enable commercial and internal fleet/estimate/field/equipment/handoff saves. 730 local tests, all CI, production-role save/read-back, HTTP anonymous denial and exact release health PASS. [Detailed evidence](./OJ_SHARED_SAVE_ACTIVATION.md). Browser originals, customer rows, Storage objects and rollback build preserved. Content remains preview; private-file/off-PC recovery and two-device GUI acceptance incomplete. Twelve-wave weighted score 42/100 (+0).
+
 **Feature:** [PR #148](https://github.com/OJ-Holdings/oj-workspace/pull/148), exact feature head `3ddbeebc27db3c9f608e57bb24e2bb3eeff82537` [CI #40189504342](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40189504342) **SUCCESS all three jobs**, merged `923bee2ca98e263b9dffc310ad3687606f93c678`. Feature merges P3.0 business contract with P3.1 staging relational schema by introducing a callable authenticated **read-only** P3 booking graph and a separate **staging-only non-exposed** transactional quote-save function.
 
 ### Implementation

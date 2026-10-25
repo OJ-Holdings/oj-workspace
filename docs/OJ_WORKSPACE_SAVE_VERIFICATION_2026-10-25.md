@@ -1,5 +1,7 @@
 # OJ Workspace save verification — October 25, 2026
 
+Historical pre-activation audit. Shared operational saves were subsequently enabled and deployed through PR #159; see [current live acceptance and limitations](./OJ_SHARED_SAVE_ACTIVATION.md). The results below describe the preceding inspection, not the current live deployment.
+
 Overall result: PARTIAL. Database recovery passes for the checked public/Auth scope. This does not establish that every Workspace screen saves to shared storage.
 
 ## Evidence and scope
