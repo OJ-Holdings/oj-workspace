@@ -22,6 +22,11 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
 | **TOTAL** | **100%** | **42% (R43 P1.1 shared exact-job task execution merged, exact-head full CI passed; actual founder phones/host/recovery remain unverified)** | |
 
+### U1 founder audit usability cleanup — draft PR #161 (+0 pending live acceptance)
+- Based on already merged U0 #154 and live shared Supabase-saving #159, this is a UI-only pass: Commercial shows **Save to company / Properties / Estimate / Jobs** first and hides recovery imports/exports behind optional disclosure; Executive Command replaces detailed provider-status dumps with a short contextual status; Exterior Command uses clear quote/work labels, simplifies founder-copy, removes generic duplicate task assignment and collapses extra exceptions without deleting source-linked actions.
+- Original-source production read-only check: 177 leads, 72 completed, 55 recorded revenue fields, 17 missing, 12 recorded cost fields; **lead-level entries**, not verified per-visit cash, invoices or actual profitability. FA-04 still requires a dedicated Settings/Connections destination, FA-15/16 require normalized Commercial Accounts, and the entire U0/U1 set requires actual Oscar/Jacob mobile acceptance and served-version verification.
+- **Status: IMPLEMENTED IN DRAFT / NOT DEPLOYED OR FOUNDER-ACCEPTED.** Exact-head CI pending at time of writing. Original 12-wave **42/100** remains historical pending a source/acceptance-based recalculation. No runtime SQL, business record or private backup change.
+
 ### U0 first founder-audit fix pass — source-correct Growth and operator clarity (+0)
 
 - PR [#154](https://github.com/OJ-Holdings/oj-workspace/pull/154) separates original Exterior source leads from Workspace CRM in ATLAS Growth/venture cards, with truthful unknown and partial labels.
