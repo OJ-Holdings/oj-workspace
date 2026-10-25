@@ -154,7 +154,13 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
           <span className="excmd-decision-index">{String(i+1).padStart(2,'0')}</span>
           <div><strong>{item.title}</strong><small>{item.detail}</small><Link href={base+item.href}>Open action <ArrowUpRight size={13}/></Link></div>
         </li>)}</ol>:<div className="excmd-empty"><ShieldCheck size={23}/><strong>No specific exception detected.</strong><span>Only loaded source checks were evaluated; this is not an all-clear.</span></div>}
-        {s.decisions.length>3&&<Link href={parent+'/bookings'} className="excmd-task-button">Review all jobs <ArrowRight size={15}/></Link>}
+        {s.decisions.length>3&&<details className="excmd-more-decisions">
+          <summary>{s.decisions.length-3} more recorded issues</summary>
+          <ol className="excmd-decision-list">{s.decisions.slice(3).map((item,i)=><li key={item.id}>
+            <span className="excmd-decision-index">{String(i+4).padStart(2,'0')}</span>
+            <div><strong>{item.title}</strong><small>{item.detail}</small><Link href={base+item.href}>Open action <ArrowUpRight size={13}/></Link></div>
+          </li>)}</ol>
+        </details>}
       </aside>
     </section>
 
