@@ -10,6 +10,22 @@ import {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const unavailableCodes = new Set(['42P01','42883','PGRST202','PGRST204','PGRST205']);
 
+async function verifyFieldSource(
+  client: Awaited<ReturnType<typeof requireMember>>['client'],
+  bookingId: string,
+  payload: { leadId: string; sourceDate: string; sourceStatus: string | null },
+  strict: boolean,
+): Promise<void> {
+  const { data: booking, error } = await client.from('bookings')
+    .select('id,lead_id,date,status').eq('id', bookingId).maybeSingle();
+  if (error || !booking || booking.lead_id !== payload.leadId) {
+    throw new Error('Original booking or linked customer is no longer available to this company.');
+  }
+  if (strict && (booking.date !== payload.sourceDate || booking.status !== payload.sourceStatus)) {
+    throw new Error('Original booking date or status changed. Refresh and revalidate this field report before syncing.');
+  }
+}
+
 function sharedError(code?: string): string {
   if (unavailableCodes.has(code ?? '')) {
     return 'Shared workspace draft storage is not installed in Supabase. The original browser records are unchanged.';
@@ -31,7 +47,12 @@ export async function loadSharedDraft<K extends SharedDraftKind>(
     p_source_id: sourceId,
   });
   if (error) throw new Error(sharedError(error.code));
-  return parseSharedDocument(organizationId, kind, sourceId, data);
+  const document = parseSharedDocument(organizationId, kind, sourceId, data);
+  if (kind === 'exterior_field' && document) {
+    const field = document.payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
+    await verifyFieldSource(client, sourceId, field, false);
+  }
+  return document;
 }
 
 /** A server-validated save is not customer acceptance, work-order issuance,
@@ -49,6 +70,10 @@ export async function saveSharedDraft<K extends SharedDraftKind>(
   }
   const payload = validateSharedPayload(organizationId, kind, sourceId, raw);
   const { client } = await requireMember(organizationId, true);
+  if (kind === 'exterior_field') {
+    const field = payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
+    await verifyFieldSource(client, sourceId, field, true);
+  }
   const { data, error } = await client.rpc('oj_module_document_save', {
     p_organization_id: organizationId,
     p_kind: kind,
