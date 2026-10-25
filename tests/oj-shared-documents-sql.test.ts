@@ -78,6 +78,21 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
     await as(member);
     await assert.rejects(()=>db.query('select public.oj_module_document_get($1,$2,$3)',[org,'exterior_estimate',lead]));
   });
+  await t.test('direct RPC clients cannot write unvalidated module types or malformed records',async()=>{
+    await as(owner);
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb)',
+      [org,'exterior_field',lead,0,'00000000-0000-4000-8000-000000000039',JSON.stringify(value)]
+    ));
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb)',
+      [org,'exterior_estimate',lead,2,'00000000-0000-4000-8000-000000000040',JSON.stringify({current:{leadId:lead}})]
+    ));
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb)',
+      [org,'fleet','main',0,'00000000-0000-4000-8000-000000000041',JSON.stringify({organizationId:org})]
+    ));
+  });
   await t.test('foreign organization cannot claim a legacy source',async()=>{
     await as(outsider);
     await assert.rejects(()=>save('00000000-0000-4000-8000-000000000035',0,value,otherOrg));
