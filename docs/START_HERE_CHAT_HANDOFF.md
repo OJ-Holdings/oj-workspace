@@ -6,6 +6,12 @@
 
 
 
+## URGENT FOUNDER AUDIT / PRODUCT PRIORITY — October 25, 2026
+
+Read [EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md) before UI changes. Sixteen founder-reported defects/usability criticisms across the 12-page screenshot audit: mobile nav overflow, missing lead counts/visible job money, misleading revenue warning, Team at Work, redundant large dashboards, verbose internal/system text, unclear field/quote/assignment labels, and commercial company/account/property hierarchy with separate functional screens. These are **not yet verified fixed**. Prioritize business data truth and real phone usability, then genuine company/property management, over more standalone panels.
+
+As checked on GitHub: main 69f9ff5 (CI #40190080605 success); **Commercial shared persistence PR #150 OPEN** at 6f54f9ce (CI #40219067828 success), **Residential draft recovery PR #151 OPEN** at ef54c461 (CI #40215126590 success). PR #150 has an executable, *not deployed* Supabase migration; complete actual backup+Storage restore, actor QA and explicit owner approval first. PR #151 is recovery functionality, **not founder-endorsed primary import/export UX or actual shared sync**. Master Exterior 42/100 unchanged. Re-fetch status before proceeding.
+
 ## Exterior Release 50 / Shared Data & Transaction Foundation
 
 [PR #148](https://github.com/OJ-Holdings/oj-workspace/pull/148) merged as `923bee2ca98e263b9dffc310ad3687606f93c678`, after exact-head three-job CI [#40189504342](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40189504342) passed. New owner/member authenticated, RLS-bound **read-only** exact booking→legacy link→customer/property→opportunity→quote latest version→planned order graph. Legacy source customer details fail closed if no tenant-bound link; draft save SQL transaction is staged privately in `oj_private` with revision locking, idempotency and actor restrictions, **without client EXECUTE**. Additional P3.1 synthetic SQL tests and 14 source/race negative tests. No production P3 migration or existing estimate workbench data migration. **42/100 unchanged**. See [R50 release](./EXTERIOR_R50_DATA_ACCESS_RELEASE.md) and [canonical continuation](./EXTERIOR_CONTINUE_HERE.md).

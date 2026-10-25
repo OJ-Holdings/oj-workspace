@@ -12,6 +12,20 @@ The system has a genuine protected customer/booking/task core, but its most elab
 
 Each pass must move an operator through an original customer or booked job and preserve the **exact source identity and evidence**. Oscar should be able to trace scope, decision, cost, invoice and cash. Jacob should be able to open assigned work and log real field evidence in a simple phone workflow. A new screen without connected action or source provenance is not a pass.
 
+## Founder mobile audit — override for next implementation passes (2026-10-25)
+
+The founder's [12-page usability/operations audit, FA-01 to FA-16](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md) now defines the **acceptance criteria** for Exterior. In particular, screen-bound test observations are NOT independent verification of the specific code cause. A release exit requires actual source reconciliation and both founders' served-device checks, not merely a CI-green aesthetic pass.
+
+**U0 / operational trust first:** explain/repair missing lead pipeline counts, per-job financial amounts, "missing revenue" false positives, unreachable mobile navigation, and unusable Team at Work. Distinguish quote, recorded job amount, invoice/AR and collected cash; attach each exception to the exact original booking and reconciled data source. Inspect actual host/deploy SHA and current tenant/source coverage.
+
+**U1 / simplify the operating surface:** move Connections diagnostics to Settings, make job exceptions and assignments contextual rather than big cards, consolidate duplicate booking/current-work tiles, replace vague Field Production sessions with an obvious job flow, remove confusing "qualified confirmed quotes" labels and developer-like instructions. Keep security and source checks even when their explanatory boxes are reduced. Import/export stays background recovery, never the main save/sync workflow.
+
+**U2 / substantial commercial model:** Client company logo + contacts + many properties/buildings, then per-property scopes, distinct estimates/history, site visits, recurring service and job money in separate phone-friendly views. Reuse the future shared Commercial Project 360 PR #150 storage spine; it remains OPEN, not activated, and is not itself the finished company-account product.
+
+**U3 / real work execution:** owner/worker assignments, authenticated start/check-in/closeout and durable visit-specific evidence across both phones before any "live crew" status. **U4 / useful intelligence:** only after U0–U3 can action panels forecast or claim margin, collections and ROI.
+
+Keep existing **P1–P7** correction program and original **42/100** weighted plan; these U0–U4 priorities are its founder-acceptance overlay, not independent waves. No new live migrations until actual founder-private database+Storage recovery, isolated restore, actor/RLS negatives, explicit owner approval and two-device QA. Old schema PR #42 stays held. Pending PR #151 needs usability rework/recovery-only placement; do not merge it as the solution to shared persistence.
+
 ## P3.0 domain foundation prepared before live migration (October 24, 2026)
 
 [PR #144](https://github.com/OJ-Holdings/oj-workspace/pull/144) implements **server-only-compatible pure domain business rules** for canonical tenant/customer/property/legacy lead/quote identity, immutable numbered public quote versions, conflict-safe/idempotent revisions, unverified acceptance claims and strict original-booking-bound work-order preflight. It returns only a `transaction-not-executed` candidate. A separate [P3 trusted server/SQL contract](./EXTERIOR_P3_DOMAIN_CONTRACT.md) lays out P3.1 transactional RLS tables and provider verification, then P3.2 integration into existing Estimate/Bookings.
