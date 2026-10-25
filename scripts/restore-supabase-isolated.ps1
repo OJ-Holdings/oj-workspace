@@ -147,7 +147,11 @@ function PipeAgeToPgRestore([string]$archivePath,[string]$identity,[string[]]$re
     $restoreOutput = $pgOutput.GetAwaiter().GetResult()
     $restoreError = $pgError.GetAwaiter().GetResult()
     if ($decryptor.ExitCode -ne 0) { throw "Encrypted archive authentication/decryption failed (age exit $($decryptor.ExitCode))." }
-    if ($restorer.ExitCode -ne 0) { throw "PostgreSQL restore failed (pg_restore exit $($restorer.ExitCode))." }
+    if ($restorer.ExitCode -ne 0) {
+      $safeDetail = ($restoreError -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
+      if ($safeDetail.Length -gt 240) { $safeDetail = $safeDetail.Substring(0,240) }
+      throw "PostgreSQL restore failed (pg_restore exit $($restorer.ExitCode)): $safeDetail"
+    }
     return $restoreOutput + $restoreError
   } finally {
     if ($decryptor -and -not $decryptor.HasExited) { $decryptor.Kill(); $decryptor.WaitForExit() }
