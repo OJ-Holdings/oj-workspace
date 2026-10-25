@@ -119,7 +119,7 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
             <small>Missing costs are unknown, not zero. Entered revenue may not have been collected.</small>
           </div>:<p className="exec-footnote">Completed-job financial coverage is not available in this view.</p>}
           {partial.length>0&&<p className="exec-warning" role="status">
-            {partial.length} connected source{partial.length===1?'':'s'} require review.
+            {partial.length} reporting source{partial.length===1?'':'s'} need attention.
             <Link href={base+'/analytics'}>Check data coverage <ArrowRight size={14}/></Link>
           </p>}
           {providers.length===0&&<p className="exec-footnote">Connection health is unknown; reporting coverage cannot be confirmed here.</p>}
