@@ -137,7 +137,7 @@ export function PresencePanel({ mode, organizationId, members, cards, onOpenCard
       <div className="presence-body">
         <p className="presence-explainer">{mode === 'preview' ? 'Availability below is a local demonstration. No other person is connected.' : 'Share what you choose to work on. Hidden tabs show away; lost connections expire within 90 seconds. You stay online while any tab is available.'}</p>
         {mode === 'live' && detail && <p role="status" className="presence-notice">{detail} <button type="button" onClick={() => void refreshRef.current()}>Check again</button></p>}
-        {mode === 'live' && phase === 'unavailable' && <p className="presence-notice">Live availability is not active. Existing shared task assignments below still work; they are not proof anyone is online. <Link href="/workspace/tasks">Open team tasks</Link></p>
+        {mode === 'live' && phase === 'unavailable' && <p className="presence-notice">Live availability is not active. Existing shared task assignments below still work; they are not proof anyone is online. <Link href="/workspace/tasks">Open team tasks</Link></p>}
         <ul className="presence-roster">{roster.map(member => {
           const availability = memberPresence(snapshot?.sessions ?? [], member.user_id, now);
           const work = mode === 'preview' ? member.user_id === 'local-demo' ? localWork : null : snapshot?.work.find(w => w.user_id === member.user_id);
