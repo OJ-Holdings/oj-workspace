@@ -30,6 +30,12 @@ Deno.serve(async (req: Request) => {
   const notes = str(input.notes, 1000);
   const date = str(input.date, 10);
   const time = str(input.time, 5);
+  // Explicit affirmative opt-in; false is the default, including legacy callers.
+  const smsConsent = input.smsConsent === true;
+  if (input.smsConsent !== undefined && typeof input.smsConsent !== "boolean")
+    return respond({ error: "Invalid SMS preference." }, 400);
+  if (smsConsent && phone.replace(/\D/g, "").length < 10)
+    return respond({ error: "Enter a valid phone number if you opt into text messages." }, 400);
   if (name.length < 2 || name.length > 160 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200 ||
       phone.length > 35 || business.length > 160 || notes.length > 1000 || !services.has(service)) {
     return respond({ error: "Check your name, email and details." }, 400);
@@ -87,6 +93,7 @@ Deno.serve(async (req: Request) => {
         organization_id: organizationId, name, email, phone, business, service, notes,
         preferred_date: date, preferred_time: time + ":00", duration_minutes: 15,
         status: "requested", source: "ojsolutions.org/15min",
+        sms_consent: smsConsent, sms_consent_at: smsConsent ? new Date().toISOString() : null,
       }),
       signal: AbortSignal.timeout(8000),
     });
