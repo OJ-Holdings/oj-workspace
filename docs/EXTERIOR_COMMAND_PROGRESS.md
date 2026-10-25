@@ -22,6 +22,13 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
 | **TOTAL** | **100%** | **42% (R43 P1.1 shared exact-job task execution merged, exact-head full CI passed; actual founder phones/host/recovery remain unverified)** | |
 
+### P3.1 — Actual tenant/RLS relational staging schema and work-order guards (+0)
+
+- [PR #146](https://github.com/OJ-Holdings/oj-workspace/pull/146), merged `44abd32b9dfbbef443d55e5c55842136d81d2173`, implements **ten additive staging tables** with tenant-composite links across Customer → Property → explicit legacy TEXT lead → distinct visit/opportunity → quote/version → verified receipt → unique booking work order → event history. R48 critical dependency CI is retained; no live production migration.
+- The **synthetic PostgreSQL 17 integration job** now runs actual schema DDL and actor-based SQL against the production-compatible existing workspace membership helper, testing owner/member, viewer, outsider, another tenant, revoked member without JWT refresh, all-table RLS, explicit Data API SELECT-only grants, private receipt denial, stale quote compare-and-swap, immutable event/version history, private cost-field rejection, subtotal cents, cross-tenant keys, provider replay, outdated quote rejection and atomic one-use acceptance receipt consumption. [Architecture & test contract](./EXTERIOR_P31_STAGING_SCHEMA.md).
+- Also aligned the P3 TypeScript engine with exact **opaque legacy lead/booking IDs** instead of forcing UUID assumptions; canonical organization/customer/property IDs remain UUID. The future provider signature verifier and tenant-scoped transactional server API are distinct P3 activation work, not implicitly delivered by synthetic acceptance fixtures.
+- **Engineering score 42/100 unchanged (+0):** staging-tested tables aren't yet a usable persistent shared booking/quote interface. P2 private recoverable real production source + independent mirror/restore, actor permission tests, object bytes and rollback still gate a migration. Do not merge old PR #42. Next: trusted P3 server adapter then P3.2 existing Estimate/Job integration.
+
 ### P3.0 — Immutable quote version and work-order domain contract (backend staging, +0)
 
 - [PR #144](https://github.com/OJ-Holdings/oj-workspace/pull/144) merged as `577ed9fcd2844f2311b21d73a69d92afda49cf78`; exact head `b770e9c6a3f914e32234c8577fa07f01a54fe5ab` [CI #40157572254](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40157572254) passed full TypeScript/tests/Next build, security audit and isolated synthetic PostgreSQL 17 recovery.
