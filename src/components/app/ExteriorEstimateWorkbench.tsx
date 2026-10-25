@@ -130,15 +130,37 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    setChecks([false,false,false]);
    setNotice('Source baseline updated locally. Review the amount and scope before recording it.');
  };
+ async function sendSharedRevision(attempt:{book:LocalEstimateBook;expected:number;commandId:string}){
+  setSharedStatus('saving');
+  try{
+   const result=await saveSharedDraft(org,'exterior_estimate',attempt.book.current.leadId,attempt.expected,attempt.commandId,attempt.book);
+   if(result.status==='conflict'){
+    pendingShared.current=null;setSharedRevision(result.currentRevision);
+    setSharedStatus('conflict');setNotice('Another founder changed this shared estimate. Your local version is preserved; reconcile before uploading.');
+    return;
+   }
+   pendingShared.current=null;setSharedRevision(result.revision);setSharedStatus('ready');
+   setNotice('Internal estimate revision saved in Supabase. No proposal, invoice or customer acceptance was created.');
+  }catch(error){
+   setSharedStatus('offline');
+   setNotice((error instanceof Error?error.message:'Shared save was not confirmed.')+' Local draft retained. Retry the ORIGINAL command to avoid duplication.');
+  }
+ }
  const saveRevision=()=>{
-   if(!canModify||!book||storageFailure)return;
-   if(!isExteriorEstimate(book.current,book.current.leadId)){setNotice('Complete valid quantities and service lines before saving a revision. Your earlier local draft remains intact.');return;}
-   try{computeExteriorEstimate(book.current);}catch(error){setNotice(error instanceof Error?error.message:'Review the quote values.');return;}
-   const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
-   try{
-     window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(revised));
-     setBook(revised);setNotice('Local revision saved on this browser only. Oscar and Jacob will not see it on their other devices.');
-   }catch{setStorageFailure('This browser could not save the validated revision. Existing storage has not been removed.');}
+  if(!canModify||!book||storageFailure||sharedStatus==='saving'||pendingShared.current)return;
+  if(!isExteriorEstimate(book.current,book.current.leadId)){setNotice('Complete valid quantities and service lines before saving a revision. Your earlier local draft remains intact.');return;}
+  try{computeExteriorEstimate(book.current);}catch(error){setNotice(error instanceof Error?error.message:'Review the quote values.');return;}
+  const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
+  try{
+   window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(revised));
+   setBook(revised);
+  }catch{setStorageFailure('This browser could not save the validated revision. Existing storage has not been removed.');return;}
+  if(sharedStatus!=='ready'||sharedRevision===null){
+   setNotice('Revision saved locally only. The remote copy is disconnected, conflicted or not installed.');
+   return;
+  }
+  const attempt={book:revised,expected:sharedRevision,commandId:crypto.randomUUID()};
+  pendingShared.current=attempt;void sendSharedRevision(attempt);
  };
  const reset=()=>{
    if(!lead||readonly)return;
