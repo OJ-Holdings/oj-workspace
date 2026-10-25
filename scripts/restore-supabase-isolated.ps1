@@ -215,7 +215,7 @@ if ($isEncrypted -and ($manifest.encrypted -ne $true -or $archive.Extension -ne 
 }
 if ($isEncrypted) {
   $identityText = GetAgeIdentityText
-  $archiveTocText = PipeAgeToPgRestore $archive.FullName $identityText @('--list','-')
+  $archiveTocText = PipeAgeToPgRestore $archive.FullName $identityText @('--list')
   $identityText = $null
   if (-not $archiveTocText -or $archiveTocText -notmatch '(?m)^; Archive created at ') {
     throw 'ARCHIVE BLOCKED: decrypted PostgreSQL 17 archive table of contents is incomplete.'

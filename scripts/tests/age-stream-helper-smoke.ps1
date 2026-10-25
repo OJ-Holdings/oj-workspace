@@ -81,6 +81,8 @@ try {
   if ($LASTEXITCODE -ne 0) { throw ('Synthetic pg_dump fixture is unreadable: ' + ($fixtureList | Out-String)) }
   Remove-Item -LiteralPath $syntheticPlain -Force
   TestEncryptedArchive $encrypted $identity
+  $streamedList = PipeAgeToPgRestore $encrypted $identity @('--list')
+  if ($streamedList -notmatch '(?m)^; Archive created at ') { throw 'Streaming archive inspection did not return a PostgreSQL archive table of contents.' }
 
   RunChecked (Join-Path $pgRoot 'createdb.exe') @('-h','127.0.0.1','-p',"$port",'-U','postgres',$targetDatabase)
   $restoreArgs = @('--host','127.0.0.1','--port',"$port",'--username','postgres','--dbname',$targetDatabase,'--single-transaction','--exit-on-error','--no-owner','--no-acl','--verbose')
