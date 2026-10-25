@@ -127,6 +127,16 @@ begin
     if p_source_id !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
       raise exception 'Expected an original source UUID' using errcode = '22023';
     end if;
+    -- Legacy lead and booking tables lack an organization_id. Until P3
+    -- creates explicit source links, only the one legacy Exterior owning
+    -- organization may persist source-bound records in this interim layer.
+    if not exists (
+      select 1 from oj_private.legacy_owner
+      where organization_id = p_organization_id
+    ) then
+      raise exception 'Organization does not own the legacy Exterior source'
+        using errcode = '42501';
+    end if;
     if p_kind = 'exterior_estimate' then
       select exists(select 1 from public.leads where id = p_source_id::uuid) into v_valid_source;
       if not v_valid_source or p_payload->'current'->>'leadId' is distinct from p_source_id then
