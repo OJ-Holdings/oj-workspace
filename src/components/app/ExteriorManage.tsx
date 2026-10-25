@@ -133,7 +133,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <div className="atlas-customer-description">
               <div><small>Requested service</small><strong>{l.service_requested||'Not entered'}</strong></div>
               <div><small>Entered quote, not paid</small><strong>{cash(l.quote_amount)}</strong></div>
-              {l.status==='completed'&&<div><small>Recorded job revenue</small><strong>{cash(l.job_revenue)}</strong></div>
+              {l.status==='completed'&&<div><small>Recorded job revenue</small><strong>{cash(l.job_revenue)}</strong></div>}
             </div>
             <div className="atlas-customer-contact">
               {isRealPhone(l.phone)?<a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a>:<span>{shownPhone(l.phone)}</span>}
