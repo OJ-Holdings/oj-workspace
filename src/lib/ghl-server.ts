@@ -1,5 +1,5 @@
 import 'server-only';
-import type { GhlCall, GhlContact, GhlData, GhlOpportunity } from './ghl';
+import type { GhlCall, GhlContact, GhlData, GhlOpportunity, GhlAppointment } from './ghl';
 
 // Reads the OJ Solutions sub-account through GoHighLevel's API. GET requests
 // only: nothing here creates, changes or sends anything. The token never
@@ -21,6 +21,20 @@ type RawConversation = { id: string; fullName?: string; contactName?: string };
 type RawMessage = { id: string; messageType?: string; direction?: string; status?: string; dateAdded?: string; meta?: { call?: { duration?: number; status?: string } } };
 
 const conversationLimit = 50;
+type RawEvent = { id?: string; title?: string; startTime?: string; endTime?: string; appointmentStatus?: string; contactId?: string; calendarId?: string };
+async function readConsultations(location: string): Promise<{ appointments: GhlAppointment[]; configured: boolean }> {
+  const calendarId = process.env.GHL_BOOKING_CALENDAR_ID?.trim();
+  if (!calendarId) return { appointments: [], configured: false };
+  // Read a bounded future window from the same calendar that the website uses.
+  const start = Date.now();
+  const end = start + 31 * 86400000;
+  const query = new URLSearchParams({ locationId: env().location!, calendarId, startTime: String(start), endTime: String(end) });
+  const response = await get<{ events?: RawEvent[] }>(`/calendars/events?${query}`, 'v3');
+  return { configured: true, appointments: (response.events ?? []).filter(e => e.id && e.startTime).map(e => ({
+    id: e.id!, title: e.title ?? '15-minute consultation', startsAt: e.startTime!, endsAt: e.endTime ?? '',
+    status: e.appointmentStatus ?? 'scheduled', contactId: e.contactId ?? '', calendarId: e.calendarId ?? calendarId,
+  })).sort((a, b) => a.startsAt.localeCompare(b.startsAt)) };
+}
 let cached: { data: GhlData; at: number } | null = null;
 
 /** Contacts, the pipeline and calls. Cached for five minutes. */
@@ -28,11 +42,12 @@ export async function readGhl(): Promise<GhlData> {
   if (cached && Date.now() - cached.at < 300000) return cached.data;
   const location = encodeURIComponent(env().location!);
   // ponytail: first 100 contacts, 100 deals and the 50 most recent conversations; the screens say when there are more. Add paging when the account outgrows it.
-  const [contacts, pipelines, opportunities, conversations] = await Promise.all([
+  const [contacts, pipelines, opportunities, conversations, consultations] = await Promise.all([
     get<{ contacts?: RawContact[]; meta?: { total?: number } }>(`/contacts/?locationId=${location}&limit=100`),
     get<{ pipelines?: { stages?: { id: string; name: string }[] }[] }>(`/opportunities/pipelines?locationId=${location}`),
     get<{ opportunities?: RawOpportunity[]; meta?: { total?: number } }>(`/opportunities/search?location_id=${location}&limit=100`),
     get<{ conversations?: RawConversation[]; total?: number }>(`/conversations/search?locationId=${location}&limit=${conversationLimit}&sortBy=last_message_date&sort=desc`, '2021-04-15'),
+    readConsultations(location),
   ]);
   const stageList = (pipelines.pipelines ?? []).flatMap(p => p.stages ?? []);
   const stageName = new Map(stageList.map(s => [s.id, s.name]));
@@ -52,6 +67,8 @@ export async function readGhl(): Promise<GhlData> {
   }
 
   const data: GhlData = {
+    appointments: consultations.appointments,
+    appointmentsConfigured: consultations.configured,
     contacts: (contacts.contacts ?? []).map((c): GhlContact => ({ id: c.id, name: c.contactName || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Unnamed', company: c.companyName ?? '', type: c.type ?? '', tags: c.tags ?? [], added: c.dateAdded ?? '' })),
     contactsTotal: contacts.meta?.total ?? contacts.contacts?.length ?? 0,
     stages: stageList.map(s => s.name),
