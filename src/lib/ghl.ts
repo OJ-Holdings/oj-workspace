@@ -7,7 +7,7 @@ export type GhlContact = { id: string; name: string; company: string; type: stri
 export type GhlOpportunity = { id: string; name: string; value: number | null; status: string; stage: string; contact: string; updated: string };
 export type GhlCall = { id: string; contact: string; direction: string; status: string; seconds: number | null; at: string };
 export type GhlAppointment = { id: string; title: string; startsAt: string; endsAt: string; status: string; contactId: string; calendarId: string };
-export type GhlData = { appointments: GhlAppointment[]; appointmentsConfigured: boolean; contacts: GhlContact[]; contactsTotal: number; stages: string[]; opportunities: GhlOpportunity[]; opportunitiesTotal: number; calls: GhlCall[]; conversationsRead: number; conversationsTotal: number; fetchedAt: string };
+export type GhlData = { appointments: GhlAppointment[]; appointmentsConfigured: boolean; appointmentsError: boolean; contacts: GhlContact[]; contactsTotal: number; stages: string[]; opportunities: GhlOpportunity[]; opportunitiesTotal: number; calls: GhlCall[]; conversationsRead: number; conversationsTotal: number; fetchedAt: string };
 export type GhlResult = { ok: true; data: GhlData } | { ok: false; reason: 'not-connected' | 'no-access' | 'failed' };
 
 /** Open deals per pipeline stage, in the pipeline's own order, plus what has been won. A deal with no value adds nothing: it is not counted as zero dollars of certainty, just absent from the sum. */
