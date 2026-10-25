@@ -134,6 +134,35 @@ create table oj_private.oj_commercial_commands (
     references public.oj_commercial_estimate_versions(organization_id,id) on delete restrict
 );
 
+-- Estimate version history, per-version building scope, cost assumptions and
+-- command receipts are append-only evidence, not editable working tables.
+-- Workspace projects and their CURRENT estimate pointer remain mutable through
+-- the guarded RPC, but old snapshots can never be rewritten or deleted.
+create function oj_private.oj_commercial_reject_immutable_change()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  raise exception 'Commercial estimate history is immutable; save a new version'
+    using errcode = '23514';
+end;
+$;
+revoke all on function oj_private.oj_commercial_reject_immutable_change()
+  from public, anon, authenticated;
+create trigger oj_commercial_version_immutable
+  before update or delete on public.oj_commercial_estimate_versions
+  for each row execute function oj_private.oj_commercial_reject_immutable_change();
+create trigger oj_commercial_building_immutable
+  before update or delete on public.oj_commercial_buildings
+  for each row execute function oj_private.oj_commercial_reject_immutable_change();
+create trigger oj_commercial_history_immutable
+  before update or delete on public.oj_commercial_history
+  for each row execute function oj_private.oj_commercial_reject_immutable_change();
+create trigger oj_commercial_cost_immutable
+  before update or delete on oj_private.oj_commercial_cost_assumptions
+  for each row execute function oj_private.oj_commercial_reject_immutable_change();
+create trigger oj_commercial_command_immutable
+  before update or delete on oj_private.oj_commercial_commands
+  for each row execute function oj_private.oj_commercial_reject_immutable_change();
+
 alter table public.oj_commercial_projects enable row level security;
 alter table public.oj_commercial_estimates enable row level security;
 alter table public.oj_commercial_estimate_versions enable row level security;
