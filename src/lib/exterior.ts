@@ -27,7 +27,7 @@ export const sourceLabel = (s: string | null) => {
 
 export function summariseLeads(leads: ExtLead[]) {
   const completed = leads.filter(l => l.status === 'completed');
-  const withRevenue = completed.filter(l => l.job_revenue !== null);
+  const withRevenue = completed.filter(l => isRecordedJobAmount(l.job_revenue));
   const byStatus = new Map<string, number>();
   for (const l of leads) byStatus.set(l.status ?? 'unknown', (byStatus.get(l.status ?? 'unknown') ?? 0) + 1);
   return {
@@ -38,7 +38,10 @@ export function summariseLeads(leads: ExtLead[]) {
 }
 
 const group = <T,>(rows: T[], key: (row: T) => string) => { const m = new Map<string, T[]>(); for (const r of rows) m.set(key(r), [...(m.get(key(r)) ?? []), r]); return [...m]; };
-const known = (value: number | null) => value !== null && Number.isFinite(value) && value >= 0;
+/** One consistent recorded job amount predicate for KPIs, warnings and rows. */
+export const isRecordedJobAmount=(value:number|null):value is number=>
+ typeof value==='number'&&Number.isFinite(value)&&value>=0;
+const known=isRecordedJobAmount;
 const total = (rows: Pick<ExtLead, 'job_revenue' | 'job_cost'>[], key: 'job_revenue' | 'job_cost') => {
   const recorded = rows.filter(l => known(l[key]));
   return recorded.length ? recorded.reduce((sum, l) => sum + (l[key] as number), 0) : null;

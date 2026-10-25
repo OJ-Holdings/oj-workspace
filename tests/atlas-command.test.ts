@@ -97,3 +97,25 @@ test('provider states remain partial/unknown, not invented health',()=>{
   assert.ok(atlasSignalsForMode(snap,'money').every(s=>s.category==='Data integrity'));
   assert.ok(atlasSignalsForMode(snap,'strategy').every(s=>s.severity==='urgent'||s.severity==='attention'));
 });
+
+test('Exterior original leads remain separate from Workspace CRM and unknown is not zero',()=>{
+ const snap=buildAtlasSnapshot({today,cards:[],jobs:[],dashboard:dashboard({
+  leads:[{id:'crm',venture:'exterior',name:'CRM only',contact:'',stage:'New',value:null,source:'',notes:'',created_at:today}],
+  openElsewhere:{exterior:37},
+  reporting:{exterior:{jobs:10,revenueJobs:9,costJobs:0,matchedJobs:0,estimatedDateJobs:0},
+   sources:[{id:'exterior',label:'Exterior Care',state:'partial',detail:'37 of a bounded source loaded'}]},
+ })});
+ const ext=snap.ventures.find(v=>v.id==='exterior');
+ assert.equal(ext?.leads,1,'One distinct Workspace CRM row');
+ assert.equal(ext?.sourceOpen,37,'Actual original Exterior open lead count is separate');
+ assert.equal(ext?.sourceState,'partial');
+ const unavailable=buildAtlasSnapshot({today,cards:[],jobs:[],dashboard:dashboard({
+  reporting:{exterior:{jobs:0,revenueJobs:0,costJobs:0,matchedJobs:0,estimatedDateJobs:0},
+   sources:[{id:'exterior',label:'Exterior Care',state:'unavailable',detail:'source failed'}]},
+ })});
+ assert.equal(unavailable.ventures.find(v=>v.id==='exterior')?.sourceOpen,null);
+ const zero=buildAtlasSnapshot({today,cards:[],jobs:[],dashboard:dashboard({
+  openElsewhere:{exterior:0},
+ })});
+ assert.equal(zero.ventures.find(v=>v.id==='exterior')?.sourceOpen,0);
+});
