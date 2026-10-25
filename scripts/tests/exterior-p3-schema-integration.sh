@@ -107,6 +107,27 @@ fail "Immutable quote version" \
 fail "Immutable acceptance claim" \
  "UPDATE public.oj_exterior_quote_claims SET verification_state='verified'
  WHERE organization_id='$org' AND id='80000000-0000-4000-8000-000000000001';"
+fail "Private cost/unit leakage in public quote scope is prohibited" \
+ "INSERT INTO public.oj_exterior_quote_versions(
+ organization_id,quote_id,sequence,command_id,expected_revision,created_by,
+ scope,subtotal_cents,discount_cents,price_cents,content_hash)
+ VALUES('$org','60000000-0000-4000-8000-000000000002',3,
+ 'b0000000-0000-4000-8000-000000000090',2,'$owner',
+ '[{\"id\":\"line-x\",\"service\":\"Window\",\"unit\":\"pane\",\"quantity\":1,
+ \"unitPriceCents\":30000,\"costPerUnit\":100}]'::jsonb,
+ 30000,0,30000,repeat('e',64));"
+fail "Public scope quantity times unit-price must equal subtotal" \
+ "INSERT INTO public.oj_exterior_quote_versions(
+ organization_id,quote_id,sequence,command_id,expected_revision,created_by,
+ scope,subtotal_cents,discount_cents,price_cents,content_hash)
+ VALUES('$org','60000000-0000-4000-8000-000000000002',3,
+ 'b0000000-0000-4000-8000-000000000091',2,'$owner',
+ '[{\"id\":\"line-x\",\"service\":\"Window\",\"unit\":\"pane\",\"quantity\":1,
+ \"unitPriceCents\":100}]'::jsonb,
+ 30000,0,30000,repeat('e',64));"
+fail "Private verified provider receipt identity is immutable" \
+ "UPDATE oj_private.oj_exterior_verified_acceptances SET price_cents=1
+ WHERE organization_id='$org' AND id='90000000-0000-4000-8000-000000000003';"
 fail "Stale optimistic quote revision" \
  "INSERT INTO public.oj_exterior_quote_versions(
  organization_id,quote_id,sequence,command_id,expected_revision,created_by,
@@ -155,6 +176,10 @@ sql "INSERT INTO public.oj_exterior_work_orders(
  '90000000-0000-4000-8000-000000000003',30000,'$scope_new'::jsonb);" >/dev/null
 eq "$(sql "SELECT consumed_at IS NOT NULL FROM oj_private.oj_exterior_verified_acceptances
  WHERE organization_id='$org' AND id='90000000-0000-4000-8000-000000000003';")" t "Valid work order consumes single-use receipt"
+fail "Consumed provider receipt cannot be rewritten or reconsumed" \
+ "UPDATE oj_private.oj_exterior_verified_acceptances SET consumed_at=now()
+ WHERE organization_id='$org' AND id='90000000-0000-4000-8000-000000000003';"
+
 fail "Consumed receipt cannot be replayed" \
  "INSERT INTO public.oj_exterior_work_orders(
  organization_id,id,opportunity_id,quote_id,version_id,booking_id,
