@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 18:23 UTC -- Codex (archive validation pipe diagnostics)
+**Summary:** The repeated user error came from the separate decrypted-archive validation pipe into `pg_restore`, which was not covered by the earlier stream diagnostic fix. Added bounded process cleanup and safe classifications for age/pg_restore early exits without emitting raw stderr or credentials.
+**Files:** `scripts/backup-supabase-windows.ps1`; `scripts/tests/age-stream-helper-smoke.ps1`.
+**Verified:** Windows synthetic PostgreSQL 17.11 dump → age encryption → age decryption → `pg_restore` validation and isolated restore passed. Negative tests cover rejected encryption recipients, encrypted invalid PostgreSQL archives, authentication diagnostics, and ciphertext tampering. Production backup is still not verified; the repeated pipe error happened after commit 952 was pulled and before this second-pipe fix.
+**Notes:** The owner must pull the follow-up commit before rerunning the production backup. The script will then report whether age decryption or PostgreSQL archive validation closed the stream. Verify the resulting archive, then perform the separate isolated production restore gate before considering any production migration.
+
 ## 2026-10-25 18:18 UTC -- Codex (backup stream failure diagnostics)
 **Summary:** Improved the Windows encrypted backup stream so an early exit by the age consumer reports a safe classified cause and process exit codes instead of surfacing only a broken-pipe exception. The failure message does not emit raw subprocess stderr or credentials.
 **Files:** `scripts/backup-supabase-windows.ps1`; `scripts/tests/age-stream-helper-smoke.ps1`.

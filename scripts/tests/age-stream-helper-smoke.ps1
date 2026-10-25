@@ -99,6 +99,21 @@ try {
   if ($LASTEXITCODE -ne 0) { throw ('Synthetic pg_dump fixture is unreadable: ' + ($fixtureList | Out-String)) }
   Remove-Item -LiteralPath $syntheticPlain -Force
   TestEncryptedArchive $encrypted $identity
+  $invalidArchive = Join-Path $temporary 'encrypted-invalid-archive.age'
+  $invalidEncryptor = StartByteProcess $age @('-r',$recipient,'-o',$invalidArchive) $true $false
+  $invalidEncryptErrors = $invalidEncryptor.StandardError.ReadToEndAsync()
+  $invalidEncryptor.StandardInput.WriteLine('synthetic invalid PostgreSQL archive')
+  $invalidEncryptor.StandardInput.Close()
+  $invalidEncryptor.WaitForExit()
+  [void]$invalidEncryptErrors.GetAwaiter().GetResult()
+  $invalidEncryptExit = $invalidEncryptor.ExitCode
+  $invalidEncryptor.Dispose()
+  if ($invalidEncryptExit -ne 0) { throw 'Could not create encrypted invalid-archive fixture.' }
+  $invalidArchiveMessage = ''
+  try { TestEncryptedArchive $invalidArchive $identity } catch { $invalidArchiveMessage = $_.Exception.Message }
+  if ($invalidArchiveMessage -notmatch 'Encrypted archive validation failed: PostgreSQL could not read the decrypted stream as a custom-format archive') {
+    throw "Invalid decrypted archive did not produce a safe classified validation failure: $invalidArchiveMessage"
+  }
   $streamedList = PipeAgeToPgRestore $encrypted $identity @('--list')
   if ($streamedList -notmatch '(?m)^; Archive created at ') { throw 'Streaming archive inspection did not return a PostgreSQL archive table of contents.' }
 

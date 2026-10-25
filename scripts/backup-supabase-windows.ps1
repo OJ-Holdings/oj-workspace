@@ -135,6 +135,12 @@ function DescribeStreamChildFailure([string]$kind,[string]$stderr) {
     }
     return 'age exited while encrypting the backup stream'
   }
+  if ($kind -eq 'pg_restore') {
+    if ($stderr -match '(?i)(does not appear to be a valid archive|did not find magic string|unsupported version|invalid archive)') {
+      return 'PostgreSQL could not read the decrypted stream as a custom-format archive'
+    }
+    return 'pg_restore exited while validating the decrypted archive'
+  }
   if ($stderr -match '(?i)(password authentication failed|authentication failed|no password supplied)') {
     return 'Supabase rejected the stored database credentials'
   }
@@ -220,15 +226,32 @@ function TestEncryptedArchive([string]$archivePath,[string]$identity) {
     $inspectOutput = $inspector.StandardOutput.ReadToEndAsync()
     $decryptor.StandardInput.WriteLine($identity)
     $decryptor.StandardInput.Close()
-    $decryptor.StandardOutput.BaseStream.CopyTo($inspector.StandardInput.BaseStream)
-    $inspector.StandardInput.Close()
+    $copyFailure = $null
+    try {
+      $decryptor.StandardOutput.BaseStream.CopyTo($inspector.StandardInput.BaseStream)
+    } catch {
+      $copyFailure = $_.Exception
+    }
+    if ($copyFailure -and -not $decryptor.HasExited) {
+      # pg_restore can reject a truncated or invalid stream and close stdin;
+      # stop age before waiting so it cannot block on a full stdout pipe.
+      $decryptor.Kill()
+    }
+    try { $inspector.StandardInput.Close() } catch { }
     $decryptor.WaitForExit()
     $inspector.WaitForExit()
-    [void]$decryptErrors.GetAwaiter().GetResult()
-    [void]$inspectErrors.GetAwaiter().GetResult()
+    $decryptErrorText = $decryptErrors.GetAwaiter().GetResult()
+    $inspectErrorText = $inspectErrors.GetAwaiter().GetResult()
     [void]$inspectOutput.GetAwaiter().GetResult()
-    if ($decryptor.ExitCode -ne 0 -or $inspector.ExitCode -ne 0) {
-      throw "Encrypted archive authentication/decryption or PostgreSQL archive inspection failed (age exit $($decryptor.ExitCode), pg_restore exit $($inspector.ExitCode))."
+    if ($copyFailure -or $decryptor.ExitCode -ne 0 -or $inspector.ExitCode -ne 0) {
+      if ($inspector.ExitCode -ne 0) {
+        $cause = DescribeStreamChildFailure 'pg_restore' $inspectErrorText
+      } elseif ($decryptor.ExitCode -ne 0) {
+        $cause = DescribeStreamChildFailure 'age' $decryptErrorText
+      } else {
+        $cause = 'the operating system closed a process stream unexpectedly'
+      }
+      throw "Encrypted archive validation failed: $cause (age exit $($decryptor.ExitCode), pg_restore exit $($inspector.ExitCode))."
     }
   } finally {
     if ($decryptor -and -not $decryptor.HasExited) { $decryptor.Kill(); $decryptor.WaitForExit() }
