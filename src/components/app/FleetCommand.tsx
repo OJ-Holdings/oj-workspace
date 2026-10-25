@@ -187,7 +187,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
       const clean=validateFleet(next,organizationId);
       const encoded=encodeFleet(clean,organizationId);
       window.localStorage.setItem(storageKey,encoded);
-      workbookRef.current=clean;setWorkbook(clean);setError('');setNotice(message);
+      localSeen.current=true;workbookRef.current=clean;setWorkbook(clean);setError('');setNotice(message);
       if(sharedStatus==='ready')setSharedStatus('local-only');
     }catch(e){setError(e instanceof Error?e.message:'Unable to save the Fleet Command draft.');}
   }
