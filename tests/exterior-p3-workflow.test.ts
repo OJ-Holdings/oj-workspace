@@ -100,6 +100,24 @@ const blocked=(b:ReturnType<typeof preflightP3WorkOrder>,why:string)=>{
  assert.ok(b.blockers.includes(why as never),JSON.stringify(b.blockers));
 };
 
+test('P3.1 preserves actual opaque text IDs for existing legacy lead and booking rows',()=>{
+ const target=newP3QuoteLedger({
+  ...identity(),legacyLeadId:'legacy-lead:001',
+  targetBookingId:'legacy-booking:001',
+ });
+ assert.equal(target.identity.legacyLeadId,'legacy-lead:001');
+ assert.equal(target.identity.targetBookingId,'legacy-booking:001');
+ assert.throws(()=>newP3QuoteLedger({
+  ...identity(),legacyLeadId:'  source-id  ',
+ }),/legacyLeadId.*safe original/i);
+ assert.throws(()=>newP3QuoteLedger({
+  ...identity(),targetBookingId:'booking\ncontrol',
+ }),/targetBookingId.*safe original/i);
+ assert.throws(()=>newP3QuoteLedger({
+  ...identity(),legacyLeadId:'x'.repeat(129),
+ }),/legacyLeadId.*safe original/i);
+});
+
 test('P3 immutable quote v1 stores exact linked public scope, price cents and no proprietary costs',()=>{
  const source=lead(),original=draft(source);
  const json=JSON.stringify(original);

@@ -76,3 +76,14 @@ jobs:
       - name: Exercise guarded restore against two temporary PostgreSQL 17 databases
         shell: bash
         run: bash scripts/tests/restore-synthetic-integration.sh
+
+  exterior-p3-staging-synthetic:
+    name: P3 staging schema + actual RLS actors (synthetic PostgreSQL 17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse isolated P3 staging harness
+        run: bash -n scripts/tests/exterior-p3-schema-integration.sh
+      - name: Test real tenant RLS, revocation, immutable versions and work-order receipt
+        shell: bash
+        run: bash scripts/tests/exterior-p3-schema-integration.sh
