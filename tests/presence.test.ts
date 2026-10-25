@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { memberPresence, presenceAge, validPresenceOrigin, validatePresenceUpdate } from '../src/lib/presence';
+import { memberBoardAssignments, memberPresence, presenceAge, validPresenceOrigin, validatePresenceUpdate } from '../src/lib/presence';
 
 const now = Date.parse('2026-10-04T20:00:00Z');
 const session = (state: 'online' | 'away' | 'offline', age = 0, user_id = 'oscar') => ({ user_id, session_id: `${user_id}-${age}`, state, seen_at: new Date(now - age).toISOString() });
@@ -31,7 +31,6 @@ test('cross-site and malformed status requests fail closed', () => {
 });
 
 test('team task fallback shows only uniquely matched member assignments, never live presence',()=>{
- const {memberBoardAssignments}=require('../src/lib/presence') as typeof import('../src/lib/presence');
  const people=[{user_id:'a',display_name:'Oscar'},{user_id:'b',display_name:'Jacob'}];
  const tasks=[{assignee:'oscar',stage:'Ready',id:'1'},{assignee:' Oscar ',stage:'Done',id:'2'},
   {assignee:'Jacob',stage:'Review',id:'3'},{assignee:'',stage:'Ready',id:'4'}];
