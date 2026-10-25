@@ -1,6 +1,7 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import Link from 'next/link';
 import {AlertTriangle,CheckCircle2,ClipboardCheck,RefreshCw,ShieldAlert,Truck,Wrench} from 'lucide-react';
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
@@ -20,11 +21,19 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
  const [notice,setNotice]=useState('');
  const [sameDay,setSameDay]=useState<{booking:ExtBooking;plan:FieldEquipmentPlan}[]>([]);
  const [loaded,setLoaded]=useState(false);
+ const [hadLocal,setHadLocal]=useState(false);
+ const [sharedStatus,setSharedStatus]=useState<'loading'|'ready'|'local-only'|'saving'|'conflict'|'offline'>('loading');
+ const [remote,setRemote]=useState<FieldEquipmentPlan|null>(null);
+ const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+ const [sharedRefresh,setSharedRefresh]=useState(0);
+ const planRef=useRef<FieldEquipmentPlan|null>(null);
+ const pendingSync=useRef<{plan:FieldEquipmentPlan;expected:number;commandId:string}|null>(null);
  const today=chicagoDateOf(new Date().toISOString())??'';
  const fleetRoute=base+'/tools/fleet';
 
  const reload=()=>{
-  setLoaded(false);setLoadError('');setNotice('');
+  setLoaded(false);setHadLocal(false);setSharedStatus('loading');setRemote(null);setSharedRevision(null);
+  pendingSync.current=null;setLoadError('');setNotice('');
   if(!canEdit){
    setPlan(makeEquipmentPlan(org,booking));setFleet(null);setSameDay([]);setLoaded(true);return;
   }
@@ -37,6 +46,7 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
   }catch{unsafe='Fleet Command storage is corrupted or inaccessible; this job is not equipment-cleared.';}
   try{
    const raw=window.localStorage.getItem(equipmentPlanKey(org,booking.id));
+   setHadLocal(Boolean(raw));
    assignment=raw?parseEquipmentPlan(raw,org,booking):makeEquipmentPlan(org,booking);
   }catch{
    unsafe+=(unsafe?' ':'')+'Existing job equipment assignment could not be verified. It was NOT overwritten.';
@@ -54,6 +64,29 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
   setSameDay(competing);setLoadError(unsafe);setLoaded(true);
  };
  useEffect(()=>{reload();},[org,booking.id,booking.lead_id,booking.date,booking.status,canEdit,data.bookings]); // eslint-disable-line react-hooks/exhaustive-deps
+ planRef.current=plan;
+ useEffect(()=>{
+  if(!canEdit||!loaded||loadError)return;
+  let cancelled=false;
+  setSharedStatus('loading');
+  void loadSharedDraft(org,'exterior_equipment',booking.id).then(doc=>{
+   if(cancelled)return;
+   setSharedRevision(doc?.revision??0);setRemote(doc?.payload??null);
+   if(!doc){setSharedStatus('local-only');return;}
+   const local=planRef.current;
+   const blank=!hadLocal&&local&&JSON.stringify(local)===JSON.stringify(makeEquipmentPlan(org,booking));
+   if(blank||(local&&JSON.stringify(local)===JSON.stringify(doc.payload))){
+    setPlan(doc.payload);setSharedStatus('ready');
+   }else{
+    setSharedStatus('conflict');
+    setNotice('Company equipment plan differs from this device. Neither plan was overwritten.');
+   }
+  }).catch(e=>{
+   if(cancelled)return;setSharedStatus('offline');
+   setNotice(e instanceof Error?e.message:'Shared equipment storage unavailable; local plan preserved.');
+  });
+  return ()=>{cancelled=true;};
+ },[org,booking.id,booking.lead_id,booking.date,booking.status,canEdit,loaded,loadError,hadLocal,sharedRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
  const report=useMemo(()=>{
   if(!plan)return null;
   try{return evaluateEquipmentPlan(plan,booking,fleet,sameDay,today);}
@@ -64,7 +97,8 @@ export function ExteriorJobEquipment({org,booking,data,readOnly,mode,base}:Props
   try{
    const text=encodeEquipmentPlan(next,org,booking);
    window.localStorage.setItem(equipmentPlanKey(org,booking.id),text);
-   setPlan(parseEquipmentPlan(text,org,booking));setNotice(msg);
+   setPlan(parseEquipmentPlan(text,org,booking));
+   if(sharedStatus==='ready')setSharedStatus('local-only');setNotice(msg);
   }catch{setLoadError('This browser could not save the equipment assignment. No verified save receipt exists.');}
  };
  const toggle=(assetId:string)=>{
