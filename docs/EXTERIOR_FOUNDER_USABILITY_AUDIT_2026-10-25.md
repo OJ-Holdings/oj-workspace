@@ -25,6 +25,20 @@
 | FA-15 | 11 | Need commercial companies with logos and all their different properties. | Persistent organization-scoped commercial **account**: company name/logo, contacts, billing/service preferences, multiple properties/buildings and responsible relationships. Each property has site notes, scope and visits. Protect logo uploads and private contact details. | P1 product |
 | FA-16 | 11–12 | Whole commercial project in one tab is overwhelming and feels "SaaS-y". | Replace long single-column desk with a compact account overview and separate client, property, estimate/version, job/recurring service and money views; phone-first, not another duplicate dashboard shell. | P1 product |
 
+## U0 first code pass — PR #154 (not yet founder accepted)
+
+[PR #154](https://github.com/OJ-Holdings/oj-workspace/pull/154) implements the founder's first evidence-backed corrections. Code head `d070c2948852a095987fff2756285df3c3953b3b` passed [exact-head CI #40225293015](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40225293015): tests/typecheck/build/dependency audit, synthetic PG17 private recovery, and PG17 RLS actor tests. No production schema, browser records or customer records were changed.
+
+| Issue | Code finding and correction | Current acceptance |
+|---|---|---|
+| FA-01 | Original mobile Exterior five-tab strip used horizontal overflow; changed to all-visible responsive grid. | **Code implemented; founder phone/viewport not yet verified** |
+| FA-02 | Corporate Growth counted distinct `oj_leads` CRM but hid original Exterior `leads` already available as `openElsewhere.exterior`. Now show separate original Exterior open-source count with partial/unknown coverage, and clear CRM separation. | **Code implemented; actual lead IDs/counts not yet reconciled** |
+| FA-03 | Completed customer records showed only quote. Cards and table now also show recorded `job_revenue`, with explicit `$0` correctly treated as recorded. | **Code implemented; actual visits and returned-client paths not yet checked** |
+| FA-05 | Live Team at Work presence needs separate unactivated `presence.sql` tables. Show real existing shared task-board assignments for uniquely named members instead, never an invented online/check-in state. | **Partial: assignments implemented; live presence and two-founder testing outstanding** |
+| FA-12 | Historical `job_revenue` was inaccurately called "payment"; missing-value chip used null-only logic, while KPI validation required finite nonnegative amounts. Now share the field validator and label revenue/unknown truthfully. | **Code implemented; production source-versus-finance warning still needs real-record verification** |
+
+These fixes require an actual served Windows SHA check and both founder-device acceptance before FA statuses can be closed. No weighted master score increment from CI alone: **42/100 unchanged**. Commercial data PR #150 and local recovery UI PR #151 remain independent and unmerged; PR #150 still requires owner-approved production recovery/migration.
+
 ### Interpretation discipline
 
 - **User-reported symptom**: all FA-01 through FA-16. **Root cause / confirmed resolution:** not independently established by the PDF. Reproduce against the current actually served Windows SHA and signed-in roles before coding a purported fix.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceLabel, summariseJobs, summariseLeads, summariseSessions, type ExtLead, type ExtSession } from '../src/lib/exterior';
+import { isRecordedJobAmount, sourceLabel, summariseJobs, summariseLeads, summariseSessions, type ExtLead, type ExtSession } from '../src/lib/exterior';
 
 const lead = (l: Partial<ExtLead>): ExtLead => ({ id: 'a', name: 'A', phone: null, address: null, service_requested: null, quote_amount: null, status: 'new', source: null, notes: null, job_revenue: null, job_cost: null, created_at: '2026-05-01T00:00:00Z', updated_at: null, completed_at: null, ...l });
 
@@ -50,4 +50,17 @@ test('door-knocking rates come from totals and are unknown with no doors', () =>
 
 test('source spellings from the old app collapse to one label', () => {
   assert.deepEqual(['dtd', 'DTD', 'door-to-door', 'Facebook', '', null].map(sourceLabel), ['Door to door', 'Door to door', 'Door to door', 'Facebook', 'Unknown', 'Unknown']);
+});
+
+test('zero job revenue is recorded, blanks and invalid figures are not',()=>{
+ assert.equal(isRecordedJobAmount(0),true);
+ assert.equal(isRecordedJobAmount(275),true);
+ assert.equal(isRecordedJobAmount(null),false);
+ assert.equal(isRecordedJobAmount(Number.NaN),false);
+ assert.equal(isRecordedJobAmount(-1),false);
+ const rows=[lead({status:'completed',job_revenue:0}),lead({status:'completed',job_revenue:null})];
+ const figures=summariseJobs(rows,iso=>iso.slice(0,7));
+ assert.equal(figures.revenueJobs,1);
+ assert.equal(figures.missingRevenue,1);
+ assert.equal(figures.revenue,0);
 });
