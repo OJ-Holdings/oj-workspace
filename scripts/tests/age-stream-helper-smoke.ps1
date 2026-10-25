@@ -24,13 +24,21 @@ function RunChecked([string]$file,[string[]]$arguments) {
   & $file @arguments
   if ($LASTEXITCODE -ne 0) { throw "$([IO.Path]::GetFileName($file)) failed with exit code $LASTEXITCODE" }
 }
-foreach ($source in @(@{path=$backupScript;names=@('AgeTool','PostgreSQLTool','QuoteProcessArgument','StartByteProcess','EncryptProcessOutput','TestEncryptedArchive')},@{path=$restoreScript;names=@('PgTool','PipeAgeToPgRestore')})) {
+foreach ($source in @(@{path=$backupScript;names=@('AgeTool','PostgreSQLTool','QuoteProcessArgument','StartByteProcess','DescribeStreamChildFailure','EncryptProcessOutput','TestEncryptedArchive')},@{path=$restoreScript;names=@('PgTool','PipeAgeToPgRestore')})) {
   $tokens = $null; $parseErrors = $null
   $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $source.path).Path,[ref]$tokens,[ref]$parseErrors)
   if ($parseErrors.Count) { throw "PowerShell syntax errors in $($source.path)" }
   foreach ($function in $ast.FindAll({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst]},$true)) {
     if ($function.Name -in $source.names) { Invoke-Expression $function.Extent.Text }
   }
+}
+$recipientFailure = DescribeStreamChildFailure 'age' 'age: error: unknown recipient type'
+if ($recipientFailure -notmatch 'rejected the configured encryption recipient') {
+  throw 'Backup child-process diagnostics did not classify a rejected age recipient.'
+}
+$authFailure = DescribeStreamChildFailure 'pg_dump' 'FATAL: password authentication failed for user'
+if ($authFailure -notmatch 'rejected the stored database credentials') {
+  throw 'Backup child-process diagnostics did not classify a PostgreSQL authentication failure.'
 }
 $temporary = Join-Path $env:TEMP ('oj-age-restore-smoke-' + [guid]::NewGuid().ToString('N'))
 $dataDirectory = Join-Path $temporary 'data'
@@ -68,6 +76,16 @@ try {
   $dump = Join-Path $pgRoot 'pg_dump.exe'
   $dumpArgs = @('--format=custom','--no-owner','--verbose','--host','127.0.0.1','--port',"$port",'--username','postgres','--dbname',$sourceDatabase)
   EncryptProcessOutput $dump $dumpArgs $recipient $encrypted
+  $earlyExitPath = Join-Path $temporary 'rejected-recipient.dump.age'
+  $earlyExitMessage = ''
+  try {
+    EncryptProcessOutput $dump $dumpArgs 'not-an-age-recipient' $earlyExitPath
+  } catch {
+    $earlyExitMessage = $_.Exception.Message
+  }
+  if ($earlyExitMessage -notmatch 'Backup (stream stopped early|encryption failed): age rejected the configured encryption recipient') {
+    throw "An early age process exit was not reported with a safe, useful cause: $earlyExitMessage"
+  }
   # Diagnostic validation of the fixture itself. This plaintext archive only
   # contains synthetic data and is confined to this temporary test directory.
   $syntheticPlain = Join-Path $temporary 'synthetic-only.dump'

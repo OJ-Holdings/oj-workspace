@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 18:18 UTC -- Codex (backup stream failure diagnostics)
+**Summary:** Improved the Windows encrypted backup stream so an early exit by the age consumer reports a safe classified cause and process exit codes instead of surfacing only a broken-pipe exception. The failure message does not emit raw subprocess stderr or credentials.
+**Files:** `scripts/backup-supabase-windows.ps1`; `scripts/tests/age-stream-helper-smoke.ps1`.
+**Verified:** Synthetic loopback PostgreSQL dump/encrypt/decrypt/restore smoke passed, including rejected-recipient and authentication-failure diagnostic classification; all 711 application tests, TypeScript, and production build passed. No production archive was created from this Codex process: its non-elevated token lacked `SeSecurityPrivilege` when applying the backup directory ACL. The earlier user-run attempt produced no verified archive.
+**Notes:** Run the backup from the already-elevated PowerShell session. If streaming fails again, the updated script will report whether age rejected the recipient or could not write, whether Supabase rejected credentials, or whether the database connection failed. Then run Verify; production migration remains gated on a successful isolated restore and the other recovery/access checks.
+
 ## 2026-10-25 14:16 UTC -- Codex (portable PostgreSQL recovery toolchain)
 **Summary:** Installed the official EDB PostgreSQL 17.11-5 Windows binary archive under `%LOCALAPPDATA%\OJWorkspace\tools\pg17` without installing a Windows service, and added its client directory to the current user's PATH. New PowerShell sessions will see the PATH update; already-open sessions may need to be restarted. Ran a real Windows-local synthetic dump/restore through a temporary loopback-only PostgreSQL 17.11 server. Production recovery remains blocked by unavailable BitLocker status and missing private DPAPI/database credentials; no production data was dumped.
 **Files:** `docs/OJ_DATA_PERSISTENCE_INVENTORY.md`.

@@ -125,6 +125,28 @@ function StartByteProcess([string]$file,[string[]]$arguments,[bool]$redirectInpu
   return $process
 }
 
+function DescribeStreamChildFailure([string]$kind,[string]$stderr) {
+  if ($kind -eq 'age') {
+    if ($stderr -match '(?i)(unknown|invalid|malformed|unsupported).{0,48}(recipient|public key)|recipient.{0,48}(unknown|invalid|malformed)') {
+      return 'age rejected the configured encryption recipient'
+    }
+    if ($stderr -match '(?i)(permission denied|access is denied|cannot open|failed to open|could not open)') {
+      return 'age could not write the encrypted output in the configured backup directory'
+    }
+    return 'age exited while encrypting the backup stream'
+  }
+  if ($stderr -match '(?i)(password authentication failed|authentication failed|no password supplied)') {
+    return 'Supabase rejected the stored database credentials'
+  }
+  if ($stderr -match '(?i)(could not translate host|connection timed out|timeout expired|could not connect|no route to host|SSL connection has been closed)') {
+    return 'pg_dump could not maintain its database connection'
+  }
+  if ($stderr -match '(?i)(permission denied|access is denied|no space left|disk full)') {
+    return 'pg_dump could not read the database stream or the destination ran out of space'
+  }
+  return 'pg_dump exited while reading the database'
+}
+
 function EncryptProcessOutput([string]$producer,[string[]]$producerArgs,[string]$recipient,[string]$encryptedPath) {
   $age = AgeTool
   $source = $null
@@ -134,14 +156,37 @@ function EncryptProcessOutput([string]$producer,[string[]]$producerArgs,[string]
     $ageErrors = $encryptor.StandardError.ReadToEndAsync()
     $source = StartByteProcess $producer $producerArgs $false $true
     $sourceErrors = $source.StandardError.ReadToEndAsync()
-    $source.StandardOutput.BaseStream.CopyTo($encryptor.StandardInput.BaseStream)
-    $encryptor.StandardInput.Close()
+    $copyFailure = $null
+    try {
+      $source.StandardOutput.BaseStream.CopyTo($encryptor.StandardInput.BaseStream)
+    } catch {
+      $copyFailure = $_.Exception
+    }
+    if ($copyFailure -and -not $source.HasExited) {
+      # A consumer that exits early closes its stdin pipe. Stop the producer
+      # before waiting so it cannot remain blocked on a full stdout pipe.
+      $source.Kill()
+    }
+    try { $encryptor.StandardInput.Close() } catch { }
     $source.WaitForExit()
     $encryptor.WaitForExit()
     $sourceErrorText = $sourceErrors.GetAwaiter().GetResult()
     $ageErrorText = $ageErrors.GetAwaiter().GetResult()
+    if ($copyFailure) {
+      if ($encryptor.ExitCode -ne 0) {
+        $cause = DescribeStreamChildFailure 'age' $ageErrorText
+      } elseif ($source.ExitCode -ne 0) {
+        $cause = DescribeStreamChildFailure 'pg_dump' $sourceErrorText
+      } else {
+        $cause = 'the operating system closed a process stream unexpectedly'
+      }
+      throw "Backup stream stopped early: $cause (pg_dump exit $($source.ExitCode), age exit $($encryptor.ExitCode)). No plaintext dump was retained."
+    }
     if ($source.ExitCode -ne 0) { throw "PostgreSQL dump failed (exit $($source.ExitCode)); no plaintext archive was retained." }
-    if ($encryptor.ExitCode -ne 0) { throw 'age could not encrypt the streamed database archive.' }
+    if ($encryptor.ExitCode -ne 0) {
+      $cause = DescribeStreamChildFailure 'age' $ageErrorText
+      throw "Backup encryption failed: $cause (age exit $($encryptor.ExitCode)). No plaintext archive was retained."
+    }
     if (-not (Test-Path -LiteralPath $encryptedPath) -or (Get-Item -LiteralPath $encryptedPath).Length -lt 64) {
       throw 'age did not produce a complete encrypted archive.'
     }
