@@ -3,6 +3,28 @@ import {
   type CommercialPortfolio, type CommercialProject, type ProjectDraft,
 } from './atlas-commercial-portfolio';
 
+/** A pending new-project ID survives a lost HTTP response. A retry with an
+ * unchanged draft MUST use the same command and project identifier, otherwise
+ * an interrupted first save silently creates another shared project. */
+export type CommercialSaveAttempt = Readonly<{
+  projectId: string;
+  commandId: string;
+  fingerprint: string;
+}>;
+
+export function planCommercialSaveAttempt(
+  previous: CommercialSaveAttempt | null,
+  selectedProjectId: string | null,
+  expectedRevision: number | null,
+  draft: ProjectDraft,
+  nextUuid: () => string,
+): CommercialSaveAttempt {
+  const projectId = selectedProjectId ?? previous?.projectId ?? nextUuid();
+  const fingerprint = JSON.stringify({ projectId, expectedRevision, draft });
+  if (previous?.fingerprint === fingerprint && previous.projectId === projectId) return previous;
+  return { projectId, commandId: nextUuid(), fingerprint };
+}
+
 export type CommercialProjectCursor = { updatedAt: string; id: string } | null;
 export type CommercialProjectPage = {
   projects: CommercialProject[];
