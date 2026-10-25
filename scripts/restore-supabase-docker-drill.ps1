@@ -235,6 +235,7 @@ try {
     Write-Output 'OJ_MIGRATIONS_AUTHORIZED=FALSE'
 
     $catalogSql = @'
+SET search_path = pg_catalog;
 SELECT json_build_object(
   'tables',(SELECT coalesce(json_agg(table_name ORDER BY table_name),'[]'::json)
     FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),

@@ -51,7 +51,8 @@ if (-not $source.Contains('[switch]$UseR40') -or
 }
 if (-not $source.Contains('OJ_ARCHIVE_AFTER_LATEST_SCHEMA_MIGRATION=') -or
     -not $source.Contains('OJ_ARCHIVE_PUBLIC_TABLE_COUNT=') -or
-    -not $source.Contains('OJ_ARCHIVE_TOC_CREATED=')) {
+    -not $source.Contains('OJ_ARCHIVE_TOC_CREATED=') -or
+    -not $source.Contains('SET search_path = pg_catalog;')) {
   throw 'The R40 path must compare archive timestamp and exact archive TOC table names with read-only source catalogs.'
 }
 if (-not $source.Contains('TargetConfirmation (''RESTORE ONLY INTO '' + $database)')) {
