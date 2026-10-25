@@ -178,13 +178,59 @@ export function ExteriorCrewHandoff({
    setNotice('Owner response imported for the matching private request. A response is not verified signoff, a shared assignment or an automatic job update.');
   }catch(e){setNotice(e instanceof Error?e.message:'Owner reply rejected; existing data preserved.');}
  };
+ async function submitHandoff(attempt:{data:HandoffMailbox;expected:number;commandId:string}){
+  setSharedStatus('saving');
+  try{
+   const response=await saveSharedDraft(org,'exterior_handoff',booking.id,
+    attempt.expected,attempt.commandId,
+    {bookingId:booking.id,leadId:lead.id,mailbox:attempt.data});
+   if(response.status==='conflict'){
+    pendingShared.current=null;setSharedRevision(response.currentRevision);setSharedStatus('conflict');
+    setNotice('Company handoff revision changed. The browser mailbox remains intact for explicit reconciliation.');
+    return;
+   }
+   pendingShared.current=null;setSharedRevision(response.revision);setSharedCopy(attempt.data);
+   if(JSON.stringify(mailboxRef.current)===JSON.stringify(attempt.data)){
+    setSharedStatus('ready');
+    setNotice('Internal crew mailbox saved to Supabase. This does not deliver a message, authenticate a typed reviewer name or complete a job.');
+   }else{
+    setSharedStatus('local-only');
+    setNotice('A previous crew mailbox revision synced, but newer local changes require another save.');
+   }
+  }catch(error){
+   setSharedStatus('offline');
+   setNotice((error instanceof Error?error.message:'Shared crew handoff save was not confirmed.')+' Retry the ORIGINAL command; local copy is protected.');
+  }
+ }
+ function syncHandoff(){
+  if(!canAct||sharedRevision===null||sharedStatus==='checking'||
+     sharedStatus==='saving'||sharedStatus==='conflict'||pendingShared.current)return;
+  try{
+   const safe=readHandoffMailbox(serializeHandoffMailbox(mailboxRef.current,org,booking.id,lead.id),
+     org,booking.id,lead.id);
+   const attempt={data:safe,expected:sharedRevision,commandId:crypto.randomUUID()};
+   pendingShared.current=attempt;void submitHandoff(attempt);
+  }catch(error){setNotice(error instanceof Error?error.message:'Crew mailbox validation failed.');}
+ }
+ function adoptSharedHandoff(){
+  if(!canAct||!sharedCopy||sharedStatus!=='conflict')return;
+  if(!window.confirm('Open the shared crew mailbox? First preserve the complete local handoff and cost-containing packets in a private recovery copy. This is not job approval.'))return;
+  try{
+   const original=serializeHandoffMailbox(mailboxRef.current,org,booking.id,lead.id);
+   window.localStorage.setItem('oj-handoff-protected-recovery:'+org+':'+booking.id+':'+Date.now(),original);
+   downloadPrivateFile(original,'oj-crew-local-before-shared-'+booking.id.slice(0,8)+'.json');
+   window.localStorage.setItem(key(org,booking.id),serializeHandoffMailbox(sharedCopy,org,booking.id,lead.id));
+   setMailbox(sharedCopy);setSharedStatus('ready');setHadLocal(false);
+   setNotice('Shared internal mailbox opened; original device copy preserved separately. Reviewer names are still unverified.');
+  }catch(error){setNotice(error instanceof Error?error.message:'Could not preserve local crew mailbox; shared copy not opened.');}
+ }
  const reset=()=>{
   if(!canAct||!window.confirm(
    'Delete this booking’s LOCAL crew/owner handoff mailbox, including saved transfer versions and replies? Original field logs, bookings and any files already shared remain unchanged.'
   ))return;
   try{
    window.localStorage.removeItem(key(org,booking.id));
-   setMailbox(newHandoffMailbox());setNotice('Local handoff mailbox reset. Original job and field data were unchanged.');
+   setMailbox(newHandoffMailbox());setSharedStatus('local-only');setNotice('Local handoff mailbox reset. Original job and field data were unchanged.');
   }catch{setNotice('Storage reset failed; earlier private handoff data was preserved.');}
  };
  const incoming=mailbox.incoming;
@@ -199,9 +245,16 @@ export function ExteriorCrewHandoff({
   <header className="ecfield-heading">
    <div><span className="ecfield-overline">12 / TWO-FOUNDER HANDOFF DESK</span>
     <h2>Field crew <ArrowRight size={17} aria-hidden="true"/> owner review</h2>
-    <p>Exchange a private job packet, review the evidence and return an actionable owner note. Private field report files move manually; shared follow-up tasks below synchronize through the existing authorized company board. No customer messaging is automatic.</p>
+    <p>Exchange a private job packet, review the evidence and return an actionable owner note. Internal mailbox drafts may now be synchronized to Supabase after review. File downloads still require deliberate transfer; typed reviewer identities are unverified and no customer messaging is automatic.</p>
    </div><UsersRound size={23}/>
   </header>
+  {enabled&&<div className="ecfield-crewbridge-actions" role="group" aria-label="Shared crew mailbox controls">
+    <button type="button" disabled={!canAct||sharedRevision===null||sharedStatus==='checking'||sharedStatus==='saving'||sharedStatus==='conflict'||!!pendingShared.current} onClick={syncHandoff}>Save handoff to company</button>
+    {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void submitHandoff(pendingShared.current);}}>Retry original company save</button>}
+    {sharedStatus==='conflict'&&sharedCopy&&<button type="button" onClick={adoptSharedHandoff}>Export local &amp; open shared</button>}
+    {sharedStatus==='offline'&&!pendingShared.current&&<button type="button" onClick={()=>setSharedRefresh(v=>v+1)}>Retry shared connection</button>}
+    <span role="status">Company save: {sharedStatus==='ready'?'Synced · revision '+sharedRevision:sharedStatus==='saving'?'Saving':sharedStatus==='checking'?'Checking':sharedStatus==='conflict'?'Conflicting copies':'Local only / unavailable'}</span>
+   </div>}
   {!enabled&&<p className="ecfield-notice">Read-only/preview mode: private device records and file actions are disabled.</p>}
   {storageIssue&&<p className="ecfield-warning" role="alert"><ShieldAlert size={17}/>{storageIssue}</p>}
   <div className="ecfield-crewbridge-steps">
