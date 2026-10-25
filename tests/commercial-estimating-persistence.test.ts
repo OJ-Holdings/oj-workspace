@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { newEstimate } from '../src/lib/commercial-estimate';
 import { emptyFieldCrewPlan } from '../src/lib/atlas-field-mission';
-import { recoveryProjectId } from '../src/lib/commercial-persistence';
+import { planCommercialSaveAttempt, recoveryProjectId } from '../src/lib/commercial-persistence';
 
 test('legacy recovery IDs map deterministically to tenant-scoped UUIDv8 values', async () => {
   const orgA = '00000000-0000-4000-8000-000000000001';
@@ -19,6 +19,38 @@ test('legacy recovery IDs map deterministically to tenant-scoped UUIDv8 values',
   assert.notEqual(otherTenant, first);
   assert.equal(await recoveryProjectId(orgA, '00000000-0000-4000-8000-000000000099'), '00000000-0000-4000-8000-000000000099');
   await assert.rejects(() => recoveryProjectId(orgA, 'unsafe/legacy/id'));
+});
+
+test('lost first save response reuses exactly the same new project and command IDs', () => {
+  const generated = [
+    '00000000-0000-4000-8000-000000000080',
+    '00000000-0000-4000-8000-000000000081',
+    '00000000-0000-4000-8000-000000000082',
+    '00000000-0000-4000-8000-000000000083',
+  ];
+  let i = 0;
+  const next = () => {
+    const v = generated[i++];
+    if (!v) throw Error('Too many UUIDs generated');
+    return v;
+  };
+  const draft = {
+    name: 'Unsent commercial quote', input: newEstimate(),
+    review: [false,false,false,false,false] as [boolean,boolean,boolean,boolean,boolean],
+    phase: 'scoping' as const,bookingId: null,plannedAssetIds: [],fieldCrewPlan: emptyFieldCrewPlan(),
+  };
+  const first = planCommercialSaveAttempt(null,null,null,draft,next);
+  assert.equal(i,2);
+  const afterDroppedResponse = planCommercialSaveAttempt(first,null,null,draft,next);
+  assert.strictEqual(afterDroppedResponse,first);
+  assert.equal(i,2,'Retry must allocate zero IDs');
+  const changed = planCommercialSaveAttempt(first,null,null,{...draft,name:'Changed unsaved scope'},next);
+  assert.equal(changed.projectId,first.projectId,'An edited unsaved project cannot become a second unrelated customer project');
+  assert.notEqual(changed.commandId,first.commandId,'Edited content requires a new command');
+  assert.equal(i,3);
+  const loaded = planCommercialSaveAttempt(changed,generated[3],1,draft,next);
+  assert.equal(loaded.projectId,generated[3],'Selecting an existing project overrides the pending new-project ID');
+  assert.equal(i,4);
 });
 
 test('commercial estimate RPCs enforce tenant roles, immutable versions, CAS and idempotency', async t => {
