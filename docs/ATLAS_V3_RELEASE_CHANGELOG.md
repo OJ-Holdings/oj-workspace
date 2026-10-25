@@ -4,6 +4,14 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## Exterior Release 45 — Honest Internal Job Task State and Source Coverage
+
+**R45 / Integration P1.2** [PR #134](https://github.com/OJ-Holdings/oj-workspace/pull/134) merged at `d0a4c22e8cbd449a961497dfcc2d3441b2992fc3`; tested head `3251309e4c7292419b7df6e4edf4eead8f580a1c` passed [feature CI #40144860067](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40144860067): TypeScript, all 655 tests, production build and separate synthetic PG17 restore. Post-merge main CI requires independent confirmation. Shared exact-job task creation, status and comments now have the same server-enforced `confirmed` / `pending_approval` booking-state gate (pending means INTERNAL review, not dispatch confirmation); the field copy refuses stale actions too. Company member and comment-author identity pages must be source-complete, and task/comment partial source windows are visibly marked; no more misleading zero-task messages on incomplete pages. No DDL, customer messages, bank writes, private field sync or production data changes.
+
+**Founder observation:** A screenshot provided in chat on October 24 showed one founder iPhone's same-origin checker reporting `0d1bbdf6fa8bf9c0c71326b43ce5afcddcb903a9`, matching GitHub `main` at that earlier R44 checkpoint. The screenshot did not show the browser hostname or a sanitized copy, and it does not demonstrate current R45 hosting, Jacob's separate account, cross-device persisted task/comments, real backup restore, Storage bytes or RLS actor matrix.
+
+**Roadmap: 42/100 (+0)** under the same 12-wave accounting. Production release parity after the merge and two independent authenticated phones remain unverified. Safe schema-free hardening does not satisfy independent encrypted production database recovery, real member-role RLS negatives or file-byte restoration. Do not merge PR #42.
+
 ## Exterior Release 44 — Verify the Actual Served App (Integration P2)
 
 **Feature:** [PR #132](https://github.com/OJ-Holdings/oj-workspace/pull/132) merged `main` at `492b68687c5f6ade237118bac5d823480c4f1a97`. Exact head `e00022d5f57e6bbc229ace607fff38a7dd74fa2f` passed [CI 40141928898](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40141928898) with PowerShell trust-refusal tests, TypeScript, full tests, production Next build and synthetic PG17 restore. Post-merge [main CI 40142096003](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40142096003) completed SUCCESS in both jobs.
