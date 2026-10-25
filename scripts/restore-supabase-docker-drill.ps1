@@ -168,6 +168,23 @@ function Get-CatalogSetDifference($Left,$Right) {
   foreach ($entry in @($Right)) { $null = $rightSet.Add([string]$entry) }
   return @($Left | Where-Object { -not $rightSet.Contains([string]$_) })
 }
+function New-CheckConstraintReparseSql([string]$TableName,[string]$Definition) {
+  if ($TableName -cnotmatch '^[a-z_][a-z0-9_]*$' -or
+      $Definition -cnotmatch '^CHECK \(' -or $Definition -match ';|--|/\*|\*/') {
+    throw 'Only a single catalog CHECK definition on a public table can be reparsed.'
+  }
+  $temporaryTable = 'oj_check_parse_' + [guid]::NewGuid().ToString('N')
+  return @"
+BEGIN;
+SET LOCAL search_path = pg_catalog;
+SET LOCAL statement_timeout = '10s';
+CREATE TEMP TABLE "$temporaryTable" (LIKE public."$TableName") ON COMMIT DROP;
+ALTER TABLE pg_temp."$temporaryTable" ADD CONSTRAINT oj_reparsed_check $Definition;
+SELECT pg_get_constraintdef(oid) FROM pg_constraint
+WHERE conrelid = 'pg_temp."$temporaryTable"'::regclass AND conname = 'oj_reparsed_check';
+ROLLBACK;
+"@
+}
 
 try {
   [void](Invoke-Docker @('network','create',$network) 'Could not create the disposable Docker network.')
@@ -205,7 +222,7 @@ try {
     $client = New-Object Net.Sockets.TcpClient
     try {
       $connect = $client.ConnectAsync('127.0.0.1',15432)
-      if ($connect.Wait(500)) { $connect.GetAwaiter().GetResult(); $reachable = $true; break }
+      if ($connect.Wait(500)) { [void]$connect.GetAwaiter().GetResult(); $reachable = $true; break }
     } catch { }
     finally { $client.Dispose() }
     Start-Sleep -Milliseconds 500
@@ -243,6 +260,14 @@ SELECT json_build_object(
     FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
   'constraint_definitions',(SELECT coalesce(json_object_agg(r.relname||'.'||c.conname,pg_get_constraintdef(c.oid)),'{}'::json)
     FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
+  'constraint_properties',(SELECT coalesce(json_object_agg(r.relname||'.'||c.conname,json_build_object('kind',c.contype,'validated',c.convalidated,'no_inherit',c.connoinherit)),'{}'::json)
+    FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
+  'column_signatures',(SELECT coalesce(json_object_agg(table_name,signature),'{}'::json) FROM (
+    SELECT r.relname AS table_name,md5(json_agg(json_build_array(a.attname,format_type(a.atttypid,a.atttypmod),cn.nspname,coll.collname,a.attnotnull) ORDER BY a.attnum)::text) AS signature
+    FROM pg_attribute a JOIN pg_class r ON r.oid=a.attrelid JOIN pg_namespace n ON n.oid=r.relnamespace
+    LEFT JOIN pg_collation coll ON coll.oid=a.attcollation LEFT JOIN pg_namespace cn ON cn.oid=coll.collnamespace
+    WHERE n.nspname='public' AND r.relkind IN ('r','p') AND a.attnum>0 AND NOT a.attisdropped GROUP BY r.relname
+  ) AS columns_by_table),
   'policies',(SELECT coalesce(json_agg(schemaname||'.'||tablename||'.'||policyname||'|'||md5(json_build_array(permissive,ARRAY(SELECT role_name::text FROM unnest(roles) AS role_name ORDER BY 1),cmd,qual,with_check)::text) ORDER BY tablename,policyname),'[]'::json)
     FROM pg_policies WHERE schemaname='public'),
   'rls',(SELECT coalesce(json_agg(r.relname||'|'||r.relrowsecurity||'|'||r.relforcerowsecurity ORDER BY r.relname),'[]'::json)
@@ -307,6 +332,40 @@ SELECT json_build_object(
         $authUserCountParity = ($null -ne $sourceAuthCount -and $null -ne $targetAuthCount -and $sourceAuthCount -eq $targetAuthCount)
     } catch { $publicTableParity=$false; $schemaSignatureParity=$false; $constraintParity=$false; $policyParity=$false; $rlsFlagParity=$false; $allRowCountParity=$false; $authUserCountParity=$false }
     }
+    $constraintTextParity = $constraintParity
+    $reparsedCheckCount = 0
+    if (-not $constraintTextParity -and $sourceCatalog -and $targetCatalog) {
+      $constraintParity = $true
+      $differenceKeys = @(@($constraintSourceOnly + $constraintTargetOnly) | ForEach-Object { ([string]$_ -split '\|')[0] } | Sort-Object -CaseSensitive -Unique)
+      foreach ($constraintKey in $differenceKeys) {
+        $definitionKey = ([string]$constraintKey -replace '^public\.', '')
+        $sourceProperty = $sourceCatalog.constraint_properties.PSObject.Properties[$definitionKey]
+        $targetProperty = $targetCatalog.constraint_properties.PSObject.Properties[$definitionKey]
+        $sourceDefinition = $sourceCatalog.constraint_definitions.PSObject.Properties[$definitionKey]
+        $targetDefinition = $targetCatalog.constraint_definitions.PSObject.Properties[$definitionKey]
+        $tableName = ($definitionKey -split '\.')[0]
+        $sourceColumns = $sourceCatalog.column_signatures.PSObject.Properties[$tableName]
+        $targetColumns = $targetCatalog.column_signatures.PSObject.Properties[$tableName]
+        $pairPass = $false
+        if ($sourceProperty -and $targetProperty -and $sourceDefinition -and $targetDefinition -and
+            $sourceColumns -and $targetColumns -and $sourceColumns.Value -ceq $targetColumns.Value -and
+            $sourceProperty.Value.kind -ceq 'c' -and $targetProperty.Value.kind -ceq 'c' -and
+            $sourceProperty.Value.validated -eq $targetProperty.Value.validated -and
+            $sourceProperty.Value.no_inherit -eq $targetProperty.Value.no_inherit) {
+          try {
+            # Both definitions are parsed by the same target server on empty
+            # temporary clones. Actual restored constraints and rows stay intact.
+            $sourceParsed = Invoke-TargetPsql (New-CheckConstraintReparseSql $tableName ([string]$sourceDefinition.Value))
+            $targetParsed = Invoke-TargetPsql (New-CheckConstraintReparseSql $tableName ([string]$targetDefinition.Value))
+            $pairPass = ($sourceParsed.ExitCode -eq 0 -and $targetParsed.ExitCode -eq 0 -and
+              $sourceParsed.Text -and $sourceParsed.Text -ceq $targetParsed.Text)
+          } catch { $pairPass = $false }
+        }
+        if ($pairPass) { $reparsedCheckCount++ } else { $constraintParity = $false }
+        Write-Output ('OJ_CHECK_REPARSE_PARITY=' + $constraintKey + '|' + $(if ($pairPass) { 'PASS' } else { 'FAIL' }))
+      }
+    }
+    $schemaSignatureParity = ($constraintParity -and $policyParity -and $rlsFlagParity)
     Write-Output ('OJ_PUBLIC_TABLE_NAME_PARITY=' + $(if ($publicTableParity) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_PUBLIC_TABLE_COUNT_SOURCE=' + $(if ($sourceCatalog) { @($sourceCatalog.tables).Count } else { 'UNAVAILABLE' }))
     Write-Output ('OJ_PUBLIC_TABLE_COUNT_RESTORED=' + $(if ($targetCatalog) { @($targetCatalog.tables).Count } else { 'UNAVAILABLE' }))
@@ -315,8 +374,11 @@ SELECT json_build_object(
     Write-Output ('OJ_SOURCE_TABLES_MISSING_FROM_ARCHIVE=' + ($sourceMissingFromArchive -join ','))
     Write-Output ('OJ_ARCHIVE_ONLY_PUBLIC_TABLES=' + ($archiveOnlyTables -join ','))
     Write-Output ('OJ_ARCHIVE_PUBLIC_TABLE_COUNT=' + $archiveTableNames.Count)
-    Write-Output ('OJ_RLS_POLICY_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($schemaSignatureParity) { 'PASS' } else { 'FAIL' }))
-    Write-Output ('OJ_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($constraintParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_RLS_POLICY_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($constraintTextParity -and $policyParity -and $rlsFlagParity) { 'PASS' } elseif ($schemaSignatureParity) { 'DIFFERENT_TEXT' } else { 'FAIL' }))
+    Write-Output ('OJ_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($constraintTextParity) { 'PASS' } elseif ($constraintParity) { 'DIFFERENT_TEXT' } else { 'FAIL' }))
+    Write-Output ('OJ_CONSTRAINT_DEFINITION_PARITY=' + $(if ($constraintParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_SCHEMA_RECOVERY_PARITY=' + $(if ($schemaSignatureParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_CHECKS_EQUAL_AFTER_TARGET_REPARSE=' + $reparsedCheckCount)
     Write-Output ('OJ_POLICY_SIGNATURE_PARITY=' + $(if ($policyParity) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_RLS_FLAG_PARITY=' + $(if ($rlsFlagParity) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_CONSTRAINT_DIFF_COUNTS=' + $constraintSourceOnly.Count + '/' + $constraintTargetOnly.Count)
