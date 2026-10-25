@@ -8,6 +8,7 @@ import {
   Save, Settings2, ShieldAlert, ShieldCheck, Trash2, Truck, Wrench, X,
 } from 'lucide-react';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import { AtlasFleetProjectAssignments } from './AtlasFleetProjectAssignments';
 import { AtlasFleetAssetTasks } from './AtlasFleetAssetTasks';
 import type { Card } from '@/lib/board';
@@ -71,6 +72,12 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
   const [serviceReading,setServiceReading]=useState('');
   const [serviceDate,setServiceDate]=useState('');
   const [notice,setNotice]=useState('');
+  const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+  const [sharedStatus,setSharedStatus]=useState<'loading'|'ready'|'local-only'|'saving'|'conflict'|'offline'>('loading');
+  const [sharedCopy,setSharedCopy]=useState<FleetWorkbook|null>(null);
+  const localSeen=useRef(false);
+  const workbookRef=useRef(workbook);
+  const pendingShared=useRef<{workbook:FleetWorkbook;expected:number;commandId:string}|null>(null);
   const [error,setError]=useState('');
   const [query,setQuery]=useState('');
   const [statusFilter,setStatusFilter]=useState<'all'|FleetStatus>('all');
@@ -78,7 +85,10 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
   useEffect(()=>{const timer=window.setInterval(()=>setDay(todayLocal()),60_000);return ()=>window.clearInterval(timer);},[]);
   const fileRef=useRef<HTMLInputElement>(null);
 
+  workbookRef.current=workbook;
   useEffect(()=>{
+    setSharedRevision(null);setSharedStatus('loading');setSharedCopy(null);
+    localSeen.current=false;pendingShared.current=null;
     setDay(todayLocal());
     setAssetEditor(null);
     setNotice('');
@@ -91,6 +101,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
     }
     try{
       const saved=window.localStorage.getItem(storageKey);
+      localSeen.current=Boolean(saved);
       setWorkbook(saved?decodeFleet(saved,organizationId):emptyFleet(organizationId));
     }catch(e){
       setWorkbook(emptyFleet(organizationId));
@@ -99,13 +110,85 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
     setReady(true);
   },[organizationId,mode,storageKey,preview,readOnly]);
 
+  useEffect(()=>{
+    if(preview||readOnly||!ready)return;
+    let cancelled=false;
+    setSharedStatus('loading');
+    void loadSharedDraft(organizationId,'fleet','main').then(remote=>{
+      if(cancelled)return;
+      setSharedRevision(remote?.revision??0);
+      setSharedCopy(remote?.payload??null);
+      if(!remote){setSharedStatus('local-only');return;}
+      const local=workbookRef.current;
+      if(!localSeen.current||JSON.stringify(local)===JSON.stringify(remote.payload)){
+        try{
+          // Mirror the verified shared copy locally for explicit task-preparation
+          // handoffs. This is recovery/cache, never a second authority.
+          window.localStorage.setItem(storageKey,encodeFleet(remote.payload,organizationId));
+          workbookRef.current=remote.payload;setWorkbook(remote.payload);setSharedStatus('ready');
+        }catch{
+          setSharedStatus('offline');setError('Shared fleet was read, but this browser could not preserve its recovery copy. Original storage was not intentionally cleared.');
+        }
+      }else{
+        setSharedStatus('conflict');
+        setNotice('A separate company fleet registry exists in Supabase. No device-local records were overwritten.');
+      }
+    }).catch(error=>{
+      if(cancelled)return;
+      setSharedStatus('offline');setError(error instanceof Error?error.message:'Shared Fleet storage is unavailable. Local workbook remains safe.');
+    });
+    return ()=>{cancelled=true;};
+  },[organizationId,preview,readOnly,ready,storageKey]);
+  async function submitFleet(attempt:{workbook:FleetWorkbook;expected:number;commandId:string}){
+    setSharedStatus('saving');
+    try{
+      const result=await saveSharedDraft(organizationId,'fleet','main',attempt.expected,attempt.commandId,attempt.workbook);
+      if(result.status==='conflict'){
+        pendingShared.current=null;setSharedRevision(result.currentRevision);setSharedStatus('conflict');
+        setNotice('Another founder updated the company fleet registry. Local work is preserved; reconcile before syncing.');
+        return;
+      }
+      pendingShared.current=null;setSharedRevision(result.revision);setSharedCopy(attempt.workbook);
+      if(JSON.stringify(workbookRef.current)===JSON.stringify(attempt.workbook)){
+        setSharedStatus('ready');setNotice('Equipment and maintenance workbook saved to company Supabase. Updates are visible to other authorized devices after reload.');
+      }else{
+        setSharedStatus('local-only');setNotice('An earlier fleet revision synced, but newer local changes still need syncing.');
+      }
+    }catch(error){
+      setSharedStatus('offline');
+      setNotice((error instanceof Error?error.message:'Shared fleet save was not confirmed.')+' Local data remains safe; retry the original command.');
+    }
+  }
+  function syncFleet(){
+    if(!canEdit||!ready||sharedRevision===null||sharedStatus==='loading'||
+       sharedStatus==='conflict'||sharedStatus==='saving'||pendingShared.current)return;
+    let clean:FleetWorkbook;
+    try{clean=validateFleet(workbookRef.current,organizationId);}
+    catch(error){setError(error instanceof Error?error.message:'Invalid fleet records.');return;}
+    const attempt={workbook:clean,expected:sharedRevision,commandId:crypto.randomUUID()};
+    pendingShared.current=attempt;void submitFleet(attempt);
+  }
+  function useSharedFleet(){
+    if(!canEdit||!sharedCopy||sharedStatus!=='conflict')return;
+    if(!window.confirm('Replace this device\'s active fleet workbook with the shared registry? The original will first be exported and kept as a private local recovery copy.'))return;
+    try{
+      const local=encodeFleet(workbookRef.current,organizationId);
+      const remote=encodeFleet(sharedCopy,organizationId);
+      window.localStorage.setItem('oj-fleet-protected-recovery:'+organizationId+':'+Date.now(),local);
+      exportFile();
+      window.localStorage.setItem(storageKey,remote);
+      workbookRef.current=sharedCopy;setWorkbook(sharedCopy);setSharedStatus('ready');
+      setNotice('Company fleet registry opened. Previous local workbook was separately preserved and exported.');
+    }catch(error){setError(error instanceof Error?error.message:'Could not preserve local fleet before switching. No active copy was changed.');}
+  }
   function persist(next:FleetWorkbook,message:string) {
     if(!canEdit || !ready)return;
     try{
       const clean=validateFleet(next,organizationId);
       const encoded=encodeFleet(clean,organizationId);
       window.localStorage.setItem(storageKey,encoded);
-      setWorkbook(clean);setError('');setNotice(message);
+      localSeen.current=true;workbookRef.current=clean;setWorkbook(clean);setError('');setNotice(message);
+      if(sharedStatus==='ready')setSharedStatus('local-only');
     }catch(e){setError(e instanceof Error?e.message:'Unable to save the Fleet Command draft.');}
   }
   const statuses=useMemo(()=>workbook.assets.map(asset=>({...asset,health:assetHealth(asset,day)})),[workbook.assets,day]);
@@ -203,7 +286,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
       </div>
       <div className="fleet-local-note"><ShieldCheck size={17} aria-hidden="true"/><span>
         {preview?'Fictional preview. This is not your actual vehicle or equipment history.':
-          'LOCAL DRAFT ONLY — records remain in this browser on this device. Not synchronized with Jacob or Supabase. Avoid confidential IDs and export an encrypted private copy to share or preserve data.'}
+          sharedStatus==='ready'?'SHARED REGISTRY — this fleet workbook was confirmed in Supabase. A local recovery copy is retained.':sharedStatus==='conflict'?'CONFLICT — a different company fleet registry exists. Your browser records are preserved until you choose the source.':sharedStatus==='saving'?'SAVING to shared Supabase registry…':sharedStatus==='loading'?'CHECKING shared fleet records…':'LOCAL RECOVERY — edits have not been confirmed in Supabase. Use Sync company fleet after review.'}
         {readOnly&&!preview?' Your workspace role is read-only.':''}
       </span></div>
     </header>
@@ -213,6 +296,9 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
         <button type="button" onClick={()=>setTab('readiness')}><ClipboardCheck size={16}/> Pre-departure</button>
         <button type="button" onClick={()=>setTab('maintenance')}><Wrench size={16}/> Service ledger</button>
         <button type="button" onClick={()=>setTab('rig')}><Truck size={16}/> Rig Lab</button>
+        {canEdit&&<button type="button" disabled={sharedStatus==='saving'||sharedStatus==='loading'||sharedStatus==='conflict'||!!pendingShared.current||sharedRevision===null} onClick={syncFleet}><Save size={16}/>Sync company fleet</button>}
+        {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void submitFleet(pendingShared.current);}}>Retry original sync</button>}
+        {sharedStatus==='conflict'&&sharedCopy&&<button type="button" onClick={useSharedFleet}>Export local &amp; open shared</button>}
         {canEdit&&<Link className="atlas-fleet-task-link" href={base+'/tasks?sourceFleet=1'}><ClipboardCheck size={16}/> Prepare shared task <ArrowUpRight size={14}/></Link>}
       </div>
     </section>
@@ -220,7 +306,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
       <span><b>{dueNow.length}</b> recorded assets need attention</span>
       <span><b>{soon}</b> nearing entered service thresholds</span>
       <span><b>{readinessItems.length-todayChecked}</b> checklist items unchecked today</span>
-      <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':'DEVICE-LOCAL DRAFT'}</strong>
+      <strong>{preview?'DEMO RECORDS':readOnly?'READ-ONLY VIEW':sharedStatus==='ready'?'SUPABASE SYNCED':sharedStatus==='conflict'?'SOURCE CONFLICT':'LOCAL / UNSYNCED'}</strong>
     </section>
     <AtlasFieldBridge base={base} organizationId={organizationId} mode={mode} view="fleet" fleet={workbook} disabled={readOnly} />
     <AtlasFleetProjectAssignments org={organizationId} base={base} mode={mode} readOnly={readOnly} fleet={workbook} day={day} bookings={bookings} bookingsState={bookingsState} cards={cards} />
@@ -367,7 +453,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
       </section>
     </div>}
     <input type="file" ref={fileRef} accept=".json,application/json" hidden aria-label="Import private fleet workbook JSON" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importFile(file);}}/>
-    <footer className="fleet-page-foot"><Settings2 size={15}/> Fleet Command beta: private browser-local workspace, no live telematics, shared data synchronization, official inspection, or verified vehicle payload ratings. 
+    <footer className="fleet-page-foot"><Settings2 size={15}/> Fleet Command beta: company synchronization requires a confirmed manual sync. No live telematics, formal safety certification or verified vehicle payload ratings. 
       <Link href={base+'/tools'}>All corporate tools <ArrowUpRight size={14}/></Link></footer>
   </div>;
 }
