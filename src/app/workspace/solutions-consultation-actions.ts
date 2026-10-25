@@ -2,7 +2,7 @@
 
 import { requireMember } from '@/lib/supabase';
 
-const fields = 'id,name,email,phone,business,service,notes,preferred_date,preferred_time,status,created_at';
+const fields = 'id,name,email,phone,business,service,notes,preferred_date,preferred_time,status,created_at,sms_consent,sms_consent_at';
 
 export type SolutionsConsultation = {
   id: string;
@@ -16,6 +16,8 @@ export type SolutionsConsultation = {
   preferred_time: string;
   status: 'requested' | 'confirmed' | 'declined' | 'completed';
   created_at: string;
+  sms_consent: boolean;
+  sms_consent_at: string | null;
 };
 export type SolutionsConsultationResult =
   | { ok: true; entries: SolutionsConsultation[] }
