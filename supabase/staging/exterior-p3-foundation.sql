@@ -354,7 +354,7 @@ create trigger ext_quote_version_append
 -- Issuer, external receipt identifier, version hash and paid amount can never
 -- be rewritten, even by a future privileged writer.
 create function oj_private.ext_p3_lock_verified_receipt() returns trigger
- language plpgsql security invoker set search_path='' as $
+ language plpgsql security invoker set search_path='' as $$
 begin
  if tg_op='DELETE' or
     (to_jsonb(new)-'consumed_at') is distinct from
@@ -365,7 +365,7 @@ begin
  end if;
  return new;
 end;
-$;
+$$;
 revoke all on function oj_private.ext_p3_lock_verified_receipt()
  from public,anon,authenticated;
 create trigger ext_verified_acceptance_immutable
