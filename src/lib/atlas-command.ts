@@ -8,7 +8,7 @@ import { contentPersistenceEnabled, ventureIds, type VentureId } from './venture
 export type AtlasMode='today'|'operations'|'growth'|'money'|'strategy';
 export const atlasModes:readonly AtlasMode[]=['today','operations','growth','money','strategy'];
 export type AtlasEvent={key:string;date:string;title:string;detail:string;business:VentureId|null;href:string;source:string};
-export type AtlasVenture={id:VentureId;active:boolean;openTasks:number;leads:number|null;upcomingBookings:number|null;primarySignal:IntelligenceSignal|null};
+export type AtlasVenture={id:VentureId;active:boolean;openTasks:number;leads:number|null;sourceOpen:number|null;sourceState:'available'|'partial'|'unavailable'|'not-connected'|'unknown';upcomingBookings:number|null;primarySignal:IntelligenceSignal|null};
 export type AtlasFounder={name:string;open:number;inReview:number;overdue:number};
 export type AtlasSnapshot={
   intelligence:IntelligenceSnapshot;
@@ -68,9 +68,17 @@ export function buildAtlasSnapshot({cards,dashboard,jobs,today,limited=false}:At
     ?dashboard.reporting.sources.filter(s=>s.state!=='available').length:null;
   const ventures=ventureIds.map(id=>{
     const active=id!=='content'||contentPersistenceEnabled;
+    const sourceId=id==='exterior'?'exterior':id==='solutions'?'ghl':null;
+    const source=sourceId?dashboard?.reporting?.sources.find(s=>s.id===sourceId):null;
+    const sourceState:AtlasVenture['sourceState']=source?.state??'unknown';
+    // Original Exterior leads are not the separate Workspace CRM. Missing
+    // source coverage must be unknown rather than a falsely confident zero.
+    const sourceOpen=sourceId&&dashboard&&Object.hasOwn(dashboard.openElsewhere??{},id)
+      ? dashboard.openElsewhere?.[id]??null:null;
     return {id,active,
       openTasks:currentCards.filter(c=>c.business===id).length,
       leads:active&&dashboard?dashboard.leads.filter(l=>l.venture===id&&l.stage!=='Won'&&l.stage!=='Lost').length:null,
+      sourceOpen,sourceState,
       upcomingBookings:id==='exterior'?activeBookings.length: null,
       primarySignal:intelligence.signals.find(s=>s.business===id)??null,
     };

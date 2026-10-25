@@ -58,6 +58,7 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
     setSelected(signal.id);
   };
   const moneyEntries=snapshot?.finance;
+  const exteriorLeads=snapshot?.ventures.find(v=>v.id==='exterior');
   const ownerLabel=mode==='preview'?'Fictional workspace':displayName||'Founder workspace';
   const issues=snapshot?.intelligence.totals;
   return <section className="atlas-hq" aria-label="ATLAS executive command">
@@ -119,11 +120,14 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
     <section className="atlas-section">
       <div className="atlas-section-heading"><div><p className="atlas-overline">COMPANY DIVISIONS / 04</p><h2>Four ventures. One command.</h2></div><Link href={base+'/businesses'}>Open business directory <ArrowRight size={15}/></Link></div>
       <div className="atlas-ventures">
-        {(snapshot?.ventures??(['exterior','solutions','essentials','content'] as const).map(id=>({id,active:id!=='content',openTasks:null,leads:null,upcomingBookings:null,primarySignal:null}))).map(v=>{
+        {(snapshot?.ventures??(['exterior','solutions','essentials','content'] as const).map(id=>({id,active:id!=='content',openTasks:null,leads:null,sourceOpen:null,sourceState:'unknown' as const,upcomingBookings:null,primarySignal:null}))).map(v=>{
           const meta=ventures[v.id];
           return <div key={v.id} className={'atlas-venture atlas-venture-'+v.id}>
             <div className="atlas-venture-head"><span className="atlas-venture-mark"><Image src={meta.mark} width={40} height={40} alt=""/></span><span className="atlas-venture-meta"><strong>{meta.name}</strong><small>{v.active?'Operating room':'Production studio · preview only'}</small></span></div>
-            <div className="atlas-venture-values"><div><strong>{v.openTasks??'—'}</strong><span>open tasks</span></div><div><strong>{v.leads===null?'—':v.leads}</strong><span>{v.leads===null?'CRM unknown':'shared CRM leads'}</span></div></div>
+            <div className="atlas-venture-values"><div><strong>{v.openTasks??'—'}</strong><span>open tasks</span></div><div>
+              <strong>{v.id==='exterior'?(v.sourceOpen??'—'):(v.leads??'—')}</strong>
+              <span>{v.id==='exterior'?(v.sourceOpen===null?'Exterior leads unavailable':v.sourceState==='partial'?'open Exterior leads · partial':'open Exterior leads'):(v.leads===null?'CRM unknown':'shared CRM leads')}</span>
+            </div></div>
             <p>{v.primarySignal?v.primarySignal.title:v.active?'No flagged source item in this snapshot. Not an all-clear.':'Persistence not enabled; no live studio data.'}</p>
             {v.active?<Link href={base+'/b/'+v.id}>Enter operating room <ArrowUpRight size={14}/></Link>:<Link href={base+'/tools/content-preview'}>View fictional preview <ArrowUpRight size={14}/></Link>}
           </div>;
@@ -143,9 +147,15 @@ export function AtlasHQ({base,board,store,jobs,metrics,today,mode,readOnly,displ
           <div className="atlas-money-warning"><ShieldCheck size={19}/><div><b>No inferred net profit.</b><p>Values may include estimates and imported records. Cash, settlement and completeness require separate evidence.</p></div></div>
           <Link href={base+'/finance'} className="atlas-deck-link">Inspect company finance records <ArrowRight size={15}/></Link>
         </div>:active==='growth'? <div className="atlas-growth-workspace">
-          {(['New','Contacted','Qualified','Proposal','Won','Lost'] as const).map(stage=><div key={stage}><span>{stage}</span><strong>{store.data?store.data.leads.filter(l=>l.stage===stage).length:'—'}</strong></div>)}
-          <p>Loaded workspace CRM stages only. Imported GHL prospects and LSA records may be separate; stage counts do not prove outreach, wins, collections or source completeness.</p>
-          <Link href={base+'/crm'} className="atlas-deck-link">Inspect lead pipeline <ArrowRight size={15}/></Link>
+          <div className="atlas-growth-exterior-source">
+            <span>Exterior Care · open leads</span>
+            <strong>{exteriorLeads?.sourceOpen??'—'}</strong>
+            <small>{exteriorLeads?.sourceOpen===null||exteriorLeads?.sourceOpen===undefined?'Original lead source unavailable':exteriorLeads.sourceState==='partial'?'Partial source; more leads may exist':'Original Exterior customer leads'}</small>
+            <Link href={base+'/b/exterior/leads'}>Open Exterior customers <ArrowRight size={15}/></Link>
+          </div>
+          {(['New','Contacted','Qualified','Proposal','Won','Lost'] as const).map(stage=><div key={stage}><span>CRM: {stage}</span><strong>{store.data?store.data.leads.filter(l=>l.stage===stage).length:'—'}</strong></div>)}
+          <p>Workspace CRM is separate from original Exterior customer leads. Counts are not combined.</p>
+          <Link href={base+'/crm'} className="atlas-deck-link">Open Workspace CRM <ArrowRight size={15}/></Link>
         </div>:active==='strategy'? <div className="atlas-strategy-workspace">
           <Link href={base+'/tools/scenarios'}><ChartNoAxesCombined size={23}/><strong>Capital Scenario Lab</strong><small>Model possibilities; no balances or budgets are changed.</small><ArrowUpRight size={15}/></Link>
           <Link href={base+'/tools/weekly-review'}><Target size={23}/><strong>Founder Weekly Review</strong><small>Priorities, ownership and same-weekday comparisons.</small><ArrowUpRight size={15}/></Link>

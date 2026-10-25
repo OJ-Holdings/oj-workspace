@@ -133,6 +133,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             <div className="atlas-customer-description">
               <div><small>Requested service</small><strong>{l.service_requested||'Not entered'}</strong></div>
               <div><small>Entered quote, not paid</small><strong>{cash(l.quote_amount)}</strong></div>
+              {l.status==='completed'&&<div><small>Recorded job revenue</small><strong>{cash(l.job_revenue)}</strong></div>}
             </div>
             <div className="atlas-customer-contact">
               {isRealPhone(l.phone)?<a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a>:<span>{shownPhone(l.phone)}</span>}
@@ -147,7 +148,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
               </select></label>}
               <div className="atlas-customer-card-actions">
                 {!readOnly&&l.status==='completed'&&<button type="button" className="secondary small"
-                  onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Record payment/cost':'Review payment/cost'}</button>}
+                  onClick={()=>setPaying(l)}><DollarSign size={14}/>{l.job_revenue===null?'Add job figures':'Edit job figures'}</button>}
                 <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer 360</Link>
                 <Link className="secondary small" href={`${base}/b/exterior/estimate?lead=${encodeURIComponent(l.id)}`}>Estimate</Link>
                 {!readOnly&&l.status!=='booked'&&<button type="button" className="primary small" onClick={()=>setBooking(l)}>
@@ -166,12 +167,13 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         </button>}
       </>:<div className="empty"><p><b>No customers in this view.</b> Change the work queue, status or search to see other loaded records.</p></div>)}
       {view==='table'&&(rows.length ? <div className="tablewrap"><table className="table lead-table">
-        <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
+        <thead><tr><th>Name</th><th>Service</th><th className="num">Quote</th><th className="num">Recorded job revenue</th><th>Source</th><th>Status</th><th>Added</th>{!readOnly && <th><span className="sr-only">Actions</span></th>}</tr></thead>
         <tbody>{rows.slice(0, shown).map(l => (
           <tr key={l.id} className={selected === l.id ? 'record-highlight' : undefined}>
             <td data-label="Customer"><b>{l.name || 'Unnamed'}</b><small className="quiet block">{isRealPhone(l.phone) ? <a href={`tel:${l.phone}`}>{shownPhone(l.phone)}</a> : shownPhone(l.phone)}</small><small className="quiet block">{l.address || ''}</small></td>
             <td data-label="Service">{l.service_requested || '-'}</td>
             <td className="num" data-label="Quote">{cash(l.quote_amount)}</td>
+            <td className="num" data-label="Recorded job revenue">{l.status==='completed'?cash(l.job_revenue):'—'}</td>
             <td data-label="Source"><span className="tag">{sourceLabel(l.source)}</span></td>
             <td data-label="Status">{readOnly ? statusLabel(l.status) : (
               <select aria-label={`Status of ${l.name}`} className={`status-select is-${l.status}`} value={l.status ?? ''} disabled={busy} onChange={e => { const s = e.target.value; act(() => setLeadStatus(org, l.id, s), () => `${l.name} marked ${statusLabel(s).toLowerCase()}.`); }}>
@@ -181,7 +183,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
             )}</td>
             <td data-label="Added">{day(l.created_at)}</td>
             {!readOnly && <td data-label="Actions"><div className="row-actions">
-              {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Payment for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue ? dollars(l.job_revenue) : 'Add'}</button>}
+              {l.status === 'completed' && <button className="secondary small" onClick={() => setPaying(l)} aria-label={`Recorded job figures for ${l.name}`}><DollarSign size={14} aria-hidden="true" />{l.job_revenue===null?'Add':dollars(l.job_revenue)}</button>}
               {l.status !== 'booked' && <button className="secondary small" onClick={() => setBooking(l)}><CalendarPlus size={14} aria-hidden="true" />{isDone(l) ? 'Book again' : 'Book'}</button>}
               <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Profile</Link>
               <Link className="secondary small" href={`${base}/b/exterior/estimate?lead=${encodeURIComponent(l.id)}`}>Estimate</Link>
@@ -245,7 +247,7 @@ export function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | n
   const contribution = revenue === null || cost === null ? null : revenue - cost;
   return (
     <Modal title={`Review recorded job figures: ${lead?.name ?? ''}`} open={!!lead} onClose={close}>
-      {lead && <form onSubmit={e => { e.preventDefault(); act(() => saveFinancials(org, lead.id, f), () => 'Payment saved.').then(ok => ok && close()); }}>
+      {lead && <form onSubmit={e => { e.preventDefault(); act(() => saveFinancials(org, lead.id, f), () => 'Recorded job figures saved.').then(ok => ok && close()); }}>
         <p className="quiet">{[lead.service_requested, lead.address].filter(Boolean).join(', ')}. Quoted {cash(lead.quote_amount)}.</p>
         <div className="form-grid">
           <label>Source-recorded job revenue<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_revenue} onChange={e => setF({ ...f, job_revenue: e.target.value })} /></label>

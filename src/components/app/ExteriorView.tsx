@@ -7,7 +7,7 @@ import NumberFlow from '@number-flow/react';
 import { Check, Lock } from 'lucide-react';
 import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
 import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
-import { doorDetails, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
+import { doorDetails, isRecordedJobAmount, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
 import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type JobFilters } from '@/lib/reporting';
 import { sampleExterior } from '@/lib/exterior-sample';
 import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
@@ -177,7 +177,7 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
   const pathname = usePathname(), query = useSearchParams(), router = useRouter();
   const filterDate = (key: string) => /^\d{4}-\d{2}-\d{2}$/.test(query.get(key) || '') ? query.get(key)! : '';
   const filters: JobFilters = { from: filterDate('from'), to: filterDate('to'), service: query.get('service') || '', source: query.get('source') || '' };
-  const [inspection, setInspection] = useState<'all' | 'missing-payment' | 'missing-cost' | 'matched'>('all');
+  const [inspection, setInspection] = useState<'all' | 'missing-revenue' | 'missing-cost' | 'matched'>('all');
   const [shown, setShown] = useState(50);
   const records = useRef<HTMLHeadingElement>(null);
   const completed = data.leads.filter(lead => lead.status === 'completed');
@@ -187,7 +187,7 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
   const base = mode === 'preview' ? '/preview' : '/workspace';
   const services = [...new Set(completed.map(serviceName))].sort();
   const sources = [...new Set(completed.map(lead => sourceLabel(lead.source)))].sort();
-  const rows = done.filter(lead => inspection === 'missing-payment' ? lead.job_revenue === null : inspection === 'missing-cost' ? lead.job_cost === null : inspection === 'matched' ? lead.job_revenue !== null && lead.job_cost !== null : true);
+  const rows = done.filter(lead => inspection === 'missing-revenue' ? !isRecordedJobAmount(lead.job_revenue) : inspection === 'missing-cost' ? !isRecordedJobAmount(lead.job_cost) : inspection === 'matched' ? isRecordedJobAmount(lead.job_revenue) && isRecordedJobAmount(lead.job_cost) : true);
   const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   const coverage = data.coverage?.leads;
   const currentMonth = businessDay(now.toISOString())!.slice(0, 7);
@@ -223,33 +223,33 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
     </section>
 
     <div className="kpis">
-      <div><span>Recorded payments</span><strong>{cash(figures.revenue)}</strong><small className="quiet">Entered on {figures.revenueJobs} of {figures.jobs} completed jobs</small></div>
+      <div><span>Recorded job revenue</span><strong>{cash(figures.revenue)}</strong><small className="quiet">Entered on {figures.revenueJobs} of {figures.jobs} completed jobs</small></div>
       <div><span>Recorded job costs</span><strong>{cash(figures.cost)}</strong><small className="quiet">Entered on {figures.costJobs} of {figures.jobs} completed jobs</small></div>
-      <div><span>Known-job contribution</span><strong>{cash(figures.contribution)}</strong><small className="quiet">Payments less entered costs on {figures.matchedJobs} jobs with both figures</small></div>
-      <div><span>Average recorded payment</span><strong>{cash(figures.average)}</strong><small className="quiet">Only jobs with a payment figure entered</small></div>
+      <div><span>Known-job contribution</span><strong>{cash(figures.contribution)}</strong><small className="quiet">Recorded revenue less entered costs on {figures.matchedJobs} jobs with both figures</small></div>
+      <div><span>Average recorded job revenue</span><strong>{cash(figures.average)}</strong><small className="quiet">Only jobs with a valid recorded revenue figure</small></div>
     </div>
     <section className="panel">
       <header className="panel-head"><h2>What still needs recording</h2><span className="quiet">{figures.matchedJobs} / {figures.jobs} jobs have both figures</span></header>
       <div className="filter-chips">
         <button aria-pressed={inspection === 'all'} onClick={() => inspect('all')}>All jobs <span>{figures.jobs}</span></button>
-        <button aria-pressed={inspection === 'missing-payment'} onClick={() => inspect('missing-payment')}>Payment not recorded <span>{figures.missingRevenue}</span></button>
+        <button aria-pressed={inspection === 'missing-revenue'} onClick={() => inspect('missing-revenue')}>Job revenue missing <span>{figures.missingRevenue}</span></button>
         <button aria-pressed={inspection === 'missing-cost'} onClick={() => inspect('missing-cost')}>Cost not recorded <span>{figures.missingCosts}</span></button>
         <button aria-pressed={inspection === 'matched'} onClick={() => inspect('matched')}>Both entered <span>{figures.matchedJobs}</span></button>
       </div>
-      <p className="quiet">A completed job may still be unpaid. Blank costs remain unknown; an explicit $0 is known. Contribution covers only the paired records and is not total business profit. Owner labor, overhead and other unentered costs may be missing.</p>
+      <p className="quiet">Missing revenue means the completed lead has no valid job_revenue amount. This does not establish whether a client paid. Open the exact customer record to correct the field. Contribution requires recorded revenue and cost on the same record.</p>
     </section>
 
     {goal !== null && goal !== undefined && goal > 0 && <section className="panel">
       <header className="panel-head"><h2>{monthLabel(currentMonth)} job revenue goal</h2><span className="quiet">{cash(monthFigures.revenue)} of {dollars(goal)}</span></header>
-      <progress className="upgrade-bar" value={Math.min(monthFigures.revenue ?? 0, goal)} max={goal} aria-label="Monthly recorded job payments against goal" />
-      <p className="quiet">All services and sources; independent of the filters above. Based on recorded payments for work dated this month, not collection dates. {monthFigures.missingRevenue} completed jobs have no payment entered.</p>
+      <progress className="upgrade-bar" value={Math.min(monthFigures.revenue ?? 0, goal)} max={goal} aria-label="Monthly recorded job revenue against goal" />
+      <p className="quiet">All services and sources; independent of the filters above. Based on recorded job revenue grouped by job date, not collection dates. {monthFigures.missingRevenue} completed source records have no valid job revenue entered.</p>
     </section>}
 
     <section className="panel">
       <header className="panel-head"><h2>Completion months</h2><span className="quiet">Choose a month to inspect its jobs</span></header>
       {figures.byMonth.length ? <div className="tablewrap"><table className="table">
-        <caption className="sr-only">Recorded payments and costs grouped by completion month for the current filters</caption>
-        <thead><tr><th scope="col">Month</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Payments entered</th><th scope="col" className="num">Costs entered</th><th scope="col" className="num">Paired contribution</th><th scope="col">Coverage</th></tr></thead>
+        <caption className="sr-only">Source-recorded job revenue and costs grouped by completion month for the current filters</caption>
+        <thead><tr><th scope="col">Month</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Recorded revenue</th><th scope="col" className="num">Costs entered</th><th scope="col" className="num">Paired contribution</th><th scope="col">Coverage</th></tr></thead>
         <tbody>{figures.byMonth.map(month => <tr key={month.label}><th scope="row"><button className="secondary small" onClick={() => drillMonth(month.label)} disabled={month.label === 'Unknown date'}>{monthLabel(month.label)}</button></th><td className="num">{month.jobs}</td><td className="num">{cash(month.revenue)}</td><td className="num">{cash(month.cost)}</td><td className="num">{cash(month.contribution)}</td><td>{month.matchedJobs}/{month.jobs} paired{month.estimatedDateJobs ? `; ${month.estimatedDateJobs} estimated dates` : ''}</td></tr>)}</tbody>
       </table></div> : <div className="empty"><p><b>No completed jobs match these filters.</b> Clear the filters or complete a job from Leads.</p></div>}
     </section>
@@ -257,22 +257,22 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
     <div className="pair">
       <section className="panel"><header className="panel-head"><h2>Service mix</h2><span className="quiet">Filter by service</span></header><div className="tablewrap"><table className="table">
         <caption className="sr-only">Completed jobs by service for the current filters</caption>
-        <thead><tr><th scope="col">Service</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Payments entered</th></tr></thead>
+        <thead><tr><th scope="col">Service</th><th scope="col" className="num">Jobs</th><th scope="col" className="num">Recorded revenue</th></tr></thead>
         <tbody>{figures.byService.map(service => <tr key={service.label}><th scope="row"><button className="secondary small" onClick={() => { update({ service: service.label }); focusRecords(); }}>{service.label}</button></th><td className="num">{service.jobs}</td><td className="num">{cash(service.revenue)}<small className="quiet block">{service.revenueJobs}/{service.jobs} recorded</small></td></tr>)}</tbody>
       </table></div></section>
       <section className="panel"><header className="panel-head"><h2>Sources of completed work</h2><span className="quiet">Filter by source</span></header><div className="tablewrap"><table className="table">
         <caption className="sr-only">Lead sources of completed jobs for the current filters; this is not a lead conversion rate</caption>
-        <thead><tr><th scope="col">Source</th><th scope="col" className="num">Completed jobs</th><th scope="col" className="num">Payments entered</th></tr></thead>
+        <thead><tr><th scope="col">Source</th><th scope="col" className="num">Completed jobs</th><th scope="col" className="num">Recorded revenue</th></tr></thead>
         <tbody>{figures.bySource.map(source => <tr key={source.source}><th scope="row"><button className="secondary small" onClick={() => { update({ source: source.source }); focusRecords(); }}>{source.source}</button></th><td className="num">{source.leads}</td><td className="num">{cash(source.revenue)}</td></tr>)}</tbody>
       </table></div></section>
     </div>
 
     <section className="panel">
-      <header className="panel-head"><h2 ref={records} tabIndex={-1}>Jobs behind the figures</h2><span className="quiet" role="status">{rows.length} jobs{inspection !== 'all' ? ` / ${inspection === 'missing-payment' ? 'payment not recorded' : inspection === 'missing-cost' ? 'cost not recorded' : 'both figures entered'}` : ''}</span></header>
+      <header className="panel-head"><h2 ref={records} tabIndex={-1}>Jobs behind the figures</h2><span className="quiet" role="status">{rows.length} jobs{inspection !== 'all' ? ` / ${inspection === 'missing-revenue' ? 'job revenue missing' : inspection === 'missing-cost' ? 'cost not recorded' : 'both figures entered'}` : ''}</span></header>
       {rows.length ? <div className="tablewrap"><table className="table">
         <caption className="sr-only">Source job records for the selected report and completeness filter</caption>
-        <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Payment entered</th><th scope="col" className="num">Cost entered</th></tr></thead>
-        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{lead.job_revenue === null ? 'Not recorded' : cash(lead.job_revenue)}</td><td className="num">{lead.job_cost === null ? 'Not recorded' : cash(lead.job_cost)}</td></tr>)}</tbody>
+        <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Recorded job revenue</th><th scope="col" className="num">Cost entered</th></tr></thead>
+        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{isRecordedJobAmount(lead.job_revenue)?cash(lead.job_revenue):'Not recorded'}</td><td className="num">{isRecordedJobAmount(lead.job_cost)?cash(lead.job_cost):'Not recorded'}</td></tr>)}</tbody>
       </table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(value => value + 50)}>Show {Math.min(50, rows.length - shown)} more jobs</button>}</div> : <div className="empty"><p><b>No jobs in this selection.</b> Choose another completeness filter to return to the source records.</p></div>}
     </section>
   </>;

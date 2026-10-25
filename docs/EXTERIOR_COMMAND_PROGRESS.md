@@ -22,6 +22,20 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
 | **TOTAL** | **100%** | **42% (R43 P1.1 shared exact-job task execution merged, exact-head full CI passed; actual founder phones/host/recovery remain unverified)** | |
 
+### U0 first founder-audit fix pass — source-correct Growth and operator clarity (+0)
+
+- PR [#154](https://github.com/OJ-Holdings/oj-workspace/pull/154) separates original Exterior source leads from Workspace CRM in ATLAS Growth/venture cards, with truthful unknown and partial labels.
+- Shows `job_revenue` beside source quotes for completed lead records; corrects `$0`, payment-versus-recorded-revenue wording and consistent missing-value filter.
+- Phone tabs display all five destinations without horizontal hiding; disconnected Team at Work shows existing authorized task assignments, NOT invented live status.
+- [Exact-head CI #40225293015](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40225293015) passed all three required jobs; **not evidence of served-host or two-founder acceptance**. Audit FA-01/02/03/05/12 marked code implemented/partial in the audit file. Original engineering 42/100 unchanged; no production data, migration or activation.
+
+### Founder audit FA-01–FA-16 — acceptance and status overlay (+0)
+
+- The founder's October 25 [12-page mobile/product audit](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md) is the **active acceptance test** for the next Exterior work, not an additional percentage ledger. Unresolved reports: hidden mobile navigation; current leads missing from Growth; per-job money absent; confusing source/connection UI; Team at Work nonfunctional; low-value/redundant disruption, next-action, upcoming and assignment panels; unclear Field Production and "qualified confirmed quotes"; wrong-looking missing-income warnings; excessive hand-holding/disclaimers; and Commercial needing proper company/logo/property records and separate functional views.
+- Order is **U0 truthful lead/job/revenue metrics + mobile navigation + Team at Work**, **U1 operator simplification**, **U2 true Commercial Accounts and property structure**, **U3 field/team activity**, then **U4 useful intelligence**. Code cannot be called repaired solely because a widget exists or CI passes. Reproduce each against the served SHA; record device, original source, action, actual acceptance and before/after visual evidence.
+- Commercial DB PR **#150 OPEN** head 6f54f9ce (CI 40219067828 success), executable migration **not approved/activated**. R51A browser-rescue PR **#151 OPEN** head ef54c461 (CI 40215126590 success); its import/export-heavy entry points **are not founder-accepted** as primary UI and should be reviewed for Settings-only recovery rather than represented as shared synchronization. Main 69f9ff5 / CI 40190080605 success.
+- **42/100 unchanged.** No additional W1/W2/W3/W4/W6/W8/W12 points for this review. Actual recovery/Storage byte restoration, signed user role checks, two-founder live data parity and production activation are not yet evidenced.
+
 ### Release 50 / P3.1b — Member-scoped P3 read graph and private quote transaction (+0)
 
 - [PR #148](https://github.com/OJ-Holdings/oj-workspace/pull/148) merged `923bee2ca98e263b9dffc310ad3687606f93c678`. Exact head `3ddbeebc27db3c9f608e57bb24e2bb3eeff82537` passed [CI #40189504342](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40189504342): TypeScript, all Node tests, Next production build, critical dependency audit, synthetic PG17 archive recovery and actual role/transaction PG17 integration.

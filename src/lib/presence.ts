@@ -43,3 +43,14 @@ export function presenceAge(value: string | null, now: number) {
   if (minutes < 1440) return `Last seen ${Math.floor(minutes / 60)}h ago`;
   return `Last seen ${Math.floor(minutes / 1440)}d ago`;
 }
+
+/** Actual task-board assignments, not live presence. Human-readable names
+ * can collide: never attribute tasks when the name isn't unique. */
+export function memberBoardAssignments<T extends {assignee:string;stage:string}>(
+ cards:readonly T[],members:readonly PresenceMember[],userId:string,limit=2,
+):T[]{
+ const member=members.find(m=>m.user_id===userId);
+ const normalized=member?.display_name.trim().toLocaleLowerCase();
+ if(!normalized||members.filter(m=>m.display_name.trim().toLocaleLowerCase()===normalized).length!==1)return [];
+ return cards.filter(c=>c.stage!=='Done'&&c.assignee.trim().toLocaleLowerCase()===normalized).slice(0,Math.max(0,limit));
+}
