@@ -1,6 +1,7 @@
 'use client';
 
 import {useRef,useState} from 'react';
+import {ExteriorTaskCommentHistory} from './ExteriorTaskCommentHistory';
 import Link from 'next/link';
 import {
  AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,MessageCircle,
@@ -23,6 +24,7 @@ type Board=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:t
 type Props={
  org:string;booking:ExtBooking;leadId:string;base:string;
  board:Board;onRefresh:()=>void;
+ onLoadOlder:()=>void;moreBusy:boolean;moreError:string;
 };
 const stageLabel=(s:string)=>s==='Ready'?'To do':s==='In progress'?'Working':
  s==='Review'?'Needs owner review':s==='Done'?'Task done':s;
@@ -41,12 +43,13 @@ const informOtherViews=()=>{
  * server-validated again against the original booking+customer source.
  * This is team execution, NOT a work-order, dispatch/rig, payroll or payment.
  */
-export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:Props){
+export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh,onLoadOlder,moreBusy,moreError}:Props){
  const [note,setNote]=useState('');
  const [assignee,setAssignee]=useState('');
  const [dueOn,setDueOn]=useState('');
  const [priority,setPriority]=useState<'normal'|'high'>('normal');
  const [comments,setComments]=useState<Record<string,string>>({});
+ const [visible,setVisible]=useState(10);
  const [busy,setBusy]=useState<string|null>(null);
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
@@ -181,7 +184,7 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
     </header>
     {all.length===0&&!board.limited&&<p className="ecjourney-coverage">No booking-specific company tasks are recorded in this complete source window. This does not mean the job or its field evidence is complete.</p>}
     <div className="ecjob-worklist">
-     {all.slice(0,10).map(task=>{
+     {all.slice(0,visible).map(task=>{
       const valid=linkedTaskActionable(task,booking,source);
       const taskNotes=board.notes.filter(n=>n.taskId===task.id).slice(0,5);
       return <article className="ecjob-work" key={task.id} data-stale={!valid}>
@@ -204,7 +207,8 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
         </select>
        </label>
        <div className="ecjob-comments" aria-label="Recent shared progress comments">
-        {taskNotes.map(n=><p key={n.id}><b>{n.author}</b><time>{moment(n.createdAt)}</time><span>{n.body}</span></p>)}
+        <ExteriorTaskCommentHistory org={org} bookingId={booking.id} leadId={leadId}
+         taskId={task.id} initialNotes={taskNotes}/>
         <div>
          <input type="text" value={comments[task.id]??''} maxLength={600}
           aria-label={'Progress update for '+task.assignee}
@@ -218,7 +222,17 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh}:
       </article>;
      })}
     </div>
-    {all.length>10&&<p className="ecjourney-coverage">Showing 10 of {all.length} loaded company tasks. Use the full board to inspect earlier work.</p>}
+    {all.length>visible&&<button type="button" className="ecjob-primary"
+     onClick={()=>setVisible(n=>n+10)}>Show 10 more loaded tasks ({all.length-visible} remain)</button>}
+    {board.limited&&<div className="ecjourney-coverage" role="status">
+     {moreError&&<p role="alert">{moreError}</p>}
+     <button type="button" disabled={moreBusy||board.taskWindow>=1000}
+      onClick={onLoadOlder}>{moreBusy?'Loading earlier tasks…':
+       board.taskWindow>=1000?'1,000-task safety cap reached':
+       'Load earlier company tasks'}</button>
+     <small>Verified scoped source rows loaded: {board.taskWindow}{board.taskTotal===null?' · total unknown':
+      ' of '+board.taskTotal}. Refresh if another founder added work while browsing.</small>
+    </div>}
     <div className="ecjob-foot-actions">
      <button type="button" disabled={!!busy} onClick={onRefresh}>Refresh this job's shared work</button>
      <Link href={base+'/tasks?business=exterior'}>Company board <ArrowRight size={14}/></Link>

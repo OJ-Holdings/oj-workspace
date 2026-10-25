@@ -5,6 +5,7 @@ import type {Card} from '@/lib/board';
 import {
  allowedFollowupStages,isJobFollowupFor,makeJobFollowupCard,
  parseJobFollowupReceipt,projectJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,uuid,
+  type OlderJobTaskPage,
  type FollowupStage,type NewJobFollowup,type SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
 import type {ExtBooking} from '@/lib/exterior';
@@ -13,8 +14,8 @@ import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
 /** Existing RLS-protected oj_cards + oj_comments only. NO new schema, no
  * elevated/service-role token, private field report upload or customer write. */
 type TeamMember={name:string};
-type TaskNote={id:string;taskId:string;body:string;author:string;createdAt:string};
-type TaskResult={ok:true;tasks:SharedJobFollowup[];members:TeamMember[];notes:TaskNote[];limited:boolean;notesLimited:boolean;
+export type TaskNote={id:string;taskId:string;body:string;author:string;createdAt:string};
+type TaskResult={ok:true;tasks:SharedJobFollowup[];members:TeamMember[];notes:TaskNote[];limited:boolean;notesLimited:boolean;taskWindow:number;taskTotal:number|null;
  source:{date:string;time:string|null;status:string|null}} |
  {ok:false;reason:string};
 const eligibleRole=(role:string)=>role==='owner'||role==='member';
@@ -62,7 +63,7 @@ export async function loadExteriorSharedFollowups(
   const {data, count,error}=await client.from('oj_cards')
    .select(fields,{count:'exact'}).eq('organization_id',org).eq('business','exterior')
    .like('description','%Exterior booking ID: '+bookingId+'%')
-   .order('created_at',{ascending:false}).limit(100);
+   .order('created_at',{ascending:false}).order('id',{ascending:false}).limit(100);
   if(error||!data)throw Error('Shared job follow-ups are unavailable; no local substitute was shown.');
   const tasks=data.map(row=>projectJobFollowup(asCard(row),org,bookingId,leadId))
    .filter((v):v is SharedJobFollowup=>v!==null);
@@ -87,6 +88,7 @@ export async function loadExteriorSharedFollowups(
   }
   return {ok:true,tasks,members,notes,
    limited:!sourceWindowComplete(count,data.length,100),notesLimited,
+   taskWindow:data.length,taskTotal:count,
    source:{date:original.date,time:original.time_block,status:original.status}};
  }catch(e){return {ok:false,reason:errors(e)};}
 }
@@ -188,4 +190,70 @@ export async function addExteriorSharedFollowupNote(
  }).select('id,card_id,body,created_at').single();
  if(error||!data)throw Error('Your task note was not saved. Check company access and retry.');
  return {id:data.id,taskId:data.card_id,body:data.body,author:member.display_name,createdAt:data.created_at};
+}
+
+/** R46: pagination never reads arbitrary cards or trusts client-provided labels.
+ * Only a member-accessible, exact original booking + lead is eligible.
+ * Stable created_at/id ordering and total-count comparison allow the client
+ * to reject obvious concurrent insertion/deletion rather than pretending
+ * multiple independent PostgREST queries share a snapshot. */
+export async function loadMoreExteriorJobTasks(
+ org:string,bookingId:string,leadId:string,offset:number,
+):Promise<({ok:true}&OlderJobTaskPage)|{ok:false;reason:string}>{
+ if(!baseQuery(org,bookingId,leadId)||!Number.isInteger(offset)||
+   offset<100||offset>900||offset%100!==0)
+  return {ok:false,reason:'Invalid bounded job-task page request.'};
+ try{
+  const {client}=await requireMember(org,true);
+  const original=await source(client,bookingId,leadId);
+  const {data,count,error}=await client.from('oj_cards')
+   .select(fields,{count:'exact'}).eq('organization_id',org).eq('business','exterior')
+   .like('description','%Exterior booking ID: '+bookingId+'%')
+   .order('created_at',{ascending:false}).order('id',{ascending:false})
+   .range(offset,offset+99);
+  if(error||!data)throw Error('Older company tasks could not be read from the authorized source.');
+  return {ok:true,offset,scanned:data.length,total:count,
+   tasks:data.map(row=>projectJobFollowup(asCard(row),org,bookingId,leadId))
+    .filter((v):v is SharedJobFollowup=>v!==null),
+   source:{date:original.date,time:original.time_block,status:original.status}};
+ }catch(e){return {ok:false,reason:errors(e)};}
+}
+
+export type TaskCommentPage=
+ {ok:true;taskId:string;offset:number;scanned:number;total:number|null;notes:TaskNote[]}|
+ {ok:false;reason:string};
+
+/** On-demand individual-task historical comments. The original booking,
+ * board receipt and author membership are rechecked under the caller's own
+ * RLS-scoped client. Read-only: no comments or source records are changed. */
+export async function loadExteriorJobCommentPage(
+ org:string,bookingId:string,leadId:string,taskId:string,offset:number,
+):Promise<TaskCommentPage>{
+ if(!baseQuery(org,bookingId,leadId)||!uuid.test(taskId)||
+   !Number.isInteger(offset)||offset<0||offset>950||offset%50!==0)
+  return {ok:false,reason:'Invalid bounded task-comment history request.'};
+ try{
+  const {client}=await requireMember(org,true);
+  await source(client,bookingId,leadId);
+  const {data:card,error:readError}=await client.from('oj_cards')
+   .select('description').eq('organization_id',org).eq('id',taskId)
+   .eq('business','exterior').maybeSingle();
+  if(readError||!card||!isJobFollowupFor(card.description,org,bookingId,leadId))
+   throw Error('The task is not linked to the verified original booking.');
+  const [{data,count,error},{data:memberRows,count:memberCount,error:memberError}]=await Promise.all([
+   client.from('oj_comments').select('id,card_id,body,author_id,created_at',{count:'exact'})
+    .eq('organization_id',org).eq('card_id',taskId)
+    .order('created_at',{ascending:false}).order('id',{ascending:false})
+    .range(offset,offset+49),
+   client.from('oj_memberships').select('user_id,display_name',{count:'exact'})
+    .eq('organization_id',org).limit(100),
+  ]);
+  if(error||!data)throw Error('Authenticated comment history is unavailable.');
+  if(memberError||!memberRows||!sourceWindowComplete(memberCount,memberRows.length,100))
+   throw Error('Cannot safely attribute historical company comments.');
+  const names=new Map(memberRows.map(x=>[x.user_id,x.display_name]));
+  return {ok:true,taskId,offset,scanned:data.length,total:count,
+   notes:data.map(c=>({id:c.id,taskId:c.card_id,body:c.body,
+    author:names.get(c.author_id)??'Former member',createdAt:c.created_at}))};
+ }catch(e){return {ok:false,reason:errors(e)};}
 }
