@@ -67,16 +67,11 @@ test('R50 joins exact source lead, canonical property, immutable scope and a pla
  assert.equal(readCount(),2);
  assert.doesNotMatch(JSON.stringify(r),/accepted|invoice|paid|customer signature/i);
 });
-test('R50 preserves real legacy source-only views without inventing a P3 quote',async()=>{
+test('R50 refuses unmapped legacy source details for any company',async()=>{
  const {port}=sample();port.link=async()=>null;
  const r=await readP3BookingProjection(port,ids.org,ids.booking);
- assert.equal(r.ok,true);
- if(!r.ok)return;
- assert.equal(r.state,'source-only');
- assert.equal(r.projection.canonical,null);
- assert.equal(r.projection.quote,null);
- assert.equal(r.projection.orders.length,0);
- assert.ok(r.projection.flags.includes('not-linked'));
+ assert.deepEqual(r,{ok:false,reason:'not-linked'});
+ assert.doesNotMatch(JSON.stringify(r),/Example|Lane|window cleaning/i);
 });
 test('R50 refuses invalid org/booking IDs without querying protected records',async()=>{
  const {port,readCount}=sample();
