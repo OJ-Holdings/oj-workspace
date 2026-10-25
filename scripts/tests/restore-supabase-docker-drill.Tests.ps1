@@ -36,7 +36,8 @@ if (-not $source.Contains('[switch]$UseR40') -or
     -not $source.Contains('OJ_ALL_PUBLIC_ROW_COUNT_PARITY=') -or
     -not $source.Contains('OJ_AUTHORIZED_MEMBER_RLS=') -or
     -not $source.Contains('OJ_OUTSIDER_RLS_DENIED=') -or
-    -not $source.Contains('OJ_ANON_RLS_DENIED=')) {
+    -not $source.Contains('OJ_ANON_RLS_DENIED=') -or
+    -not $source.Contains('OJ_AUTHENTICATED_SOURCE_GRANTS_REPLICATED_IN_SCRATCH=')) {
   throw 'The optional R40 path must preflight and verify through guarded actions and report only a sanitized recovery code.'
 }
 if (-not $source.Contains('OJ_ARCHIVE_AFTER_LATEST_SCHEMA_MIGRATION=') -or

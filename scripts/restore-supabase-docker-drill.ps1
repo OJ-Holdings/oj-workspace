@@ -163,6 +163,11 @@ function Get-LastNumericValue([string]$Text) {
   if ($matches.Count -eq 0) { return $null }
   return [int64]$matches[$matches.Count - 1].Groups[1].Value
 }
+function Get-CatalogSetDifference($Left,$Right) {
+  $rightSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+  foreach ($entry in @($Right)) { $null = $rightSet.Add([string]$entry) }
+  return ,@($Left | Where-Object { -not $rightSet.Contains([string]$_) })
+}
 
 try {
   [void](Invoke-Docker @('network','create',$network) 'Could not create the disposable Docker network.')
@@ -233,18 +238,18 @@ try {
 SELECT json_build_object(
   'tables',(SELECT coalesce(json_agg(table_name ORDER BY table_name),'[]'::json)
     FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),
-  'constraints',(SELECT coalesce(json_agg(json_build_array(n.nspname,r.relname,c.conname,c.contype,c.convalidated,pg_get_constraintdef(c.oid)) ORDER BY r.relname,c.conname),'[]'::json)
+  'constraints',(SELECT coalesce(json_agg(n.nspname||'.'||r.relname||'.'||c.conname||'|'||md5(json_build_array(c.contype,c.convalidated,pg_get_constraintdef(c.oid))::text) ORDER BY r.relname,c.conname),'[]'::json)
     FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
-  'policies',(SELECT coalesce(json_agg(json_build_array(schemaname,tablename,policyname,permissive,roles,cmd,qual,with_check) ORDER BY tablename,policyname),'[]'::json)
+  'policies',(SELECT coalesce(json_agg(schemaname||'.'||tablename||'.'||policyname||'|'||md5(json_build_array(permissive,ARRAY(SELECT role_name::text FROM unnest(roles) AS role_name ORDER BY 1),cmd,qual,with_check)::text) ORDER BY tablename,policyname),'[]'::json)
     FROM pg_policies WHERE schemaname='public'),
-  'rls',(SELECT coalesce(json_agg(json_build_array(r.relname,r.relrowsecurity,r.relforcerowsecurity) ORDER BY r.relname),'[]'::json)
+  'rls',(SELECT coalesce(json_agg(r.relname||'|'||r.relrowsecurity||'|'||r.relforcerowsecurity ORDER BY r.relname),'[]'::json)
     FROM pg_class r JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public' AND r.relkind IN ('r','p'))
 )::text;
 '@
     $sourceCatalogResult = Invoke-SourcePsql $catalogSql
     $targetCatalogResult = Invoke-TargetPsql $catalogSql
-    $publicTableParity = $false; $schemaSignatureParity = $false; $allRowCountParity = $false; $authUserCountParity = $false
-    $sourceOnlyTables = @(); $targetOnlyTables = @(); $archiveOnlyTables = @(); $sourceMissingFromArchive = @(); $sourceCatalog = $null; $targetCatalog = $null
+    $publicTableParity = $false; $schemaSignatureParity = $false; $constraintParity = $false; $policyParity = $false; $rlsFlagParity = $false; $allRowCountParity = $false; $authUserCountParity = $false
+    $sourceOnlyTables = @(); $targetOnlyTables = @(); $archiveOnlyTables = @(); $sourceMissingFromArchive = @(); $constraintSourceOnly = @(); $constraintTargetOnly = @(); $policySourceOnly = @(); $policyTargetOnly = @(); $rlsSourceOnly = @(); $rlsTargetOnly = @(); $sourceCatalog = $null; $targetCatalog = $null
     if ($sourceCatalogResult.ExitCode -eq 0 -and $targetCatalogResult.ExitCode -eq 0) {
       try {
         $sourceCatalog = $sourceCatalogResult.Text | ConvertFrom-Json
@@ -262,11 +267,22 @@ SELECT json_build_object(
         $sourceMissingFromArchive = @($sourceNames | Where-Object { -not $archiveNameSet.Contains($_) })
         $archiveOnlyTables = @($archiveTableNames | Where-Object { -not $sourceNameSet.Contains([string]$_) })
         $publicTableParity = ($sourceOnlyTables.Count -eq 0 -and $targetOnlyTables.Count -eq 0)
-        $sourceSignature = [ordered]@{ constraints=$sourceCatalog.constraints; policies=$sourceCatalog.policies; rls=$sourceCatalog.rls }
-        $targetSignature = [ordered]@{ constraints=$targetCatalog.constraints; policies=$targetCatalog.policies; rls=$targetCatalog.rls }
-        $sourceSignatureJson = ConvertTo-Json -InputObject $sourceSignature -Depth 100 -Compress
-        $targetSignatureJson = ConvertTo-Json -InputObject $targetSignature -Depth 100 -Compress
-        $schemaSignatureParity = ($sourceSignatureJson -ceq $targetSignatureJson)
+        $sourceConstraints = @($sourceCatalog.constraints | ForEach-Object { [string]$_ })
+        $targetConstraints = @($targetCatalog.constraints | ForEach-Object { [string]$_ })
+        $sourcePolicies = @($sourceCatalog.policies | ForEach-Object { [string]$_ })
+        $targetPolicies = @($targetCatalog.policies | ForEach-Object { [string]$_ })
+        $sourceRls = @($sourceCatalog.rls | ForEach-Object { [string]$_ })
+        $targetRls = @($targetCatalog.rls | ForEach-Object { [string]$_ })
+        $constraintSourceOnly = @(Get-CatalogSetDifference $sourceConstraints $targetConstraints)
+        $constraintTargetOnly = @(Get-CatalogSetDifference $targetConstraints $sourceConstraints)
+        $policySourceOnly = @(Get-CatalogSetDifference $sourcePolicies $targetPolicies)
+        $policyTargetOnly = @(Get-CatalogSetDifference $targetPolicies $sourcePolicies)
+        $rlsSourceOnly = @(Get-CatalogSetDifference $sourceRls $targetRls)
+        $rlsTargetOnly = @(Get-CatalogSetDifference $targetRls $sourceRls)
+        $constraintParity = ($constraintSourceOnly.Count -eq 0 -and $constraintTargetOnly.Count -eq 0)
+        $policyParity = ($policySourceOnly.Count -eq 0 -and $policyTargetOnly.Count -eq 0)
+        $rlsFlagParity = ($rlsSourceOnly.Count -eq 0 -and $rlsTargetOnly.Count -eq 0)
+        $schemaSignatureParity = ($constraintParity -and $policyParity -and $rlsFlagParity)
 
         $allRowCountParity = $publicTableParity
         foreach ($tableName in $sourceNames) {
@@ -282,7 +298,7 @@ SELECT json_build_object(
         $sourceAuthCount = if ($sourceAuthUsers.ExitCode -eq 0) { Get-LastNumericValue $sourceAuthUsers.Text } else { $null }
         $targetAuthCount = if ($targetAuthUsers.ExitCode -eq 0) { Get-LastNumericValue $targetAuthUsers.Text } else { $null }
         $authUserCountParity = ($null -ne $sourceAuthCount -and $null -ne $targetAuthCount -and $sourceAuthCount -eq $targetAuthCount)
-      } catch { $publicTableParity=$false; $schemaSignatureParity=$false; $allRowCountParity=$false; $authUserCountParity=$false }
+    } catch { $publicTableParity=$false; $schemaSignatureParity=$false; $constraintParity=$false; $policyParity=$false; $rlsFlagParity=$false; $allRowCountParity=$false; $authUserCountParity=$false }
     }
     Write-Output ('OJ_PUBLIC_TABLE_NAME_PARITY=' + $(if ($publicTableParity) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_PUBLIC_TABLE_COUNT_SOURCE=' + $(if ($sourceCatalog) { @($sourceCatalog.tables).Count } else { 'UNAVAILABLE' }))
@@ -293,6 +309,18 @@ SELECT json_build_object(
     Write-Output ('OJ_ARCHIVE_ONLY_PUBLIC_TABLES=' + ($archiveOnlyTables -join ','))
     Write-Output ('OJ_ARCHIVE_PUBLIC_TABLE_COUNT=' + $archiveTableNames.Count)
     Write-Output ('OJ_RLS_POLICY_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($schemaSignatureParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($constraintParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_POLICY_SIGNATURE_PARITY=' + $(if ($policyParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_RLS_FLAG_PARITY=' + $(if ($rlsFlagParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_CONSTRAINT_DIFF_COUNTS=' + $constraintSourceOnly.Count + '/' + $constraintTargetOnly.Count)
+    Write-Output ('OJ_POLICY_DIFF_COUNTS=' + $policySourceOnly.Count + '/' + $policyTargetOnly.Count)
+    Write-Output ('OJ_RLS_DIFF_COUNTS=' + $rlsSourceOnly.Count + '/' + $rlsTargetOnly.Count)
+    Write-Output ('OJ_CONSTRAINTS_SOURCE_ONLY=' + ($constraintSourceOnly -join ','))
+    Write-Output ('OJ_CONSTRAINTS_TARGET_ONLY=' + ($constraintTargetOnly -join ','))
+    Write-Output ('OJ_POLICIES_SOURCE_ONLY=' + ($policySourceOnly -join ','))
+    Write-Output ('OJ_POLICIES_TARGET_ONLY=' + ($policyTargetOnly -join ','))
+    Write-Output ('OJ_RLS_TABLES_SOURCE_ONLY=' + ($rlsSourceOnly -join ','))
+    Write-Output ('OJ_RLS_TABLES_TARGET_ONLY=' + ($rlsTargetOnly -join ','))
     Write-Output ('OJ_ALL_PUBLIC_ROW_COUNT_PARITY=' + $(if ($allRowCountParity) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_AUTH_USER_COUNT_PARITY=' + $(if ($authUserCountParity) { 'PASS' } else { 'FAIL' }))
     $migrationResult = Invoke-SourcePsql "SELECT coalesce(max(version::text),'') FROM supabase_migrations.schema_migrations"
@@ -309,6 +337,50 @@ SELECT json_build_object(
     Write-Output ('OJ_ARCHIVE_AFTER_LATEST_SCHEMA_MIGRATION=' + $(if ($archiveAfterMigration) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_ARCHIVE_CREATED_UTC=' + [string]$archiveManifest.produced_utc)
 
+    $actorAccessSql = @'
+SELECT json_build_object(
+  'public_usage',has_schema_privilege('authenticated','public','USAGE'),
+  'auth_usage',has_schema_privilege('authenticated','auth','USAGE'),
+  'private_usage',has_schema_privilege('authenticated','oj_private','USAGE'),
+  'membership_select',has_table_privilege('authenticated','public.oj_memberships','SELECT'),
+  'member_role_execute',coalesce(has_function_privilege('authenticated',to_regprocedure('oj_private.member_role(uuid)'),'EXECUTE'),false)
+)::text;
+'@
+    $sourceAccessResult = Invoke-SourcePsql $actorAccessSql
+    $targetAccessResult = Invoke-TargetPsql $actorAccessSql
+    $actorGrantParity = $false
+    if ($sourceAccessResult.ExitCode -eq 0 -and $targetAccessResult.ExitCode -eq 0) {
+      try {
+        $sourceAccess = $sourceAccessResult.Text | ConvertFrom-Json
+        $targetAccess = $targetAccessResult.Text | ConvertFrom-Json
+        $accessMappings = @(
+          [pscustomobject]@{ Key='public_usage'; Grant='GRANT USAGE ON SCHEMA public TO authenticated'; Revoke='REVOKE USAGE ON SCHEMA public FROM authenticated' },
+          [pscustomobject]@{ Key='auth_usage'; Grant='GRANT USAGE ON SCHEMA auth TO authenticated'; Revoke='REVOKE USAGE ON SCHEMA auth FROM authenticated' },
+          [pscustomobject]@{ Key='private_usage'; Grant='GRANT USAGE ON SCHEMA oj_private TO authenticated'; Revoke='REVOKE USAGE ON SCHEMA oj_private FROM authenticated' },
+          [pscustomobject]@{ Key='membership_select'; Grant='GRANT SELECT ON TABLE public.oj_memberships TO authenticated'; Revoke='REVOKE SELECT ON TABLE public.oj_memberships FROM authenticated' },
+          [pscustomobject]@{ Key='member_role_execute'; Grant='GRANT EXECUTE ON FUNCTION oj_private.member_role(uuid) TO authenticated'; Revoke='REVOKE EXECUTE ON FUNCTION oj_private.member_role(uuid) FROM authenticated' }
+        )
+        $targetGrantSql = @()
+        foreach ($mapping in $accessMappings) {
+          $key = [string]$mapping.Key
+          if ([bool]$sourceAccess.$key -and -not [bool]$targetAccess.$key) { $targetGrantSql += [string]$mapping.Grant }
+          elseif (-not [bool]$sourceAccess.$key -and [bool]$targetAccess.$key) { $targetGrantSql += [string]$mapping.Revoke }
+        }
+        if ($targetGrantSql.Count -gt 0) {
+          $grantResult = Invoke-TargetPsql ('BEGIN; ' + ($targetGrantSql -join '; ') + '; COMMIT;')
+          if ($grantResult.ExitCode -eq 0) { $targetAccessResult = Invoke-TargetPsql $actorAccessSql }
+        }
+        if ($targetAccessResult.ExitCode -eq 0) {
+          $targetAccess = $targetAccessResult.Text | ConvertFrom-Json
+          $actorGrantParity = $true
+          foreach ($mapping in $accessMappings) {
+            $key = [string]$mapping.Key
+            if ([bool]$sourceAccess.$key -ne [bool]$targetAccess.$key) { $actorGrantParity = $false }
+          }
+        }
+      } catch { $actorGrantParity = $false }
+    }
+    Write-Output ('OJ_AUTHENTICATED_SOURCE_GRANTS_REPLICATED_IN_SCRATCH=' + $(if ($actorGrantParity) { 'PASS' } else { 'FAIL' }))
     $memberResult = Invoke-TargetPsql 'SELECT user_id::text FROM public.oj_memberships WHERE user_id IS NOT NULL ORDER BY user_id LIMIT 1'
     $memberId = if ($memberResult.ExitCode -eq 0) { ($memberResult.Text -split "`r?`n" | Where-Object { $_ -match '^[0-9a-fA-F-]{36}$' } | Select-Object -First 1) } else { $null }
     $authorizedMemberPass = $false; $outsiderDeniedPass = $false; $anonDeniedPass = $false
@@ -347,7 +419,7 @@ ROLLBACK;
     Write-Output ('OJ_AUTHORIZED_MEMBER_RLS=' + $(if ($authorizedMemberPass) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_OUTSIDER_RLS_DENIED=' + $(if ($outsiderDeniedPass) { 'PASS' } else { 'FAIL' }))
     Write-Output ('OJ_ANON_RLS_DENIED=' + $(if ($anonDeniedPass) { 'PASS' } else { 'FAIL' }))
-    if (-not ($publicTableParity -and $sourceMissingFromArchive.Count -eq 0 -and $archiveOnlyTables.Count -eq 0 -and $schemaSignatureParity -and $allRowCountParity -and $authUserCountParity -and $archiveAfterMigration -and $authorizedMemberPass -and $outsiderDeniedPass -and $anonDeniedPass)) {
+    if (-not ($publicTableParity -and $sourceMissingFromArchive.Count -eq 0 -and $archiveOnlyTables.Count -eq 0 -and $schemaSignatureParity -and $allRowCountParity -and $authUserCountParity -and $archiveAfterMigration -and $actorGrantParity -and $authorizedMemberPass -and $outsiderDeniedPass -and $anonDeniedPass)) {
       throw 'Isolated source parity or actor-role validation failed. Review only sanitized results; production remains untouched.'
     }
     Write-Output 'OJ_SOURCE_PARITY_AND_ACTOR_TESTS=PASS'
