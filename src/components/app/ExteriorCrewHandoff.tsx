@@ -8,6 +8,7 @@ import {
 import type {ExtBooking,ExtLead} from '@/lib/exterior';
 import type {ExteriorFieldLog} from '@/lib/exterior-field-log';
 import {ExteriorSharedFollowups} from './ExteriorSharedFollowups';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import {reviewInternalCloseout} from '@/lib/exterior-closeout-review';
 import {
  createFieldHandoffReply,createFieldHandoffRequest,handoffFileMaxChars,
@@ -39,6 +40,13 @@ export function ExteriorCrewHandoff({
  const [loaded,setLoaded]=useState(false);
  const [storageIssue,setStorageIssue]=useState('');
  const [notice,setNotice]=useState('');
+ const [sharedStatus,setSharedStatus]=useState<'checking'|'ready'|'local-only'|'saving'|'conflict'|'offline'>('checking');
+ const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+ const [sharedCopy,setSharedCopy]=useState<HandoffMailbox|null>(null);
+ const [hadLocal,setHadLocal]=useState(false);
+ const [sharedRefresh,setSharedRefresh]=useState(0);
+ const mailboxRef=useRef<HandoffMailbox>(mailbox);
+ const pendingShared=useRef<{data:HandoffMailbox;expected:number;commandId:string}|null>(null);
  const [operator,setOperator]=useState('');
  const [reviewer,setReviewer]=useState('');
  const [decision,setDecision]=useState<HandoffDecision>('follow-up-needed');
@@ -49,11 +57,14 @@ export function ExteriorCrewHandoff({
  const replyUpload=useRef<HTMLInputElement|null>(null);
 
  useEffect(()=>{
-  setMailbox(newHandoffMailbox());setLoaded(false);setStorageIssue('');setNotice('');
+  setMailbox(newHandoffMailbox());setLoaded(false);setHadLocal(false);
+  setSharedStatus('checking');setSharedRevision(null);setSharedCopy(null);pendingShared.current=null;
+  setStorageIssue('');setNotice('');
   setOperator('');setReviewer('');setDecision('follow-up-needed');setFollowUpTo('crew');setDueOn('');setNote('');
   if(!enabled){setLoaded(true);return;}
   try{
    const raw=window.localStorage.getItem(key(org,booking.id));
+   setHadLocal(Boolean(raw));
    setMailbox(readHandoffMailbox(raw,org,booking.id,lead.id));
   }catch{
    setStorageIssue('The saved private handoff mailbox is unreadable or does not match this job. It was preserved. Do not overwrite it without first recovering the file.');
@@ -61,6 +72,28 @@ export function ExteriorCrewHandoff({
   setLoaded(true);
  },[org,booking.id,lead.id,enabled]);
 
+ mailboxRef.current=mailbox;
+ useEffect(()=>{
+  if(!enabled||!loaded||storageIssue)return;
+  let cancelled=false;setSharedStatus('checking');
+  void loadSharedDraft(org,'exterior_handoff',booking.id).then(doc=>{
+   if(cancelled)return;
+   setSharedRevision(doc?.revision??0);setSharedCopy(doc?.payload.mailbox??null);
+   if(!doc){setSharedStatus('local-only');return;}
+   const local=mailboxRef.current;
+   if((!hadLocal&&JSON.stringify(local)===JSON.stringify(newHandoffMailbox()))||
+      JSON.stringify(local)===JSON.stringify(doc.payload.mailbox)){
+    setMailbox(doc.payload.mailbox);setSharedStatus('ready');
+   }else{
+    setSharedStatus('conflict');
+    setNotice('Private crew mailbox differs from shared data. Neither record was overwritten.');
+   }
+  }).catch(e=>{
+   if(cancelled)return;setSharedStatus('offline');
+   setNotice(e instanceof Error?e.message:'Shared handoff storage is unavailable. Browser mailbox preserved.');
+  });
+  return ()=>{cancelled=true;};
+ },[org,booking.id,lead.id,enabled,loaded,storageIssue,hadLocal,sharedRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
  const incomingReview=useMemo(()=>{
   if(!mailbox.incoming)return null;
   try{return {ok:true as const,data:reviewInternalCloseout(
@@ -76,7 +109,7 @@ export function ExteriorCrewHandoff({
   try{
    const payload=serializeHandoffMailbox(next,org,booking.id,lead.id);
    window.localStorage.setItem(key(org,booking.id),payload);
-   setMailbox(next);return true;
+   setMailbox(next);if(sharedStatus==='ready')setSharedStatus('local-only');return true;
   }catch(e){
    setNotice(e instanceof Error?'Could not safely save this private handoff: '+e.message:
     'Browser storage denied the handoff; existing data was left untouched.');
