@@ -113,8 +113,7 @@ begin
   end if;
   if p_command_id is null or p_expected_revision is null
      or p_expected_revision < 0 or p_kind is null or p_source_id is null
-     or p_kind not in ('exterior_estimate','exterior_field','exterior_equipment',
-                       'exterior_handoff','fleet','commercial_draft')
+     or p_kind not in ('exterior_estimate','fleet')
      or jsonb_typeof(p_payload) is distinct from 'object'
      or octet_length(p_payload::text) > 262144 then
     raise exception 'Invalid shared document request' using errcode = '22023';
@@ -148,6 +147,29 @@ begin
         raise exception 'Field record is not linked to its original booking' using errcode = '22023';
       end if;
     end if;
+  end if;
+  -- The public RPC can be called directly by authenticated API clients,
+  -- bypassing application server validators. Fail closed on unsupported
+  -- document kinds and reject malformed payload skeletons at this boundary.
+  -- Dedicated schemas/RPCs with full validation will replace this interim
+  -- document format; do not enable other kinds until their actor tests exist.
+  if p_kind = 'exterior_estimate' and (
+    p_payload->>'schema' is distinct from '1' or
+    p_payload->'current'->>'schema' is distinct from '1' or
+    jsonb_typeof(p_payload->'current'->'lines') is distinct from 'array' or
+    jsonb_typeof(p_payload->'revisions') is distinct from 'array'
+  ) then
+    raise exception 'Invalid residential estimate structure' using errcode = '22023';
+  end if;
+  if p_kind = 'fleet' and (
+    p_payload->>'format' is distinct from 'oj-fleet-local-v1' or
+    p_payload->>'version' is distinct from '1' or
+    jsonb_typeof(p_payload->'assets') is distinct from 'array' or
+    jsonb_typeof(p_payload->'maintenance') is distinct from 'array' or
+    jsonb_typeof(p_payload->'readiness') is distinct from 'object' or
+    jsonb_typeof(p_payload->'rig') is distinct from 'object'
+  ) then
+    raise exception 'Invalid fleet registry structure' using errcode = '22023';
   end if;
   if p_kind = 'fleet' and p_payload->>'organizationId' is distinct from p_organization_id::text then
     raise exception 'Fleet organization mismatch' using errcode = '22023';
