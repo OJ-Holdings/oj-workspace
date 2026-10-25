@@ -12,6 +12,12 @@ The system has a genuine protected customer/booking/task core, but its most elab
 
 Each pass must move an operator through an original customer or booked job and preserve the **exact source identity and evidence**. Oscar should be able to trace scope, decision, cost, invoice and cash. Jacob should be able to open assigned work and log real field evidence in a simple phone workflow. A new screen without connected action or source provenance is not a pass.
 
+## First U0 issue implementation — actual source and mobile corrections
+
+[PR #154](https://github.com/OJ-Holdings/oj-workspace/pull/154) repairs code defects observed in the founder audit: original Exterior lead counts now appear in Growth separately from `oj_leads`; completed customer job revenue is visible and no longer conflated with cash collection; missing-revenue chip and totals use the same valid-amount predicate; the phone nav has no hidden fifth destination; Team at Work shows true board assignments while optional live presence remains gated. [Exact-head three-job CI #40225293015](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40225293015) green. Detailed issue-level status: [founder U0 audit](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md).
+
+Do NOT conclude live original-source sums are reconciled without inspecting actual authorized rows; do NOT mark device, presence or production rollout accepted until served-Windows/two-founder tests. Keep 42/100. No production DDL; commercial PR #150 remains gated. Next U0: actual lead/job/revenue source and founder viewport checks, then U1 simplification and U2 Commercial Accounts.
+
 ## Founder mobile audit — override for next implementation passes (2026-10-25)
 
 The founder's [12-page usability/operations audit, FA-01 to FA-16](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md) now defines the **acceptance criteria** for Exterior. In particular, screen-bound test observations are NOT independent verification of the specific code cause. A release exit requires actual source reconciliation and both founders' served-device checks, not merely a CI-green aesthetic pass.

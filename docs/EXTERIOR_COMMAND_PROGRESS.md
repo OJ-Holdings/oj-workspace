@@ -22,6 +22,13 @@ A redesign is complete when the 12 master-plan waves are implemented, production
 | W12 Adoption / independent review | 2% | 0% | Two-founder test record, accessibility audits, independent Astra review |
 | **TOTAL** | **100%** | **42% (R43 P1.1 shared exact-job task execution merged, exact-head full CI passed; actual founder phones/host/recovery remain unverified)** | |
 
+### U0 first founder-audit fix pass — source-correct Growth and operator clarity (+0)
+
+- PR [#154](https://github.com/OJ-Holdings/oj-workspace/pull/154) separates original Exterior source leads from Workspace CRM in ATLAS Growth/venture cards, with truthful unknown and partial labels.
+- Shows `job_revenue` beside source quotes for completed lead records; corrects `$0`, payment-versus-recorded-revenue wording and consistent missing-value filter.
+- Phone tabs display all five destinations without horizontal hiding; disconnected Team at Work shows existing authorized task assignments, NOT invented live status.
+- [Exact-head CI #40225293015](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40225293015) passed all three required jobs; **not evidence of served-host or two-founder acceptance**. Audit FA-01/02/03/05/12 marked code implemented/partial in the audit file. Original engineering 42/100 unchanged; no production data, migration or activation.
+
 ### Founder audit FA-01–FA-16 — acceptance and status overlay (+0)
 
 - The founder's October 25 [12-page mobile/product audit](./EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md) is the **active acceptance test** for the next Exterior work, not an additional percentage ledger. Unresolved reports: hidden mobile navigation; current leads missing from Growth; per-job money absent; confusing source/connection UI; Team at Work nonfunctional; low-value/redundant disruption, next-action, upcoming and assignment panels; unclear Field Production and "qualified confirmed quotes"; wrong-looking missing-income warnings; excessive hand-holding/disclaimers; and Commercial needing proper company/logo/property records and separate functional views.

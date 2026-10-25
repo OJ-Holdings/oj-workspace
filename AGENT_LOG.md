@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 -- ChatGPT (Exterior U0 source-truth and founder-phone repair PR)
+**Summary:** Built PR #154: showed original source Exterior open leads distinctly from corporate CRM in Growth and the Exterior division card; showed completed job-revenue amounts on customer cards/table separate from quotes (including recorded $0); unified missing-revenue validation and removed misleading payment labels; changed five Exterior phone tabs to all-visible responsive grid; added real shared-board task assignments as Team at Work fallback without claiming live check-in or online state. No DB migrations.
+**Files:** src/lib/atlas-command.ts, exterior.ts, presence.ts; src/components/app/AtlasHQ.tsx, ExteriorManage.tsx, ExteriorView.tsx, PresencePanel.tsx; src/styles/exterior-command.css; tests/atlas-command.test.ts, exterior-logic.test.ts, presence.test.ts; founder audit and canonical roadmap.
+**Verified:** [PR #154 exact-head CI #40225293015](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40225293015) all three jobs SUCCESS: TypeScript/full tests/Next build/critical dependency audit, PG17 synthetic private recovery and PG17 actor tests. No live source data or founder phones tested.
+**Notes:** FA-01/02/03/05/12 remain CODED/PARTIAL, not founder accepted. Original `job_revenue` is NOT verified settlement. Team live presence still needs separately approved schema. Commercial PR #150 owner-gated; 42/100 unchanged.
+
 ## 2026-10-25 -- ChatGPT (Founder mobile audit acceptance and repository status)
 **Summary:** Transcribed the founder-provided 12-page Exterior mobile/desktop critique to 16 traceable, founder-reported acceptance issues (FA-01 to FA-16). Reprioritized source-truth lead/job/revenue reconciliation and mobile navigation; Team at Work; consolidation of redundant dashboard widgets and excessive text; and a real multi-property Commercial Accounts app. Recovery exports/connection diagnostics should be background Settings, not primary operator UI. This is planning/status only, not an implemented code fix.
 **Files:** docs/EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md; docs/EXTERIOR_CONTINUE_HERE.md; docs/EXTERIOR_COMMAND_PROGRESS.md; docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md; docs/START_HERE_CHAT_HANDOFF.md; AGENT_LOG.md.
