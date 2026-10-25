@@ -11,7 +11,8 @@ import type {FieldHandoffReply} from '@/lib/exterior-crew-handoff';
 import type {
  FollowupOrigin,FollowupStage,SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
-import {allowedFollowupStages} from '@/lib/exterior-job-followup';
+import {actionableJobStatus,allowedFollowupStages} from '@/lib/exterior-job-followup';
+import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
 import {
  addExteriorSharedFollowupNote,createExteriorSharedFollowup,
  loadExteriorSharedFollowups,updateExteriorSharedFollowupStage,
@@ -28,8 +29,7 @@ const moment=(v:string)=>{
  catch{return 'Timestamp unavailable';}
 };
 const readable=(s:string)=>s==='Ready'?'To do':s==='In progress'?'Working':s==='Review'?'Awaiting review':s==='Done'?'Task done':s;
-const taskSourceCurrent=(t:SharedJobFollowup,b:ExtBooking)=>
- t.sourceDate===b.date&&t.sourceTime===b.time_block&&t.sourceStatus===b.status;
+const taskSourceCurrent=(t:SharedJobFollowup,b:ExtBooking)=>originalJobMatchesTask(t,b);
 export function ExteriorSharedFollowups({
  org,booking,lead,base,mode,readOnly,ownerReply,
 }:Props){
@@ -78,7 +78,7 @@ export function ExteriorSharedFollowups({
  },[reply?.request_id,reply?.replied_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
  const publish=async()=>{
-  if(!available||!loaded||busy)return;
+  if(!available||!loaded||busy||loaded.limited||sharedSourceChanged)return;
   const useReply=fromReply&&reply;
   const note=draft.trim();
   if(note.length<10||note.length>1200){setError('Describe an exact next action (10–1200 characters).');return;}
@@ -117,7 +117,8 @@ export function ExteriorSharedFollowups({
   finally{setBusy(false);}
  };
  const updateStage=async(task:SharedJobFollowup,next:FollowupStage)=>{
-  if(!available||busy||next===task.stage)return;
+  if(!available||busy||next===task.stage||sharedSourceChanged||
+    !taskSourceCurrent(task,booking))return;
   if(next==='Done'&&!window.confirm(
    'Mark the COMPANY FOLLOW-UP TASK done? This does not complete the original job, approve any quote, certify payroll or record customer payment.'
   ))return;
@@ -131,7 +132,8 @@ export function ExteriorSharedFollowups({
  };
  const addNote=async(task:SharedJobFollowup)=>{
   const body=commentDrafts[task.id]?.trim()??'';
-  if(!available||busy||body.length<3||body.length>600)return;
+  if(!available||busy||sharedSourceChanged||!taskSourceCurrent(task,booking)||
+    body.length<3||body.length>600)return;
   setBusy(true);setError('');setNotice('');
   try{
    const saved=await addExteriorSharedFollowupNote(org,booking.id,lead.id,task.id,body);
@@ -149,7 +151,7 @@ export function ExteriorSharedFollowups({
   t.origin==='private-owner-reply-reference'&&t.handoffRequestId===reply.request_id));
  const sharedSourceChanged=Boolean(loaded&&(
   loaded.source.date!==booking.date||loaded.source.time!==booking.time_block||
-  loaded.source.status!==booking.status));
+  loaded.source.status!==booking.status||!actionableJobStatus(booking.status)));
 
  return <section className="ecfield-shared" aria-label="Shared company job follow-ups" id="ecfield-shared">
   <header className="ecfield-shared-head">
@@ -172,8 +174,9 @@ export function ExteriorSharedFollowups({
   </div>}
   {error&&<p className="ecfield-shared-warning" role="alert"><AlertTriangle size={16}/>{error}</p>}
   {notice&&<p className="ecfield-shared-notice" role="status"><CheckCircle2 size={16}/>{notice}</p>}
-  {loaded?.limited&&<p className="ecfield-shared-warning">The matching board query exceeded 100 source tasks. This view is partial; use the full company task board to inspect history.</p>}
-  {sharedSourceChanged&&<p className="ecfield-shared-warning"><AlertTriangle size={16}/>Your field screen's booking snapshot no longer matches the current source. Reload the original job before creating another linked task.</p>}
+  {loaded?.notesLimited&&<p className="ecfield-shared-warning">The latest 200 company task comments may not include older progress. This is a partial comment history.</p>}
+  {loaded?.limited&&<p className="ecfield-shared-warning">The matching board source window could not be proven complete (100-record cap or unavailable count). This view is partial; use the full company task board to inspect history.</p>}
+  {sharedSourceChanged&&<p className="ecfield-shared-warning"><AlertTriangle size={16}/>The original booking is not in a supported active state or this field screen is stale. Reload the original job before changing linked tasks.</p>}
   {loaded&&<>
    <div className="ecfield-shared-layout">
     <div className="ecfield-shared-compose">
@@ -215,14 +218,14 @@ export function ExteriorSharedFollowups({
       </label>
      </div>
      <button className="ecfield-shared-primary" type="button" onClick={publish}
-      disabled={!available||busy||sharedSourceChanged||loading||!assignee||draft.trim().length<10||alreadyPublished}>
+      disabled={!available||busy||sharedSourceChanged||loaded.limited||loading||!assignee||draft.trim().length<10||alreadyPublished}>
       <ClipboardCheck size={16}/>{busy?'Saving shared task…':'Publish company follow-up'}<ArrowRight size={15}/>
      </button>
      <small>Published tasks appear on the existing organization board. No automatic SMS, email, customer update, quote acceptance or job closeout occurs.</small>
     </div>
     <div className="ecfield-shared-tasks">
      <div className="ecfield-shared-section-title"><UsersRound size={17}/><h3>Exact-job shared work</h3></div>
-     {!all.length&&<div className="ecfield-shared-empty">
+     {!all.length&&!loaded.limited&&<div className="ecfield-shared-empty">
       <CheckCircle2 size={20}/><strong>No shared follow-ups linked to this booking yet.</strong>
       <p>This does not imply the job is complete or that the crew is prepared. The original field worksheet is still local.</p>
      </div>}
@@ -239,7 +242,7 @@ export function ExteriorSharedFollowups({
       {!taskSourceCurrent(task,booking)&&<p className="ecfield-shared-warning">Booking date, time or status changed since this task was created. Verify current source before acting.</p>}
       <div className="ecfield-shared-task-actions">
        <label>Company task status
-        <select value={task.stage} disabled={!available||busy||loading}
+        <select value={task.stage} disabled={!available||busy||loading||sharedSourceChanged||!taskSourceCurrent(task,booking)}
          onChange={e=>{void updateStage(task,e.target.value as FollowupStage);}}>
          {allowedFollowupStages.map(stage=><option key={stage} value={stage}>{readable(stage)}</option>)}
         </select>
@@ -252,9 +255,9 @@ export function ExteriorSharedFollowups({
        </p>)}
        <div><input type="text" maxLength={600} aria-label={'Add shared progress note for '+task.assignee}
         placeholder="Post a concise progress update…"
-        disabled={!available||busy} value={commentDrafts[task.id]??''}
+        disabled={!available||busy||sharedSourceChanged||!taskSourceCurrent(task,booking)} value={commentDrafts[task.id]??''}
         onChange={e=>setCommentDrafts(v=>({...v,[task.id]:e.target.value}))}/>
-        <button type="button" disabled={!available||busy||(commentDrafts[task.id]?.trim().length??0)<3}
+        <button type="button" disabled={!available||busy||sharedSourceChanged||!taskSourceCurrent(task,booking)||(commentDrafts[task.id]?.trim().length??0)<3}
          onClick={()=>{void addNote(task);}}>Post</button></div>
       </div>
      </article>)}

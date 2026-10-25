@@ -115,6 +115,16 @@ test('cancelled/denied booking is never an actively valid source for a task',()=
   assert.equal(report.totals.sourceChanged,1);
  }
 });
+test('R45 exact-receipt unsupported booking cannot be marked as current operational task',()=>{
+ const original=sourceBookings[0];
+ for(const status of ['completed','rescheduled','unknown',null]){
+  const modified={...original,status};
+  assert.equal(originalJobMatchesTask({
+   sourceDate:modified.date,sourceTime:modified.time_block,sourceStatus:status,
+  },modified),false);
+ }
+});
+
 test('no booking or a mismatched lead becomes source unavailable without made-up customer info',()=>{
  const t=memberCard(ta,sourceBookings[0]);
  let report=build([t],[],customers);

@@ -4,7 +4,7 @@ import type {ExtBooking} from '../src/lib/exterior';
 import {
  allowedFollowupStages,buildJobFollowupDescription,isJobFollowupFor,
  makeJobFollowupCard,parseJobFollowupReceipt,projectJobFollowup,
- validateJobFollowup,sameJobFollowupAttempt,type NewJobFollowup,
+ validateJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,actionableJobStatus,type NewJobFollowup,
 } from '../src/lib/exterior-job-followup';
 
 const org='11111111-1111-4111-8111-111111111111';
@@ -82,6 +82,29 @@ test('stale original dates, slots, status and inactive appointments fail closed'
  assert.throws(()=>validateJobFollowup(org,{...booking,status:null},
   input({sourceStatus:null})),/no longer active/);
 });
+test('R45 server rejects unsupported booking states even when client status and source receipt agree',()=>{
+ for(const status of ['completed','unknown','rescheduled','in_progress','draft','denied','cancelled',null]){
+  assert.equal(actionableJobStatus(status),false);
+  assert.throws(()=>validateJobFollowup(org,{...booking,status},
+   input({sourceStatus:status})),/no longer active/,String(status));
+ }
+ const pending={...booking,status:'pending_approval'};
+ assert.equal(actionableJobStatus('pending_approval'),true);
+ assert.equal(actionableJobStatus('confirmed'),true);
+ assert.equal(validateJobFollowup(org,pending,input({sourceStatus:'pending_approval'})).sourceStatus,'pending_approval');
+});
+
+test('R45 bounded source completeness never treats a partial or unknown page as exhaustive',()=>{
+ assert.equal(sourceWindowComplete(0,0,100),true);
+ assert.equal(sourceWindowComplete(100,100,100),true);
+ assert.equal(sourceWindowComplete(101,100,100),false);
+ assert.equal(sourceWindowComplete(null,0,100),false);
+ assert.equal(sourceWindowComplete(2,1,100),false);
+ assert.equal(sourceWindowComplete(0,1,100),false);
+ assert.equal(sourceWindowComplete(201,200,200),false);
+ assert.equal(sourceWindowComplete(200,200,200),true);
+});
+
 test('missing, malformed and cross-record IDs cannot create a linked task',()=>{
  for(const wrong of [
   {taskId:'not-a-uuid'}, {leadId:'some-other-id'},

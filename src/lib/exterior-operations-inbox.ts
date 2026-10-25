@@ -1,6 +1,6 @@
 import type {Card} from './board';
 import type {ExtBooking,ExtLead} from './exterior';
-import {parseJobFollowupReceipt,projectJobFollowup,type SharedJobFollowup,validDay} from './exterior-job-followup';
+import {actionableJobStatus,parseJobFollowupReceipt,projectJobFollowup,type SharedJobFollowup,validDay} from './exterior-job-followup';
 
 /** R38: signed-in company-task projection, NOT a source of crew hours, safety
  * clearance, accepted quote, booked work completion, invoice or payment.
@@ -33,7 +33,7 @@ const clean=(s:string|null|undefined,max=140)=>{
 };
 export function originalJobMatchesTask(task:Pick<SharedJobFollowup,'sourceDate'|'sourceTime'|'sourceStatus'>,booking:ExtBooking):boolean{
  return task.sourceDate===booking.date&&task.sourceTime===booking.time_block&&
- task.sourceStatus===booking.status&&booking.status!=='denied'&&booking.status!=='cancelled';
+ task.sourceStatus===booking.status&&actionableJobStatus(booking.status);
 }
 export function inboxTiming(date:string,today:string,done:boolean):InboxTiming{
  if(done||!validDay(date)||!validDay(today))return 'none';

@@ -4,7 +4,7 @@ import {requireMember} from '@/lib/supabase';
 import {businessDay} from '@/lib/reporting';
 import type {Card} from '@/lib/board';
 import type {ExtLead,ExtBooking} from '@/lib/exterior';
-import {parseJobFollowupReceipt,uuid} from '@/lib/exterior-job-followup';
+import {parseJobFollowupReceipt,sourceWindowComplete,uuid} from '@/lib/exterior-job-followup';
 import {buildExteriorOperationsInbox,type ExteriorInboxReport} from '@/lib/exterior-operations-inbox';
 
 /**
@@ -34,12 +34,14 @@ export async function loadExteriorOperationsInbox(org:string):Promise<ExteriorIn
     .eq('organization_id',org).eq('business','exterior')
     .like('description','OJ_EXTERIOR_JOB_FOLLOWUP_V1%')
     .order('updated_at',{ascending:false}).limit(candidateLimit),
-   client.from('oj_memberships').select('display_name,role')
+   client.from('oj_memberships').select('display_name,role',{count:'exact'})
     .eq('organization_id',org).limit(100),
   ]);
   if(cardsResult.error||!cardsResult.data||
      membersResult.error||!membersResult.data)
    return {ok:false,reason:'The live company task source was unavailable. Nothing was substituted.'};
+  if(!sourceWindowComplete(membersResult.count,membersResult.data.length,100))
+   return {ok:false,reason:'The company membership source is incomplete. Personal assignments cannot be safely attributed.'};
   const cards=cardsResult.data as Card[];
   const scope=cards.map(c=>parseJobFollowupReceipt(c.description))
    .filter((r):r is NonNullable<typeof r>=>!!r&&r.organizationId===org);
