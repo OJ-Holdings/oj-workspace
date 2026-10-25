@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -11,10 +11,12 @@ import {
 import type { Card, Activity as BoardActivity } from '@/lib/board';
 import type { ExteriorData } from '@/lib/exterior';
 import type { FleetWorkbook } from '@/lib/fleet-command';
-import { decodeCommercialPortfolio, type CommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
+import { emptyCommercialPortfolio, type CommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
 import { parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
 import { chicagoDateOf } from '@/lib/atlas-field-bridge';
 import { buildNexusOverview, type NexusEvidence, type NexusProject } from '@/lib/atlas-nexus';
+import { loadCommercialProject, loadCommercialProjects } from '@/app/workspace/commercial-actions';
+import type { CommercialProjectCursor } from '@/lib/commercial-persistence';
 
 type Props={
   org:string;base:string;mode:'live'|'preview';readOnly:boolean;
@@ -26,11 +28,12 @@ const usd=(number:number)=>new Intl.NumberFormat('en-US',{style:'currency',curre
 const shortId=(s:string)=>s.length>16?s.slice(0,12)+'…':s;
 const evidenceName:Record<NexusEvidence,string>={
   'verified-source-record':'SOURCE RECORD',
+  'shared-organization-record':'SHARED OJ RECORD',
   'device-local-plan':'DEVICE LOCAL',
   'text-reference':'TASK TEXT',
   'unverified':'UNVERIFIED',
 };
-const evidenceClass=(e:NexusEvidence)=>e==='verified-source-record'?'verified':e==='unverified'?'unknown':e==='device-local-plan'?'local':'text';
+const evidenceClass=(e:NexusEvidence)=>e==='verified-source-record'||e==='shared-organization-record'?'verified':e==='unverified'?'unknown':e==='device-local-plan'?'local':'text';
 const prettyDate=(iso:string)=>Number.isFinite(Date.parse(iso))
   ?new Date(iso).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})
   :'Unavailable';
@@ -41,11 +44,13 @@ const sourceKindIcon:Record<string,typeof Network>={
 
 export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activity}:Props){
   const enabled=mode==='live'&&!readOnly;
-  const key='oj-commercial-project-portfolio-v1:'+org;
   const fleetKey='oj-fleet-command-v1:'+org;
   const params=useSearchParams();
   const fromUrl=params.get('project');
   const [portfolio,setPortfolio]=useState<CommercialPortfolio|null>(null);
+  const [cursor,setCursor]=useState<CommercialProjectCursor>(null);
+  const [hasMore,setHasMore]=useState(false);
+  const [loadingMore,setLoadingMore]=useState(false);
   const [fleet,setFleet]=useState<FleetWorkbook|null>(null);
   const [state,setState]=useState<SourceState>('loading');
   const [fleetState,setFleetState]=useState<SourceState>('loading');
@@ -55,20 +60,20 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
   const [lens,setLens]=useState<Lens>('command');
   const [onlyAttention,setOnlyAttention]=useState(false);
   const [localToday,setLocalToday]=useState('');
+  const lookedUpDeepLink=useRef('');
 
   useEffect(()=>{
     setPortfolio(null);setFleet(null);setSelectedId(null);setState('loading');setFleetState('loading');setError('');
     if(!enabled){setState('missing');setFleetState('missing');return;}
     const reload=()=>{
       setLocalToday(chicagoDateOf(new Date().toISOString())??'');
-      try{
-        const raw=window.localStorage.getItem(key);
-        if(raw){setPortfolio(decodeCommercialPortfolio(raw,org));setState('loaded');setError('');}
-        else{setPortfolio(null);setState('missing');}
-      }catch(e){
-        setPortfolio(null);setState('invalid');
-        setError(e instanceof Error?e.message:'Local project records could not be validated.');
-      }
+      void loadCommercialProjects(org).then(page=>{
+        setPortfolio({...emptyCommercialPortfolio(org),projects:page.projects});
+        setCursor(page.nextCursor);setHasMore(page.hasMore);setState('loaded');setError('');
+      }).catch(e=>{
+        setPortfolio(null);setCursor(null);setHasMore(false);setState('invalid');
+        setError(e instanceof Error?e.message:'Shared project records could not be loaded.');
+      });
       try{
         const raw=window.localStorage.getItem(fleetKey);
         if(raw){setFleet(parseLocalFleetDraft(raw,org));setFleetState('loaded');}
@@ -79,7 +84,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
     };
     reload();
     const onStorage=(event:StorageEvent)=>{
-      if(event.key===key||event.key===fleetKey||event.key===null)reload();
+      if(event.key===fleetKey||event.key===null)reload();
     };
     const timer=window.setInterval(()=>setLocalToday(chicagoDateOf(new Date().toISOString())??''),60000);
     window.addEventListener('focus',reload);
@@ -89,7 +94,29 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
       window.removeEventListener('storage',onStorage);
       window.clearInterval(timer);
     };
-  },[enabled,org,key,fleetKey]);
+  },[enabled,org,fleetKey]);
+
+  useEffect(()=>{
+    if(!enabled||!fromUrl||!portfolio||portfolio.projects.some(project=>project.id===fromUrl))return;
+    const marker=org+':'+fromUrl;
+    if(lookedUpDeepLink.current===marker)return;
+    lookedUpDeepLink.current=marker;
+    void loadCommercialProject(org,fromUrl).then(project=>{
+      if(!project){setError('This shared project was not found or is no longer accessible.');return;}
+      setPortfolio(current=>current?{...current,projects:[...current.projects,project]}:current);
+    }).catch(e=>setError(e instanceof Error?e.message:'The shared project could not be loaded.'));
+  },[enabled,fromUrl,org,portfolio]);
+
+  async function loadMoreProjects(){
+    if(!enabled||!hasMore||!cursor||loadingMore)return;
+    setLoadingMore(true);
+    try{
+      const page=await loadCommercialProjects(org,cursor);
+      setPortfolio(current=>current?{...current,projects:[...current.projects,...page.projects.filter(p=>!current.projects.some(existing=>existing.id===p.id))]}:current);
+      setCursor(page.nextCursor);setHasMore(page.hasMore);
+    }catch(e){setError(e instanceof Error?e.message:'More shared projects could not be loaded.');}
+    finally{setLoadingMore(false);}
+  }
 
   const snapshot=useMemo(()=>portfolio&&enabled&&state==='loaded'
     ?buildNexusOverview({
@@ -138,23 +165,24 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
 
     <div className="atlas-nexus-truth">
       <ShieldCheck size={17}/>
-      <p><strong>Source-aware workspace.</strong> Bookings, customers, shared tasks and task activity are drawn from already-authorized loaded source records. Projects, building scope and fleet plans are still saved on <strong>this device only</strong>; a task-text link is not a server foreign key. No dispatch or booking is performed here.</p>
+        <p><strong>Source-aware workspace.</strong> Commercial projects and estimate versions are shared organization records. Bookings, customers, shared tasks and task activity are drawn from already-authorized loaded source records. Fleet plans remain device-local; a task-text link is not a server foreign key. No dispatch or booking is performed here.</p>
     </div>
+    {state==='loaded'&&error&&<p className="atlas-nexus-source-warning" role="status"><AlertTriangle size={14}/>{error}</p>}
     {!enabled
       ?<section className="atlas-nexus-empty"><ShieldAlert size={24}/><h3>Private project context unavailable</h3>
         <p>Preview and read-only roles never inspect a founder's private browser-local commercial or fleet records. Shared work remains available through its own authorized modules.</p></section>
       : state==='loading'
-      ?<section className="atlas-nexus-empty" aria-busy="true">Validating local project context…</section>
+      ?<section className="atlas-nexus-empty" aria-busy="true">Loading shared project context…</section>
       : state==='invalid'
-      ?<section className="atlas-nexus-empty" role="alert"><AlertTriangle size={24}/><h3>Local portfolio rejected</h3>
-        <p>{error} The stored record has not been changed. Recover or export it from the original device before overwriting anything.</p></section>
+      ?<section className="atlas-nexus-empty" role="alert"><AlertTriangle size={24}/><h3>Shared project register unavailable</h3>
+        <p>{error} Existing browser recovery copies were not changed.</p></section>
       : state==='missing'
-      ?<section className="atlas-nexus-empty"><Layers3 size={24}/><h3>No commercial portfolio on this device</h3>
-        <p>NEXUS cannot invent projects from bookings, leads or task names. Create or import a validated commercial project using the original Commercial Desk first.</p>
+      ?<section className="atlas-nexus-empty"><Layers3 size={24}/><h3>No shared commercial projects</h3>
+        <p>NEXUS cannot invent projects from bookings, leads or task names. Create or import a validated commercial project in Commercial Desk first.</p>
         <Link href={base+'/b/exterior/commercial'}>Open commercial project register <ArrowUpRight size={15}/></Link></section>
       :snapshot&&<>
         <div className="atlas-nexus-metrics">
-          <article><span>LOCAL PROJECTS</span><strong>{snapshot.active}</strong><small>Active device-local plans</small></article>
+          <article><span>SHARED PROJECTS</span><strong>{snapshot.active}</strong><small>Organization records loaded</small></article>
           <article><span>SOURCE MATCHES</span><strong>{snapshot.sourceMatchedBookings}</strong><small>Exact loaded booking IDs</small></article>
           <article><span>ATTENTION QUEUE</span><strong>{snapshot.attentionProjects}</strong><small>Projects with modeled flags</small></article>
           <article><span>CREW SHORTFALLS</span><strong>{snapshot.crewShortfalls}</strong><small>Scenario deficits, not staffing</small></article>
@@ -174,7 +202,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
               <button type="button" onClick={()=>setOnlyAttention(v=>!v)} aria-pressed={onlyAttention}><AlertTriangle size={14}/> Attention only</button>
             </div>
             <div className="atlas-nexus-project-list">
-              {filtered.length===0&&<p>No matching local projects. Clearing filters does not modify your data.</p>}
+              {filtered.length===0&&<p>No matching shared projects. Clearing filters does not modify your data.</p>}
               {filtered.map(p=><button type="button" key={p.id}
                 aria-pressed={selected?.id===p.id}
                 onClick={()=>{setSelectedId(p.id);setLens('command');window.history.replaceState(null,'',base+'/b/exterior/projects?project='+encodeURIComponent(p.id));}}>
@@ -184,6 +212,9 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
                 </span>
                 <span className="atlas-nexus-project-flags">{p.findings.filter(f=>f.priority==='attention').length||'—'}</span>
               </button>)}
+              {hasMore&&<button type="button" className="atlas-nexus-load-more" onClick={()=>void loadMoreProjects()} disabled={loadingMore}>
+                {loadingMore?'Loading shared projects…':'Load more shared projects'}
+              </button>}
             </div>
           </aside>
           <section className="atlas-nexus-main">
@@ -243,7 +274,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
                   </section>
                 </div>}
                 {lens==='relations'&&<div className="atlas-nexus-relations">
-                  <div className="atlas-nexus-graph-anchor"><Network size={21}/><div><strong>{selected.name}</strong><small>Device-local project ID {shortId(selected.id)}</small></div></div>
+                  <div className="atlas-nexus-graph-anchor"><Network size={21}/><div><strong>{selected.name}</strong><small>Shared project ID {shortId(selected.id)}</small></div></div>
                   <div className="atlas-nexus-graph-list">
                     {selected.edges.map((e,index)=>{
                       const node=selected.nodes.find(n=>n.id===e.to);
@@ -256,7 +287,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
                       </div>;
                     })}
                   </div>
-                  <p className="atlas-nexus-legend"><CheckCircle2 size={14}/> SOURCE RECORD = entity loaded from the authorized service. DEVICE LOCAL = manually saved estimate, building or asset plan. TASK TEXT = an ID mentioned in a shared task body, not a server-side project relationship. UNVERIFIED = no matching usable source record.</p>
+                  <p className="atlas-nexus-legend"><CheckCircle2 size={14}/> SHARED OJ RECORD = persisted organization-scoped estimate or building version. SOURCE RECORD = entity loaded from the authorized service. DEVICE LOCAL = fleet plan or asset evidence. TASK TEXT = an ID mentioned in a shared task body, not a server-side project relationship. UNVERIFIED = no matching usable source record.</p>
                 </div>}
                 {lens==='activity'&&<div className="atlas-nexus-activity">
                   <div className="atlas-nexus-activity-stats"><Activity size={17}/><div><strong>{selected.activity.length} loaded task activity events</strong><small>Only existing shared task actions are audited here. Changes to this device's commercial and fleet workbooks are NOT server-audited.</small></div></div>
@@ -274,7 +305,7 @@ export function AtlasNexusProjects({org,base,mode,readOnly,exterior,cards,activi
                   </section>
                 </div>}
                 <footer className="atlas-nexus-footer">
-                  <span><GitBranch size={13}/> Project and fleet state are browser-local. Graph edges record evidence types—not universal server identities.</span>
+                  <span><GitBranch size={13}/> Projects and estimate versions are shared; fleet evidence remains browser-local. Graph edges record evidence types, not universal server identities.</span>
                   <Link href={projectPath(selected)}>Review source project <ArrowUpRight size={13}/></Link>
                 </footer>
               </>}

@@ -87,3 +87,14 @@ jobs:
       - name: Test real tenant RLS, revocation, immutable versions and work-order receipt
         shell: bash
         run: bash scripts/tests/exterior-p3-schema-integration.sh
+
+  commercial-estimating-synthetic:
+    name: Commercial estimating RPCs + actual RLS actors (synthetic PostgreSQL 17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse isolated commercial-estimate harness
+        run: bash -n scripts/tests/oj-commercial-estimate-integration.sh
+      - name: Test shared versions, tenant roles, cost privacy, conflicts and idempotency
+        shell: bash
+        run: bash scripts/tests/oj-commercial-estimate-integration.sh

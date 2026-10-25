@@ -14,7 +14,7 @@ import type { Card, Activity } from './board';
  * records exactly where its association came from. A reference copied into a
  * task is a TEXT RECEIPT, not a database FK.
  */
-export type NexusEvidence = 'verified-source-record' | 'device-local-plan' | 'text-reference' | 'unverified';
+export type NexusEvidence = 'verified-source-record' | 'shared-organization-record' | 'device-local-plan' | 'text-reference' | 'unverified';
 export type NexusKind = 'project' | 'building' | 'booking' | 'customer' | 'equipment' | 'task' | 'estimate';
 export type NexusNode = {
   id:string; kind:NexusKind; title:string; secondary:string; evidence:NexusEvidence;
@@ -46,7 +46,7 @@ export type NexusOverview = {
     leads:{loaded:number;total:number|null};
   };
   hasFleetWorkbook:boolean;
-  hasRealProjectPersistence:false;
+  hasRealProjectPersistence:true;
 };
 export type NexusInputs = {
   org:string;portfolio:CommercialPortfolio;fleet:FleetWorkbook|null;
@@ -100,23 +100,23 @@ export function buildNexusProject(project:CommercialProject, all:NexusInputs):Ne
       title:tasks.find(t=>t.id===a.card_id)?.title??'Workspace task'}));
   const assets=projectEquipmentEvidence(project,all.fleet,all.today);
   const nodes:NexusNode[]=[
-    {id:'project:'+project.id,kind:'project',title:project.name,secondary:'Local revision '+project.revision,evidence:'device-local-plan'},
-    {id:'estimate:'+project.id,kind:'estimate',title:'Cost engineering',secondary:'Internal scenario only',evidence:'device-local-plan'},
+    {id:'project:'+project.id,kind:'project',title:project.name,secondary:'Shared revision '+project.revision,evidence:'shared-organization-record'},
+    {id:'estimate:'+project.id,kind:'estimate',title:'Cost engineering',secondary:'Internal scenario only',evidence:'shared-organization-record'},
   ];
   const edges:NexusEdge[]=[
-    {from:'project:'+project.id,to:'estimate:'+project.id,label:'saved scenario',evidence:'device-local-plan'},
+    {from:'project:'+project.id,to:'estimate:'+project.id,label:'shared immutable version',evidence:'shared-organization-record'},
   ];
   for(const site of project.input.sites){
     nodes.push({id:'building:'+project.id+':'+site.id,kind:'building',
-      title:site.name||'Unnamed building',secondary:site.panes+' estimated panes',evidence:'device-local-plan'});
+      title:site.name||'Unnamed building',secondary:site.panes+' estimated panes',evidence:'shared-organization-record'});
     edges.push({from:'project:'+project.id,to:'building:'+project.id+':'+site.id,
-      label:'locally scoped site',evidence:'device-local-plan'});
+      label:'saved building scope',evidence:'shared-organization-record'});
   }
   if(bookingState==='matched' && candidate){
     nodes.push({id:'booking:'+candidate.id,kind:'booking',title:'Exterior booking',
       secondary:candidate.date+' · '+(candidate.time_block??'time unentered'),evidence:'verified-source-record'});
     edges.push({from:'project:'+project.id,to:'booking:'+candidate.id,
-      label:'manual ID resolved in source',evidence:'device-local-plan'});
+      label:'stored booking ID resolved in source',evidence:'shared-organization-record'});
   }else if(project.bookingId){
     nodes.push({id:'unverified-booking:'+project.bookingId,kind:'booking',title:'Unverified booking reference',
       secondary:bookingState==='inactive'?'Inactive source record':'Source coverage or status unknown',evidence:'unverified'});
@@ -180,7 +180,7 @@ export function buildNexusProject(project:CommercialProject, all:NexusInputs):Ne
         detail:asset.name+' is approaching a manually entered service threshold.'});
   }
   if(!tasks.length)findings.push({id:'task-none',priority:'review',title:'No related shared task snapshots',
-    detail:'No loaded, authorized Exterior tasks contain this exact local project ID. This does not establish there is no work elsewhere.'});
+    detail:'No loaded, authorized Exterior tasks contain this exact shared project ID. This does not establish there is no work elsewhere.'});
   if(project.review.some(done=>!done))findings.push({id:'bid-review',priority:'review',
     title:'Bid review checklist incomplete',detail:'Checked items are internal notes, not a founder signature or customer contract.'});
   const otherProjects=all.portfolio.projects.filter(p=>p.id!==project.id&&p.phase!=='archived'&&p.bookingId);
@@ -224,6 +224,6 @@ export function buildNexusOverview(inputs:NexusInputs):NexusOverview{
       leads:{loaded:inputs.leads.length,total:null},
     },
     hasFleetWorkbook:inputs.fleet!==null,
-    hasRealProjectPersistence:false,
+    hasRealProjectPersistence:true,
   };
 }

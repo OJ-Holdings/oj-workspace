@@ -1,0 +1,52 @@
+# OJ Workspace data and local recovery inventory
+
+Snapshot: 2026-10-25. Repository reviewed at feature branch `feature/commercial-estimate-persistence`, based on `origin/main` `22e0b2c`. Live Supabase inventory was read-only. No production rows were read or written, no migration was applied, and no browser profile files were inspected.
+
+## Authority and loss boundaries
+
+| Feature / record | Current authoritative source | Local persistence / limit | Main risk and migration need |
+|---|---|---|---|
+| Organization, membership, leads, bookings, conversations, shared tasks/comments/activity, work sessions and content workflow | Existing Supabase tables and authorized server actions where the production table exists | React state is a loaded view, not a second authority | Schema inventory found `oj_content_projects` and `oj_content_activity` absent in the connected production project. Content Studio's server actions therefore need a separately gated additive migration before live use can be claimed. |
+| Commercial Estimating single-estimate draft | Browser `localStorage`, `oj-commercial-estimate-v2:{organizationId}` | One browser-origin value; portable estimate JSON is bounded at 262,144 characters | Browser clearing, profile/device changes or quota errors can strand it; no shared revision history. It remains as a recovery source after the shared-project feature is installed. |
+| Commercial Project 360 local portfolio (legacy/recovery) | Browser `localStorage`, `oj-commercial-project-portfolio-v1:{organizationId}` | Current recovery format allows 250 projects and a 5 MiB encoded portfolio; each project has an individual revision counter | Previous revisions are not a cross-device clock. Same IDs from independent browsers can conflict. Import remains explicit and non-overwriting. |
+| Shared Commercial Project 360 (new feature branch only) | Proposed organization-scoped Supabase RPC and additive migration in this PR | Server-keyset pages of 50 in the current UI; SQL supports 1–100 rows per page. Every save appends an immutable estimate version and audit receipt. | Not installed in production. Requires R40 recovery, object-byte recovery and actor-role gates plus separate owner approval before any production DDL. |
+| Fleet Command workbook | Browser `localStorage`, `oj-fleet-command-v1:{organizationId}` | One validated workbook per origin/profile | Not shared with Jacob; equipment IDs/plans are candidate evidence, never a reservation or dispatch. Needs versioned shared fleet records and actor-scoped RLS after recovery gate. |
+| Per-booking equipment plan | Browser `localStorage`, `oj-exterior-field-equipment-v1:{organizationId}:{bookingId}` | One plan per browser key | Device-local selection and review timestamp can be lost; no shared reservation or proof of inspected equipment. |
+| Exterior estimate book and manual revisions | Browser `localStorage`, `oj-exterior-estimate-v1:{organizationId}:{leadId}` | Current estimate plus up to 8 local snapshots; line-item parser imposes bounded records | Device-only quotes/costs can diverge. Needs canonical lead/visit linkage, saved quote versions and source/permission checks; not a sent quote or invoice. |
+| Exterior field log | Browser `localStorage`, `oj-exterior-field-v1:{organizationId}:{bookingId}` | Serialized field package capped at 95,000 characters | Private work notes and entered labor/material data are device-only. Needs member-scoped durable field records and private object storage for photos. |
+| Crew handoff mailbox | Browser `localStorage`, `oj-exterior-crew-handoff-v1:{organizationId}:{bookingId}` | Mailbox capped at 245,000 characters; individual transfer files at 115,000 characters | Device-local exchange is not a shared signed approval or immutable database receipt. |
+| Suggested-work rules | Browser `localStorage`, `oj-work-rules:{mode}:{organizationId}` | Small preference object | Personal preference only; not business authority and not shared with other founders. |
+| Preview dashboard, preview work and preview task state | Browser `localStorage` keys `oj-preview-dashboard-v1`, `oj-preview-current-work` and preview-specific work keys; a session-only preview current-work key also exists | Sample data only, browser/session dependent | Not business records; intentionally excluded from business archive. |
+| Component drafts, filters, tabs, notices, selection, temporary handoffs | React `useState` / component memory | Lost on reload/navigation unless separately saved | Many unsaved edits have no recovery path. UI must label unsaved values and avoid implying durable save. |
+| File import/export | Browser-selected JSON/text/CSV files and generated `Blob` downloads | User-controlled files; there is no central local folder index | Exports may contain private costs, addresses, field notes or other customer details. Keep originals, transfer securely and validate before importing. |
+| Attachments stored in Supabase Storage | Supabase Storage object bytes, separate from relational database backup | No local authoritative copy found in this source inventory | Supabase database backups do not back up Storage object bytes; independently enumerate, copy, checksum and restore objects before declaring a complete recovery gate. |
+
+No IndexedDB use was found in `src/` on the inspected branch. The inventory is source-code based; it does not assert what data exists in every browser profile, origin, or founder device.
+
+## Local business archive
+
+Commercial Desk now offers an explicit, organization-scoped **Export local business data** action. It reads only the current OJ page's origin `localStorage`, copies supported organization-keyed commercial, fleet, estimate, field, equipment and crew-handoff records into an unencrypted JSON archive, records byte counts and per-record SHA-256 hashes plus an archive-manifest SHA-256, and never deletes or changes the source keys. Preview and unrelated keys are excluded. A confirmation warns that the download can contain private data.
+
+This is a browser recovery export, not the encrypted PC backup/analytics node. Repeat it independently for each authorized OJ origin, browser profile and founder device and store each file in a private protected location. Local database, customer data and downloaded archives are intentionally not checked into Git.
+
+The currently attached browser sessions did not contain an authenticated OJ Workspace origin. Therefore no actual Oscar/Jacob localStorage record was inspected or exported in this run; originals remain untouched. The UI feature must be used from each authorized signed-in OJ origin to create those archives.
+
+## Windows deploy and release audit
+
+- Active release state observed in `C:\STRATHOS\apps\oj-workspace-releases\state.json`: served SHA `5650b8911b56b4c3302c5959dc94c4ffa6dceb07`; previous SHA `577ed9f…`. No release or service was changed.
+- Scheduled task `OJ Workspace - GitHub Auto Deploy`: Ready; last run returned 0. Its log reports `BLOCKED: SQL/schema or environment configuration changed; requires manual migration/review` on each changed main revision.
+- `OJ Workspace Host`: Ready but last result `267014`; no active `host-loop.ps1` process was observed during this snapshot. Existing port 3011 and STRATHOS 3002 were not stopped or restarted.
+- The active untracked `scripts/auto-deploy-local.ps1` guard blocks every path under `supabase/`, plus `.env.example` and `src/lib/oj-connection.ts`. This is conservative: it does not distinguish inert `supabase/staging/**` artifacts from executable `supabase/migrations/**`, so a staging-only change still requires manual review. It does not apply DDL itself; release creation is pinned to clean, CI-green GitHub `main`, built in a separate worktree, health-checked on a spare port, then swapped with rollback.
+- The guard is user-owned, untracked local infrastructure and is deliberately not modified by this feature PR. Do not relax it to skip a migration, schema, environment or connection change. A future tested refinement may classify staging-only artifacts as non-executable, while continuing to fail closed on executable migrations, functions, secrets, environment configuration and unclassified Supabase paths.
+
+## Backup/recovery gate result
+
+The existing `exterior-r40-recovery-preflight.ps1 -Action Status -EmitSanitizedJson` was run in status-only mode. It reports **BLOCKED** because the private backup destination settings and Windows DPAPI-held credential are not configured. The host lacks `pg_dump`, `pg_restore`, `psql` and Docker on PATH. No source database dump, Storage-byte archive, off-device encrypted copy, or independent real-data restore was created or claimed. Do not apply production schema changes until the protected backup is configured, an isolated restore and parity check pass, Storage objects are independently recoverable, and the owner/actor access matrix passes. Separate owner approval is still required.
+
+## Next recovery and migration steps
+
+1. From each authorized signed-in OJ browser origin/profile/device, download the local business archive and preserve its checksums.
+2. Configure the existing R40 backup destination privately; run the production-source backup, separately archive Storage bytes, and test restore into an isolated target.
+3. Exercise owner, member, viewer, outsider, anonymous and revoked-member SQL/RLS paths in an isolated database matching production PostgreSQL.
+4. Review the additive Commercial Project 360 migration and UI PR. It is not a production deploy/migration authorization.
+5. Only after all gates pass, request explicit approval for production DDL and separately coordinate the release and migration window.

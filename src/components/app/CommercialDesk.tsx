@@ -11,6 +11,7 @@ import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasCommercialPortfolio } from './AtlasCommercialPortfolio';
+import { exportLocalBusinessArchive } from '@/lib/local-business-archive';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
 const checklist=[
@@ -70,7 +71,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
   const remove=(id:string)=>setInput(v=>v.sites.length===1?v:{...v,sites:v.sites.filter(s=>s.id!==id)});
   const save=()=>{
     if(preview||readOnly){setNotice('This mode cannot save a private draft.');return;}
-    try{exportCommercialEstimate(org,name,input,review);window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Validated draft saved on this browser only. Nothing was written to the shared OJ database.');}
+    try{exportCommercialEstimate(org,name,input,review);window.localStorage.setItem(key,JSON.stringify({name,input,review}));setNotice('Browser recovery copy saved on this device. Use the shared project register below for cross-device records.');}
     catch{setNotice('Browser storage is unavailable; download your draft instead.');}
   };
   const prepareSharedTask=()=>{
@@ -84,6 +85,17 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
     }catch(error){
       setNotice(error instanceof Error?error.message:'Could not validate the local estimate for task preparation.');
     }
+  };
+  const exportLocalBusinessData=async()=>{
+    if(preview||readOnly)return;
+    if(!window.confirm('Export organization-scoped business data stored by this OJ origin? The unencrypted JSON may contain private estimates, property details, field notes and internal costs. It will leave the browser as a downloaded file. Existing records will not be changed.'))return;
+    try{
+      const archive=await exportLocalBusinessArchive(window.localStorage,org,window.location.origin);
+      const url=URL.createObjectURL(new Blob([JSON.stringify(archive,null,2)],{type:'application/json;charset=utf-8'}));
+      const link=document.createElement('a');link.href=url;link.download='oj-local-business-data-'+new Date().toISOString().slice(0,10)+'.json';link.click();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setNotice(`Exported ${archive.records.length} organization-scoped local record(s); SHA-256 ${archive.archiveSha256}. Originals were left unchanged. Repeat from each authorized origin, browser profile and founder device.`);
+    }catch(error){setNotice(error instanceof Error?error.message:'Local business data export failed; originals were left unchanged.');}
   };
   const reset=()=>{
     if(readOnly||preview)return;
@@ -159,10 +171,11 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
         <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
         <p>Develop multi-building scope, model true direct costs, and prepare an internal proposal brief. Nothing here is treated as booked, paid, or contractually approved.</p>
         <div className="com-actions">
-          <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save local draft</button>
+          <button className="primary" disabled={preview||readOnly} onClick={save}><Save size={16}/> Save browser recovery copy</button>
+          <button className="secondary" type="button" disabled={preview||readOnly||!ready} onClick={()=>void exportLocalBusinessData()}><Download size={16}/> Export local business data</button>
           <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
           <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
-          <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Save & prepare shared task</button>
+          <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Save browser copy & prepare task</button>
           <button className="secondary" onClick={exportEditable}><Download size={16}/> Export editable</button>
           <button className="secondary" disabled={preview||readOnly} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
           <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{

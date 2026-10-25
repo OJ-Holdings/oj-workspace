@@ -20,7 +20,7 @@ import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operatin
 import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
 import { commercialPortfolioTask, commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
 import { fleetServiceTask } from '@/lib/atlas-fleet-service-handoff';
-import { decodeCommercialPortfolio } from '@/lib/atlas-commercial-portfolio';
+import { loadCommercialProject } from '@/app/workspace/commercial-actions';
 import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
@@ -131,13 +131,14 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       }
     } else if (sourceProject && !readOnly && mode === 'live') {
       if(jobsState==='loading')return;
-      try {
-        if(!/^[A-Za-z0-9_-]{1,80}$/.test(sourceProject))throw new Error('Invalid local project identifier.');
-        const raw=window.localStorage.getItem('oj-commercial-project-portfolio-v1:'+organizationId);
-        if(!raw)throw new Error('This commercial project portfolio is not available on this device.');
-        const portfolio=decodeCommercialPortfolio(raw,organizationId);
-        const project=portfolio.projects.find(p=>p.id===sourceProject);
-        if(!project)throw new Error('Project not found in this device-local commercial portfolio.');
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sourceProject)){
+        opened.current=key;setHandoffError('Invalid shared project identifier.');return;
+      }
+      opened.current=key;
+      setHandoffError('Loading the authorized shared project…');
+      void loadCommercialProject(organizationId,sourceProject).then(project=>{
+        if(opened.current!==key)return;
+        if(!project)throw new Error('Shared project not found or no longer accessible.');
         const day=chicagoDateOf(new Date().toISOString())??'';
         const rawFleet=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
         let fleet:ReturnType<typeof parseLocalFleetDraft>|null=null;
@@ -146,11 +147,12 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           ? jobs.find(j=>j.id.toLowerCase()===project.bookingId&&j.status!=='cancelled'&&j.status!=='denied')??null
           : null;
         const draft=commercialPortfolioTask(project,fleet,day,sourceBooking);
-        opened.current=key;setHandoffError('');rawBoard.openCard(undefined,draft);
-      }catch(error){
-        opened.current=key;
-        setHandoffError(error instanceof Error?error.message:'This local project could not be validated for task preparation.');
-      }
+        if(opened.current!==key)return;
+        setHandoffError('');rawBoard.openCard(undefined,draft);
+      }).catch(error=>{
+        if(opened.current!==key)return;
+        setHandoffError(error instanceof Error?error.message:'Shared project could not be validated for task preparation.');
+      });
     } else if (sourceFleetAsset && !readOnly && mode === 'live') {
       // Explicit click from a specific device-local fleet asset; no shared
       // work-order save happens until the standard task editor is approved.

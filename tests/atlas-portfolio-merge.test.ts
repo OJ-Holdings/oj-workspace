@@ -109,13 +109,13 @@ test('organization boundary blocks both import preview and merge; no foreign pro
 
 test('capacity overflow refuses the entire batch rather than partially importing or overwriting',()=>{
   let local=emptyCommercialPortfolio(org);
-  for(let i=0;i<23;i++)local=write(local,'local'+i,'Local project '+i);
+  for(let i=0;i<249;i++)local=write(local,'local'+i,'Local project '+i);
   const incoming=write(stored('new1','New 1'),'new2','New 2');
   const plan=previewPortfolioMerge(local,incoming,org);
   assert.equal(plan.capacityAvailable,false);
-  assert.equal(plan.projectedCount,25);
-  assert.throws(()=>mergeNonConflictingPortfolio(local,incoming,org),/24-project browser limit/);
-  assert.equal(local.projects.length,23);
+  assert.equal(plan.projectedCount,251);
+  assert.throws(()=>mergeNonConflictingPortfolio(local,incoming,org),/250-project browser recovery limit/);
+  assert.equal(local.projects.length,249);
 });
 
 test('incoming project validation rejects malformed duplicate IDs and unsupported formats before any merge',()=>{
@@ -129,8 +129,8 @@ test('incoming project validation rejects malformed duplicate IDs and unsupporte
 
 test('local original remains untouched when importer cannot insert more projects',()=>{
   let local=emptyCommercialPortfolio(org);
-  for(let i=0;i<24;i++)local=write(local,'local'+i,'Local project '+i);
+  for(let i=0;i<250;i++)local=write(local,'local'+i,'Local project '+i);
   const before=encodeCommercialPortfolio(local,org);
-  assert.throws(()=>mergeNonConflictingPortfolio(local,stored('extra'),org),/browser limit/);
+  assert.throws(()=>mergeNonConflictingPortfolio(local,stored('extra'),org),/browser recovery limit/);
   assert.equal(encodeCommercialPortfolio(local,org),before);
 });
