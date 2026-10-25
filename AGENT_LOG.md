@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 -- ChatGPT (Founder mobile audit acceptance and repository status)
+**Summary:** Transcribed the founder-provided 12-page Exterior mobile/desktop critique to 16 traceable, founder-reported acceptance issues (FA-01 to FA-16). Reprioritized source-truth lead/job/revenue reconciliation and mobile navigation; Team at Work; consolidation of redundant dashboard widgets and excessive text; and a real multi-property Commercial Accounts app. Recovery exports/connection diagnostics should be background Settings, not primary operator UI. This is planning/status only, not an implemented code fix.
+**Files:** docs/EXTERIOR_FOUNDER_USABILITY_AUDIT_2026-10-25.md; docs/EXTERIOR_CONTINUE_HERE.md; docs/EXTERIOR_COMMAND_PROGRESS.md; docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md; docs/START_HERE_CHAT_HANDOFF.md; AGENT_LOG.md.
+**Verified:** Read founder's PDF screenshots and text; GitHub main 69f9ff5 and CI 40190080605 success; pending PR #150 head 6f54f9ce CI 40219067828 success; pending PR #151 head ef54c461 CI 40215126590 success. No Windows served-build, production database state, browser data, or actual founder phones were checked in this planning pass.
+**Notes:** PR #150 migration NOT applied, real encrypted backup/isolated restore/Storage bytes/actor checks remain gating, #151's prominent import/export UX is not an accepted shared-save workflow. PR #42 remains held. Keep original Exterior engineering score 42/100 until independently verified operations earn credit.
+
 ## 2026-10-25 -- ChatGPT (R50 exact-source authenticated P3 read + private staging write transaction)
 **Summary:** Advanced the real shared data engine: protected original-booking-to-canonical customer/property/opportunity/quote/order projection with RLS and explicit company mapping required before exposing legacy source details; separate non-exposed private SQL quote version transaction with optimistic revision and idempotent retries, preventing quote changes after work-order issuance. It does NOT send customers messages or create a public write API.
 **Files:** src/lib/exterior-p3-data.ts; src/lib/exterior-p3-db-read.ts; src/app/workspace/exterior-p3-actions.ts; src/lib/exterior-p3-workflow.ts (unchanged); supabase/staging/exterior-p3-private-command.sql; supabase/staging/exterior-p3-foundation.sql; tests/exterior-p3-data.test.ts; scripts/tests/exterior-p3-schema-integration.sh; docs/EXTERIOR_R50_DATA_ACCESS_RELEASE.md; canonical R50 handoff.
