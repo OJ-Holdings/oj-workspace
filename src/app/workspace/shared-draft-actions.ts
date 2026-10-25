@@ -13,7 +13,7 @@ const unavailableCodes = new Set(['42P01','42883','PGRST202','PGRST204','PGRST20
 async function verifyFieldSource(
   client: Awaited<ReturnType<typeof requireMember>>['client'],
   bookingId: string,
-  payload: { leadId: string; sourceDate: string; sourceStatus: string | null },
+  payload: { leadId: string; sourceDate?: string; sourceStatus?: string | null },
   strict: boolean,
 ): Promise<void> {
   const { data: booking, error } = await client.from('bookings')
@@ -21,7 +21,8 @@ async function verifyFieldSource(
   if (error || !booking || booking.lead_id !== payload.leadId) {
     throw new Error('Original booking or linked customer is no longer available to this company.');
   }
-  if (strict && (booking.date !== payload.sourceDate || booking.status !== payload.sourceStatus)) {
+  if (strict && payload.sourceDate !== undefined &&
+      (booking.date !== payload.sourceDate || booking.status !== payload.sourceStatus)) {
     throw new Error('Original booking date or status changed. Refresh and revalidate this field report before syncing.');
   }
 }
@@ -48,7 +49,7 @@ export async function loadSharedDraft<K extends SharedDraftKind>(
   });
   if (error) throw new Error(sharedError(error.code));
   const document = parseSharedDocument(organizationId, kind, sourceId, data);
-  if ((kind === 'exterior_field' || kind === 'exterior_equipment') && document) {
+  if ((kind === 'exterior_field' || kind === 'exterior_equipment' || kind === 'exterior_handoff') && document) {
     const field = document.payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
     await verifyFieldSource(client, sourceId, field, false);
   }
@@ -70,7 +71,7 @@ export async function saveSharedDraft<K extends SharedDraftKind>(
   }
   const payload = validateSharedPayload(organizationId, kind, sourceId, raw);
   const { client } = await requireMember(organizationId, true);
-  if (kind === 'exterior_field' || kind === 'exterior_equipment') {
+  if (kind === 'exterior_field' || kind === 'exterior_equipment' || kind === 'exterior_handoff') {
     const field = payload as { leadId: string; sourceDate: string; sourceStatus: string | null };
     await verifyFieldSource(client, sourceId, field, true);
   }
