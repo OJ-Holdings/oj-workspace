@@ -8,6 +8,7 @@ import {
  MessageSquarePlus,ShieldCheck,UsersRound,
 } from 'lucide-react';
 import type {ExtBooking} from '@/lib/exterior';
+import type {JobNextAction} from '@/lib/exterior-job-next-actions';
 import {
  existingOpenJobAction,linkedTaskActionable,originalBookingActionable,
  validOperatorNote,type OriginalBookingSnapshot,
@@ -23,7 +24,7 @@ import {
 type Board=Extract<Awaited<ReturnType<typeof loadExteriorSharedFollowups>>,{ok:true}>;
 type Props={
  org:string;booking:ExtBooking;leadId:string;base:string;
- board:Board;onRefresh:()=>void;
+ board:Board;suggestions:readonly JobNextAction[];onRefresh:()=>void;
  onLoadOlder:()=>void;moreBusy:boolean;moreError:string;
 };
 const stageLabel=(s:string)=>s==='Ready'?'To do':s==='In progress'?'Working':
@@ -43,7 +44,7 @@ const informOtherViews=()=>{
  * server-validated again against the original booking+customer source.
  * This is team execution, NOT a work-order, dispatch/rig, payroll or payment.
  */
-export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh,onLoadOlder,moreBusy,moreError}:Props){
+export function ExteriorJobActionLoop({org,booking,leadId,base,board,suggestions,onRefresh,onLoadOlder,moreBusy,moreError}:Props){
  const [note,setNote]=useState('');
  const [assignee,setAssignee]=useState('');
  const [dueOn,setDueOn]=useState('');
@@ -67,6 +68,12 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh,o
   validOperatorNote(note,10,1200)&&board.members.some(m=>m.name===assignee)&&
   !duplicate;
  const changeIntent=()=>{retryId.current=null;setError('');setNotice('');};
+ const prepareSuggestedAction=(action:JobNextAction)=>{
+  if(!canWrite||!!busy||board.limited||action.existing)return;
+  if(note.trim()&&!window.confirm('Replace your unsaved internal task instructions with this suggested draft?'))return;
+  changeIntent();setNote(action.note);setPriority(action.priority);
+ };
+
  const confirmCreation=async()=>{
   if(!canCreate)return;
   if(!window.confirm(
@@ -143,6 +150,22 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh,o
     <header><span>FOUNDER → TEAM</span><h5><MessageSquarePlus size={18}/> Assign next action</h5>
      <p>One precise internal instruction linked to this original booking. The assignee can see it on their phone after refresh.</p>
     </header>
+    {canWrite&&!board.limited&&suggestions.length>0&&
+     <div className="ecjob-suggestions" aria-label="Source-based internal task suggestions">
+      <strong>Source-based next actions</strong>
+      <p>These are editable internal suggestions from this booking's loaded records, not automated work or customer contact.</p>
+      {suggestions.map(action=><div key={action.key} className="ecjob-suggestion">
+       <div>
+        <b>{action.title}</b>
+        <small>{action.reason}</small>
+        {action.existing&&<small>Already assigned to {action.existing.assignee} · {stageLabel(action.existing.stage)}</small>}
+       </div>
+       <button type="button" disabled={!!busy||!!action.existing}
+        onClick={()=>prepareSuggestedAction(action)}>
+        {action.existing?'Already assigned':'Prepare task'}
+       </button>
+      </div>)}
+     </div>}
     <label>What should happen next?
      <textarea rows={3} maxLength={1200} value={note}
       onChange={e=>{changeIntent();setNote(e.target.value);}}
