@@ -58,6 +58,21 @@ Deno.serve(async (req: Request) => {
   const endpoint = url + "/rest/v1/oj_solutions_consultations";
   const apiHeaders = { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" };
   try {
+    // Throttle by a short-lived salted IP fingerprint using an atomic database budget.
+    // The actual IP and service secret are never saved or exposed. Email limit remains a backup.
+    const address = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
+    if (address) {
+      const salt = key + ":" + new Date().toISOString().slice(0, 10) + ":" + address;
+      const digestBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt));
+      const fingerprint = Array.from(new Uint8Array(digestBuffer), b => b.toString(16).padStart(2, "0")).join("");
+      const limiter = await fetch(url + "/rest/v1/rpc/oj_solutions_consultation_check_rate", {
+        method: "POST", headers: apiHeaders,
+        body: JSON.stringify({ p_fingerprint: fingerprint }), signal: AbortSignal.timeout(8000),
+      });
+      if (!limiter.ok) throw new Error("Request budget unavailable");
+      if ((await limiter.json()) !== true) return respond({ error: "Too many requests. Try again later or contact us by email." }, 429);
+    }
     // Limit to three requests per email in a rolling day; handles common accidental repeats.
     const since = new Date(Date.now() - 86400000).toISOString();
     const query = new URLSearchParams({ select: "id", email: "eq." + email, created_at: "gte." + since, limit: "3" });
