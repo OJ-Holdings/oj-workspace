@@ -263,7 +263,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
        <p>{lead.address??'Service location not entered'}</p>
        <div className="ecest-toolbar">
          <button type="button" onClick={saveRevision} disabled={!canModify||!!storageFailure||!totals||sharedStatus==='saving'||!!pendingShared.current}><Save size={15}/> {sharedStatus==='ready'?'Save shared revision':'Save local revision'}</button>
-          {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void sendSharedRevision(pendingShared.current);}}>Retry original shared save</button>
+          {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void sendSharedRevision(pendingShared.current);}}>Retry original shared save</button>}
          <button type="button" onClick={copy} disabled={!totals}><ClipboardCopy size={15}/> Copy internal brief</button>
          <button type="button" onClick={exportPortable} disabled={!totals}><Download size={15}/> Export quote package</button>
          {canModify&&<button type="button" onClick={()=>uploadRef.current?.click()} disabled={!!storageFailure}><FileUp size={15}/> Import private package</button>}
