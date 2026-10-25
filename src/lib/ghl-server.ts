@@ -47,7 +47,7 @@ export async function readGhl(): Promise<GhlData> {
     get<{ pipelines?: { stages?: { id: string; name: string }[] }[] }>(`/opportunities/pipelines?locationId=${location}`),
     get<{ opportunities?: RawOpportunity[]; meta?: { total?: number } }>(`/opportunities/search?location_id=${location}&limit=100`),
     get<{ conversations?: RawConversation[]; total?: number }>(`/conversations/search?locationId=${location}&limit=${conversationLimit}&sortBy=last_message_date&sort=desc`, '2021-04-15'),
-    readConsultations(location),
+    readConsultations(location).catch(() => ({ appointments: [] as GhlAppointment[], configured: true, error: true })),
   ]);
   const stageList = (pipelines.pipelines ?? []).flatMap(p => p.stages ?? []);
   const stageName = new Map(stageList.map(s => [s.id, s.name]));
@@ -69,6 +69,7 @@ export async function readGhl(): Promise<GhlData> {
   const data: GhlData = {
     appointments: consultations.appointments,
     appointmentsConfigured: consultations.configured,
+    appointmentsError: 'error' in consultations && consultations.error === true,
     contacts: (contacts.contacts ?? []).map((c): GhlContact => ({ id: c.id, name: c.contactName || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Unnamed', company: c.companyName ?? '', type: c.type ?? '', tags: c.tags ?? [], added: c.dateAdded ?? '' })),
     contactsTotal: contacts.meta?.total ?? contacts.contacts?.length ?? 0,
     stages: stageList.map(s => s.name),
