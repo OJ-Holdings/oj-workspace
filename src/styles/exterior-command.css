@@ -509,3 +509,20 @@
 .ecjob-crew-brief ul{padding-left:18px;margin:9px 0 2px}
 .ecjob-crew-brief-privacy{font-size:10px;line-height:1.5;color:#aabfcb;margin:11px 0 0}
 @media(max-width:700px){.ecjob-crew-brief-grid{grid-template-columns:minmax(0,1fr)}.ecjob-crew-brief-head button{width:100%}}
+
+/* Founder U0 phone audit: show all five Exterior destinations without a
+   horizontally hidden tab strip. Real-phone verification remains required. */
+@media(max-width:650px){
+ .excmd-nav-tabs{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  flex-basis:100%;width:100%;min-width:0;gap:5px;
+  overflow:visible;margin:0;padding:0;
+ }
+ .excmd-nav-tab{
+  min-width:0;min-height:56px;display:flex;flex-direction:column;
+  gap:4px;white-space:normal;text-align:center;line-height:1.2;padding:8px 4px;
+ }
+ .excmd-nav-tab span{min-width:0;overflow-wrap:anywhere}
+ .excmd-nav-identity,.excmd-nav-identity>div:last-child{min-width:0}
+ .excmd-nav-identity strong{overflow-wrap:anywhere}
+}
