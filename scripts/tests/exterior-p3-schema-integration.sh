@@ -58,7 +58,7 @@ for table in oj_exterior_properties oj_exterior_legacy_links oj_exterior_opportu
  actor_count "$member" "$table" "$org" >/dev/null
  eq "$(actor_count "$viewer" "$table" "$org")" 0 "Viewer blocked: $table"
 done
-eq "$(actor_count "$revoked" oj_exterior_quote_versions "$org")" 1 "Member before revocation"
+eq "$(actor_count "$revoked" oj_exterior_quote_versions "$org")" 3 "Member before revocation sees all three staged versions"
 sql "DELETE FROM public.oj_memberships WHERE organization_id='$org' AND user_id='$revoked';" >/dev/null
 eq "$(actor_count "$revoked" oj_exterior_quote_versions "$org")" 0 "Revoked user blocked without JWT refresh"
 fail "Anon has no quote SELECT grant" \
