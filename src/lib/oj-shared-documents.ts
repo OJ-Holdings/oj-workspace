@@ -1,6 +1,8 @@
 import { parseLocalEstimateBook, type LocalEstimateBook } from './exterior-estimate';
 import { validateFleet, type FleetWorkbook } from './fleet-command';
 import { isFieldLog, reviewFieldLog, type ExteriorFieldLog } from './exterior-field-log';
+import { parseEquipmentPlan, type FieldEquipmentPlan } from './exterior-field-equipment';
+import type { ExtBooking } from './exterior';
 
 /**
  * One explicit source of authority per business record. This interim document
@@ -9,11 +11,12 @@ import { isFieldLog, reviewFieldLog, type ExteriorFieldLog } from './exterior-fi
  *
  * Never save arbitrary localStorage keys, preview fixtures or STRATHOS state.
  */
-export type SharedDraftKind = 'exterior_estimate' | 'fleet' | 'exterior_field';
+export type SharedDraftKind = 'exterior_estimate' | 'fleet' | 'exterior_field' | 'exterior_equipment';
 
 export type SharedDraftPayload<K extends SharedDraftKind> =
   K extends 'exterior_estimate' ? LocalEstimateBook :
-  K extends 'exterior_field' ? ExteriorFieldLog : FleetWorkbook;
+  K extends 'exterior_field' ? ExteriorFieldLog :
+  K extends 'exterior_equipment' ? FieldEquipmentPlan : FleetWorkbook;
 
 export type SharedDraftRecord<T> = Readonly<{
   revision: number;
@@ -27,7 +30,7 @@ export function assertSharedReference(organizationId: string, kind: SharedDraftK
   if (!uuidPattern.test(organizationId)) throw new Error('Invalid company identifier.');
   if (kind === 'fleet') {
     if (sourceId !== 'main') throw new Error('Fleet records belong to the company registry.');
-  } else if (kind === 'exterior_estimate' || kind === 'exterior_field') {
+  } else if (kind === 'exterior_estimate' || kind === 'exterior_field' || kind === 'exterior_equipment') {
     if (!uuidPattern.test(sourceId)) throw new Error('Draft requires an original lead or booking UUID.');
   } else {
     throw new Error('This shared-data module has not passed domain validation.');
@@ -52,6 +55,16 @@ export function validateSharedPayload<K extends SharedDraftKind>(
     if (!isFieldLog(raw, sourceId)) throw new Error('Invalid booking-bound field record.');
     reviewFieldLog(raw);
     return structuredClone(raw) as SharedDraftPayload<K>;
+  }
+  if(kind === 'exterior_equipment') {
+    const x=raw as Partial<FieldEquipmentPlan>;
+    if(x.bookingId !== sourceId || x.organizationId !== organizationId ||
+       typeof x.leadId !== 'string' || typeof x.sourceDate !== 'string' ||
+       !(x.sourceStatus===null||typeof x.sourceStatus==='string')) {
+      throw new Error('Equipment plan source identifiers are invalid.');
+    }
+    const source={id:sourceId,lead_id:x.leadId,date:x.sourceDate,status:x.sourceStatus} as ExtBooking;
+    return parseEquipmentPlan(encoded,organizationId,source) as SharedDraftPayload<K>;
   }
   return validateFleet(raw, organizationId) as SharedDraftPayload<K>;
 }
