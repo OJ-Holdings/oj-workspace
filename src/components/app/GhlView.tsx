@@ -45,6 +45,25 @@ export function GhlView({ tab, org, mode }: { tab: string; org: string; mode: 'p
         <div><span>Won</span><strong><NumberFlow value={p.wonValue} format={usd} /></strong><small className="quiet">{p.wonCount} deals. Deal value, not money received</small></div>
       </div>
       <section className="panel">
+        <header className="panel-head"><h2>Upcoming 15-minute consultations</h2></header>
+        {data.appointmentsConfigured
+          ? data.appointments.length
+            ? <div className="tablewrap"><table className="table">
+                <thead><tr><th>Date & time (Central)</th><th>Consultation</th><th>Contact</th><th>Status</th></tr></thead>
+                <tbody>{data.appointments.map(a => {
+                  const c = data.contacts.find(c => c.id === a.contactId);
+                  return <tr key={a.id}>
+                    <td>{new Date(a.startsAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+                    <td>{a.title}</td><td>{c?.name ?? (a.contactId ? 'Contact not in first 100' : 'Unlinked')}</td>
+                    <td>{words(a.status)}</td>
+                  </tr>;
+                })}</tbody>
+              </table></div>
+            : <div className="empty"><p>No upcoming consultations in this calendar for the next 31 days.</p></div>
+          : <div className="empty"><p>Consultation calendar not connected. Set <code>GHL_BOOKING_CALENDAR_ID</code> on the OJ Workspace server to show scheduled appointments here.</p></div>}
+        {fetched}
+      </section>
+      <section className="panel">
         <header className="panel-head"><h2>Pipeline</h2></header>
         {data.opportunities.length ? <div className="tablewrap"><table className="table">
           <thead><tr><th>Stage</th><th className="num">Open deals</th><th className="num">Value</th></tr></thead>
