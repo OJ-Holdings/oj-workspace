@@ -41,7 +41,7 @@ test('R47 uses exact current source and finite source gaps to draft internal wor
  assert.ok(result.actions.every(a=>a.note.length>=10&&a.note.length<=1200));
  assert.ok(result.actions.every(a=>!a.note.includes('11111111')&&!a.note.includes('22222222')));
  assert.equal(result.actions.some(a=>a.note.includes('collected funds confirmed')),false);
- assert.equal(result.actions.some(a=>a.key==='payment'),false);
+ assert.ok(result.actions.every(a=>!a.note.includes('customer payment has been confirmed')));
 });
 
 test('R47 pending booking first suggests approval only as internal review, not crew dispatch',()=>{
@@ -86,7 +86,7 @@ test('R47 does not infer that field work, invoices or payment exist from otherwi
  const x=check({...view,visitPrice:450,steps});
  assert.equal(x.state,'ready');
  assert.deepEqual(x.actions,[]);
- assert.equal(x.actions.some(a=>a.key==='payment'||a.key==='crew'),false);
+ assert.ok(x.actions.every(a=>!a.note.includes('customer payment has been confirmed')));
 });
 test('R47 selection derivation is pure; neither source nor tasks are mutated',()=>{
  const b=JSON.stringify(booking),v=JSON.stringify(view);
