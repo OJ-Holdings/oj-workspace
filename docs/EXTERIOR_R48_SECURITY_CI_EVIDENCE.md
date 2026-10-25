@@ -1,4 +1,4 @@
-# OJ Workspace Releases 48–49 — dependency patch and CI guard
+# OJ Workspace Release 48 and security gate 48.1 — dependency patch and CI guard
 
 **Scope:** Small, separately reviewed software supply-chain changes. They are not production host verification, database recovery, authorization certification or customer acceptance.
 
@@ -13,9 +13,9 @@ CI for R47 printed **one critical npm advisory** under pinned Next.js 16.3.8. Th
 - Lockfile confirms `node_modules/next` 16.4.1 and `node_modules/sharp` 0.35.5. Temporary regeneration workflow deleted from final two-file diff.
 - Exact PR head `fa2e453a80d999a39bef1233a6fb48c98a684a70`, [GitHub CI 40149496633](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40149496633) passed TypeScript, full app tests, Next.js production build and isolated synthetic PG17 recovery. `npm ci` in that run printed **0 vulnerabilities** (a dated audit observation, not a guarantee against future disclosures).
 
-## R49 proposed permanent guard
+## R48.1 proposed permanent guard
 
-After `npm ci`, run `npm audit --audit-level=critical` in the existing GitHub CI check job. Fail if the registry reports a known critical npm dependency advisory. The audit uses no production/customer credentials and grants no new CI permission; it can fail from npm registry outages as well as actual advisories and requires operator investigation. Review R49 CI and actual merged main before describing it as in effect.
+After `npm ci`, run `npm audit --audit-level=critical` in the existing GitHub CI check job. Fail if the registry reports a known critical npm dependency advisory. The audit uses no production/customer credentials and grants no new CI permission; it can fail from npm registry outages as well as actual advisories and requires operator investigation. Review R48.1 CI and actual merged main before describing it as in effect.
 
 ## Boundaries still open
 
