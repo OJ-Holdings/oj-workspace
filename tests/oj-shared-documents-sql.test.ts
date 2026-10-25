@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { newFieldLog } from '../src/lib/exterior-field-log';
 
 test('shared OJ draft SQL enforces current membership, source ownership, CAS, replay and private history', async t => {
   const db = new PGlite();
@@ -12,6 +13,7 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
   const viewer = '00000000-0000-4000-8000-000000000013';
   const outsider = '00000000-0000-4000-8000-000000000014';
   const lead = '00000000-0000-4000-8000-000000000021';
+  const bookingId = '00000000-0000-4000-8000-000000000023';
   const command1 = '00000000-0000-4000-8000-000000000031';
   const command2 = '00000000-0000-4000-8000-000000000032';
   const value = { schema:1, current: {schema:1,leadId:lead,sourceUpdatedAt:null,sourceQuote:null,
@@ -31,8 +33,9 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
     create table oj_private.legacy_owner(organization_id uuid primary key references public.oj_organizations(id));
     insert into oj_private.legacy_owner values ('${org}');
     create table public.leads(id uuid primary key);
-    create table public.bookings(id uuid primary key,lead_id uuid references public.leads(id));
-    insert into public.leads values ('${lead}');`);
+    create table public.bookings(id uuid primary key,lead_id uuid references public.leads(id),date date,status text);
+    insert into public.leads values ('${lead}');
+    insert into public.bookings values ('${bookingId}','${lead}','2026-10-26','confirmed');`);
   await db.exec(await readFile(new URL('../supabase/migrations/20261026000000_oj_workspace_module_documents.sql',import.meta.url),'utf8'));
   const as = (id:string, role='authenticated')=>db.exec(`reset role; set request.jwt.claim.sub='${id}'; set role ${role};`);
   const save = (command:string,expected:number,payload=value,tenant=org)=>
@@ -65,6 +68,32 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
     const history=await db.query('select revision from oj_private.oj_module_versions order by revision');
     assert.deepEqual(history.rows.map((v:any)=>v.revision),[1,2]);
     await assert.rejects(()=>db.query('delete from oj_private.oj_module_versions where revision=1'));
+  });
+  await t.test('field draft source binding, access control and booking drift',async()=>{
+    const field=newFieldLog({
+      id:bookingId,lead_id:lead,date:'2026-10-26',status:'confirmed'
+    } as Parameters<typeof newFieldLog>[0]);
+    const saveField=(payload:unknown,command:string,expected=0,tenant=org)=>db.query<{result:{revision?:number;ok:boolean;replayed?:boolean}}>(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb) result',
+      [tenant,'exterior_field',bookingId,expected,command,JSON.stringify(payload)]);
+    await as(owner);
+    const first=await saveField(field,'00000000-0000-4000-8000-000000000060');
+    assert.equal(first.rows[0].result.revision,1);
+    assert.equal((await saveField(field,'00000000-0000-4000-8000-000000000060')).rows[0].result.replayed,true);
+    await assert.rejects(()=>saveField({...field,leadId:otherOrg},'00000000-0000-4000-8000-000000000061',1));
+    await assert.rejects(()=>saveField({...field,bookingId:lead},'00000000-0000-4000-8000-000000000062',1));
+    await db.exec(`reset role; update public.bookings set status='cancelled' where id='${bookingId}'`);
+    await as(owner);
+    await assert.rejects(()=>saveField(field,'00000000-0000-4000-8000-000000000063',1));
+    await db.exec(`reset role; update public.bookings set status='confirmed' where id='${bookingId}'`);
+    await as(member);
+    const loaded=await db.query<{v:{revision:number;payload:{bookingId:string}}}>(
+      'select public.oj_module_document_get($1,$2,$3) v',[org,'exterior_field',bookingId]);
+    assert.equal(loaded.rows[0].v.revision,1);
+    assert.equal(loaded.rows[0].v.payload.bookingId,bookingId);
+    await assert.rejects(()=>db.query('select * from oj_private.oj_module_versions'));
+    await as(outsider);
+    await assert.rejects(()=>db.query('select public.oj_module_document_get($1,$2,$3)',[org,'exterior_field',bookingId]));
   });
   await t.test('viewer, anonymous, outsider and revoked member cannot read or write',async()=>{
     for(const subject of [viewer,outsider]){
