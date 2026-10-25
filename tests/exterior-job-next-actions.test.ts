@@ -86,7 +86,6 @@ test('R47 does not infer that field work, invoices or payment exist from otherwi
  const x=check({...view,visitPrice:450,steps});
  assert.equal(x.state,'ready');
  assert.deepEqual(x.actions,[]);
- assert.ok(x.actions.every(a=>!a.note.includes('customer payment has been confirmed')));
 });
 test('R47 selection derivation is pure; neither source nor tasks are mutated',()=>{
  const b=JSON.stringify(booking),v=JSON.stringify(view);
