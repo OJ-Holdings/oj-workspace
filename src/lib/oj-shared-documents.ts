@@ -3,6 +3,9 @@ import { validateFleet, type FleetWorkbook } from './fleet-command';
 import { isFieldLog, reviewFieldLog, type ExteriorFieldLog } from './exterior-field-log';
 import { parseEquipmentPlan, type FieldEquipmentPlan } from './exterior-field-equipment';
 import type { ExtBooking } from './exterior';
+import { readHandoffMailbox, serializeHandoffMailbox, type HandoffMailbox } from './exterior-crew-handoff';
+
+export type SharedHandoffEnvelope={bookingId:string;leadId:string;mailbox:HandoffMailbox};
 
 /**
  * One explicit source of authority per business record. This interim document
@@ -11,12 +14,13 @@ import type { ExtBooking } from './exterior';
  *
  * Never save arbitrary localStorage keys, preview fixtures or STRATHOS state.
  */
-export type SharedDraftKind = 'exterior_estimate' | 'fleet' | 'exterior_field' | 'exterior_equipment';
+export type SharedDraftKind = 'exterior_estimate' | 'fleet' | 'exterior_field' | 'exterior_equipment' | 'exterior_handoff';
 
 export type SharedDraftPayload<K extends SharedDraftKind> =
   K extends 'exterior_estimate' ? LocalEstimateBook :
   K extends 'exterior_field' ? ExteriorFieldLog :
-  K extends 'exterior_equipment' ? FieldEquipmentPlan : FleetWorkbook;
+  K extends 'exterior_equipment' ? FieldEquipmentPlan :
+  K extends 'exterior_handoff' ? SharedHandoffEnvelope : FleetWorkbook;
 
 export type SharedDraftRecord<T> = Readonly<{
   revision: number;
@@ -30,7 +34,7 @@ export function assertSharedReference(organizationId: string, kind: SharedDraftK
   if (!uuidPattern.test(organizationId)) throw new Error('Invalid company identifier.');
   if (kind === 'fleet') {
     if (sourceId !== 'main') throw new Error('Fleet records belong to the company registry.');
-  } else if (kind === 'exterior_estimate' || kind === 'exterior_field' || kind === 'exterior_equipment') {
+  } else if (kind === 'exterior_estimate' || kind === 'exterior_field' || kind === 'exterior_equipment' || kind === 'exterior_handoff') {
     if (!uuidPattern.test(sourceId)) throw new Error('Draft requires an original lead or booking UUID.');
   } else {
     throw new Error('This shared-data module has not passed domain validation.');
@@ -65,6 +69,18 @@ export function validateSharedPayload<K extends SharedDraftKind>(
     }
     const source={id:sourceId,lead_id:x.leadId,date:x.sourceDate,status:x.sourceStatus} as ExtBooking;
     return parseEquipmentPlan(encoded,organizationId,source) as SharedDraftPayload<K>;
+  }
+  if(kind === 'exterior_handoff') {
+    const x=raw as Partial<SharedHandoffEnvelope>;
+    if(x.bookingId!==sourceId||typeof x.leadId!=='string'||!uuidPattern.test(x.leadId)||
+       !x.mailbox||typeof x.mailbox!=='object'||Array.isArray(x.mailbox)){
+      throw new Error('Crew handoff must identify an exact source booking and lead.');
+    }
+    const validated=readHandoffMailbox(
+      serializeHandoffMailbox(x.mailbox,organizationId,sourceId,x.leadId),
+      organizationId,sourceId,x.leadId
+    );
+    return {bookingId:sourceId,leadId:x.leadId,mailbox:validated} as SharedDraftPayload<K>;
   }
   return validateFleet(raw, organizationId) as SharedDraftPayload<K>;
 }
