@@ -11,6 +11,8 @@
 -- The three old blocks match it, so every existing booking stays valid. The
 -- workspace itself only offers 8 AM to 8 PM, up to six hours (src/lib/exterior-ops.ts).
 begin;
+-- A fully specified range such as 10:15-12:30 requires 11 characters.
+alter table public.bookings alter column time_block type character varying(11);
 alter table public.bookings drop constraint if exists bookings_time_block_check;
 alter table public.bookings drop constraint if exists bookings_time_block_format;
 alter table public.bookings add constraint bookings_time_block_format
