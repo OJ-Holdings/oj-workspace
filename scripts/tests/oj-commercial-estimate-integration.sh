@@ -109,5 +109,21 @@ eq "$(sql "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnam
 eq "$(sql "SELECT count(*) FROM information_schema.role_table_grants WHERE grantee='authenticated' AND table_name LIKE 'oj_commercial_%' AND privilege_type IN ('INSERT','UPDATE','DELETE');")" 0 'Authenticated role has no direct commercial table writes'
 eq "$(sql 'SELECT count(*) FROM public.oj_commercial_estimate_versions;')" 4 'Only accepted writes appended immutable commercial versions'
 eq "$(sql 'SELECT count(*) FROM public.oj_commercial_history;')" 4 'Every accepted version has a persisted history receipt'
+fail 'Privileged SQL cannot rewrite immutable estimate version price/scope' \
+ "UPDATE public.oj_commercial_estimate_versions SET payload_hash=repeat('f',32) WHERE organization_id='$org';"
+fail 'Privileged SQL cannot delete historic commercial building scope' \
+ "DELETE FROM public.oj_commercial_buildings WHERE organization_id='$org';"
+fail 'Privileged SQL cannot change historical private cost assumptions' \
+ "UPDATE oj_private.oj_commercial_cost_assumptions SET total_cost=0 WHERE organization_id='$org';"
+fail 'Privileged SQL cannot erase accepted save command receipt' \
+ "DELETE FROM oj_private.oj_commercial_commands WHERE organization_id='$org';"
+sql "DELETE FROM public.oj_memberships WHERE organization_id='$org' AND user_id='$member';" >/dev/null
+fail 'Revoked member loses commercial read access with same JWT subject' \
+ "BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$member',true); SELECT public.oj_commercial_projects_list('$org',10,NULL,NULL); ROLLBACK;"
+fail 'Revoked member cannot prepare a second save with same JWT subject' \
+ "BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$member',true); SELECT public.oj_commercial_project_save('$org','$project',3,'60000000-0000-4000-8000-000000000001','$payload'::jsonb); ROLLBACK;"
+eq "$(sql 'SELECT count(*) FROM public.oj_commercial_estimate_versions;')" 4 \
+ 'Negative tests did not damage immutable history'
+echo 'SUCCESS: append-only evidence, private cost immutability and immediate revocation denial verified.'
 echo 'SUCCESS: synthetic PostgreSQL 17 commercial persistence, roles, tenant isolation, CAS, idempotency, private costs and pagination.'
 echo 'NO production DDL, real customer data, quotes, jobs, payments or customer communications were performed.'
