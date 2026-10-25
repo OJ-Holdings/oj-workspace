@@ -113,7 +113,7 @@ begin
   end if;
   if p_command_id is null or p_expected_revision is null
      or p_expected_revision < 0 or p_kind is null or p_source_id is null
-     or p_kind not in ('exterior_estimate','fleet','exterior_field')
+     or p_kind not in ('exterior_estimate','fleet','exterior_field','exterior_equipment')
      or jsonb_typeof(p_payload) is distinct from 'object'
      or octet_length(p_payload::text) > 262144 then
     raise exception 'Invalid shared document request' using errcode = '22023';
@@ -180,6 +180,16 @@ begin
     jsonb_array_length(p_payload->'issues') > 25
   ) then
     raise exception 'Invalid field report structure' using errcode = '22023';
+  end if;
+  if p_kind = 'exterior_equipment' and (
+    p_payload->>'format' is distinct from 'oj-field-equipment-local-v1' or
+    p_payload->>'organizationId' is distinct from p_organization_id::text or
+    jsonb_typeof(p_payload->'selectedAssetIds') is distinct from 'array' or
+    jsonb_array_length(p_payload->'selectedAssetIds') > 30 or
+    (p_payload->>'reviewedAt' is not null and
+      jsonb_typeof(p_payload->'reviewedAt') is distinct from 'string')
+  ) then
+    raise exception 'Invalid field equipment plan' using errcode = '22023';
   end if;
   if p_kind = 'fleet' and (
     p_payload->>'format' is distinct from 'oj-fleet-local-v1' or
