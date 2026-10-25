@@ -113,7 +113,7 @@ begin
   end if;
   if p_command_id is null or p_expected_revision is null
      or p_expected_revision < 0 or p_kind is null or p_source_id is null
-     or p_kind not in ('exterior_estimate','fleet')
+     or p_kind not in ('exterior_estimate','fleet','exterior_field')
      or jsonb_typeof(p_payload) is distinct from 'object'
      or octet_length(p_payload::text) > 262144 then
     raise exception 'Invalid shared document request' using errcode = '22023';
@@ -142,9 +142,15 @@ begin
         raise exception 'Estimate is not linked to its original lead' using errcode = '22023';
       end if;
     else
-      select exists(select 1 from public.bookings where id = p_source_id::uuid) into v_valid_source;
-      if not v_valid_source then
-        raise exception 'Field record is not linked to its original booking' using errcode = '22023';
+      select exists(
+        select 1 from public.bookings b
+         where b.id = p_source_id::uuid
+           and b.lead_id::text = p_payload->>'leadId'
+           and b.date::text = p_payload->>'sourceDate'
+           and b.status is not distinct from p_payload->>'sourceStatus'
+      ) into v_valid_source;
+      if not v_valid_source or p_payload->>'bookingId' is distinct from p_source_id then
+        raise exception 'Field draft is not tied to the current booking and lead' using errcode = '22023';
       end if;
     end if;
   end if;
@@ -160,6 +166,20 @@ begin
     jsonb_typeof(p_payload->'revisions') is distinct from 'array'
   ) then
     raise exception 'Invalid residential estimate structure' using errcode = '22023';
+  end if;
+  if p_kind = 'exterior_field' and (
+    p_payload->>'schema' is distinct from '1' or
+    p_payload->>'stage' not in ('preparation','on-site','wrap-up') or
+    jsonb_typeof(p_payload->'labor') is distinct from 'array' or
+    jsonb_typeof(p_payload->'materials') is distinct from 'array' or
+    jsonb_typeof(p_payload->'issues') is distinct from 'array' or
+    jsonb_typeof(p_payload->'review') is distinct from 'object' or
+    jsonb_typeof(p_payload->'checks') is distinct from 'object' or
+    jsonb_array_length(p_payload->'labor') > 20 or
+    jsonb_array_length(p_payload->'materials') > 30 or
+    jsonb_array_length(p_payload->'issues') > 25
+  ) then
+    raise exception 'Invalid field report structure' using errcode = '22023';
   end if;
   if p_kind = 'fleet' and (
     p_payload->>'format' is distinct from 'oj-fleet-local-v1' or
