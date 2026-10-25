@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { newFieldLog } from '../src/lib/exterior-field-log';
+import { makeEquipmentPlan } from '../src/lib/exterior-field-equipment';
 
 test('shared OJ draft SQL enforces current membership, source ownership, CAS, replay and private history', async t => {
   const db = new PGlite();
@@ -94,6 +95,24 @@ test('shared OJ draft SQL enforces current membership, source ownership, CAS, re
     await assert.rejects(()=>db.query('select * from oj_private.oj_module_versions'));
     await as(outsider);
     await assert.rejects(()=>db.query('select public.oj_module_document_get($1,$2,$3)',[org,'exterior_field',bookingId]));
+  });
+  await t.test('booking equipment plan is source-scoped and revisioned',async()=>{
+    const equipment=makeEquipmentPlan(org,
+      {id:bookingId,lead_id:lead,date:'2026-10-26',status:'confirmed'} as Parameters<typeof makeEquipmentPlan>[1]);
+    await as(owner);
+    const create=await db.query<{v:{revision:number}}>(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb) v',
+      [org,'exterior_equipment',bookingId,0,'00000000-0000-4000-8000-000000000070',JSON.stringify(equipment)]);
+    assert.equal(create.rows[0].v.revision,1);
+    await assert.rejects(()=>db.query(
+      'select public.oj_module_document_save($1,$2,$3,$4,$5,$6::jsonb)',
+      [org,'exterior_equipment',bookingId,1,'00000000-0000-4000-8000-000000000071',
+        JSON.stringify({...equipment,leadId:otherOrg})]));
+    await as(member);
+    const doc=await db.query<{v:{revision:number;payload:{bookingId:string}}}>(
+      'select public.oj_module_document_get($1,$2,$3) v',[org,'exterior_equipment',bookingId]);
+    assert.equal(doc.rows[0].v.revision,1);
+    assert.equal(doc.rows[0].v.payload.bookingId,bookingId);
   });
   await t.test('viewer, anonymous, outsider and revoked member cannot read or write',async()=>{
     for(const subject of [viewer,outsider]){
