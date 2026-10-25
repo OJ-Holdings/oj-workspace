@@ -59,12 +59,13 @@ archive="$tmp/supabase-vgckpcktsfuithqggknd-20261024T063000Z.dump.age"
 docker exec "$source_container" pg_dump -Fc -U postgres -d postgres --no-owner \
   | age -r "$recipient" -o "$archive"
 python3 - "$archive" <<'PY'
-import hashlib,json,pathlib,sys
+import datetime,hashlib,json,pathlib,sys
 p=pathlib.Path(sys.argv[1])
 data=p.read_bytes()
 manifest={
  "project_ref":"vgckpcktsfuithqggknd",
  "format":"pg_dump-custom+age-v1","encrypted":True,"client_major":17,
+ "produced_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
  "size_bytes":len(data),"sha256":hashlib.sha256(data).hexdigest().upper(),
  "archive_list_checked":True,"restored_in_isolation":False,
  "note":"SYNTHETIC CI FIXTURE, NOT ACTUAL OJ BACKUP",
