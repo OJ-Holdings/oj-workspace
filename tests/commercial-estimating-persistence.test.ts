@@ -177,5 +177,26 @@ test('commercial estimate RPCs enforce tenant roles, immutable versions, CAS and
     await assert.rejects(() => db.query(`select public.oj_commercial_projects_list($1,101,null,null)`, [org]));
   });
 
+  await t.test('saved immutable version, building, history, private costs and command receipts resist privileged SQL edits', async () => {
+    await db.exec('reset role');
+    const deny = [
+      'update public.oj_commercial_estimate_versions set payload_hash=repeat(\'f\',32)',
+      'delete from public.oj_commercial_estimate_versions',
+      'update public.oj_commercial_buildings set notes=\'retroactively altered\'',
+      'delete from public.oj_commercial_buildings',
+      'update public.oj_commercial_history set revision=900',
+      'delete from public.oj_commercial_history',
+      'update oj_private.oj_commercial_cost_assumptions set total_cost=0',
+      'delete from oj_private.oj_commercial_cost_assumptions',
+      'update oj_private.oj_commercial_commands set revision=900',
+      'delete from oj_private.oj_commercial_commands',
+    ];
+    for (const statement of deny) {
+      await assert.rejects(() => db.exec(statement), /immutable/i, statement);
+    }
+    const versions = await db.query<{n:number}>('select count(*)::integer n from public.oj_commercial_estimate_versions');
+    assert.equal(versions.rows[0].n,4);
+  });
+
   await db.close();
 });
