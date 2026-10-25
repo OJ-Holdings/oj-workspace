@@ -6,6 +6,10 @@
 
 
 
+## Exterior Release 50 / Shared Data & Transaction Foundation
+
+[PR #148](https://github.com/OJ-Holdings/oj-workspace/pull/148) merged as `923bee2ca98e263b9dffc310ad3687606f93c678`, after exact-head three-job CI [#40189504342](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40189504342) passed. New owner/member authenticated, RLS-bound **read-only** exact booking→legacy link→customer/property→opportunity→quote latest version→planned order graph. Legacy source customer details fail closed if no tenant-bound link; draft save SQL transaction is staged privately in `oj_private` with revision locking, idempotency and actor restrictions, **without client EXECUTE**. Additional P3.1 synthetic SQL tests and 14 source/race negative tests. No production P3 migration or existing estimate workbench data migration. **42/100 unchanged**. See [R50 release](./EXTERIOR_R50_DATA_ACCESS_RELEASE.md) and [canonical continuation](./EXTERIOR_CONTINUE_HERE.md).
+
 ## EXTERIOR R47 / P1.4 — NEXT ACTION DRAFTS, AND R48–49 SECURITY
 
 - **Release 47 / P1.4**: [PR #138](https://github.com/OJ-Holdings/oj-workspace/pull/138) merged as `854dffc3ea7d3b0f5cc99abd6ecf8513694e92fd`. Exact tested feature head `0e6c69f09ac132db0d09961e41bcf70d672148f5` passed [CI #40149279797](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40149279797) (TypeScript, complete tests, Next production build and synthetic PG17 restore). Exact original Booking → Job Continuity now produces up to four deterministic INTERNAL next-action drafts from current source-reviewed booking, customer, visit-quote and crew evidence. Explicit **Prepare task** fills only the editable assignment form; actual publishing still requires selecting a current member, confirmation and authenticated original-booking server checks. Existing identical active tasks are labeled instead of duplicated. Stale, denied, unrelated and partial-task sources suppress suggestions. Not artificial intelligence inference of invoices/dispatch/field completion.
