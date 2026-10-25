@@ -35,7 +35,8 @@ const board=(b:ExtBooking=booking,tasks:SharedJobFollowup[]=[task],limited=false
  source:{date:b.date,time:b.time_block,status:b.status},
  tasks,limited,
 });
-const build=(d=makeData(),b=booking,c=crew,tasks=board())=>
+const build=(d:ExteriorData=makeData(),b:ExtBooking=booking,
+ c:{available:boolean;employeeName:string|null}=crew,tasks=board())=>
  buildExteriorCrewBrief(d,b,buildJobContinuity(d,b,c),c,tasks);
 
 test('R49 internal brief joins exact source customer, scheduled visit, crew and authenticated tasks',()=>{
