@@ -50,6 +50,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  const [sharedRevision,setSharedRevision]=useState<number|null>(null);
  const [sharedCopy,setSharedCopy]=useState<ExteriorFieldLog|null>(null);
  const [hadLocal,setHadLocal]=useState(false);
+ const [sharedRefresh,setSharedRefresh]=useState(0);
  const logRef=useRef<ExteriorFieldLog|null>(null);
  const savePending=useRef<{data:ExteriorFieldLog;expected:number;commandId:string}|null>(null);
  const [query,setQuery]=useState('');
@@ -104,7 +105,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
    setNotice(error instanceof Error?error.message:'Shared field storage unavailable. Your device-local report is preserved.');
   });
   return ()=>{cancelled=true;};
- },[org,booking?.id,lead?.id,loaded,readonly,storageError,hadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
+ },[org,booking?.id,lead?.id,loaded,readonly,storageError,hadLocal,sharedRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
  const reviewed=useMemo(()=>{
   if(!log)return null;
   try{return {ok:true as const,result:reviewFieldLog(log)};}
@@ -136,12 +137,66 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
    {id:newId(),category:issueKind,severity:issueSeverity,description:issueText.trim().slice(0,800),resolved:false}]});
   setIssueText('');
  };
+ async function submitField(attempt:{data:ExteriorFieldLog;expected:number;commandId:string}){
+  setSharedStatus('saving');
+  try{
+   const answer=await saveSharedDraft(org,'exterior_field',attempt.data.bookingId,
+    attempt.expected,attempt.commandId,attempt.data);
+   if(answer.status==='conflict'){
+    savePending.current=null;setSharedRevision(answer.currentRevision);
+    setSharedStatus('conflict');
+    setNotice('Another founder saved a new field revision. This device copy remains private until both versions are reconciled.');
+    return;
+   }
+   savePending.current=null;setSharedRevision(answer.revision);setSharedCopy(attempt.data);
+   if(JSON.stringify(logRef.current)===JSON.stringify(attempt.data)){
+    setSharedStatus('ready');
+    setNotice('Field report saved to shared Supabase history. No payroll, job completion or invoice was created.');
+   }else{
+    setSharedStatus('local-only');
+    setNotice('A prior field revision synced, but newer local changes still need saving.');
+   }
+  }catch(error){
+   setSharedStatus('offline');
+   setNotice((error instanceof Error?error.message:'Shared save could not be confirmed.')+
+    ' Keep your local recovery copy and retry the SAME command.');
+  }
+ }
+ function syncField(){
+  if(!canEdit||!booking||!lead||!logRef.current||!reviewed?.ok||
+     drift||sharedRevision===null||sharedStatus==='checking'||sharedStatus==='saving'||
+     sharedStatus==='conflict'||savePending.current)return;
+  const candidate=logRef.current;
+  if(!isFieldLog(candidate,booking.id,lead.id)){
+   setNotice('Complete a valid field report for this exact original booking before synchronization.');return;
+  }
+  const attempt={data:structuredClone(candidate),expected:sharedRevision,commandId:crypto.randomUUID()};
+  savePending.current=attempt;void submitField(attempt);
+ }
+ function adoptShared(){
+  if(!canEdit||!booking||!lead||!sharedCopy||!logRef.current||
+     sharedStatus!=='conflict')return;
+  if(!window.confirm('Open the saved shared field report? Your existing local report will first be preserved separately and downloaded. Nothing will close out the job.'))return;
+  try{
+   const archived=JSON.stringify(logRef.current);
+   const portable=serializeFieldPackage(org,logRef.current);
+   const objUrl=URL.createObjectURL(new Blob([portable],{type:'application/json;charset=utf-8'}));
+   const a=document.createElement('a');a.href=objUrl;
+   a.download='oj-local-field-before-shared-'+booking.id.slice(0,8)+'.json';a.click();
+   window.setTimeout(()=>URL.revokeObjectURL(objUrl),1000);
+   window.localStorage.setItem('oj-field-protected-recovery:'+org+':'+booking.id+':'+Date.now(),archived);
+   setLog(sharedCopy);setHadLocal(false);setSharedStatus('ready');
+   setNotice('Shared field report opened. The older device-local report is protected separately for recovery.');
+  }catch(error){
+   setNotice(error instanceof Error?error.message:'Unable to protect the existing local report. Shared copy not opened.');
+  }
+ }
  const reset=()=>{
   if(!booking||!lead||readonly)return;
   if(!window.confirm('Delete this local field draft and any entered crew/cost/safety notes on THIS browser? The original booking and customer will not change.'))return;
   try{
    window.localStorage.removeItem(key(org,booking.id));setStorageError('');
-   setLog(newFieldLog(booking));setNotice('Local field draft reset; the shared booking was unchanged.');
+   setLog(newFieldLog(booking));setSharedStatus('local-only');setNotice('Local field draft reset; any shared field revision remains unchanged.');
   }catch{setNotice('Browser did not allow reset; original local draft remains untouched.');}
  };
  const exportField=()=>{
@@ -198,12 +253,16 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
  return <main className="ecfield">
   <nav className="ecfield-breadcrumb"><Link href={root+'/bookings'}><ArrowLeft size={15}/> Field Operations</Link><span>/</span><strong>Booking work sheet</strong></nav>
   <header className="ecfield-hero ecfield-hero-split">
-   <div><span className="ecfield-overline"><span className="ecfield-pulse"/> FIELD COMMAND / LOCAL WORK SHEET</span>
+   <div><span className="ecfield-overline"><span className="ecfield-pulse"/> FIELD COMMAND / SHARED WORK SHEET</span>
     <h1>Own the work.<br/><em>Record the evidence.</em></h1>
     <p><strong>{lead.name??'Unnamed customer'}</strong> · {lead.service_requested??'Service not entered'}</p>
     <p><MapPin size={13}/>{lead.address??'Service address unavailable'} · {day(booking.date)} · {statusLabel(booking.status)}</p>
     <div className="ecfield-hero-actions">
      <button type="button" disabled={!reviewed?.ok} onClick={exportField}><Download size={15}/> Export private field report</button>
+      {!readonly&&<button type="button" disabled={!canEdit||!reviewed?.ok||drift||sharedRevision===null||sharedStatus==='checking'||sharedStatus==='saving'||sharedStatus==='conflict'||!!savePending.current} onClick={syncField}><ShieldCheck size={15}/> Save to company</button>}
+      {!!savePending.current&&!readonly&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(savePending.current)void submitField(savePending.current);}}>Retry original save</button>}
+      {sharedStatus==='conflict'&&sharedCopy&&!readonly&&<button type="button" onClick={adoptShared}>Export local &amp; open shared</button>}
+      {sharedStatus==='offline'&&!readonly&&!savePending.current&&<button type="button" onClick={()=>setSharedRefresh(v=>v+1)}>Retry shared connection</button>}
      {!readonly&&<button type="button" disabled={!!storageError} onClick={()=>upload.current?.click()}><FileUp size={15}/> Import from crew</button>}
      <input hidden ref={upload} type="file" accept=".json,application/json" aria-label="Import internal field package" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';void importField(f);}}/>
      {!readonly&&<button type="button" onClick={reset}><Trash2 size={15}/> Reset local</button>}
@@ -213,7 +272,7 @@ export function ExteriorFieldCommand({data,org,readOnly,mode,base,now}:Props){
     <ShieldCheck size={22}/><strong>BOOKING-BOUND / NOT FINALIZED</strong>
     <code>{booking.id}</code>
     <small>Customer source {lead.id}</small>
-    <p>Saved only in this browser. Not synced to corporate records, crew payroll, job status, invoices or a bank.</p>
+    <p>{sharedStatus==='ready'?'Field report saved to shared Supabase history. No payroll, booking status, invoice or payment was changed.':sharedStatus==='saving'?'Saving the booking-bound field revision…':sharedStatus==='conflict'?'Local and shared field histories disagree. No overwrite was performed.':sharedStatus==='checking'?'Checking shared field storage…':'Browser recovery only — no confirmed company save. Use Save to company when available.'}</p>
    </div>
   </header>
   {mode==='preview'&&<p className="ecfield-notice">Preview uses fictional data and allows no persistent edits.</p>}
