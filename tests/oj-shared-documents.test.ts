@@ -55,6 +55,17 @@ test('source-bound equipment plans reject cross-organization and mismatched book
   assert.throws(()=>validateSharedPayload(org,'exterior_equipment',bookingId,{...plan,selectedAssetIds:['asset-1','asset-1']}));
 });
 
+test('internal crew handoffs preserve exact booking and company source',()=>{
+  const bookingId='33333333-3333-4333-8333-333333333333';
+  const data={bookingId,leadId:lead,mailbox:{
+    outgoing:null,incoming:null,outgoingReply:null,incomingReply:null
+  }};
+  assert.deepEqual(validateSharedPayload(org,'exterior_handoff',bookingId,data),data);
+  assert.throws(()=>validateSharedPayload(org,'exterior_handoff',lead,data));
+  assert.throws(()=>validateSharedPayload(org,'exterior_handoff',bookingId,{...data,leadId:'another'}));
+  assert.throws(()=>validateSharedPayload(org,'exterior_handoff',bookingId,{...data,mailbox:{outgoingReply:{}}}));
+});
+
 test('fleet validator rejects foreign-company records and accepts empty local recovery', () => {
   assert.deepEqual(validateSharedPayload(org,'fleet','main',emptyFleet(org)),emptyFleet(org));
   assert.throws(() => validateSharedPayload(org,'fleet','main',emptyFleet(lead)));
