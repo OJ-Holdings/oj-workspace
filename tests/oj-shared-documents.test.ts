@@ -7,6 +7,7 @@ import {
 import { emptyFleet } from '../src/lib/fleet-command';
 import type { LocalEstimateBook } from '../src/lib/exterior-estimate';
 import { newFieldLog } from '../src/lib/exterior-field-log';
+import { makeEquipmentPlan } from '../src/lib/exterior-field-equipment';
 
 const org = '11111111-1111-4111-8111-111111111111';
 const lead = '22222222-2222-4222-8222-222222222222';
@@ -43,6 +44,15 @@ test('field reports are bound to their original booking IDs and validated', () =
   assert.equal(parseSharedDocument(org,'exterior_field',booking,{
     revision:1,payload:record,updatedAt:'2026-10-26T12:00:00.000Z'
   })?.payload.leadId,lead);
+});
+
+test('source-bound equipment plans reject cross-organization and mismatched booking',()=>{
+  const bookingId='33333333-3333-4333-8333-333333333333';
+  const plan=makeEquipmentPlan(org,{id:bookingId,lead_id:lead,date:'2026-10-26',status:'confirmed'} as Parameters<typeof makeEquipmentPlan>[1]);
+  assert.deepEqual(validateSharedPayload(org,'exterior_equipment',bookingId,plan),plan);
+  assert.throws(()=>validateSharedPayload(org,'exterior_equipment',lead,plan));
+  assert.throws(()=>validateSharedPayload(org,'exterior_equipment',bookingId,{...plan,organizationId:lead}));
+  assert.throws(()=>validateSharedPayload(org,'exterior_equipment',bookingId,{...plan,selectedAssetIds:['asset-1','asset-1']}));
 });
 
 test('fleet validator rejects foreign-company records and accepts empty local recovery', () => {
