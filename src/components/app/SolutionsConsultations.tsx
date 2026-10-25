@@ -55,7 +55,8 @@ export function SolutionsConsultations({ org, mode }: { org: string; mode: 'prev
             {result.entries.map(row => <tr key={row.id}>
               <td><strong>{dateLabel(row.preferred_date)}</strong><br />{timeLabel(row.preferred_time)} · 15 min</td>
               <td><strong>{row.name}</strong><br /><a href={'mailto:' + row.email}>{row.email}</a>
-                {row.phone && <><br /><a href={'tel:' + row.phone.replace(/[^\d+]/g, '')}>{row.phone}</a></>}
+                {row.phone && <><br /><a href={'tel:' + row.phone.replace(/[^\d+]/g, '')}>{row.phone}</a>
+                  <br /><small>SMS consent: {row.sms_consent ? 'Yes (consultation only)' : 'No'}</small></>}
                 {row.business && <><br /><small>{row.business}</small></>}
               </td>
               <td>{row.service}</td>
