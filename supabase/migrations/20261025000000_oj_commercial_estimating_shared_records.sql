@@ -139,12 +139,12 @@ create table oj_private.oj_commercial_commands (
 -- Workspace projects and their CURRENT estimate pointer remain mutable through
 -- the guarded RPC, but old snapshots can never be rewritten or deleted.
 create function oj_private.oj_commercial_reject_immutable_change()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $commercial_history$
 begin
   raise exception 'Commercial estimate history is immutable; save a new version'
     using errcode = '23514';
 end;
-$;
+$commercial_history$;
 revoke all on function oj_private.oj_commercial_reject_immutable_change()
   from public, anon, authenticated;
 create trigger oj_commercial_version_immutable
