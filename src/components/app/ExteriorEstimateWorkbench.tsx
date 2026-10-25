@@ -9,6 +9,7 @@ import {
   Plus,RefreshCcw,Save,ShieldCheck,SlidersHorizontal,Trash2,Wallet,Download,FileUp,
 } from 'lucide-react';
 import {recordExteriorEstimatedPrice} from '@/app/workspace/exterior-actions';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import {
   addLocalRevision,computeExteriorEstimate,estimateBrief,isExteriorEstimate,newEstimateLine,
   newExteriorEstimate,parseLocalEstimateBook,rebaseEstimateOnLead,sourceStillMatches,
@@ -39,6 +40,12 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [loaded,setLoaded]=useState(false);
  const [storageFailure,setStorageFailure]=useState('');
  const [notice,setNotice]=useState('');
+ const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+ const [sharedStatus,setSharedStatus]=useState<'checking'|'ready'|'saving'|'conflict'|'offline'>('checking');
+ const [hadLocal,setHadLocal]=useState(false);
+ const [refreshShared,setRefreshShared]=useState(0);
+ const activeBook=useRef<LocalEstimateBook|null>(null);
+ const pendingShared=useRef<{book:LocalEstimateBook;expected:number;commandId:string}|null>(null);
  const [checks,setChecks]=useState([false,false,false]);
  const [booking,setBooking]=useState(false);
  const uploadRef=useRef<HTMLInputElement|null>(null);
@@ -46,13 +53,16 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [recentOnly,setRecentOnly]=useState(true);
  const readonly=readOnly||mode!=='live';
  const canModify=!readonly&&Boolean(lead);
+ activeBook.current=book;
  useEffect(()=>{
-   setBook(null);setLoaded(false);setStorageFailure('');setNotice('');setChecks([false,false,false]);setBooking(false);
+   setBook(null);setLoaded(false);setHadLocal(false);setSharedRevision(null);setSharedStatus('checking');pendingShared.current=null;
+   setStorageFailure('');setNotice('');setChecks([false,false,false]);setBooking(false);
    if(!lead){setLoaded(true);return;}
    if(readonly){setBook(makeBook(newExteriorEstimate(lead)));setLoaded(true);return;}
    const key=storageKey(org,lead.id);
    try{
      const raw=window.localStorage.getItem(key);
+     setHadLocal(Boolean(raw));
      const saved=raw?parseLocalEstimateBook(raw,lead.id):makeBook(newExteriorEstimate(lead));
      setBook(saved);
    }catch{
@@ -62,6 +72,29 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    }
    setLoaded(true);
  },[org,lead?.id,mode,readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{
+  if(!loaded||!lead||readonly||storageFailure)return;
+  let cancelled=false;
+  setSharedStatus('checking');
+  void loadSharedDraft(org,'exterior_estimate',lead.id).then(remote=>{
+   if(cancelled)return;
+   setSharedRevision(remote?.revision??0);
+   if(!remote){setSharedStatus('ready');return;}
+   const local=activeBook.current;
+   if(!hadLocal||(local&&JSON.stringify(local)===JSON.stringify(remote.payload))){
+    setBook(remote.payload);setSharedStatus('ready');
+   }else{
+    // A local draft and a distinct remote revision are both authoritative
+    // evidence until a founder manually reconciles them. Do not overwrite.
+    setSharedStatus('conflict');
+    setNotice('This browser contains a different estimate from the shared record. Nothing was overwritten. Export the local version before reconciling.');
+   }
+  }).catch(error=>{
+   if(cancelled)return;setSharedStatus('offline');
+   setNotice(error instanceof Error?error.message:'Shared storage unavailable. Original browser draft preserved.');
+  });
+  return ()=>{cancelled=true;};
+ },[loaded,lead?.id,readonly,org,storageFailure,hadLocal,refreshShared]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{
    if(!loaded||!book||!canModify||storageFailure)return;
    const h=window.setTimeout(()=>{
