@@ -11,6 +11,7 @@ import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
 import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
+import { SolutionsConsultations } from './SolutionsConsultations';
 import { OutreachView } from './OutreachView';
 import { ContentStudio } from './ContentStudio';
 import { ExteriorCommand } from './ExteriorCommand';
@@ -75,14 +76,17 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
       {venture === 'content' && (active === 'overview' || active === 'studio') &&
         <ContentStudio base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />}
       {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
-      {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} />}
+      {active === 'leads' && venture !== 'exterior' && <>{venture === 'solutions' && <SolutionsConsultations org={organizationId} mode={mode} />}<CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} /></>}
       {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
       {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
       {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} displayName={displayName} />}
       {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
       {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} activity={board.data.activity ?? []} />}
-      {(active === 'clients' || active === 'calls') && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
+      {(active === 'clients' || active === 'calls') && venture === 'solutions' && <>
+        {active === 'clients' && <SolutionsConsultations org={organizationId} mode={mode} />}
+        <GhlView tab={active} org={organizationId} mode={mode} />
+      </>}
     </div>
   );
 }
