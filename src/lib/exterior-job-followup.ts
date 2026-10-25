@@ -40,6 +40,15 @@ export type JobTaskWindow={
  tasks:SharedJobFollowup[];source:JobSourceSnapshot;
  taskWindow:number;taskTotal:number|null;limited:boolean;
 };
+/** Pagination is only safe on full-size prior pages with a stable offset.
+ * Partial or unknown count still means incomplete evidence; it does not
+ * authorize requesting arbitrary offsets or claiming history exhaustion. */
+export function canPageSourceWindow(
+ scanned:number,total:number|null,pageSize:50|100,cap=1000,
+):boolean{
+ return Number.isInteger(scanned)&&scanned>=pageSize&&scanned%pageSize===0&&
+  scanned<cap&&(total===null||scanned<total);
+}
 export function mergeOlderJobTasks<T extends JobTaskWindow>(current:T,page:OlderJobTaskPage):T{
  if(page.offset!==current.taskWindow||page.total!==current.taskTotal||
   page.source.date!==current.source.date||page.source.time!==current.source.time||

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,RefreshCw,ShieldAlert,UsersRound,X} from 'lucide-react';
 import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
-import {mergeOlderJobTasks} from '@/lib/exterior-job-followup';
+import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
 import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
 import {ExteriorDeviceReleaseProof} from './ExteriorDeviceReleaseProof';
 import {loadExteriorSharedFollowups,loadMoreExteriorJobTasks} from '@/app/workspace/exterior-followup-actions';
@@ -64,7 +64,8 @@ export function ExteriorJobContinuity({
   };
  },[liveAccess]);
  const loadOlder=async()=>{
-  if(!report||!report.limited||moreBusy||report.taskWindow>=1000)return;
+  if(!report||!report.limited||moreBusy||
+   !canPageSourceWindow(report.taskWindow,report.taskTotal,100))return;
   setMoreBusy(true);setMoreError('');
   try{
    const response=await loadMoreExteriorJobTasks(org,booking.id,leadId,report.taskWindow);

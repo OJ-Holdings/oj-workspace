@@ -13,7 +13,7 @@ import {
  validOperatorNote,type OriginalBookingSnapshot,
 } from '@/lib/exterior-job-action-loop';
 import {
- allowedFollowupStages,type FollowupStage,type SharedJobFollowup,
+ allowedFollowupStages,canPageSourceWindow,type FollowupStage,type SharedJobFollowup,
 } from '@/lib/exterior-job-followup';
 import {
  addExteriorSharedFollowupNote,createExteriorSharedFollowup,
@@ -226,9 +226,9 @@ export function ExteriorJobActionLoop({org,booking,leadId,base,board,onRefresh,o
      onClick={()=>setVisible(n=>n+10)}>Show 10 more loaded tasks ({all.length-visible} remain)</button>}
     {board.limited&&<div className="ecjourney-coverage" role="status">
      {moreError&&<p role="alert">{moreError}</p>}
-     <button type="button" disabled={moreBusy||board.taskWindow>=1000}
+     <button type="button" disabled={moreBusy||!canPageSourceWindow(board.taskWindow,board.taskTotal,100)}
       onClick={onLoadOlder}>{moreBusy?'Loading earlier tasks…':
-       board.taskWindow>=1000?'1,000-task safety cap reached':
+       board.taskWindow>=1000?'Further paging unavailable at this source boundary':
        'Load earlier company tasks'}</button>
      <small>Verified scoped source rows loaded: {board.taskWindow}{board.taskTotal===null?' · total unknown':
       ' of '+board.taskTotal}. Refresh if another founder added work while browsing.</small>

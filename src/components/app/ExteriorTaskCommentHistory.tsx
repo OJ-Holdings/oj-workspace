@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import {canPageSourceWindow} from '@/lib/exterior-job-followup';
 import {
  loadExteriorJobCommentPage,type TaskNote,
 } from '@/app/workspace/exterior-followup-actions';
@@ -27,7 +28,7 @@ export function ExteriorTaskCommentHistory({
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState('');
  const load=async()=>{
-  if(loading||history?.window===1000)return;
+  if(loading||(history&&!canPageSourceWindow(history.window,history.total,50)))return;
   const offset=history?.window??0;
   setLoading(true);setError('');
   try{
@@ -60,9 +61,9 @@ export function ExteriorTaskCommentHistory({
    {loading?'Loading…':'Open authenticated comment history'}
   </button>}
   {history&&!complete&&<button type="button"
-   onClick={()=>void load()} disabled={loading||history.window>=1000}>
-   {loading?'Loading older comments…':history.window>=1000?
-    '1,000-comment safety cap reached':'Load older comments'}
+   onClick={()=>void load()} disabled={loading||!canPageSourceWindow(history.window,history.total,50)}>
+   {loading?'Loading older comments…':!canPageSourceWindow(history.window,history.total,50)?
+    'Further paging unavailable at this source boundary':'Load older comments'}
   </button>}
   {history&&<small>{history.window} comment source rows loaded
    {history.total===null?' · total unavailable':' of '+history.total}.

@@ -13,7 +13,7 @@ import type {
 } from '@/lib/exterior-job-followup';
 import {actionableJobStatus,allowedFollowupStages} from '@/lib/exterior-job-followup';
 import {originalJobMatchesTask} from '@/lib/exterior-operations-inbox';
-import {mergeOlderJobTasks} from '@/lib/exterior-job-followup';
+import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
 import {ExteriorTaskCommentHistory} from './ExteriorTaskCommentHistory';
 import {
  addExteriorSharedFollowupNote,createExteriorSharedFollowup,
@@ -149,7 +149,8 @@ export function ExteriorSharedFollowups({
   finally{setBusy(false);}
  };
  const loadOlder=async()=>{
-  if(!loaded||!loaded.limited||moreBusy||loaded.taskWindow>=1000)return;
+  if(!loaded||!loaded.limited||moreBusy||
+    !canPageSourceWindow(loaded.taskWindow,loaded.taskTotal,100))return;
   setMoreBusy(true);setMoreError('');
   try{
    const response=await loadMoreExteriorJobTasks(org,booking.id,lead.id,loaded.taskWindow);
@@ -282,9 +283,9 @@ export function ExteriorSharedFollowups({
      {loaded.limited&&<div className="ecfield-shared-warning">
       {moreError&&<p role="alert">{moreError}</p>}
       <button type="button" onClick={()=>void loadOlder()}
-       disabled={moreBusy||loaded.taskWindow>=1000}>
+       disabled={moreBusy||!canPageSourceWindow(loaded.taskWindow,loaded.taskTotal,100)}>
        {moreBusy?'Loading older company tasks…':loaded.taskWindow>=1000?
-        '1,000-task safety cap reached':'Load earlier company tasks'}
+        'Further paging unavailable at this source boundary':'Load earlier company tasks'}
       </button>
       <small>Scoped source rows loaded: {loaded.taskWindow}
        {loaded.taskTotal===null?' · total unknown':' of '+loaded.taskTotal}</small>

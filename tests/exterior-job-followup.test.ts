@@ -5,7 +5,7 @@ import {
  allowedFollowupStages,buildJobFollowupDescription,isJobFollowupFor,
  makeJobFollowupCard,parseJobFollowupReceipt,projectJobFollowup,
  validateJobFollowup,sameJobFollowupAttempt,sourceWindowComplete,actionableJobStatus,
- mergeOlderJobTasks,type NewJobFollowup,type SharedJobFollowup,
+ mergeOlderJobTasks,canPageSourceWindow,type NewJobFollowup,type SharedJobFollowup,
 } from '../src/lib/exterior-job-followup';
 
 const org='11111111-1111-4111-8111-111111111111';
@@ -124,6 +124,18 @@ test('R46 merges stable, verified older task pages but refuses overlapping or dr
  assert.throws(()=>mergeOlderJobTasks(current,{...page,tasks:[task]}),/Overlapping/);
  assert.throws(()=>mergeOlderJobTasks(current,{...page,scanned:0}),/incomplete/);
  assert.throws(()=>mergeOlderJobTasks(current,{...page,scanned:101}),/incomplete/);
+});
+
+test('R46 paging refuses short or unknown-gap source pages instead of looping or inventing completeness',()=>{
+ assert.equal(canPageSourceWindow(100,200,100),true);
+ assert.equal(canPageSourceWindow(200,200,100),false);
+ assert.equal(canPageSourceWindow(100,null,100),true);
+ assert.equal(canPageSourceWindow(75,null,100),false);
+ assert.equal(canPageSourceWindow(150,250,100),false);
+ assert.equal(canPageSourceWindow(1000,1001,100),false);
+ assert.equal(canPageSourceWindow(50,100,50),true);
+ assert.equal(canPageSourceWindow(0,null,50),false);
+ assert.equal(canPageSourceWindow(15,null,50),false);
 });
 
 test('missing, malformed and cross-record IDs cannot create a linked task',()=>{
