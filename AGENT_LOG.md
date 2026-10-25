@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 -- ChatGPT (Exterior P3.0 permanent quote/work-order domain foundation)
+**Summary:** Began genuine P3 backend implementation rather than adding another standalone UI. Implemented deterministic immutable quote version snapshots with public-only line items, tenant/canonical customer/property/legacy lead/visit identity, SHA256 content binding, optimistic revision+idempotency, historical unverified acceptance claims and exact-booking work-order transaction candidate validation. The future provider verifier and transactional DB adapter are explicitly required; no production data/schema or messages changed.
+**Files:** src/lib/exterior-p3-workflow.ts, tests/exterior-p3-workflow.test.ts, docs/EXTERIOR_P3_DOMAIN_CONTRACT.md and canonical handoff.
+**Verified:** [PR #144](https://github.com/OJ-Holdings/oj-workspace/pull/144), exact head b770e9c6a3f914e32234c8577fa07f01a54fe5ab, [CI #40157572254](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40157572254) passed TypeScript, test suite, production build, critical dependency checks and independent synthetic PG17 recovery. Merged main 577ed9fcd2844f2311b21d73a69d92afda49cf78; post-merge CI must be independently checked.
+**Notes:** P3.0 is a tested backend CONTRACT, not a persisted quote, trusted customer acceptance, database work order or permission to merge PR #42. The attestation data type does not cryptographically prove origin; never connect directly to client writes. Owner-private real-source backup/restore, RLS signed-in actors and Storage byte checks still gate P3.1 live schema. Roadmap 42/100 unchanged.
+
 ## 2026-10-25 -- ChatGPT (Exterior R49 original-booking internal crew brief)
 **Summary:** Added a source-qualified field handoff inside original Jobs & Bookings / Job Continuity. Exact linked customer, booking, recorded crew and authorized company tasks are summarized for the operator, with user-initiated internal-only copy containing contact/site and explicit pending/unknown/safety limitations. No external customer contact, crew dispatch, source DDL or finance mutation.
 **Files:** src/lib/exterior-crew-brief.ts, src/components/app/ExteriorJobContinuity.tsx, src/styles/exterior-command.css, tests/exterior-crew-brief.test.ts, docs/EXTERIOR_R49_CREW_BRIEF_RELEASE.md and canonical handoff.
