@@ -101,9 +101,12 @@ export async function captureResidentialArchive(
  validOrg(org);
  if(!validTime(capturedAt))fail('Residential archive capture time is invalid.');
  const prefix=keyPrefix(org);
- const entries:ResidentialArchiveEntry[]=[];
+ const originals:Array<{leadId:string;raw:string}>=[];
  let size=0;
- for(let i=0;i<storage.length;i++){
+ // Snapshot all storage values synchronously BEFORE any async SHA work.
+ // Otherwise another tab may change indexed browser keys between awaits.
+ const keyCount=storage.length;
+ for(let i=0;i<keyCount;i++){
   const k=storage.key(i);
   if(k===null)fail('Browser storage changed while building the archive; retry.');
   if(!k.startsWith(prefix))continue;
@@ -113,11 +116,14 @@ export async function captureResidentialArchive(
   if(raw===null)fail('Browser storage changed while reading an estimate; retry.');
   size+=raw.length;
   if(raw.length>maxIndividualChars||size>residentialArchiveMaxChars||
-   entries.length>=maxEntries)fail('Residential drafts exceed the single-file archive size limit; do not delete the originals.');
-  entries.push({leadId,raw,sha256:await residentialArchiveHash(raw),
-   status:validated(leadId,raw)?'validated':'unreadable'});
+   originals.length>=maxEntries)fail('Residential drafts exceed the single-file archive size limit; do not delete the originals.');
+  originals.push({leadId,raw});
  }
- entries.sort((a,b)=>a.leadId<b.leadId?-1:a.leadId>b.leadId?1:0);
+ originals.sort((a,b)=>a.leadId<b.leadId?-1:a.leadId>b.leadId?1:0);
+ const entries:ResidentialArchiveEntry[]=await Promise.all(originals.map(async({leadId,raw})=>({
+  leadId,raw,sha256:await residentialArchiveHash(raw),
+  status:validated(leadId,raw)?'validated' as const:'unreadable' as const,
+ })));
  reviewItems(entries,org);
  const payload:ResidentialArchivePayload={
   schema:1,kind:'oj-residential-estimate-origin-archive',
