@@ -7,6 +7,7 @@ import type {ExtBooking,ExteriorData} from '@/lib/exterior';
 import {buildJobContinuity,type JobContinuityEvidence} from '@/lib/exterior-job-continuity';
 import {canPageSourceWindow,mergeOlderJobTasks} from '@/lib/exterior-job-followup';
 import {ExteriorJobActionLoop} from './ExteriorJobActionLoop';
+import {buildJobNextActions} from '@/lib/exterior-job-next-actions';
 import {ExteriorDeviceReleaseProof} from './ExteriorDeviceReleaseProof';
 import {loadExteriorSharedFollowups,loadMoreExteriorJobTasks} from '@/app/workspace/exterior-followup-actions';
 
@@ -75,6 +76,7 @@ export function ExteriorJobContinuity({
   }catch(e){setMoreError(e instanceof Error?e.message:'Earlier job tasks unavailable; refresh the job.');}
   finally{setMoreBusy(false);}
  };
+ const nextActions=report?buildJobNextActions(view,booking,report.source,report.tasks,report.limited):null;
  const matchesSource=!!report&&report.source.date===booking.date&&
   report.source.time===booking.time_block&&report.source.status===booking.status;
  const routeFor=(step:typeof view.steps[number])=>{
@@ -133,7 +135,8 @@ export function ExteriorJobContinuity({
     !matchesSource?<p className="ecjourney-alert" role="alert"><AlertTriangle size={16}/> The original booking changed since this page loaded. Refresh Jobs & Bookings before assigning or updating any team tasks.</p>:
     <ExteriorJobActionLoop
      key={booking.id} org={org} booking={booking} leadId={leadId} base={base}
-     board={report} onRefresh={()=>setAttempt(n=>n+1)}
+     board={report} suggestions={nextActions?.state==='ready'?nextActions.actions:[]}
+     onRefresh={()=>setAttempt(n=>n+1)}
      onLoadOlder={()=>void loadOlder()} moreBusy={moreBusy} moreError={moreError}
     />}
   </section>
