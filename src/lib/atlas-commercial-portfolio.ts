@@ -13,8 +13,8 @@ import { validateFieldCrewPlan, type FieldCrewPlan } from './atlas-field-mission
  */
 export const portfolioFormat='oj-commercial-portfolio-local-v1' as const;
 export const portfolioVersion=1 as const;
-export const portfolioLimit=24;
-export const portfolioMaxBytes=1024*1024;
+export const portfolioLimit=250;
+export const portfolioMaxBytes=5*1024*1024;
 export const projectPhases=['scoping','founder-review','archived'] as const;
 export type ProjectPhase=typeof projectPhases[number];
 
@@ -116,12 +116,12 @@ export function validateCommercialPortfolio(raw:unknown,org:string):CommercialPo
 export function encodeCommercialPortfolio(value:CommercialPortfolio,org:string):string{
   const clean=validateCommercialPortfolio(value,org);
   const json=JSON.stringify(clean,null,2);
-  if(new TextEncoder().encode(json).byteLength>portfolioMaxBytes)throw new Error('Private project portfolio exceeds 1 MB.');
+  if(new TextEncoder().encode(json).byteLength>portfolioMaxBytes)throw new Error('Private project recovery copy exceeds 5 MB.');
   return json;
 }
 export function decodeCommercialPortfolio(json:string,org:string):CommercialPortfolio{
   if(typeof json!=='string'||json.length===0||new TextEncoder().encode(json).byteLength>portfolioMaxBytes){
-    throw new Error('Private portfolio is empty or exceeds 1 MB.');
+    throw new Error('Private portfolio is empty or exceeds 5 MB.');
   }
   let raw:unknown;
   try{raw=JSON.parse(json);}catch{throw new Error('Portfolio is not valid JSON.');}
@@ -141,7 +141,7 @@ export function savePortfolioProject(
   const found=current.projects.find(p=>p.id===id);
   if(found && found.revision!==expectedRevision)throw new Error('Project changed in another tab. Reload before saving.');
   if(!found && expectedRevision!==null)throw new Error('Project no longer exists. Reload before saving.');
-  if(!found && current.projects.length>=portfolioLimit)throw new Error('This browser already has 24 projects.');
+  if(!found && current.projects.length>=portfolioLimit)throw new Error('This browser recovery copy already has 250 projects.');
   const next:CommercialProject={
     id,revision:(found?.revision??0)+1,createdAt:found?.createdAt??now,
     updatedAt:now,...normalized,

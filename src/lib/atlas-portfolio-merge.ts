@@ -66,7 +66,7 @@ export function mergeNonConflictingPortfolio(
   const current=validateCommercialPortfolio(existing,org);
   const plan=previewPortfolioMerge(current,incoming,org);
   if(!plan.capacityAvailable)
-    throw new Error('Merge exceeds the 24-project browser limit. No projects were imported.');
+    throw new Error('Merge exceeds the 250-project browser recovery limit. No projects were imported.');
   if(plan.additions.length===0)return {next:current,plan,changed:false};
   const next:CommercialPortfolio={
     ...current,revision:current.revision+1,

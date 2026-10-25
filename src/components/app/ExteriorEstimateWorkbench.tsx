@@ -9,6 +9,7 @@ import {
   Plus,RefreshCcw,Save,ShieldCheck,SlidersHorizontal,Trash2,Wallet,Download,FileUp,
 } from 'lucide-react';
 import {recordExteriorEstimatedPrice} from '@/app/workspace/exterior-actions';
+import {loadSharedDraft,saveSharedDraft} from '@/app/workspace/shared-draft-actions';
 import {
   addLocalRevision,computeExteriorEstimate,estimateBrief,isExteriorEstimate,newEstimateLine,
   newExteriorEstimate,parseLocalEstimateBook,rebaseEstimateOnLead,sourceStillMatches,
@@ -39,6 +40,13 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [loaded,setLoaded]=useState(false);
  const [storageFailure,setStorageFailure]=useState('');
  const [notice,setNotice]=useState('');
+ const [sharedRevision,setSharedRevision]=useState<number|null>(null);
+ const [sharedRemote,setSharedRemote]=useState<LocalEstimateBook|null>(null);
+ const [sharedStatus,setSharedStatus]=useState<'checking'|'ready'|'saving'|'conflict'|'offline'>('checking');
+ const [hadLocal,setHadLocal]=useState(false);
+ const [refreshShared,setRefreshShared]=useState(0);
+ const activeBook=useRef<LocalEstimateBook|null>(null);
+ const pendingShared=useRef<{book:LocalEstimateBook;expected:number;commandId:string}|null>(null);
  const [checks,setChecks]=useState([false,false,false]);
  const [booking,setBooking]=useState(false);
  const uploadRef=useRef<HTMLInputElement|null>(null);
@@ -46,13 +54,16 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [recentOnly,setRecentOnly]=useState(true);
  const readonly=readOnly||mode!=='live';
  const canModify=!readonly&&Boolean(lead);
+ activeBook.current=book;
  useEffect(()=>{
-   setBook(null);setLoaded(false);setStorageFailure('');setNotice('');setChecks([false,false,false]);setBooking(false);
+   setBook(null);setLoaded(false);setHadLocal(false);setSharedRevision(null);setSharedRemote(null);setSharedStatus('checking');pendingShared.current=null;
+   setStorageFailure('');setNotice('');setChecks([false,false,false]);setBooking(false);
    if(!lead){setLoaded(true);return;}
    if(readonly){setBook(makeBook(newExteriorEstimate(lead)));setLoaded(true);return;}
    const key=storageKey(org,lead.id);
    try{
      const raw=window.localStorage.getItem(key);
+     setHadLocal(Boolean(raw));
      const saved=raw?parseLocalEstimateBook(raw,lead.id):makeBook(newExteriorEstimate(lead));
      setBook(saved);
    }catch{
@@ -62,6 +73,31 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    }
    setLoaded(true);
  },[org,lead?.id,mode,readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{
+  if(!loaded||!lead||readonly||storageFailure)return;
+  let cancelled=false;
+  setSharedStatus('checking');
+  void loadSharedDraft(org,'exterior_estimate',lead.id).then(remote=>{
+   if(cancelled)return;
+   setSharedRevision(remote?.revision??0);
+   setSharedRemote(remote?.payload??null);
+   if(!remote){setSharedStatus('ready');return;}
+   const local=activeBook.current;
+   if((!hadLocal&&local&&JSON.stringify(local)===JSON.stringify(makeBook(newExteriorEstimate(lead)))) ||
+      (local&&JSON.stringify(local)===JSON.stringify(remote.payload))){
+    setBook(remote.payload);setSharedStatus('ready');
+   }else{
+    // A local draft and a distinct remote revision are both authoritative
+    // evidence until a founder manually reconciles them. Do not overwrite.
+    setSharedStatus('conflict');
+    setNotice('This browser contains a different estimate from the shared record. Nothing was overwritten. Export the local version before reconciling.');
+   }
+  }).catch(error=>{
+   if(cancelled)return;setSharedStatus('offline');
+   setNotice(error instanceof Error?error.message:'Shared storage unavailable. Original browser draft preserved.');
+  });
+  return ()=>{cancelled=true;};
+ },[loaded,lead?.id,readonly,org,storageFailure,hadLocal,refreshShared]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{
    if(!loaded||!book||!canModify||storageFailure)return;
    const h=window.setTimeout(()=>{
@@ -97,16 +133,53 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    setChecks([false,false,false]);
    setNotice('Source baseline updated locally. Review the amount and scope before recording it.');
  };
+ async function sendSharedRevision(attempt:{book:LocalEstimateBook;expected:number;commandId:string}){
+  setSharedStatus('saving');
+  try{
+   const result=await saveSharedDraft(org,'exterior_estimate',attempt.book.current.leadId,attempt.expected,attempt.commandId,attempt.book);
+   if(result.status==='conflict'){
+    pendingShared.current=null;setSharedRevision(result.currentRevision);
+    setSharedStatus('conflict');setNotice('Another founder changed this shared estimate. Your local version is preserved; reconcile before uploading.');
+    return;
+   }
+   pendingShared.current=null;setSharedRevision(result.revision);setSharedStatus('ready');
+   setNotice('Internal estimate revision saved in Supabase. No proposal, invoice or customer acceptance was created.');
+  }catch(error){
+   setSharedStatus('offline');
+   setNotice((error instanceof Error?error.message:'Shared save was not confirmed.')+' Local draft retained. Retry the ORIGINAL command to avoid duplication.');
+  }
+ }
  const saveRevision=()=>{
-   if(!canModify||!book||storageFailure)return;
-   if(!isExteriorEstimate(book.current,book.current.leadId)){setNotice('Complete valid quantities and service lines before saving a revision. Your earlier local draft remains intact.');return;}
-   try{computeExteriorEstimate(book.current);}catch(error){setNotice(error instanceof Error?error.message:'Review the quote values.');return;}
-   const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
-   try{
-     window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(revised));
-     setBook(revised);setNotice('Local revision saved on this browser only. Oscar and Jacob will not see it on their other devices.');
-   }catch{setStorageFailure('This browser could not save the validated revision. Existing storage has not been removed.');}
+  if(!canModify||!book||storageFailure||sharedStatus==='saving'||pendingShared.current)return;
+  if(!isExteriorEstimate(book.current,book.current.leadId)){setNotice('Complete valid quantities and service lines before saving a revision. Your earlier local draft remains intact.');return;}
+  try{computeExteriorEstimate(book.current);}catch(error){setNotice(error instanceof Error?error.message:'Review the quote values.');return;}
+  const revised=addLocalRevision(book,new Date().toISOString(),'revision-'+Date.now());
+  try{
+   window.localStorage.setItem(storageKey(org,book.current.leadId),JSON.stringify(revised));
+   setBook(revised);
+  }catch{setStorageFailure('This browser could not save the validated revision. Existing storage has not been removed.');return;}
+  if(sharedStatus!=='ready'||sharedRevision===null){
+   setNotice('Revision saved locally only. The remote copy is disconnected, conflicted or not installed.');
+   return;
+  }
+  const attempt={book:revised,expected:sharedRevision,commandId:crypto.randomUUID()};
+  pendingShared.current=attempt;void sendSharedRevision(attempt);
  };
+ function adoptShared(){
+  if(!sharedRemote||!lead||!book||sharedStatus!=='conflict')return;
+  if(!window.confirm('Open the existing shared revision? Your local estimate will be downloaded as a private recovery copy first. Keep the file securely.'))return;
+  try{
+   const json=exportQuoteHandoff(org,book);
+   const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+   const a=document.createElement('a');a.href=url;a.download='oj-local-before-shared-'+lead.id.slice(0,8)+'.json';a.click();
+   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   // Protect the old draft under a separate browser key before the shared
+   // version's autosave can replace the active local key.
+   window.localStorage.setItem('oj-estimate-recovery-protected:'+org+':'+lead.id+':'+Date.now(),JSON.stringify(book));
+   setBook(sharedRemote);setHadLocal(false);setSharedStatus('ready');setChecks([false,false,false]);
+   setNotice('Shared version opened. The previous local estimate was preserved as a separate browser recovery copy and export.');
+  }catch(error){setNotice(error instanceof Error?error.message:'Local recovery export failed. Shared version was NOT opened.');}
+ }
  const reset=()=>{
    if(!lead||readonly)return;
    if(!window.confirm('Discard this browser-local estimate and its local revisions? The original customer record and shared quoted amount will NOT change.'))return;
@@ -189,7 +262,8 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
        <p><strong>{lead.name??'Unnamed customer'}</strong> · {lead.service_requested??'Unspecified service'} · {sourceLabel(lead.source)}</p>
        <p>{lead.address??'Service location not entered'}</p>
        <div className="ecest-toolbar">
-         <button type="button" onClick={saveRevision} disabled={!canModify||!!storageFailure||!totals}><Save size={15}/> Save local revision</button>
+         <button type="button" onClick={saveRevision} disabled={!canModify||!!storageFailure||!totals||sharedStatus==='saving'||!!pendingShared.current}><Save size={15}/> {sharedStatus==='ready'?'Save shared revision':'Save local revision'}</button>
+          {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void sendSharedRevision(pendingShared.current);}}>Retry original shared save</button>}
          <button type="button" onClick={copy} disabled={!totals}><ClipboardCopy size={15}/> Copy internal brief</button>
          <button type="button" onClick={exportPortable} disabled={!totals}><Download size={15}/> Export quote package</button>
          {canModify&&<button type="button" onClick={()=>uploadRef.current?.click()} disabled={!!storageFailure}><FileUp size={15}/> Import private package</button>}
@@ -200,11 +274,13 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
      </div>
      <div className="ecest-hero-stamp"><ShieldCheck size={24}/><strong>INTERNAL ESTIMATE</strong>
        <p>No proposal sent. No customer approval, invoice, receivable or payment.</p>
-       <small>Local browser history · Shared customer quote amount is a separate, deliberate action</small></div>
+       <small>{sharedStatus==='ready'?'Connected to shared estimate revisions':'Local recovery only — shared history unverified'}</small></div>
    </header>
-   <div className="ecest-evidence" role="status"><FileClock size={18}/><p>Local drafts are browser-only and not automatically shared between Oscar and Jacob. Do not use shared computers for sensitive draft retention. Historical lead quote: <strong>{usd(lead.quote_amount)}</strong>. {sourceFresh?'Source baseline matches this estimate.':'The lead changed since this draft was opened; review and rebase before recording any price.'}</p>
+   <div className="ecest-evidence" role="status"><FileClock size={18}/><p>Shared estimate: <strong>{sharedStatus==='ready'?'Connected (revision '+sharedRevision+')':sharedStatus==='saving'?'Saving to Supabase':sharedStatus==='checking'?'Checking database':sharedStatus==='conflict'?'Conflicting histories':'Unavailable / offline'}</strong>. Local drafts remain private recovery records. Historical lead quote: <strong>{usd(lead.quote_amount)}</strong>. {sourceFresh?'Source baseline matches this estimate.':'The lead changed since this draft was opened; review and rebase before recording any price.'}</p>
      {!sourceFresh&&canModify&&<button type="button" onClick={rebase}>Review & rebase</button>}</div>
-   {storageFailure&&<p className="ecest-blocked" role="alert">{storageFailure} <button type="button" onClick={reset}>Reset after recovery</button></p>}
+   {sharedStatus==='conflict'&&<p className="ecest-blocked" role="alert">A different internal estimate is stored in Supabase. Neither copy has been merged. {sharedRemote&&<button type="button" onClick={adoptShared}>Export local &amp; open shared copy</button>}</p>}
+    {sharedStatus==='offline'&&<p className="ecest-blocked" role="status">Shared storage has not confirmed this revision. {pendingShared.current?'Retry the original command to avoid duplicate history.':'Your browser copy remains on this device.'} <button type="button" disabled={!!pendingShared.current} onClick={()=>setRefreshShared(v=>v+1)}>Check shared connection again</button></p>}
+    {storageFailure&&<p className="ecest-blocked" role="alert">{storageFailure} <button type="button" onClick={reset}>Reset after recovery</button></p>}
    {!allowedStatus&&<p className="ecest-blocked" role="status">This lead is {statusLabel(lead.status)}. Its historic price cannot be overwritten from the estimator. You can inspect the estimate locally and view existing bookings; use a new opportunity for repeat work.</p>}
    <section className="ecest-insights" aria-label="Estimated pricing and cost coverage">
      {[{label:'Proposed price',value:usd(totals?.price??null),note:'Internal scenario · not accepted',icon:Wallet},

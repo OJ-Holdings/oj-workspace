@@ -77,7 +77,7 @@ test('malformed, oversized, cross-organization, duplicate projects and invalid p
   const p=saved();
   assert.throws(()=>decodeCommercialPortfolio('{bad',org),/valid JSON/);
   assert.throws(()=>decodeCommercialPortfolio(encodeCommercialPortfolio(p,org),other),/another workspace/);
-  assert.throws(()=>decodeCommercialPortfolio('X'.repeat(1050000),org),/exceeds 1 MB/);
+  assert.throws(()=>decodeCommercialPortfolio('X'.repeat(5300000),org),/exceeds 5 MB/);
   assert.throws(()=>decodeCommercialPortfolio(JSON.stringify({...p,version:2}),org),/Unsupported/);
   assert.throws(()=>decodeCommercialPortfolio(JSON.stringify({...p,projects:[p.projects[0],p.projects[0]]}),org),/Duplicate project IDs/);
   assert.throws(()=>savePortfolioProject(p,org,id2,draft({bookingId:'not-a-source-id'}),null,time),/UUID/);
@@ -85,13 +85,13 @@ test('malformed, oversized, cross-organization, duplicate projects and invalid p
   assert.throws(()=>savePortfolioProject(p,org,id2,draft({input:broken}),null,time),/Hourly labor rate/);
 });
 
-test('local project number limit cannot be bypassed',()=>{
+test('browser recovery project limit cannot be bypassed',()=>{
   let p=emptyCommercialPortfolio(org);
-  for(let i=0;i<24;i++){
+  for(let i=0;i<250;i++){
     p=savePortfolioProject(p,org,'p'+i,draft({name:'Property '+i}),null,time);
   }
-  assert.equal(p.projects.length,24);
-  assert.throws(()=>savePortfolioProject(p,org,'overflow',draft(),null,time),/24 projects/);
+  assert.equal(p.projects.length,250);
+  assert.throws(()=>savePortfolioProject(p,org,'overflow',draft(),null,time),/250 projects/);
 });
 
 test('booking references resolve only exact IDs among actually loaded source bookings',()=>{

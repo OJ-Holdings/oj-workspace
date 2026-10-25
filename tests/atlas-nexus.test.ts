@@ -60,7 +60,8 @@ test('NEXUS assembles exactly matched source booking, customer and shared-task r
   assert.equal(report.crewShortfalls,1);
   assert.equal(report.linkedSharedTasks,1);
   assert.equal(report.hasFleetWorkbook,true);
-  assert.equal(report.hasRealProjectPersistence,false);
+  assert.equal(report.hasRealProjectPersistence,true);
+  assert.equal(report.projects[0].nodes.find(node=>node.id==='project:'+report.projects[0].id)?.evidence,'shared-organization-record');
   assert.equal(report.sourceCoverage.bookings.total,5);
   const p=report.projects[0];
   assert.equal(p.booking.state,'matched');
@@ -80,7 +81,7 @@ test('NEXUS assembles exactly matched source booking, customer and shared-task r
   assert.equal(p.findings.some(f=>f.id==='crew-shortfall'),true);
   assert.deepEqual(p.edges.find(e=>e.to==='booking:'+bookingId),{
     from:'project:project1',to:'booking:'+bookingId,
-    label:'manual ID resolved in source',evidence:'device-local-plan',
+    label:'stored booking ID resolved in source',evidence:'shared-organization-record',
   });
   assert.deepEqual(p.edges.find(e=>e.to==='customer:'+leadId),{
     from:'booking:'+bookingId,to:'customer:'+leadId,
@@ -160,7 +161,7 @@ test('two same-day planned projects with one asset get advisory contention, not 
   assert.ok(report.projects[0].findings.some(f=>f.id.startsWith('asset-overlap')&&f.priority==='review'));
   assert.ok(report.projects[1].findings.some(f=>f.id.startsWith('asset-overlap')&&f.priority==='review'));
   assert.equal(report.sourceMatchedBookings,2);
-  assert.equal(report.hasRealProjectPersistence,false);
+  assert.equal(report.hasRealProjectPersistence,true);
 });
 
 test('absence of Fleet workbook never creates an inspected or reserved asset claim',()=>{
