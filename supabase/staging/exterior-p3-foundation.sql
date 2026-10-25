@@ -308,6 +308,13 @@ begin
   raise exception 'Quote version conflict or nonsequential version'
    using errcode='40001';
  end if;
+ -- Immutable accepted job scope cannot be superseded by direct SQL either.
+ -- Future post-work-order change requires a separate audited amendment.
+ if exists(select 1 from public.oj_exterior_work_orders w
+  where w.organization_id=new.organization_id and w.quote_id=new.quote_id) then
+  raise exception 'Cannot append a quote version after a work order was issued'
+   using errcode='23514';
+ end if;
  for line in select value from pg_catalog.jsonb_array_elements(new.scope) loop
   if pg_catalog.jsonb_typeof(line)<>'object' or
      pg_catalog.jsonb_typeof(line->'id')<>'string' or
