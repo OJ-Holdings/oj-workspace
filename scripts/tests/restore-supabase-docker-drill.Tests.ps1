@@ -17,6 +17,10 @@ $differentRows = @(Get-CatalogSetDifference -Left @('source_item') -Right @('tar
 if ($identicalRows.Count -ne 0 -or $differentRows.Count -ne 1 -or $differentRows[0] -cne 'source_item') {
   throw 'Catalog comparison helper must return flat, exact set differences.'
 }
+$definitionKey = 'public.conversations.conversations_direction_check' -replace '^public\.', ''
+if ($definitionKey -cne 'conversations.conversations_direction_check') {
+  throw 'Catalog constraint diagnostics must resolve schema-qualified diff labels to the definition map.'
+}
 $admin = $source.IndexOf('IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)')
 $docker = $source.IndexOf('$dockerInfo = @(& $docker info')
 $egress = $source.IndexOf("'ip','route','del','default'")

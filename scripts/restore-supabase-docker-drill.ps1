@@ -326,8 +326,9 @@ SELECT json_build_object(
     Write-Output ('OJ_CONSTRAINTS_TARGET_ONLY=' + ($constraintTargetOnly -join ','))
     if ($sourceCatalog -and $targetCatalog) {
       foreach ($constraintKey in @(@($constraintSourceOnly + $constraintTargetOnly) | ForEach-Object { ([string]$_ -split '\|')[0] } | Sort-Object -CaseSensitive -Unique)) {
-        $sourceDefinition = $sourceCatalog.constraint_definitions.PSObject.Properties[[string]$constraintKey]
-        $targetDefinition = $targetCatalog.constraint_definitions.PSObject.Properties[[string]$constraintKey]
+        $definitionKey = ([string]$constraintKey -replace '^public\.', '')
+        $sourceDefinition = $sourceCatalog.constraint_definitions.PSObject.Properties[$definitionKey]
+        $targetDefinition = $targetCatalog.constraint_definitions.PSObject.Properties[$definitionKey]
         if ($sourceDefinition) { Write-Output ('OJ_CONSTRAINT_SOURCE_DEFINITION=' + $constraintKey + '|' + [string]$sourceDefinition.Value) }
         if ($targetDefinition) { Write-Output ('OJ_CONSTRAINT_TARGET_DEFINITION=' + $constraintKey + '|' + [string]$targetDefinition.Value) }
       }
