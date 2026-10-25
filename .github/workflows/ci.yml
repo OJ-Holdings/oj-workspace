@@ -60,6 +60,10 @@ jobs:
         shell: pwsh
         run: ./scripts/tests/exterior-p2-release-evidence.Tests.ps1
       - run: npm ci
+      # Fail closed on known critical dependency advisories instead of merely
+      # printing npm ci's audit notice and still shipping the vulnerable build.
+      - name: Block critical dependency advisories
+        run: npm audit --audit-level=critical
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
