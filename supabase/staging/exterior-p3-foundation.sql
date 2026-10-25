@@ -296,6 +296,7 @@ create trigger ext_order_event_immutable
 create function oj_private.ext_p3_append_version() returns trigger
  language plpgsql security invoker set search_path='' as $$
 declare current_revision integer; current_sequence integer; line jsonb;
+ total_line_cents numeric:=0;
 begin
  select q.revision,q.latest_version_sequence
  into current_revision,current_sequence
@@ -309,15 +310,35 @@ begin
  end if;
  for line in select value from pg_catalog.jsonb_array_elements(new.scope) loop
   if pg_catalog.jsonb_typeof(line)<>'object' or
+     pg_catalog.jsonb_typeof(line->'id')<>'string' or
+     pg_catalog.length(line->>'id') not between 1 and 80 or
      pg_catalog.jsonb_typeof(line->'service')<>'string' or
      pg_catalog.length(pg_catalog.btrim(line->>'service')) not between 1 and 120 or
+     pg_catalog.jsonb_typeof(line->'unit')<>'string' or
+     line->>'unit' not in ('flat','each','sqft','linear_ft','pane','hour') or
      pg_catalog.jsonb_typeof(line->'quantity')<>'number' or
      (line->>'quantity')::numeric<=0 or
+     (line->>'quantity')::numeric>100000 or
      pg_catalog.jsonb_typeof(line->'unitPriceCents')<>'number' or
-     (line->>'unitPriceCents')::numeric<0
-  then raise exception 'Invalid public quote scope line' using errcode='23514';
+     (line->>'unitPriceCents')::numeric<0 or
+     (line->>'unitPriceCents')::numeric>100000000 or
+     (line ? 'notes' and (
+       pg_catalog.jsonb_typeof(line->'notes')<>'string' or
+       pg_catalog.length(line->>'notes')>800
+     )) or exists(
+       select 1 from pg_catalog.jsonb_object_keys(line) as k(key_name)
+       where key_name not in ('id','service','unit','quantity','unitPriceCents','notes')
+     )
+  then raise exception 'Invalid public quote scope line or private field leakage'
+   using errcode='23514';
   end if;
+  total_line_cents:=total_line_cents+
+    (line->>'quantity')::numeric*(line->>'unitPriceCents')::numeric;
  end loop;
+ if pg_catalog.round(total_line_cents)::bigint<>new.subtotal_cents then
+  raise exception 'Customer quote line totals do not match immutable subtotal'
+   using errcode='23514';
+ end if;
  update public.oj_exterior_quotes
  set latest_version_sequence=new.sequence,revision=current_revision+1
  where organization_id=new.organization_id and id=new.quote_id;
@@ -328,6 +349,28 @@ revoke all on function oj_private.ext_p3_append_version() from public,anon,authe
 create trigger ext_quote_version_append
  before insert on public.oj_exterior_quote_versions
  for each row execute function oj_private.ext_p3_append_version();
+
+-- Only consumed_at may transition from NULL to a timestamp exactly ONCE.
+-- Issuer, external receipt identifier, version hash and paid amount can never
+-- be rewritten, even by a future privileged writer.
+create function oj_private.ext_p3_lock_verified_receipt() returns trigger
+ language plpgsql security invoker set search_path='' as $
+begin
+ if tg_op='DELETE' or
+    (to_jsonb(new)-'consumed_at') is distinct from
+      (to_jsonb(old)-'consumed_at') or
+    old.consumed_at is not null or new.consumed_at is null then
+  raise exception 'Verified acceptance receipt identity is immutable'
+   using errcode='23514';
+ end if;
+ return new;
+end;
+$;
+revoke all on function oj_private.ext_p3_lock_verified_receipt()
+ from public,anon,authenticated;
+create trigger ext_verified_acceptance_immutable
+ before update or delete on oj_private.oj_exterior_verified_acceptances
+ for each row execute function oj_private.ext_p3_lock_verified_receipt();
 
 -- A real work order consumes an independently verified private receipt once,
 -- in the SAME transaction. All client-readable acceptance claims are excluded.
