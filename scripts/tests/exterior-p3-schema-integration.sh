@@ -37,6 +37,7 @@ run_file "$repo/scripts/tests/exterior-p3-schema-bootstrap.sql"
 run_file "$repo/supabase/schemas/workspace.sql"
 echo "[P3.1] Applying production-INERT P3 staging schema to disposable PostgreSQL"
 run_file "$repo/supabase/staging/exterior-p3-foundation.sql"
+run_file "$repo/supabase/staging/exterior-p3-private-command.sql"
 run_file "$repo/scripts/tests/exterior-p3-schema-seed.sql"
 org="10000000-0000-4000-8000-000000000001"
 other="10000000-0000-4000-8000-000000000002"
@@ -190,5 +191,89 @@ fail "Consumed receipt cannot be replayed" \
  '70000000-0000-4000-8000-000000000003','legacy-booking:002',
  '90000000-0000-4000-8000-000000000003',30000,'$scope_new'::jsonb);"
 eq "$(sql "SELECT count(*) FROM public.oj_exterior_work_orders WHERE organization_id='$org';")" 2 "Exactly one work order per original booking"
+echo "[R50] Exercise private quote-command transaction with current actor and revision"
+# A third SYNTHETIC visit; quote3 has no work order. No production API or
+# credentials exist in this synthetic test environment.
+sql "INSERT INTO public.oj_exterior_opportunities(
+ organization_id,id,customer_id,property_id,legacy_lead_id,target_booking_id,created_by
+) VALUES('$org','50000000-0000-4000-8000-000000000003',
+ '30000000-0000-4000-8000-000000000001',
+ '40000000-0000-4000-8000-000000000001','legacy-lead:002','legacy-booking:003','$owner');
+INSERT INTO public.oj_exterior_quotes(organization_id,id,opportunity_id,created_by)
+ VALUES('$org','60000000-0000-4000-8000-000000000003',
+ '50000000-0000-4000-8000-000000000003','$owner');" >/dev/null
+scope50='[{"id":"r50-line","service":"Exterior window cleaning","unit":"pane","quantity":20,"unitPriceCents":1000}]'
+quote_cmd(){
+ local actor="$1" command="$2" version="$3" expected="$4" amount="$5" hash="$6"
+ sql "SELECT set_config('request.jwt.claim.sub','$actor',false);
+ SELECT version_sequence::text||':'||quote_revision::text||':'||replayed::text
+ FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ '$command','$version','$actor',$expected,
+ NULL,20000,'$scope50'::jsonb,$amount,0,$amount,repeat('$hash',64)
+ );" | tail -n 1
+}
+cmd50="b0000000-0000-4000-8000-000000000050"
+ver50="70000000-0000-4000-8000-000000000050"
+eq "$(quote_cmd "$owner" "$cmd50" "$ver50" 0 20000 d)" "1:1:false" \
+ "Current owner creates immutable quote version in one private transaction"
+eq "$(quote_cmd "$owner" "$cmd50" "$ver50" 0 20000 d)" "1:1:true" \
+ "Same command retry returns original version, even after revision advanced"
+eq "$(sql "SELECT count(*) FROM public.oj_exterior_quote_versions
+ WHERE organization_id='$org' AND quote_id='60000000-0000-4000-8000-000000000003';")" 1 \
+ "Network retry did not duplicate a version"
+fail "Same idempotency key cannot alter amount or content" \
+ "SELECT set_config('request.jwt.claim.sub','$owner',false);
+ SELECT * FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ '$cmd50','$ver50','$owner',0,NULL,20000,
+ '$scope50'::jsonb,20000,0,21000,repeat('d',64));"
+fail "Concurrent stale expected revision cannot overwrite another founder" \
+ "SELECT set_config('request.jwt.claim.sub','$owner',false);
+ SELECT * FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ 'b0000000-0000-4000-8000-000000000051',
+ '70000000-0000-4000-8000-000000000051','$owner',0,NULL,20000,
+ '$scope50'::jsonb,20000,0,20000,repeat('e',64));"
+fail "Viewer cannot use private quote writer even with privileged fixture SQL connection" \
+ "SELECT set_config('request.jwt.claim.sub','$viewer',false);
+ SELECT * FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ 'b0000000-0000-4000-8000-000000000051',
+ '70000000-0000-4000-8000-000000000051','$viewer',1,NULL,20000,
+ '$scope50'::jsonb,20000,0,20000,repeat('e',64));"
+fail "Current member cannot impersonate owner actor in a private write" \
+ "SELECT set_config('request.jwt.claim.sub','$member',false);
+ SELECT * FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ 'b0000000-0000-4000-8000-000000000051',
+ '70000000-0000-4000-8000-000000000051','$owner',1,NULL,20000,
+ '$scope50'::jsonb,20000,0,20000,repeat('e',64));"
+fail "Authenticated Data API cannot execute private write gateway" \
+ "BEGIN; SET LOCAL ROLE authenticated;
+ SELECT set_config('request.jwt.claim.sub','$owner',true);
+ SELECT * FROM oj_private.ext_p3_issue_quote_version(
+ '$org','60000000-0000-4000-8000-000000000003',
+ 'b0000000-0000-4000-8000-000000000051',
+ '70000000-0000-4000-8000-000000000051','$owner',1,NULL,20000,
+ '$scope50'::jsonb,20000,0,20000,repeat('e',64)); ROLLBACK;"
+eq "$(quote_cmd "$member" "b0000000-0000-4000-8000-000000000052" \
+ "70000000-0000-4000-8000-000000000052" 1 20000 e)" "2:2:false" \
+ "Active company member appends version after expected-revision refresh"
+eq "$(sql "SELECT latest_version_sequence::text||':'||revision::text
+ FROM public.oj_exterior_quotes WHERE organization_id='$org'
+ AND id='60000000-0000-4000-8000-000000000003';")" "2:2" \
+ "Quote pointer and revision advanced atomically with the append"
+fail "Even privileged SQL cannot append quote revisions to a booked work order" \
+ "INSERT INTO public.oj_exterior_quote_versions(
+ organization_id,quote_id,sequence,command_id,expected_revision,created_by,
+ scope,subtotal_cents,discount_cents,price_cents,content_hash)
+ VALUES('$org','60000000-0000-4000-8000-000000000001',2,
+ 'b0000000-0000-4000-8000-000000000053',1,'$owner',
+ '$scope50'::jsonb,20000,0,20000,repeat('f',64));"
+eq "$(sql "SELECT count(*) FROM public.oj_exterior_quote_versions
+ WHERE organization_id='$org' AND quote_id='60000000-0000-4000-8000-000000000001';")" 1 \
+ "Original issued work-order quote history remained immutable"
+echo "SUCCESS R50: authenticated read model and private staged quote-save CAS/idempotency gateway verified."
 echo "SUCCESS: synthetic PG17 P3 schema, RLS actors, revocation, immutable versions, CAS and verified receipts."
 echo "NO production migrations, real customer records or provider acceptance occurred."

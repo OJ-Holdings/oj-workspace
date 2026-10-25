@@ -18,6 +18,12 @@ Each pass must move an operator through an original customer or booked job and p
 
 This is permissible safe P3 groundwork while **P2 production safety is still a migration gate**, not authorization to merge the older schema PR #42 or execute SQL. Only a real signed provider adapter can validate approval; an object shaped like `P3Attestation` is not security evidence. The original 12-wave total remains **42/100** until a genuinely shared working application earns points.
 
+## R50 company read graph and safe quote-save transaction preparation
+
+[PR #148](https://github.com/OJ-Holdings/oj-workspace/pull/148) implemented a company-member-scoped read-only P3 graph and a private, non-exposed SQL transaction for immutable quote-version saving. This prepares the existing Estimate/Bookings apps to work with the canonical customer/property/source lead graph, while preventing cross-org leakage from still-global legacy booking/lead records when an exact company mapping does not exist. Synthetic PG17 validates idempotency, stale writer conflicts, impersonation rejection and post-work-order immutability. [Release record](./EXTERIOR_R50_DATA_ACCESS_RELEASE.md).
+
+No Supabase production mutation was executed, no customer acceptance inferred and no change to the priority of real P2 private production source/Storage recovery. Master score 42/100 unchanged. Continue with P3.2 trusted server write adapter and existing application integration after P2, plus Codex local/browser draft preservation.
+
 ## P3.1 staging schema and synthetic access-control progress (October 24, 2026)
 
 - [PR #146](https://github.com/OJ-Holdings/oj-workspace/pull/146) adds a **production-inert** relational staging schema for canonical customer/property, explicit legacy source links, per-visit opportunities, immutable quote versions, unverified claims, private provider evidence, work orders and event receipts. Legacy lead and booking IDs remain exact opaque text. No actual production DDL or code-path provider approval was authorized.
