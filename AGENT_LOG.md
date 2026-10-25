@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 00:00 UTC -- ChatGPT (Exterior R46 / P1.3 original-job history browsing)
+**Summary:** Provided member-scoped older booking task pagination and individually accessed historic job-comment pages, strict exact original booking/lead and task receipt checks, 1,000-row bounds, deterministic order, fail-closed drift and duplicate guards; added progressive display on existing Bookings and Field job views. No external messaging, schema changes or finances.
+**Files:** src/lib/exterior-job-followup.ts, src/app/workspace/exterior-followup-actions.ts, src/components/app/ExteriorJobContinuity.tsx, src/components/app/ExteriorJobActionLoop.tsx, src/components/app/ExteriorSharedFollowups.tsx, src/components/app/ExteriorTaskCommentHistory.tsx, tests/exterior-job-followup.test.ts, canonical progress and release docs.
+**Verified:** Feature [PR #136](https://github.com/OJ-Holdings/oj-workspace/pull/136) at fad67a1059e7ad1723637e642f99d304988a0c26 [CI #40147395179](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40147395179) SUCCESS both application/typecheck/tests/build and synthetic PG17 restoration, merged main `27eab63df26f36568fc9b5d8846e38e3fde8eb78`. Post-merge main CI, live deployment and founder devices must be independently rechecked.
+**Notes:** Keep 42/100 unchanged; Oscar's one-phone R44 server-report observation did not prove current R46 deployment or Jacob's acceptance. Actual production recovery and actor RLS/Storage proof needed before P3; do not merge PR #42.
+
 ## 2026-10-25 00:00 UTC -- ChatGPT (Exterior R45 / P1.2 source and comment truth)
 **Summary:** Enforced confirmed/pending-approval state uniformly through the protected job create/stage/comment server paths; pending is INTERNAL action only. Exact-count roster, source task and comment windows now fail closed or surface partial; Field and Job views no longer allow stale task writes or false complete empty states. No production migration or customer work touched.
 **Files:** src/lib/exterior-job-followup.ts, src/lib/exterior-job-action-loop.ts, src/lib/exterior-operations-inbox.ts, src/app/workspace/exterior-followup-actions.ts, src/app/workspace/exterior-inbox-actions.ts, src/components/app/ExteriorJobActionLoop.tsx, src/components/app/ExteriorSharedFollowups.tsx, dedicated behavior tests, release/handoff documentation.
