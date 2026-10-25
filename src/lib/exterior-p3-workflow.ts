@@ -17,6 +17,10 @@ import {validDay} from './exterior-job-followup';
  */
 const uuid=/^[\da-f]{8}-[\da-f]{4}-[1-8][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 const validId=(v:unknown):v is string=>typeof v==='string'&&uuid.test(v);
+/** Legacy Exterior IDs are opaque TEXT, not necessarily UUID. Preserve the exact source. */
+export const validLegacySourceId=(v:unknown):v is string=>
+ typeof v==='string'&&v.length>=1&&v.length<=128&&v.trim()===v&&
+ !/[\x00-\x1f\x7f]/.test(v);
 const time=(v:unknown):v is string=>typeof v==='string'&&
  /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)&&
  Number.isFinite(Date.parse(v))&&new Date(v).toISOString()===v;
@@ -128,9 +132,11 @@ function freezeLedger(v:P3QuoteLedger):P3QuoteLedger{
  return frozen(v);
 }
 export function newP3QuoteLedger(identity:P3Identity):P3QuoteLedger{
- for(const field of ['organizationId','customerId','propertyId','legacyLeadId','opportunityId','quoteId'] as const)
+ for(const field of ['organizationId','customerId','propertyId','opportunityId','quoteId'] as const)
   safeId(identity[field],field);
- if(identity.targetBookingId!==null)safeId(identity.targetBookingId,'targetBookingId');
+ assert(validLegacySourceId(identity.legacyLeadId),'legacyLeadId must preserve one safe original source ID.');
+ if(identity.targetBookingId!==null)
+  assert(validLegacySourceId(identity.targetBookingId),'targetBookingId must preserve one safe original source ID.');
  return freezeLedger({identity:{...identity},revision:0,versions:[],acceptanceClaims:[],commands:[]});
 }
 function checkCommand(
