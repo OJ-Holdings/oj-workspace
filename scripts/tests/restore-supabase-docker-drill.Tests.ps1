@@ -26,10 +26,23 @@ if ($source -notmatch 'supabase/postgres:17\.6\.1\.136@sha256:[0-9a-f]{64}') {
   throw 'The helper must use a version-17 Supabase database image pinned by digest.'
 }
 if (-not $source.Contains('[switch]$UseR40') -or
+    -not $source.Contains('[switch]$RefreshBackup') -or
+    -not $source.Contains('-Action Backup -EmitSanitizedJson') -or
     -not $source.Contains('-Action Status -EmitSanitizedJson') -or
     -not $source.Contains('-Action VerifyTarget -TargetDatabase $database') -or
-    -not $source.Contains('OJ_RECOVERY_CODE=')) {
+    -not $source.Contains('OJ_RECOVERY_CODE=') -or
+    -not $source.Contains('OJ_SOURCE_TABLES_MISSING_FROM_ARCHIVE=') -or
+    -not $source.Contains('OJ_RLS_POLICY_CONSTRAINT_SIGNATURE_PARITY=') -or
+    -not $source.Contains('OJ_ALL_PUBLIC_ROW_COUNT_PARITY=') -or
+    -not $source.Contains('OJ_AUTHORIZED_MEMBER_RLS=') -or
+    -not $source.Contains('OJ_OUTSIDER_RLS_DENIED=') -or
+    -not $source.Contains('OJ_ANON_RLS_DENIED=')) {
   throw 'The optional R40 path must preflight and verify through guarded actions and report only a sanitized recovery code.'
+}
+if (-not $source.Contains('OJ_ARCHIVE_AFTER_LATEST_SCHEMA_MIGRATION=') -or
+    -not $source.Contains('OJ_ARCHIVE_PUBLIC_TABLE_COUNT=') -or
+    -not $source.Contains('OJ_ARCHIVE_TOC_CREATED=')) {
+  throw 'The R40 path must compare archive timestamp and exact archive TOC table names with read-only source catalogs.'
 }
 if (-not $source.Contains('TargetConfirmation (''RESTORE ONLY INTO '' + $database)')) {
   throw 'The R40 path must preserve the exact target database confirmation.'

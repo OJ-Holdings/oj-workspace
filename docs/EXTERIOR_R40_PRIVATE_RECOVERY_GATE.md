@@ -73,3 +73,14 @@ If the raw archive cannot restore successfully, STOP. Diagnose in private, prepa
 | New shared quote, field and work-order migration | Blocked |
 
 Do not merge the old mixed migration PR #42 into production or execute any DDL before the outstanding recovery and authorization gates are truly passed.
+# Fresh encrypted backup, isolated restore and full parity run
+
+From an elevated PowerShell opened in the repository, with Docker Desktop running, run:
+
+```powershell
+.\scripts\restore-supabase-docker-drill.ps1 -UseR40 -RefreshBackup
+```
+
+This creates a new encrypted, mirrored backup with the existing DPAPI-backed utility, then restores it into a newly generated, empty Supabase PostgreSQL 17 container bound only to Windows loopback. The runner compares the private archive TOC's public table names against read-only live catalogs, checks constraints, RLS and policies, compares public/Auth record counts, and exercises authorized-member, unrelated-user and anonymous reads under their database roles. It removes only the disposable test container, network and plaintext volume after these checks finish. It does not run migrations or alter production rows. The run requires the same Windows user that configured DPAPI and an elevated PowerShell for local backup-evidence ACLs.
+
+Only sanitized status lines should be shared. The Storage API object bytes are not included in database archives and still require a separately authorized Storage API credential and independent byte-level archive verification.

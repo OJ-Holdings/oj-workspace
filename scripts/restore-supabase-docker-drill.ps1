@@ -4,7 +4,8 @@
 param(
   [string]$ArchivePath = '',
   [string]$EvidenceDirectory = '',
-  [switch]$UseR40
+  [switch]$UseR40,
+  [switch]$RefreshBackup
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -31,6 +32,15 @@ if (-not (Test-Path -LiteralPath $restoreScript)) { throw 'The guarded isolated 
 if ($UseR40) {
   $r40Script = Join-Path $PSScriptRoot 'exterior-r40-recovery-preflight.ps1'
   if (-not (Test-Path -LiteralPath $r40Script)) { throw 'The guarded R40 recovery preflight is missing.' }
+  if ($RefreshBackup) {
+    if ($ArchivePath) { throw 'Do not combine -RefreshBackup with a pinned ArchivePath.' }
+    $backupReport = ((@(& $r40Script -Action Backup -EmitSanitizedJson) -join '') | ConvertFrom-Json)
+    if ($backupReport.production_database_modified -ne $false -or
+        $backupReport.backup_created_this_run -ne $true -or
+        $backupReport.migration_authorized -ne $false) {
+      throw 'R40 did not confirm creation of a new encrypted backup. No restore target was started.'
+    }
+  }
   if (-not $ArchivePath) {
     $settingsPath = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup\settings.json'
     if (-not (Test-Path -LiteralPath $settingsPath -PathType Leaf)) { throw 'Private backup settings are unavailable.' }
@@ -44,18 +54,31 @@ if ($UseR40) {
   }
 } elseif (-not $ArchivePath) {
   throw 'ArchivePath is required unless -UseR40 is selected.'
+} elseif ($RefreshBackup) {
+  throw '-RefreshBackup requires -UseR40.'
 }
 $archive = Get-Item -LiteralPath $ArchivePath -ErrorAction Stop
 if ($archive.PSIsContainer -or $archive.Name -notmatch '^supabase-vgckpcktsfuithqggknd-\d{8}T\d{6}Z\.dump\.age$') {
   throw 'Archive path must be a file matching the configured encrypted production backup format.'
 }
 if (-not $EvidenceDirectory) { $EvidenceDirectory = Join-Path (Split-Path -Parent $archive.FullName) 'restore-drills' }
+if ($UseR40) {
+  $archiveManifest = Get-Content -LiteralPath ($archive.FullName + '.manifest.json') -Raw | ConvertFrom-Json
+  Write-Output ('OJ_ARCHIVE_PRODUCED_UTC=' + [string]$archiveManifest.produced_utc)
+}
 
 # Authenticate and enumerate the source archive before launching a database.
 # R40 mode suppresses helper output because operator-facing evidence must be
 # limited to sanitized status and diagnostic codes.
 if ($UseR40) {
-  & $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory *> $null
+  $archiveInspection = @(& $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory 2>&1)
+  $archiveTableLine = $archiveInspection | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^OJ_ARCHIVE_PUBLIC_TABLES=' } | Select-Object -First 1
+  $archiveTableNames = if ($archiveTableLine) { @(($archiveTableLine -replace '^OJ_ARCHIVE_PUBLIC_TABLES=','') -split '\|' | Where-Object { $_ }) } else { @() }
+  $archiveTimestampLine = $archiveInspection | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^OJ_ARCHIVE_PRODUCED_UTC=' } | Select-Object -First 1
+  if (-not $archiveTimestampLine) { throw 'The encrypted archive inspection did not provide its creation timestamp.' }
+  $archiveTocCreatedLine = $archiveInspection | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^OJ_ARCHIVE_TOC_CREATED=' } | Select-Object -First 1
+  if (-not $archiveTocCreatedLine) { throw 'The encrypted archive TOC did not provide its creation timestamp.' }
+  Write-Output $archiveTocCreatedLine
 } else {
   & $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
 }
@@ -103,6 +126,42 @@ function Invoke-Docker([string[]]$Arguments,[string]$FailureMessage) {
     throw $FailureMessage
   }
   return $result
+}
+
+$psql = Join-Path $env:LOCALAPPDATA 'OJWorkspace\tools\pg17\portable\pgsql\bin\psql.exe'
+if (-not (Test-Path -LiteralPath $psql -PathType Leaf)) { throw 'The verified PostgreSQL 17 psql client is missing.' }
+function Invoke-Psql([string]$DbHost,[int]$Port,[string]$Database,[string]$User,[string]$Sql) {
+  $psqlArgs = @('-h',$DbHost,'-p',"$Port",'-U',$User,'-d',$Database,'-X','-q','-A','-t','-v','ON_ERROR_STOP=1','-c',$Sql)
+  $prior = $ErrorActionPreference
+  try { $ErrorActionPreference = 'Continue'; $lines = @(& $psql @psqlArgs 2>&1); $exit = $LASTEXITCODE }
+  finally { $ErrorActionPreference = $prior }
+  return [pscustomobject]@{ ExitCode=[int]$exit; Text=(($lines | ForEach-Object { [string]$_ }) -join [Environment]::NewLine).Trim() }
+}
+function Invoke-SourcePsql([string]$Sql) {
+  $settingsPath = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup\settings.json'
+  $secretPath = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup\password.dpapi'
+  $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+  $cipher = (Get-Content -LiteralPath $secretPath -Raw).Trim()
+  $secure = ConvertTo-SecureString $cipher
+  $buffer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  $priorPassword = $env:PGPASSWORD; $priorSsl = $env:PGSSLMODE; $priorTimeout = $env:PGCONNECT_TIMEOUT
+  try {
+    $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($buffer)
+    $env:PGSSLMODE = 'require'; $env:PGCONNECT_TIMEOUT = '15'
+    return (Invoke-Psql ([string]$settings.host) ([int]$settings.port) ([string]$settings.database) ([string]$settings.user) $Sql)
+  } finally {
+    Remove-Item Env:PGPASSWORD,Env:PGSSLMODE,Env:PGCONNECT_TIMEOUT -ErrorAction SilentlyContinue
+    if ($priorPassword) { $env:PGPASSWORD = $priorPassword }; if ($priorSsl) { $env:PGSSLMODE = $priorSsl }; if ($priorTimeout) { $env:PGCONNECT_TIMEOUT = $priorTimeout }
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($buffer)
+  }
+}
+function Invoke-TargetPsql([string]$Sql) {
+  return (Invoke-Psql '127.0.0.1' 15432 $database 'supabase_admin' $Sql)
+}
+function Get-LastNumericValue([string]$Text) {
+  $matches = [regex]::Matches($Text,'(?m)^\s*(\d+)\s*$')
+  if ($matches.Count -eq 0) { return $null }
+  return [int64]$matches[$matches.Count - 1].Groups[1].Value
 }
 
 try {
@@ -169,6 +228,129 @@ try {
     Write-Output 'OJ_R40_VERIFYTARGET=PASS'
     Write-Output 'OJ_PRODUCTION_MODIFIED=FALSE'
     Write-Output 'OJ_MIGRATIONS_AUTHORIZED=FALSE'
+
+    $catalogSql = @'
+SELECT json_build_object(
+  'tables',(SELECT coalesce(json_agg(table_name ORDER BY table_name),'[]'::json)
+    FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),
+  'constraints',(SELECT coalesce(json_agg(json_build_array(n.nspname,r.relname,c.conname,c.contype,c.convalidated,pg_get_constraintdef(c.oid)) ORDER BY r.relname,c.conname),'[]'::json)
+    FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
+  'policies',(SELECT coalesce(json_agg(json_build_array(schemaname,tablename,policyname,permissive,roles,cmd,qual,with_check) ORDER BY tablename,policyname),'[]'::json)
+    FROM pg_policies WHERE schemaname='public'),
+  'rls',(SELECT coalesce(json_agg(json_build_array(r.relname,r.relrowsecurity,r.relforcerowsecurity) ORDER BY r.relname),'[]'::json)
+    FROM pg_class r JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public' AND r.relkind IN ('r','p'))
+)::text;
+'@
+    $sourceCatalogResult = Invoke-SourcePsql $catalogSql
+    $targetCatalogResult = Invoke-TargetPsql $catalogSql
+    $publicTableParity = $false; $schemaSignatureParity = $false; $allRowCountParity = $false; $authUserCountParity = $false
+    $sourceOnlyTables = @(); $targetOnlyTables = @(); $archiveOnlyTables = @(); $sourceMissingFromArchive = @(); $sourceCatalog = $null; $targetCatalog = $null
+    if ($sourceCatalogResult.ExitCode -eq 0 -and $targetCatalogResult.ExitCode -eq 0) {
+      try {
+        $sourceCatalog = $sourceCatalogResult.Text | ConvertFrom-Json
+        $targetCatalog = $targetCatalogResult.Text | ConvertFrom-Json
+        $sourceNames = @($sourceCatalog.tables | ForEach-Object { [string]$_ } | Sort-Object -CaseSensitive -Unique)
+        $targetNames = @($targetCatalog.tables | ForEach-Object { [string]$_ } | Sort-Object -CaseSensitive -Unique)
+        $sourceNameSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $targetNameSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($name in $sourceNames) { $null = $sourceNameSet.Add($name) }
+        foreach ($name in $targetNames) { $null = $targetNameSet.Add($name) }
+        $sourceOnlyTables = @($sourceNames | Where-Object { -not $targetNameSet.Contains($_) })
+        $targetOnlyTables = @($targetNames | Where-Object { -not $sourceNameSet.Contains($_) })
+        $archiveNameSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($name in $archiveTableNames) { $null = $archiveNameSet.Add([string]$name) }
+        $sourceMissingFromArchive = @($sourceNames | Where-Object { -not $archiveNameSet.Contains($_) })
+        $archiveOnlyTables = @($archiveTableNames | Where-Object { -not $sourceNameSet.Contains([string]$_) })
+        $publicTableParity = ($sourceOnlyTables.Count -eq 0 -and $targetOnlyTables.Count -eq 0)
+        $sourceSignature = [ordered]@{ constraints=$sourceCatalog.constraints; policies=$sourceCatalog.policies; rls=$sourceCatalog.rls }
+        $targetSignature = [ordered]@{ constraints=$targetCatalog.constraints; policies=$targetCatalog.policies; rls=$targetCatalog.rls }
+        $sourceSignatureJson = ConvertTo-Json -InputObject $sourceSignature -Depth 100 -Compress
+        $targetSignatureJson = ConvertTo-Json -InputObject $targetSignature -Depth 100 -Compress
+        $schemaSignatureParity = ($sourceSignatureJson -ceq $targetSignatureJson)
+
+        $allRowCountParity = $publicTableParity
+        foreach ($tableName in $sourceNames) {
+          $quoted = '"' + $tableName.Replace('"','""') + '"'
+          $sourceCount = Invoke-SourcePsql ('SELECT count(*)::text FROM public.' + $quoted)
+          $targetCount = Invoke-TargetPsql ('SELECT count(*)::text FROM public.' + $quoted)
+          $sourceValue = if ($sourceCount.ExitCode -eq 0) { Get-LastNumericValue $sourceCount.Text } else { $null }
+          $targetValue = if ($targetCount.ExitCode -eq 0) { Get-LastNumericValue $targetCount.Text } else { $null }
+          if ($null -eq $sourceValue -or $null -eq $targetValue -or $sourceValue -ne $targetValue) { $allRowCountParity = $false }
+        }
+        $sourceAuthUsers = Invoke-SourcePsql 'SELECT count(*)::text FROM auth.users'
+        $targetAuthUsers = Invoke-TargetPsql 'SELECT count(*)::text FROM auth.users'
+        $sourceAuthCount = if ($sourceAuthUsers.ExitCode -eq 0) { Get-LastNumericValue $sourceAuthUsers.Text } else { $null }
+        $targetAuthCount = if ($targetAuthUsers.ExitCode -eq 0) { Get-LastNumericValue $targetAuthUsers.Text } else { $null }
+        $authUserCountParity = ($null -ne $sourceAuthCount -and $null -ne $targetAuthCount -and $sourceAuthCount -eq $targetAuthCount)
+      } catch { $publicTableParity=$false; $schemaSignatureParity=$false; $allRowCountParity=$false; $authUserCountParity=$false }
+    }
+    Write-Output ('OJ_PUBLIC_TABLE_NAME_PARITY=' + $(if ($publicTableParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_PUBLIC_TABLE_COUNT_SOURCE=' + $(if ($sourceCatalog) { @($sourceCatalog.tables).Count } else { 'UNAVAILABLE' }))
+    Write-Output ('OJ_PUBLIC_TABLE_COUNT_RESTORED=' + $(if ($targetCatalog) { @($targetCatalog.tables).Count } else { 'UNAVAILABLE' }))
+    Write-Output ('OJ_SOURCE_ONLY_PUBLIC_TABLES=' + ($sourceOnlyTables -join ','))
+    Write-Output ('OJ_TARGET_ONLY_PUBLIC_TABLES=' + ($targetOnlyTables -join ','))
+    Write-Output ('OJ_SOURCE_TABLES_MISSING_FROM_ARCHIVE=' + ($sourceMissingFromArchive -join ','))
+    Write-Output ('OJ_ARCHIVE_ONLY_PUBLIC_TABLES=' + ($archiveOnlyTables -join ','))
+    Write-Output ('OJ_ARCHIVE_PUBLIC_TABLE_COUNT=' + $archiveTableNames.Count)
+    Write-Output ('OJ_RLS_POLICY_CONSTRAINT_SIGNATURE_PARITY=' + $(if ($schemaSignatureParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_ALL_PUBLIC_ROW_COUNT_PARITY=' + $(if ($allRowCountParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_AUTH_USER_COUNT_PARITY=' + $(if ($authUserCountParity) { 'PASS' } else { 'FAIL' }))
+    $migrationResult = Invoke-SourcePsql "SELECT coalesce(max(version::text),'') FROM supabase_migrations.schema_migrations"
+    $latestMigration = if ($migrationResult.ExitCode -eq 0) { $migrationResult.Text.Trim() } else { '' }
+    $archiveAfterMigration = $false
+    if ($latestMigration -match '^\d{14}$') {
+      try {
+        $migrationUtc = [datetime]::ParseExact($latestMigration,'yyyyMMddHHmmss',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal)
+        $archiveUtc = [datetime]::Parse([string]$archiveManifest.produced_utc,[Globalization.CultureInfo]::InvariantCulture).ToUniversalTime()
+        $archiveAfterMigration = ($archiveUtc -ge $migrationUtc.ToUniversalTime())
+      } catch { $archiveAfterMigration = $false }
+    }
+    Write-Output ('OJ_LATEST_SCHEMA_MIGRATION_VERSION=' + $(if ($latestMigration) { $latestMigration } else { 'UNAVAILABLE' }))
+    Write-Output ('OJ_ARCHIVE_AFTER_LATEST_SCHEMA_MIGRATION=' + $(if ($archiveAfterMigration) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_ARCHIVE_CREATED_UTC=' + [string]$archiveManifest.produced_utc)
+
+    $memberResult = Invoke-TargetPsql 'SELECT user_id::text FROM public.oj_memberships WHERE user_id IS NOT NULL ORDER BY user_id LIMIT 1'
+    $memberId = if ($memberResult.ExitCode -eq 0) { ($memberResult.Text -split "`r?`n" | Where-Object { $_ -match '^[0-9a-fA-F-]{36}$' } | Select-Object -First 1) } else { $null }
+    $authorizedMemberPass = $false; $outsiderDeniedPass = $false; $anonDeniedPass = $false
+    if ($memberId -match '^[0-9a-fA-F-]{36}$') {
+      $memberSql = @"
+BEGIN;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','$memberId',true);
+SELECT set_config('request.jwt.claims','{"sub":"$memberId","role":"authenticated","aud":"authenticated"}',true);
+SELECT count(*) FROM public.oj_memberships;
+ROLLBACK;
+"@
+      $memberRead = Invoke-TargetPsql $memberSql
+      $memberCount = if ($memberRead.ExitCode -eq 0) { Get-LastNumericValue $memberRead.Text } else { $null }
+      $authorizedMemberPass = ($null -ne $memberCount -and $memberCount -gt 0)
+      $outsiderId = [guid]::NewGuid().ToString()
+      $outsiderSql = @"
+BEGIN;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','$outsiderId',true);
+SELECT set_config('request.jwt.claims','{"sub":"$outsiderId","role":"authenticated","aud":"authenticated"}',true);
+SELECT count(*) FROM public.oj_memberships;
+ROLLBACK;
+"@
+      $outsiderRead = Invoke-TargetPsql $outsiderSql
+      $outsiderCount = if ($outsiderRead.ExitCode -eq 0) { Get-LastNumericValue $outsiderRead.Text } else { $null }
+      $outsiderDeniedPass = ($null -ne $outsiderCount -and $outsiderCount -eq 0)
+      $anonRead = Invoke-TargetPsql 'BEGIN; SET LOCAL ROLE anon; SELECT count(*) FROM public.oj_memberships; ROLLBACK;'
+      if ($anonRead.ExitCode -eq 0) {
+        $anonCount = Get-LastNumericValue $anonRead.Text
+        $anonDeniedPass = ($null -ne $anonCount -and $anonCount -eq 0)
+      } else {
+        $anonDeniedPass = ($anonRead.Text -match '(?i)permission denied|insufficient privilege|does not have permission')
+      }
+    }
+    Write-Output ('OJ_AUTHORIZED_MEMBER_RLS=' + $(if ($authorizedMemberPass) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_OUTSIDER_RLS_DENIED=' + $(if ($outsiderDeniedPass) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_ANON_RLS_DENIED=' + $(if ($anonDeniedPass) { 'PASS' } else { 'FAIL' }))
+    if (-not ($publicTableParity -and $sourceMissingFromArchive.Count -eq 0 -and $archiveOnlyTables.Count -eq 0 -and $schemaSignatureParity -and $allRowCountParity -and $authUserCountParity -and $archiveAfterMigration -and $authorizedMemberPass -and $outsiderDeniedPass -and $anonDeniedPass)) {
+      throw 'Isolated source parity or actor-role validation failed. Review only sanitized results; production remains untouched.'
+    }
+    Write-Output 'OJ_SOURCE_PARITY_AND_ACTOR_TESTS=PASS'
   } else {
     & $restoreScript -Action Restore -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
     & $restoreScript -Action VerifyTarget -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory

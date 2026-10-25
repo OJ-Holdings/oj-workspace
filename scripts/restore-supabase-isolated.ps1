@@ -265,6 +265,16 @@ if ($isEncrypted) {
   }
 }
 if ($Action -eq 'Inspect') {
+  $tocLines = if ($isEncrypted) { @($archiveTocText -split "`r?`n") } else { @($archiveToc | ForEach-Object { [string]$_ }) }
+  $publicTableNames = @($tocLines | ForEach-Object {
+    if ([string]$_ -match '^\s*\d+;\s+\d+\s+\d+\s+TABLE\s+public\s+(?:"([^"]+)"|(\S+))\s') {
+      if ($Matches[1]) { $Matches[1] } else { $Matches[2] }
+    }
+  } | Sort-Object -CaseSensitive -Unique)
+  Write-Output ('OJ_ARCHIVE_PUBLIC_TABLES=' + ($publicTableNames -join '|'))
+  $tocCreation = $tocLines | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^; Archive created at ' } | Select-Object -First 1
+  if ($tocCreation) { Write-Output ('OJ_ARCHIVE_TOC_CREATED=' + $tocCreation.Substring(2)) }
+  Write-Output ('OJ_ARCHIVE_PRODUCED_UTC=' + [string]$manifest.produced_utc)
   Write-Output ('ARCHIVE READABLE: ' + $archive.Name)
   Write-Output ('SHA-256: ' + $hash)
   Write-Output ('Size bytes: ' + $archive.Length)
