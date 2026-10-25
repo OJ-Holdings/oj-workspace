@@ -151,7 +151,9 @@ if($Action -eq 'Restore' -or $Action -eq 'VerifyTarget') {
  }
  $args=@{
   Action=$Action;ArchivePath=$latest.file;TargetHost='127.0.0.1';TargetPort=$TargetPort;
-  TargetDatabase=$TargetDatabase;TargetUser='postgres';TargetConfirmation=$TargetConfirmation
+  # The pinned Supabase PG17 drill image provisions supabase_admin (not a
+  # guaranteed login role named postgres); use the documented local superuser.
+  TargetDatabase=$TargetDatabase;TargetUser='supabase_admin';TargetConfirmation=$TargetConfirmation
  }
  try { & $restoreScript @args *> $null }
  catch {

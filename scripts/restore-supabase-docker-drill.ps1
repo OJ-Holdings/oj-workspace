@@ -2,8 +2,9 @@
 # container. Requires elevated Windows PowerShell and Docker Desktop.
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory=$true)][string]$ArchivePath,
-  [string]$EvidenceDirectory = ''
+  [string]$ArchivePath = '',
+  [string]$EvidenceDirectory = '',
+  [switch]$UseR40
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -27,6 +28,23 @@ if ($dockerExit -ne 0 -or -not $dockerInfo) { throw 'Docker Desktop is not ready
 
 $restoreScript = Join-Path $PSScriptRoot 'restore-supabase-isolated.ps1'
 if (-not (Test-Path -LiteralPath $restoreScript)) { throw 'The guarded isolated restore helper is missing.' }
+if ($UseR40) {
+  $r40Script = Join-Path $PSScriptRoot 'exterior-r40-recovery-preflight.ps1'
+  if (-not (Test-Path -LiteralPath $r40Script)) { throw 'The guarded R40 recovery preflight is missing.' }
+  if (-not $ArchivePath) {
+    $settingsPath = Join-Path $env:APPDATA 'OJWorkspace\supabase-backup\settings.json'
+    if (-not (Test-Path -LiteralPath $settingsPath -PathType Leaf)) { throw 'Private backup settings are unavailable.' }
+    $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+    $backupDirectory = [string]$settings.backup_directory
+    if (-not $backupDirectory -or -not (Test-Path -LiteralPath $backupDirectory -PathType Container)) { throw 'Private backup directory is unavailable.' }
+    $latest = Get-ChildItem -LiteralPath $backupDirectory -Filter 'supabase-vgckpcktsfuithqggknd-*.dump.age' -File |
+      Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $latest) { throw 'No encrypted source archive is available.' }
+    $ArchivePath = $latest.FullName
+  }
+} elseif (-not $ArchivePath) {
+  throw 'ArchivePath is required unless -UseR40 is selected.'
+}
 $archive = Get-Item -LiteralPath $ArchivePath -ErrorAction Stop
 if ($archive.PSIsContainer -or $archive.Name -notmatch '^supabase-vgckpcktsfuithqggknd-\d{8}T\d{6}Z\.dump\.age$') {
   throw 'Archive path must be a file matching the configured encrypted production backup format.'
@@ -34,7 +52,23 @@ if ($archive.PSIsContainer -or $archive.Name -notmatch '^supabase-vgckpcktsfuith
 if (-not $EvidenceDirectory) { $EvidenceDirectory = Join-Path (Split-Path -Parent $archive.FullName) 'restore-drills' }
 
 # Authenticate and enumerate the source archive before launching a database.
-& $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
+# R40 mode suppresses helper output because operator-facing evidence must be
+# limited to sanitized status and diagnostic codes.
+if ($UseR40) {
+  & $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory *> $null
+} else {
+  & $restoreScript -Action Inspect -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
+}
+if ($UseR40) {
+  $status = ((@(& $r40Script -Action Status -EmitSanitizedJson) -join '') | ConvertFrom-Json)
+  if (-not $status.primary_archive_encryption_verified -or
+      -not $status.mirror_archive_encryption_verified -or
+      -not $status.backup_archive_checksum_verified -or
+      -not $status.mirrored_archive_checksum_verified -or
+      -not $status.archive_readable_with_pg17) {
+    throw 'R40 archive preflight failed. No isolated database was started.'
+  }
+}
 
 $listener = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,15432)
 try { $listener.Start(); $listener.Stop() }
@@ -52,7 +86,7 @@ $containerCreated = $false
 $priorPostgresPassword = $env:POSTGRES_PASSWORD
 $priorPgPassword = $env:PGPASSWORD
 [byte[]]$random = New-Object byte[] 36
-[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($random)
+[void][Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($random)
 $targetPassword = [Convert]::ToBase64String($random)
 
 function Invoke-Docker([string[]]$Arguments,[string]$FailureMessage) {
@@ -115,9 +149,31 @@ try {
   if (-not $reachable) { throw 'Docker did not expose the database on Windows loopback.' }
   Write-Output 'Isolated Supabase PostgreSQL 17 target is healthy; network egress is disabled.'
 
-  & $restoreScript -Action Restore -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
-  & $restoreScript -Action VerifyTarget -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
-  Write-Output 'RESTORE DRILL PASSED. The disposable plaintext database will be removed; encrypted backups and private restore evidence remain.'
+  if ($UseR40) {
+    $latestNow = Get-ChildItem -LiteralPath (Split-Path -Parent $archive.FullName) -Filter 'supabase-vgckpcktsfuithqggknd-*.dump.age' -File |
+      Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $latestNow -or $latestNow.FullName -cne $archive.FullName) { throw 'The selected archive is no longer the newest source archive; no restore was started.' }
+    try {
+      $restoreReport = ((@(& $r40Script -Action Restore -TargetDatabase $database -TargetPort 15432 -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -EmitSanitizedJson) -join '') | ConvertFrom-Json)
+      if ($restoreReport.production_database_modified -ne $false -or
+          $restoreReport.scratch_restore_performed_this_run -ne $true) { throw 'R40 restore receipt was not confirmed.' }
+      $verifyReport = ((@(& $r40Script -Action VerifyTarget -TargetDatabase $database -TargetPort 15432 -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -EmitSanitizedJson) -join '') | ConvertFrom-Json)
+      if ($verifyReport.production_database_modified -ne $false -or $verifyReport.migration_authorized -ne $false) { throw 'R40 verification report was invalid.' }
+    } catch {
+      $safeMessage = [string]$_.Exception.Message
+      if ($safeMessage -match '(?:OJ_RECOVERY_CODE:|Diagnostic code:\s*)([A-Z_]+)') { Write-Output ('OJ_RECOVERY_CODE=' + $Matches[1]) }
+      else { Write-Output 'OJ_RECOVERY_CODE=R40_GUARDED_RESTORE_FAILURE' }
+      throw 'R40 isolated restore did not complete. Private diagnostics remain on this host.'
+    }
+    Write-Output 'OJ_R40_RESTORE=PASS'
+    Write-Output 'OJ_R40_VERIFYTARGET=PASS'
+    Write-Output 'OJ_PRODUCTION_MODIFIED=FALSE'
+    Write-Output 'OJ_MIGRATIONS_AUTHORIZED=FALSE'
+  } else {
+    & $restoreScript -Action Restore -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
+    & $restoreScript -Action VerifyTarget -TargetHost '127.0.0.1' -TargetPort 15432 -TargetDatabase $database -TargetUser 'supabase_admin' -TargetConfirmation ('RESTORE ONLY INTO ' + $database) -ArchivePath $archive.FullName -EvidenceDirectory $EvidenceDirectory
+    Write-Output 'RESTORE DRILL PASSED. The disposable plaintext database will be removed; encrypted backups and private restore evidence remain.'
+  }
 } finally {
   $env:POSTGRES_PASSWORD = $priorPostgresPassword
   $env:PGPASSWORD = $priorPgPassword

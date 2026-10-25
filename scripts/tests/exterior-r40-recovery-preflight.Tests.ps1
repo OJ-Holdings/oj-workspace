@@ -56,6 +56,9 @@ if($src -notmatch '(?s)migration_authorized=\$false' -or
 if($src -match 'Get-BitLockerVolume|FullyEncrypted|ProtectionStatus') {
  throw 'R40 must verify authenticated archive encryption rather than require a Windows edition-specific volume-encryption feature.'
 }
+if($src -notmatch "TargetUser='supabase_admin'") {
+ throw 'R40 must use the login role provisioned by the pinned Supabase PostgreSQL drill image.'
+}
 $backupSource=Get-Content -LiteralPath (Join-Path (Split-Path $script -Parent) 'backup-supabase-windows.ps1') -Raw
 $restoreSource=Get-Content -LiteralPath (Join-Path (Split-Path $script -Parent) 'restore-supabase-isolated.ps1') -Raw
 if($backupSource -notmatch 'EncryptProcessOutput\s+\$dump' -or
