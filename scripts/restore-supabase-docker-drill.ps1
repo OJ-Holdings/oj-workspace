@@ -241,6 +241,8 @@ SELECT json_build_object(
     FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),
   'constraints',(SELECT coalesce(json_agg(n.nspname||'.'||r.relname||'.'||c.conname||'|'||md5(json_build_array(c.contype,c.convalidated,pg_get_constraintdef(c.oid))::text) ORDER BY r.relname,c.conname),'[]'::json)
     FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
+  'constraint_definitions',(SELECT coalesce(json_object_agg(r.relname||'.'||c.conname,pg_get_constraintdef(c.oid)),'{}'::json)
+    FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),
   'policies',(SELECT coalesce(json_agg(schemaname||'.'||tablename||'.'||policyname||'|'||md5(json_build_array(permissive,ARRAY(SELECT role_name::text FROM unnest(roles) AS role_name ORDER BY 1),cmd,qual,with_check)::text) ORDER BY tablename,policyname),'[]'::json)
     FROM pg_policies WHERE schemaname='public'),
   'rls',(SELECT coalesce(json_agg(r.relname||'|'||r.relrowsecurity||'|'||r.relforcerowsecurity ORDER BY r.relname),'[]'::json)
@@ -250,7 +252,7 @@ SELECT json_build_object(
     $sourceCatalogResult = Invoke-SourcePsql $catalogSql
     $targetCatalogResult = Invoke-TargetPsql $catalogSql
     $publicTableParity = $false; $schemaSignatureParity = $false; $constraintParity = $false; $policyParity = $false; $rlsFlagParity = $false; $allRowCountParity = $false; $authUserCountParity = $false
-    $sourceOnlyTables = @(); $targetOnlyTables = @(); $archiveOnlyTables = @(); $sourceMissingFromArchive = @(); $constraintSourceOnly = @(); $constraintTargetOnly = @(); $policySourceOnly = @(); $policyTargetOnly = @(); $rlsSourceOnly = @(); $rlsTargetOnly = @(); $sourceCatalog = $null; $targetCatalog = $null
+    $sourceOnlyTables = @(); $targetOnlyTables = @(); $archiveOnlyTables = @(); $sourceMissingFromArchive = @(); $constraintSourceOnly = @(); $constraintTargetOnly = @(); $policySourceOnly = @(); $policyTargetOnly = @(); $rlsSourceOnly = @(); $rlsTargetOnly = @(); $rowCountDifferences = @(); $sourceCatalog = $null; $targetCatalog = $null
     if ($sourceCatalogResult.ExitCode -eq 0 -and $targetCatalogResult.ExitCode -eq 0) {
       try {
         $sourceCatalog = $sourceCatalogResult.Text | ConvertFrom-Json
@@ -286,13 +288,17 @@ SELECT json_build_object(
         $schemaSignatureParity = ($constraintParity -and $policyParity -and $rlsFlagParity)
 
         $allRowCountParity = $publicTableParity
+        $rowCountDifferences = @()
         foreach ($tableName in $sourceNames) {
           $quoted = '"' + $tableName.Replace('"','""') + '"'
           $sourceCount = Invoke-SourcePsql ('SELECT count(*)::text FROM public.' + $quoted)
           $targetCount = Invoke-TargetPsql ('SELECT count(*)::text FROM public.' + $quoted)
           $sourceValue = if ($sourceCount.ExitCode -eq 0) { Get-LastNumericValue $sourceCount.Text } else { $null }
           $targetValue = if ($targetCount.ExitCode -eq 0) { Get-LastNumericValue $targetCount.Text } else { $null }
-          if ($null -eq $sourceValue -or $null -eq $targetValue -or $sourceValue -ne $targetValue) { $allRowCountParity = $false }
+          if ($null -eq $sourceValue -or $null -eq $targetValue -or $sourceValue -ne $targetValue) {
+            $allRowCountParity = $false
+            $rowCountDifferences += ($tableName + '=' + $(if ($null -eq $sourceValue) { 'UNAVAILABLE' } else { $sourceValue }) + '/' + $(if ($null -eq $targetValue) { 'UNAVAILABLE' } else { $targetValue }))
+          }
         }
         $sourceAuthUsers = Invoke-SourcePsql 'SELECT count(*)::text FROM auth.users'
         $targetAuthUsers = Invoke-TargetPsql 'SELECT count(*)::text FROM auth.users'
@@ -318,11 +324,20 @@ SELECT json_build_object(
     Write-Output ('OJ_RLS_DIFF_COUNTS=' + $rlsSourceOnly.Count + '/' + $rlsTargetOnly.Count)
     Write-Output ('OJ_CONSTRAINTS_SOURCE_ONLY=' + ($constraintSourceOnly -join ','))
     Write-Output ('OJ_CONSTRAINTS_TARGET_ONLY=' + ($constraintTargetOnly -join ','))
+    if ($sourceCatalog -and $targetCatalog) {
+      foreach ($constraintKey in @(@($constraintSourceOnly + $constraintTargetOnly) | ForEach-Object { ([string]$_ -split '\|')[0] } | Sort-Object -CaseSensitive -Unique)) {
+        $sourceDefinition = $sourceCatalog.constraint_definitions.PSObject.Properties[[string]$constraintKey]
+        $targetDefinition = $targetCatalog.constraint_definitions.PSObject.Properties[[string]$constraintKey]
+        if ($sourceDefinition) { Write-Output ('OJ_CONSTRAINT_SOURCE_DEFINITION=' + $constraintKey + '|' + [string]$sourceDefinition.Value) }
+        if ($targetDefinition) { Write-Output ('OJ_CONSTRAINT_TARGET_DEFINITION=' + $constraintKey + '|' + [string]$targetDefinition.Value) }
+      }
+    }
     Write-Output ('OJ_POLICIES_SOURCE_ONLY=' + ($policySourceOnly -join ','))
     Write-Output ('OJ_POLICIES_TARGET_ONLY=' + ($policyTargetOnly -join ','))
     Write-Output ('OJ_RLS_TABLES_SOURCE_ONLY=' + ($rlsSourceOnly -join ','))
     Write-Output ('OJ_RLS_TABLES_TARGET_ONLY=' + ($rlsTargetOnly -join ','))
     Write-Output ('OJ_ALL_PUBLIC_ROW_COUNT_PARITY=' + $(if ($allRowCountParity) { 'PASS' } else { 'FAIL' }))
+    Write-Output ('OJ_PUBLIC_ROW_COUNT_DELTAS=' + ($rowCountDifferences -join ','))
     Write-Output ('OJ_AUTH_USER_COUNT_PARITY=' + $(if ($authUserCountParity) { 'PASS' } else { 'FAIL' }))
     $migrationResult = Invoke-SourcePsql "SELECT coalesce(max(version::text),'') FROM supabase_migrations.schema_migrations"
     $latestMigration = if ($migrationResult.ExitCode -eq 0) { $migrationResult.Text.Trim() } else { '' }
