@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 -- ChatGPT (Exterior R49 original-booking internal crew brief)
+**Summary:** Added a source-qualified field handoff inside original Jobs & Bookings / Job Continuity. Exact linked customer, booking, recorded crew and authorized company tasks are summarized for the operator, with user-initiated internal-only copy containing contact/site and explicit pending/unknown/safety limitations. No external customer contact, crew dispatch, source DDL or finance mutation.
+**Files:** src/lib/exterior-crew-brief.ts, src/components/app/ExteriorJobContinuity.tsx, src/styles/exterior-command.css, tests/exterior-crew-brief.test.ts, docs/EXTERIOR_R49_CREW_BRIEF_RELEASE.md and canonical handoff.
+**Verified:** [PR #140](https://github.com/OJ-Holdings/oj-workspace/pull/140) exact head cb96e1386e6b2d7ad20c2e24397b7514c6f3d91a [CI #40149799864](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40149799864) SUCCESS for app and synthetic PG17, merged 02fa2bbac8e66955c3d084164bb343ac9d6f68ef, [main CI #40149952362](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40149952362) SUCCESS both jobs. Separate [evidence PR #142](https://github.com/OJ-Holdings/oj-workspace/pull/142) merged dcaf79b5c3b36b70ffd7bed31bbedcfc24b89691.
+**Notes:** R49 is engineering-only operator integration; neither current public site nor Jacob/Oscar production task roundtrip or owner-private encrypted real backup/isolated restore, authenticated RLS negative actors or Storage file bytes is verified. R48/R48.1 security CI remains intact. Score 42/100; PR #42 blocked.
+
 ## 2026-10-25 01:14 UTC -- ChatGPT (Exterior R47 actions / R48 Next patch / R48.1 CI guard)
 **Summary:** R47 source-aware operator next-action drafts integrated into existing exact Booking/Job workflow, requiring deliberate preparation and standard company task confirmation. R48 upgraded pinned Next.js and regenerated lock after identifying official October critical advisories; no temporary lock workflow remains. R48.1 adds CI failure on known critical npm advisories. No actual customer messages, production DDL, payments, private field data or customer data changed.
 **Files:** src/lib/exterior-job-next-actions.ts, src/components/app/ExteriorJobActionLoop.tsx, src/components/app/ExteriorJobContinuity.tsx, src/styles/exterior-command.css, tests/exterior-job-next-actions.test.ts; package.json/package-lock.json; .github/workflows/ci.yml; canonical planning and release docs.
