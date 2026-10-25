@@ -85,6 +85,7 @@ function PostgreSQLTool([string]$name) {
 
 function AgeTool {
   $command = Get-Command age.exe -ErrorAction SilentlyContinue
+  if (-not $command) { $command = Get-Command age -ErrorAction SilentlyContinue }
   $candidate = if ($command) { $command.Source } else { $null }
   if (-not $candidate -and $env:LOCALAPPDATA) {
     $pinned = Join-Path $env:LOCALAPPDATA 'OJWorkspace\tools\age\1.3.2\age\age.exe'
