@@ -23,12 +23,12 @@ test('ATLAS exposes five intentional modes, but no standalone Connected Operatio
   assert.deepEqual([...atlasModes],['today','operations','growth','money','strategy']);
 });
 
-test('four venture strip includes disabled studio without pretending it has live CRM data',()=>{
+test('four venture strip includes activated studio with source-derived CRM counts',()=>{
   const snap=buildAtlasSnapshot({today,cards:[card('a',{business:'exterior'})],
     dashboard:dashboard(),jobs:[]});
   assert.deepEqual(snap.ventures.map(v=>v.id),['exterior','solutions','essentials','content']);
-  assert.equal(snap.ventures.find(v=>v.id==='content')?.active,false);
-  assert.equal(snap.ventures.find(v=>v.id==='content')?.leads,null);
+  assert.equal(snap.ventures.find(v=>v.id==='content')?.active,true);
+  assert.equal(snap.ventures.find(v=>v.id==='content')?.leads,0);
   assert.equal(snap.ventures.find(v=>v.id==='exterior')?.openTasks,1);
 });
 

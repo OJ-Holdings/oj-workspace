@@ -3,8 +3,11 @@ import { redirect } from 'next/navigation';
 import { LiveWorkspace } from '@/components/LiveWorkspace';
 import { isConfigured, supabaseServer } from '@/lib/supabase';
 import { loadWorkspace } from '@/lib/workspace-data';
+import { contentPersistenceEnabled } from '@/lib/ventures';
 export const dynamic = 'force-dynamic';
-export default async function WorkspacePage() {
+export default async function WorkspacePage({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const { slug = [] } = await params;
+  if (contentPersistenceEnabled && slug.join('/') === 'tools/content-preview') redirect('/workspace/b/content');
   if (!isConfigured()) redirect('/login');
   const client = await supabaseServer();
   const { data: { user } } = await client.auth.getUser();

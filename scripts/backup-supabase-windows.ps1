@@ -30,7 +30,23 @@ function ProtectDirectory([string]$path) {
     )
     $acl.AddAccessRule($rule)
   }
-  Set-Acl -LiteralPath $path -AclObject $acl
+  # Persist the DACL only. Set-Acl can request audit/SACL privileges even though
+  # this function only sets access rules, breaking the least-privilege backup task.
+  # Existing audit settings and ownership are not rewritten.
+  [IO.Directory]::SetAccessControl($path, $acl)
+  $verified = [IO.Directory]::GetAccessControl($path, [Security.AccessControl.AccessControlSections]::Access)
+  $rules = @($verified.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
+  $expected = @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value, 'S-1-5-18', 'S-1-5-32-544') | Select-Object -Unique
+  if (-not $verified.AreAccessRulesProtected -or $rules.Count -ne $expected.Count) {
+    throw 'Private backup folder access could not be verified.'
+  }
+  foreach ($rule in $rules) {
+    if ($rule.IdentityReference.Value -notin $expected -or $rule.IsInherited -or
+        $rule.AccessControlType -ne 'Allow' -or
+        ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -ne [Security.AccessControl.FileSystemRights]::FullControl) {
+      throw 'Private backup folder has unexpected access rules.'
+    }
+  }
 }
 
 function AssertSafeLocation([string]$path) {

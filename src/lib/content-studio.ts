@@ -41,6 +41,7 @@ export type ContentSnapshot = {
   projects: ContentProject[];
   members: ContentMember[];
   activity: ContentActivity[];
+  limited?: boolean;
 };
 
 /** A parsed, bounded, server-validated content editor payload. */
@@ -120,3 +121,12 @@ export const freshContentDraft = (): ContentDraft => ({
 export const isContentLate = (item: Pick<ContentProject, 'target_publish_on' | 'stage'>, today: string) =>
   Boolean(item.target_publish_on && item.target_publish_on < today &&
     item.stage !== 'Published' && item.stage !== 'Archived');
+
+/** Compare only normalized editable content, not IDs, revisions or timestamps. */
+export function contentDraftMatches(draft: ContentDraft, project: ContentProject): boolean {
+  const editable = (value: ContentDraft) => {
+    const { id: _id, revision: _revision, ...fields } = validateContentDraft(value);
+    return fields;
+  };
+  return JSON.stringify(editable(draft)) === JSON.stringify(editable(project));
+}
