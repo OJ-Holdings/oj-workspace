@@ -54,6 +54,9 @@ export function ContentStudio({ base, organizationId, mode, readOnly }: Props) {
   const [saving, setSaving] = useState(false);
   const [today, setToday] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
+  const creationIdRef = useRef<string | null>(null);
+  const saveInFlight = useRef(false);
+  const editorBaseline = useRef('');
   const readOnlyView = readOnly || mode === 'preview';
 
   useEffect(() => {
@@ -96,34 +99,52 @@ export function ContentStudio({ base, organizationId, mode, readOnly }: Props) {
   const late = projects.filter(item => isContentLate(item, today)).length;
 
   const openEditor = (project?: ContentProject) => {
+    if (saveInFlight.current) return;
+    if (editor && !window.confirm('Replace the open draft? Unsaved edits will be discarded.')) return;
+    creationIdRef.current = project ? null : crypto.randomUUID();
     setNotice('');
-    setEditor(project ? {
+    const next = project ? {
       id: project.id, title: project.title, kind: project.kind, stage: project.stage,
       platforms: [...project.platforms], summary: project.summary, script: project.script,
       production_notes: project.production_notes, assigned_to: project.assigned_to,
       shoot_at: project.shoot_at, target_publish_on: project.target_publish_on,
       published_url: project.published_url, published_at: project.published_at,
       revision: project.revision,
-    } : freshContentDraft());
+    } : freshContentDraft();
+    editorBaseline.current = JSON.stringify(next);
+    setEditor(next);
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   };
   const patch = <K extends keyof ContentDraft>(key: K, value: ContentDraft[K]) => {
     setEditor(previous => previous ? { ...previous, [key]: value } : previous);
   };
+  const closeEditor = () => {
+    if (saveInFlight.current) return;
+    if (editor && JSON.stringify(editor) !== editorBaseline.current &&
+      !window.confirm('Discard these unsaved production edits?')) return;
+    setEditor(null);
+  };
+  useEffect(() => {
+    if (!editor || JSON.stringify(editor) === editorBaseline.current) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [editor]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editor || readOnlyView || saving) return;
+    if (!editor || readOnlyView || saveInFlight.current) return;
+    saveInFlight.current = true;
     setSaving(true);
     setNotice('');
     try {
       const draft = validateContentDraft(editor);
-      const saved = await saveContentStudioProject(organizationId, draft);
+      const saved = await saveContentStudioProject(organizationId, draft, creationIdRef.current ?? undefined);
       setNotice(saved.revision === 0 ? 'Production project created.' : 'Production project saved.');
       setEditor(null);
       await refresh();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Unable to save this project.');
-    } finally { setSaving(false); }
+    } finally { saveInFlight.current = false; setSaving(false); }
   }
 
   return <div className="content-studio">
@@ -137,6 +158,7 @@ export function ContentStudio({ base, organizationId, mode, readOnly }: Props) {
     </div>
     {mode === 'preview' && <p className="content-preview-note"><ShieldCheck size={16} /> Fictional sample only. Editing is disabled in preview; no company records are loaded.</p>}
     {loadError && <div role="alert" className="content-error">{loadError} <button type="button" onClick={() => void refresh()}><RefreshCw size={15} /> Retry</button></div>}
+    {snapshot?.limited && <p role="status" className="content-preview-note">Showing the latest 250 productions and 500 history entries. Counts and search cover this loaded window.</p>}
     <div className="content-stats" aria-label="Content production counts">
       <div><Video size={17} /><span>Projects</span><strong>{loading ? '—' : projects.length}</strong></div>
       <div><Clock3 size={17} /><span>In production</span><strong>{loading ? '—' : inProgress}</strong></div>
@@ -182,7 +204,7 @@ export function ContentStudio({ base, organizationId, mode, readOnly }: Props) {
 
     {editor && <div className="content-editor-wrap" ref={editorRef}>
       <form className="content-editor" onSubmit={e => void submit(e)} aria-label="Content production editor">
-        <header className="content-editor-head"><div><p className="content-eyebrow">PRODUCTION RECORD</p><h3>{editor.id ? 'Manage production' : 'New production'}</h3></div><button type="button" className="content-dismiss" onClick={() => setEditor(null)} aria-label="Close editor"><X size={19}/></button></header>
+        <header className="content-editor-head"><div><p className="content-eyebrow">PRODUCTION RECORD</p><h3>{editor.id ? 'Manage production' : 'New production'}</h3></div><button type="button" className="content-dismiss" disabled={saving} onClick={closeEditor} aria-label="Close editor"><X size={19}/></button></header>
         <fieldset disabled={readOnlyView || saving}>
           <div className="content-editor-fields">
             <label className="content-field-full">Production title
@@ -247,8 +269,8 @@ export function ContentStudio({ base, organizationId, mode, readOnly }: Props) {
           )}
         </section>}
         <footer className="content-editor-foot">
-          <span><ShieldCheck size={15} /> Changes are saved to the company's private workspace.</span>
-          <div><button type="button" className="secondary" onClick={()=>setEditor(null)}>Close</button>
+          <span><ShieldCheck size={15} /> {mode === 'preview' ? 'Fictional preview; no company changes.' : 'Save production verifies the private company record.'}</span>
+          <div><button type="button" className="secondary" disabled={saving} onClick={closeEditor}>Close</button>
           {!readOnlyView && <button className="primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save production'}</button>}</div>
         </footer>
       </form>

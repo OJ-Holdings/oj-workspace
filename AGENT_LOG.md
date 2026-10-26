@@ -22,6 +22,10 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 America/Chicago -- Codex (Content Studio preview development)
+**Summary:** Added a separate staged Content Studio backend matching the existing editor and membership system; server revisions, actor-bound history, tenant RLS, exact save readback, stable create retries and unsaved-editor protections. No new framework or automatic publication.
+**Verified:** Isolated synthetic actor/database tests, existing full application tests, TypeScript and production Webpack build pass locally. Native PG17 CI harness added. Production flag remains false; no SQL applied. Fourth-brand constraints, independent off-PC custody and live founder/device acceptance remain activation gates. See docs/OJ_CONTENT_STUDIO_READINESS.md.
+
 ## 2026-10-25 23:07 UTC -- Codex (production shared-save activation)
 **Summary:** Integrated the existing typed internal document implementation with R40/commercial persistence; connected Commercial Desk's primary Save to versioned shared records and added exact revision/payload read-back before module success. Owner explicitly approved production DDL and proceeding despite incomplete private-file recovery. Applied only the two reviewed migrations; merged PR #159 and deployed `8b684d1cf867a539d6fc61e58f4ccc21bc148886` through CI, staging health and rollback checks.
 **Verified:** 730 local tests, TypeScript/build and all PR/main CI jobs PASS. Synthetic real PostgreSQL 17 shared save/member read-back, conflict/replay and denied/revoked roles PASS. Production original table/Auth/Storage counts unchanged by DDL; a labeled archived commercial test persisted and was independently read by another authorized member role. Module/fleet verification rolled back; anonymous public API access denied. Live port 3011 health reports exact release SHA, preview 200, signed-out Workspace 307. Previous release retained.

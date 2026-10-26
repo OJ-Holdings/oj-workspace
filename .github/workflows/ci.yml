@@ -16,6 +16,14 @@ permissions:
   contents: read
 
 jobs:
+  content-studio-synthetic:
+    name: Content Studio staged schema and RLS (synthetic PostgreSQL 17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n scripts/tests/content-studio-integration.sh
+      - run: bash scripts/tests/content-studio-integration.sh
+
   check:
     runs-on: ubuntu-latest
     steps:
