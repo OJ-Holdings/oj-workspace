@@ -3,6 +3,7 @@
 import { requireMember } from '@/lib/supabase';
 import {
   validateCommercialProjectDraft, validateCommercialProjectPage, validateCommercialSaveReceipt,
+  verifyCommercialSaveReadback,
   type CommercialProjectCursor,
 } from '@/lib/commercial-persistence';
 import type { ProjectDraft } from '@/lib/atlas-commercial-portfolio';
@@ -73,10 +74,7 @@ export async function saveCommercialProject(
 
   // Re-read the exact ID through the member-only RPC. Paging through the
   // first 50 projects is not a reliable confirmation under simultaneous writes.
-  const project = await loadCommercialProject(organizationId, projectId);
-  if (!project) throw new Error('The save receipt was recorded, but the shared project could not be reloaded. Refresh before retrying.');
-  if (project.revision !== receipt.revision) {
-    throw new Error('Another founder saved a newer revision. Reload the shared project before continuing.');
-  }
+  const project = verifyCommercialSaveReadback(organizationId, projectId, receipt.revision, draft,
+    await loadCommercialProject(organizationId, projectId));
   return { status: 'saved', project, replayed: receipt.replayed };
 }
