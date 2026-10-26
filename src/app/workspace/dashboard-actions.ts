@@ -127,8 +127,11 @@ export async function removeRecord(org: string, kind: keyof typeof removable, id
         return data ? { storagePath: data.storage_path } : null;
       },
       removeObject: async path => {
-        const { error } = await client.storage.from('oj-documents').remove([path]);
+        const { data, error } = await client.storage.from('oj-documents').remove([path]);
         if (error) throw new Error('Storage removal failed.');
+        // Storage can return an empty success response for missing/inaccessible
+        // objects. Only an exact object receipt confirms this removal.
+        return data?.some(object => object.name === path) ?? false;
       },
       removeMetadata: async path => {
         // Preserve a concurrently replaced file reference rather than deleting it.

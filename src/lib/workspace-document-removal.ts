@@ -7,7 +7,7 @@ export async function removeWorkspaceDocument(
   documentId: string,
   operations: {
     lookup: () => Promise<{ storagePath: string } | null>;
-    removeObject: (path: string) => Promise<void>;
+    removeObject: (path: string) => Promise<boolean>;
     removeMetadata: (path: string) => Promise<void>;
   },
 ): Promise<void> {
@@ -20,8 +20,10 @@ export async function removeWorkspaceDocument(
   if (!row.storagePath.startsWith(organizationId + '/') || row.storagePath.includes('..')) {
     throw new Error('The document location could not be verified. Nothing was removed.');
   }
-  try { await operations.removeObject(row.storagePath); }
+  try {
+    if (!await operations.removeObject(row.storagePath)) throw new Error('No exact removal receipt.');
+  }
   catch { throw new Error('The file could not be removed. Its company record was kept; retry after checking your connection and access.'); }
   try { await operations.removeMetadata(row.storagePath); }
-  catch { throw new Error('File removal completed, but the company record could not be removed. Refresh and retry to reconcile it.'); }
+  catch { throw new Error('File removal completed, but the company record could not be removed. Refresh and reconcile the remaining record before claiming deletion is complete.'); }
 }

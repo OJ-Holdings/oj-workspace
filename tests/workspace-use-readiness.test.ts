@@ -14,7 +14,7 @@ function operations() {
   return {
     calls,
     lookup: async (): Promise<{ storagePath: string } | null> => { calls.push('lookup'); return { storagePath: path }; },
-    removeObject: async (p: string) => { assert.equal(p, path); calls.push('object'); },
+    removeObject: async (p: string) => { assert.equal(p, path); calls.push('object'); return true; },
     removeMetadata: async (p: string) => { assert.equal(p, path); calls.push('metadata'); },
   };
 }
@@ -38,6 +38,13 @@ test('revoked/unavailable document or failed lookup never attempts file deletion
   assert.deepEqual(ops.calls, []);
 });
 
+test('empty Storage success receipt cannot discard the company reference', async () => {
+  const ops = operations();
+  ops.removeObject = async () => { ops.calls.push('object'); return false; };
+  await assert.rejects(removeWorkspaceDocument(org, id, ops), /company record was kept/);
+  assert.deepEqual(ops.calls, ['lookup', 'object']);
+});
+
 test('document removal rejects another organization or invalid identity before mutation', async () => {
   const ops = operations();
   ops.lookup = async () => ({ storagePath: id + '/synthetic.bin' });
@@ -55,7 +62,7 @@ test('successful document removal preserves Storage-before-metadata order', asyn
 test('database failure after file removal is reported for reconciliation, never success', async () => {
   const ops = operations();
   ops.removeMetadata = async () => { throw new Error('synthetic revoked or replaced'); };
-  await assert.rejects(removeWorkspaceDocument(org, id, ops), /Refresh and retry to reconcile/);
+  await assert.rejects(removeWorkspaceDocument(org, id, ops), /reconcile the remaining record/);
   assert.deepEqual(ops.calls, ['lookup', 'object']);
 });
 
