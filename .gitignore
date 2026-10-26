@@ -12,3 +12,8 @@ test-results/
 supabase-*.dump
 supabase-*.dump.partial
 supabase-*.dump.manifest.json
+
+# Encrypted backup secrets and private recovery files must never enter git.
+*.age
+*.dpapi
+scripts/**/__pycache__/

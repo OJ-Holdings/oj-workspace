@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-26 UTC -- ChatGPT (rebased private Storage backup tooling)
+**Summary:** Integrated PR #167's owner-only encrypted Supabase Storage byte recovery scripts and synthetic tests onto the latest main without overwriting concurrent Content Studio activation or changing production data. Original PR #167 had a merge conflict after main advanced.
+**Verified:** PR #167 exact-head 4/4 CI green. Owner separately reported fresh R40 disposable database recovery PASS, all 28 public tables and source rows matching, member positive and outsider/anonymous negative checks. Storage-byte hash-verified readback for both original files was reported PASS. This branch needs fresh integrated CI.
+**Notes:** Independent off-PC media custody, owner/viewer/revoked actor matrix, and U2 migration review remain outstanding. No deployment or U2 DDL is asserted. Private files and credentials never committed.
+
+
 ## 2026-10-26 America/Chicago -- Codex (owner-authorized Content Studio activation)
 **Summary:** Corrected access-only backup ACL persistence without relaxing the private DACL, created and verified a fresh encrypted source backup plus USB mirror, applied the two dedicated Content migrations, and enabled the live Content route with old-preview bookmark redirection.
 **Verified:** Installed database owner/member create/read/update, stale revisions, viewer restrictions, outsider/revoked/anonymous denial and automatic history PASS; synthetic records rolled back. Local 748 tests/build and Windows DACL tests PASS. CI/deployment proof is recorded in PR #169. Offline custody and actual founder-phone acceptance remain unverified; this activation does not certify them.
