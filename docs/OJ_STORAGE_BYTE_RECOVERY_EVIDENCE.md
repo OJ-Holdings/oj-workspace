@@ -48,8 +48,7 @@ The API key is read only from the owner-created `storage-key.dpapi` in the exist
 private R40 settings directory. It is never passed as a process argument. Admin
 Storage access is confined to this owner recovery tool, not application requests.
 
-Fresh DB recovery **was completed in Administrator Windows PowerShell** on 2026-10-25 evening (America/Chicago), with the owner-provided sanitized report showing 28/28 tables, row and semantic constraint parity, Auth user count parity, and successful member/outsider/anonymous tests. The two PostgreSQL check-definition strings differed only after parser-confirmed semantic equivalence. This report is not evidence of owner/viewer/revoked-role coverage, offline custody, or live production activation. The recovery remains repeatable and
-the existing guard. Run commands in order, after reading the guarded runner:
+Fresh DB recovery **was completed in Administrator Windows PowerShell** on 2026-10-25 evening (America/Chicago), with the owner-provided sanitized report showing 28/28 tables, row and semantic constraint parity, Auth user count parity, and successful member/outsider/anonymous tests. The two PostgreSQL check-definition strings differed only after parser-confirmed semantic equivalence. This report is not evidence of owner/viewer/revoked-role coverage, offline custody, or live production activation. The existing guarded runner remains available for repeat verification. Run these commands in order, after reviewing that runner:
 
 ```powershell
 Set-Location C:\STRATHOS\oj-workspace-commercial-persist
