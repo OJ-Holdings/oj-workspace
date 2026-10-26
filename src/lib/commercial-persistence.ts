@@ -85,11 +85,34 @@ export function validateCommercialProjectPage(raw: unknown, org: string): Commer
     ? null
     : { updatedAt: String(value.nextUpdatedAt), id: uuid(value.nextId, 'page cursor') };
   if (nextCursor && !Number.isFinite(Date.parse(nextCursor.updatedAt))) throw new Error('Shared commercial records returned an invalid cursor.');
+  if (value.hasMore && !nextCursor) throw new Error('More shared projects exist, but their next page could not be verified. Reload before continuing.');
   const portfolio = validateCommercialPortfolio({
     format: 'oj-commercial-portfolio-local-v1', version: 1, organizationId: org,
     revision: 0, projects: value.projects,
   } as CommercialPortfolio, org);
   return { projects: portfolio.projects, nextCursor, hasMore: value.hasMore };
+}
+
+/** A matching revision does not prove that every submitted field was retained.
+ * Compare normalized editable content; server-generated timestamps are excluded.
+ */
+export function verifyCommercialSaveReadback(
+  organizationId: string, projectId: string, savedRevision: number,
+  submitted: ProjectDraft, stored: CommercialProject | null,
+): CommercialProject {
+  if (!stored) throw new Error('The save receipt exists, but the shared project could not be reloaded. Retry the original save command.');
+  if (uuid(stored.id, 'stored project ID') !== uuid(projectId, 'expected project ID')) {
+    throw new Error('Shared save read-back returned a different project. Your edits have not been confirmed saved.');
+  }
+  if (stored.revision !== savedRevision) {
+    throw new Error('Another founder saved a newer revision. Reload the shared project before continuing.');
+  }
+  const expected = validateCommercialProjectDraft(organizationId, submitted);
+  const actual = validateCommercialProjectDraft(organizationId, stored);
+  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+    throw new Error('Shared save read-back did not match the submitted estimate. Keep your editor open and retry the original save command.');
+  }
+  return stored;
 }
 
 export function validateCommercialSaveReceipt(raw: unknown, expectedProjectId: string):

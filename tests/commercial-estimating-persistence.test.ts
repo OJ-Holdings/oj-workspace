@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { newEstimate } from '../src/lib/commercial-estimate';
 import { emptyFieldCrewPlan } from '../src/lib/atlas-field-mission';
-import { planCommercialSaveAttempt, recoveryProjectId } from '../src/lib/commercial-persistence';
+import { planCommercialSaveAttempt, recoveryProjectId, validateCommercialProjectPage, verifyCommercialSaveReadback } from '../src/lib/commercial-persistence';
 
 test('legacy recovery IDs map deterministically to tenant-scoped UUIDv8 values', async () => {
   const orgA = '00000000-0000-4000-8000-000000000001';
@@ -78,7 +78,7 @@ test('commercial estimate RPCs enforce tenant roles, immutable versions, CAS and
   const command1 = '00000000-0000-4000-8000-000000000031';
   const command2 = '00000000-0000-4000-8000-000000000032';
   const draft = {
-    name: 'Campus wash', input: newEstimate(), review: [false,false,false,false,false], phase: 'scoping',
+    name: 'Campus wash', input: newEstimate(), review: [false,false,false,false,false], phase: 'scoping' as const,
     bookingId: null, plannedAssetIds: [], fieldCrewPlan: emptyFieldCrewPlan(),
   };
 
@@ -100,6 +100,8 @@ test('commercial estimate RPCs enforce tenant roles, immutable versions, CAS and
     assert.equal(got.rows[0].project.id, project);
     assert.equal(got.rows[0].project.revision, 1);
     assert.equal(got.rows[0].project.name, 'Campus wash');
+    const parsed = validateCommercialProjectPage({ projects: [got.rows[0].project], hasMore: false }, org).projects[0];
+    assert.equal(verifyCommercialSaveReadback(org, project, 1, draft, parsed).id, project);
     assert.equal('scenarioPrice' in got.rows[0].project, false);
     assert.equal(JSON.stringify(got.rows[0].project).includes('laborRate'), true);
     await assert.rejects(() => db.query(`select * from oj_private.oj_commercial_cost_assumptions`));

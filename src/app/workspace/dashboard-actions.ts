@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { requireMember } from '@/lib/supabase';
 import { documentTags, leadStages, type DocumentItem, type EventItem, type FinanceEntry, type Lead, type Message, type MetricEntry } from '@/lib/dashboard';
 import { isVenture, type VentureId } from '@/lib/ventures';
+import { removeWorkspaceDocument } from '@/lib/workspace-document-removal';
 
 // Server actions for everything except the task board. Each one checks
 // membership through requireMember (write access), validates its input, and
@@ -116,10 +117,30 @@ export async function documentUrl(org: string, id: string): Promise<string> {
 const removable = { lead: 'oj_leads', finance: 'oj_finance_entries', metric: 'oj_metric_entries', event: 'oj_events', document: 'oj_documents' } as const;
 export async function removeRecord(org: string, kind: keyof typeof removable, id: string): Promise<void> {
   const { client } = await requireMember(org, true);
-  if (!(kind in removable) || !/^[a-f0-9-]{36}$/i.test(id)) throw new Error('Nothing to remove.');
+  if (!Object.hasOwn(removable, kind) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw new Error('Nothing to remove.');
   if (kind === 'document') {
-    const { data: row } = await client.from('oj_documents').select('storage_path').eq('id', id).eq('organization_id', org).maybeSingle();
-    if (row) await client.storage.from('oj-documents').remove([row.storage_path]);
+    await removeWorkspaceDocument(org, id, {
+      lookup: async () => {
+        const { data, error } = await client.from('oj_documents').select('storage_path')
+          .eq('id', id).eq('organization_id', org).maybeSingle();
+        if (error) throw new Error('Document lookup failed.');
+        return data ? { storagePath: data.storage_path } : null;
+      },
+      removeObject: async path => {
+        const { data, error } = await client.storage.from('oj-documents').remove([path]);
+        if (error) throw new Error('Storage removal failed.');
+        // Storage can return an empty success response for missing/inaccessible
+        // objects. Only an exact object receipt confirms this removal.
+        return data?.some(object => object.name === path) ?? false;
+      },
+      removeMetadata: async path => {
+        // Preserve a concurrently replaced file reference rather than deleting it.
+        const { data, error } = await client.from('oj_documents').delete()
+          .eq('id', id).eq('organization_id', org).eq('storage_path', path).select('id');
+        if (error || data?.length !== 1) throw new Error('Document changed or removal was denied.');
+      },
+    });
+    return;
   }
   const { error } = await client.from(removable[kind]).delete().eq('id', id).eq('organization_id', org);
   if (error) fail('remove it');
