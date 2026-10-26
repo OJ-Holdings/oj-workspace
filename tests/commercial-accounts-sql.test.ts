@@ -39,6 +39,81 @@ test('commercial company profiles are private, tenant-scoped, versioned and non-
   [tenant,account,expected,commandId,JSON.stringify(payload)]);
  const list=(tenant=org)=>db.query<{v:{accounts:Array<any>;hasMore:boolean}}>(
   'select public.oj_commercial_accounts_list($1,$2) v',[tenant,50]);
+ const contactChecks=await db.query<{idInvalid:boolean;nameTypeInvalid:boolean;nameLengthInvalid:boolean;
+  roleTypeInvalid:boolean;roleLengthInvalid:boolean;emailTypeInvalid:boolean;emailLengthInvalid:boolean;
+  phoneTypeInvalid:boolean;phoneLengthInvalid:boolean}>(`
+  select (c->>'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+  await as(owner);
+  const result=await save(command,0);
+  assert.equal(result.rows[0].v.revision,1);
+  assert.equal((await save(command,0)).rows[0].v.replayed,true);
+  await assert.rejects(()=>save(command,0,{...data,name:'Changed same command'}));
+  await as(member);
+  const page=(await list()).rows[0].v;
+  assert.equal(page.accounts.length,1);
+  assert.equal(page.accounts[0].name,data.name);
+  assert.equal(page.accounts[0].contacts[0].fullName,'Accounts payable');
+  assert.equal(page.accounts[0].properties[0].frequency,'quarterly');
+  assert.equal(page.hasMore,false);
+  await assert.rejects(()=>db.query('select * from public.oj_commercial_accounts'));
+  await assert.rejects(()=>db.query('select * from oj_private.oj_commercial_account_commands'));
+ });
+ await t.test('optimistic revisions prevent stale overwrites and omitted children remain',async()=>{
+  await as(member);
+  const second=await save('00000000-0000-4000-8000-000000000032',1,
+   {...data,notes:'Quarterly bid',contacts:[],properties:[]});
+  assert.equal(second.rows[0].v.revision,2);
+  const stale=await save('00000000-0000-4000-8000-000000000033',1,data);
+  assert.equal(stale.rows[0].v.conflict,true);
+  assert.equal(stale.rows[0].v.currentRevision,2);
+  const page=(await list()).rows[0].v;
+  assert.equal(page.accounts[0].revision,2);
+  assert.equal(page.accounts[0].contacts.length,1);
+  assert.equal(page.accounts[0].properties.length,1);
+ });
+ await t.test('direct RPC rejects malformed child data and duplicate IDs',async()=>{
+  await as(owner);
+  await assert.rejects(()=>save('00000000-0000-4000-8000-000000000034',2,
+   {...data,contacts:[data.contacts[0],data.contacts[0]]}));
+  await assert.rejects(()=>save('00000000-0000-4000-8000-000000000035',2,
+   {...data,properties:[{...data.properties[0],frequency:'approved'}]}));
+  await assert.rejects(()=>save('00000000-0000-4000-8000-000000000036',2,
+   {...data,contacts:[{...data.contacts[0],fullName:''}]}));
+  const page=(await list()).rows[0].v;
+  assert.equal(page.accounts[0].revision,2);
+  await db.exec('reset role');
+  await assert.rejects(()=>db.query('delete from oj_private.oj_commercial_account_commands'));
+ });
+ await t.test('unauthorized viewers, other founders, anonymous and revoked members are denied',async()=>{
+  for(const id of [viewer,outsider]){
+   await as(id);
+   await assert.rejects(()=>list());
+   await assert.rejects(()=>save('00000000-0000-4000-8000-000000000037',2));
+  }
+  await db.exec('reset role; reset request.jwt.claim.sub; set role anon;');
+  await assert.rejects(()=>list());
+  await assert.rejects(()=>save('00000000-0000-4000-8000-000000000038',2));
+  await db.exec(`reset role; delete from public.oj_memberships where organization_id='${org}' and user_id='${member}'`);
+  await as(member);
+  await assert.rejects(()=>list());
+  await assert.rejects(()=>save('00000000-0000-4000-8000-000000000039',2));
+ });
+});
+ as "idInvalid",
+   jsonb_typeof(c->'fullName') is distinct from 'string' as "nameTypeInvalid",
+   length(btrim(c->>'fullName')) not between 1 and 120 as "nameLengthInvalid",
+   jsonb_typeof(c->'role') is distinct from 'string' as "roleTypeInvalid",
+   length(c->>'role')>80 as "roleLengthInvalid",
+   jsonb_typeof(c->'email') is distinct from 'string' as "emailTypeInvalid",
+   length(c->>'email')>180 as "emailLengthInvalid",
+   jsonb_typeof(c->'phone') is distinct from 'string' as "phoneTypeInvalid",
+   length(c->>'phone')>60 as "phoneLengthInvalid"
+  from jsonb_array_elements($1::jsonb->'contacts') c`,[JSON.stringify(data)]);
+ assert.deepEqual(contactChecks.rows,[{
+  idInvalid:false,nameTypeInvalid:false,nameLengthInvalid:false,roleTypeInvalid:false,
+  roleLengthInvalid:false,emailTypeInvalid:false,emailLengthInvalid:false,
+  phoneTypeInvalid:false,phoneLengthInvalid:false,
+ }]);
  await t.test('owner creates and member reads 1 account with exact child profiles',async()=>{
   await as(owner);
   const result=await save(command,0);
