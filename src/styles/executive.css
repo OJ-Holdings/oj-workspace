@@ -207,3 +207,26 @@
 .com-account-foot{display:flex;gap:8px;align-items:start;font-size:11px;line-height:1.6;color:var(--ink-3);margin:0}
 @media(max-width:780px){.com-account-layout{grid-template-columns:minmax(0,1fr)}.com-account-list{flex-direction:row;overflow-x:auto;padding-bottom:5px}.com-account-list>button{min-width:180px;max-width:230px;flex-shrink:0}}
 @media(max-width:460px){.com-account-fields{grid-template-columns:minmax(0,1fr)}.com-account-editor-head>button{width:100%;justify-content:center}.com-account-controls button{flex:1}}
+
+
+/* U2B — founder-reviewed exact project/company/property relationships. */
+.atlas-project-company-link{border:1px solid var(--line);border-radius:11px;background:var(--panel-2);padding:15px;margin:16px 0}
+.atlas-project-company-link>header{display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-project-company-link>header>div{min-width:0;flex:1}
+.atlas-project-company-link h4{display:flex;align-items:center;gap:9px;margin:4px 0 8px;font-size:16px}
+.atlas-project-company-link header small{font-size:10px;color:var(--ink-3);letter-spacing:.09em}
+.atlas-project-company-link p{font-size:11px;line-height:1.5;color:var(--ink-2);margin:6px 0}
+.atlas-project-company-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.atlas-project-company-controls label{display:grid;gap:7px;font-size:11px;color:var(--ink-2);font-weight:700;min-width:0}
+.atlas-project-company-controls select{min-width:0;width:100%;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);padding:11px}
+.atlas-project-company-controls button{display:inline-flex;align-items:center;gap:8px;justify-content:center;min-height:40px}
+.com-account-linked-projects{border-top:1px solid var(--line);padding-top:15px;display:flex;flex-direction:column;gap:8px}
+.com-account-linked-projects>header{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.com-account-linked-projects>header strong{font-size:14px}
+.com-account-linked-projects>header p,.com-account-linked-projects>p{font-size:11px;line-height:1.5;color:var(--ink-2)}
+.com-account-linked-projects>a{display:flex;gap:12px;justify-content:space-between;align-items:center;color:var(--ink);text-decoration:none;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2)}
+.com-account-linked-projects>a>span{display:grid;gap:5px}
+.com-account-linked-projects>a strong{font-size:12px}
+.com-account-linked-projects>a small{color:var(--ink-3);font-size:10px}
+.com-account-linked-projects>a:hover{border-color:var(--accent)}
+@media(max-width:650px){.atlas-project-company-controls{grid-template-columns:1fr}.com-account-linked-projects>header{flex-wrap:wrap}}
