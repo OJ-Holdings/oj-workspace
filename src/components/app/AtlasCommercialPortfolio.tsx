@@ -31,6 +31,7 @@ type Props={
   name:string;input:EstimateInput;review:boolean[];
   bookings:ExtBooking[];cards:Card[];
   onLoad:(project:Pick<CommercialProject,'name'|'input'|'review'>)=>void;
+  propertySuggestion?:{accountId:string;propertyId:string;accountName:string;propertyName:string}|null;
   saveHandle?:Ref<CommercialSaveHandle>;
 };
 const dateChicago=()=>{
@@ -47,10 +48,10 @@ const short=(id:string)=>id.length>11?id.slice(0,9)+'…':id;
  * Explicit booking IDs are only linked after selecting currently loaded records;
  * an editor cannot join a project to a customer by name/address similarity.
  */
-export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad,saveHandle}:Props){
+export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,review,bookings,cards,onLoad,propertySuggestion,saveHandle}:Props){
   const router=useRouter();
   const params=useSearchParams();
-  const targetProject=params.get('project');
+  const targetProject=propertySuggestion?null:params.get('project');
   const openedTarget=useRef('');
   const canEdit=mode==='live'&&!readOnly;
   const key='oj-commercial-project-portfolio-v1:'+org;
@@ -447,7 +448,8 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         <p className="atlas-project-hint">{booking.label}. {selectedBooking?.date?'Recorded date '+selectedBooking.date+'. ':''}A booking reference does not confirm crew, scope, customer authorization or completed work.</p>
         {booking.state==='loaded-active'&&booking.booking&&<Link className="atlas-project-booking-link" href={base+'/b/exterior/calendar'}>Open Exterior bookings <ArrowUpRight size={13}/></Link>}
         <CommercialProjectAccountLink key={selectedId??'unsaved'} org={org} projectId={selectedId}
-          projectSaved={Boolean(current&&selectedId&&expectedRevision!==null)} />
+          projectSaved={Boolean(current&&selectedId&&expectedRevision!==null)}
+          propertySuggestion={propertySuggestion??null} />
         <div className="atlas-project-asset-picker"><div><Truck size={16}/><strong>Candidate equipment allocation</strong><span>Not a reservation or dispatch order</span></div>
           <label>Add Fleet Command asset
             <select value={addAsset} onChange={e=>setAddAsset(e.target.value)}>
