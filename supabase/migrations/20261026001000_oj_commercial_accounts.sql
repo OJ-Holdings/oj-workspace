@@ -182,14 +182,26 @@ begin
  end loop;
  v_seen:=array[]::text[];
  for v_child in select value from jsonb_array_elements(p_payload->'properties') loop
-  if jsonb_typeof(v_child) is distinct from 'object' or
-    (v_child->>'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
-    jsonb_typeof(v_child->'name') is distinct from 'string' or
-    length(btrim(v_child->>'name')) not between 1 and 120 or
-    jsonb_typeof(v_child->'address') is distinct from 'string' or length(v_child->>'address')>300 or
-    jsonb_typeof(v_child->'serviceNotes') is distinct from 'string' or length(v_child->>'serviceNotes')>2000 or
-    coalesce(v_child->>'frequency','') not in ('unknown','one-time','monthly','quarterly','annual') then
-   raise exception 'Invalid company property' using errcode='22023';
+  if jsonb_typeof(v_child) is distinct from 'object' then
+   raise exception 'Invalid company property object' using errcode='22023';
+  end if;
+  if coalesce((v_child->>'id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',false)=false then
+   raise exception 'Invalid company property ID' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'name') is distinct from 'string'
+    or length(btrim(v_child->>'name')) not between 1 and 120 then
+   raise exception 'Invalid company property name' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'address') is distinct from 'string'
+    or length(v_child->>'address')>300 then
+   raise exception 'Invalid company property address' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'serviceNotes') is distinct from 'string'
+    or length(v_child->>'serviceNotes')>2000 then
+   raise exception 'Invalid company property notes' using errcode='22023';
+  end if;
+  if coalesce(v_child->>'frequency','') not in ('unknown','one-time','monthly','quarterly','annual') then
+   raise exception 'Invalid company service frequency' using errcode='22023';
   end if;
   if (v_child->>'id')=any(v_seen) then
    raise exception 'Duplicate company property ID' using errcode='22023';
