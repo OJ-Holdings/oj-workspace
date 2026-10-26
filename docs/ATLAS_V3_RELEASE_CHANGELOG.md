@@ -4,6 +4,14 @@
 > Product direction: [ATLAS V3 Master Blueprint](./ATLAS_V3_MASTER_INDEX.md) · [30-wave plan](./ATLAS_06_EXECUTION_ROADMAP.md).
 > ATLAS V3 planning documents contain extensive **proposed** features, not claims of already shipped products.
 
+## Exterior Founder Audit U1 — merged main; production verification outstanding (October 25, 2026)
+
+- **Code:** [PR #161](https://github.com/OJ-Holdings/oj-workspace/pull/161) merged `main` as `9c7e4a08acc696a80214721a6d60b291d2e1fd5d`, feature head `df7143e4` passed [CI #40245345389](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40245345389) on all four jobs. Shipped to **GitHub main only**: task-first commercial controls, data-coverage indicator instead of full source dump, simpler Exterior Command labels and issues. No application/database mutation, SMS or SQL migration in U1.
+- **Production:** Windows 3011/Funnel and Netlify served-SHA parity **not independently verified** from this interaction. Existing guarded CI-driven Windows release machinery is configured to auto-poll `main` every five minutes when running and logged in, but `supabase/` diff, missing host, PAUSE, failed main checks, dirty worktree, or competing host-loop must block. Never report a merge as live proof.
+- **U2 account + U2B link:** PRs [#162](https://github.com/OJ-Holdings/oj-workspace/pull/162) and [#164](https://github.com/OJ-Holdings/oj-workspace/pull/164) are still **draft/stacked/not in production**. Their staged SQL needs separately verified recovery, full actor tests and release review before main/prod activation.
+- **Progress:** Formal Exterior 42% historical, provisional engineering ~49%; founder audit development ~50% estimated, with 5/16 U0 initial merged patches but 0/16 independently accepted from two actual founder devices. Do not promote either based solely on green code.
+- **Standing owner direction:** Default to merging safely reviewed, green code to main and verify production when possible. Never bypass SQL/Storage/customer/money release safeguards. Hourly ChatGPT watch now alerts on verifiable main CI failures or reachable-origin deployment drift.
+
 ## Exterior Release 50 — authenticated read graph and private quote-save command (October 25, 2026)
 
 **Later shared-save activation:** PR #159 merged and deployed `8b684d1cf867a539d6fc61e58f4ccc21bc148886` on October 25 at 23:06:58 UTC. Two owner-approved additive migrations enable commercial and internal fleet/estimate/field/equipment/handoff saves. 730 local tests, all CI, production-role save/read-back, HTTP anonymous denial and exact release health PASS. [Detailed evidence](./OJ_SHARED_SAVE_ACTIVATION.md). Browser originals, customer rows, Storage objects and rollback build preserved. Content remains preview; private-file/off-PC recovery and two-device GUI acceptance incomplete. Twelve-wave weighted score 42/100 (+0).
