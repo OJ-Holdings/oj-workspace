@@ -1,4 +1,6 @@
--- Staged companion to oj-content-studio.sql. NOT authorized production DDL.
+-- Applied by the owner-authorized release on 2026-10-26.
+-- Supabase migration 20261026144621: oj_content_brand_compatibility.
+-- Retained for synthetic recovery tests; do not reapply to extended constraints.
 -- Extend only the eight independently inspected brand checks. No row changes,
 -- no RLS/grant changes and no feature flag activation. Unknown schemas fail closed.
 begin;

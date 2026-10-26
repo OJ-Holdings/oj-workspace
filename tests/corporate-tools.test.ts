@@ -22,8 +22,8 @@ test('planned tools never advertise a navigable action', () => {
   }
   const creator = corporateTools.find(tool => tool.id === 'content-studio');
   assert.ok(creator);
-  assert.equal(creator.href, '/tools/content-preview');
-  assert.equal(toolStatus(creator, ready), 'preview');
+  assert.equal(creator.href, '/b/content');
+  assert.equal(toolStatus(creator, ready), 'available');
 });
 
 test('connected source tools surface missing integrations without claiming their data is live', () => {
@@ -37,7 +37,7 @@ test('connected source tools surface missing integrations without claiming their
 });
 
 test('global command search only links usable registered tools', () => {
-  assert.deepEqual(searchActiveTools('video', ready).map(tool => tool.id), []);
+  assert.ok(searchActiveTools('video', ready).some(tool => tool.id === 'content-studio'));
   assert.deepEqual(searchActiveTools('shopify', disconnected).map(tool => tool.id), []);
   assert.ok(searchActiveTools('commercial', ready).some(tool => tool.id === 'commercial-desk'));
   assert.ok(searchActiveTools('tasks', ready).some(tool => tool.id === 'tasks'));
@@ -57,13 +57,13 @@ test('tool visibility respects owner-only permission metadata', () => {
 });
 
 
-test('Free-tier database gate keeps the fourth business read-only until supervised migration', () => {
-  assert.equal(contentPersistenceEnabled, false);
-  assert.equal(isVenture('content'), false, 'generic forms must not accept unsaved content venture writes');
-  assert.deepEqual(ventureList.map(v => v.id), ['exterior','solutions','essentials']);
+test('installed Content Studio is available through the shared venture and tool contracts', () => {
+  assert.equal(contentPersistenceEnabled, true);
+  assert.equal(isVenture('content'), true);
+  assert.deepEqual(ventureList.map(v => v.id), ['exterior','solutions','essentials','content']);
   const creator = corporateTools.find(tool => tool.id === 'content-studio');
   assert.ok(creator);
-  assert.equal(creator.previewOnly, true);
-  assert.equal(creator.href, '/tools/content-preview');
-  assert.equal(toolStatus(creator, ready), 'preview');
+  assert.equal(creator.previewOnly, false);
+  assert.equal(creator.href, '/b/content');
+  assert.equal(toolStatus(creator, ready), 'available');
 });

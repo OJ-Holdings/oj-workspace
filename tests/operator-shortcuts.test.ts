@@ -31,11 +31,11 @@ test('untrusted quick-launch query values cannot silently activate write forms',
   }
 });
 
-test('Oscar Jacob is navigable as clearly labeled preview without weakening server write controls',()=>{
+test('Oscar Jacob uses its live route after activation while explicit preview fallback remains safe',()=>{
   assert.deepEqual(discoverableVentures.map(v=>v.id),['exterior','solutions','essentials','content']);
-  assert.equal(contentPersistenceEnabled,false);
-  assert.equal(ventureList.some(v=>v.id==='content'),false);
-  assert.equal(isVenture('content'),false);
+  assert.equal(contentPersistenceEnabled,true);
+  assert.equal(ventureList.some(v=>v.id==='content'),true);
+  assert.equal(isVenture('content'),true);
   assert.equal(visibleBusinessRoute('/workspace','content',false),'/workspace/tools/content-preview');
   assert.equal(visibleBusinessRoute('/preview','content',false),'/preview/tools/content-preview');
   assert.equal(visibleBusinessRoute('/workspace','content',true),'/workspace/b/content');

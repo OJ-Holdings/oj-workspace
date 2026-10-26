@@ -16,6 +16,14 @@ permissions:
   contents: read
 
 jobs:
+  private-backup-acl:
+    name: Private backup folder permissions (Windows synthetic)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: powershell
+        run: ./scripts/tests/backup-private-acl.Tests.ps1
+
   content-studio-synthetic:
     name: Content Studio staged schema and RLS (synthetic PostgreSQL 17)
     runs-on: ubuntu-latest

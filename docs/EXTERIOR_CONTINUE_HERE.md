@@ -1,5 +1,12 @@
 # Exterior Command — CONTINUE HERE (canonical active handoff)
 
+**October 26 Content Studio activation:** The owner requested live activation.
+Its two dedicated migrations are installed and rollback-only production actor/
+readback tests pass; this release enables the existing live Content route. See
+[activation evidence and remaining device/offline-custody limits](./OJ_CONTENT_STUDIO_READINESS.md)
+and PR #169 for exact CI/served-SHA evidence. Do not apply historical PR #42 or
+reapply the now-retained `supabase/applied/2026-10-26-content-*.sql` files.
+
 > **Snapshot:** October 25, 2026, America/Chicago, after the new founder usability audit and merged Release 50 authenticated P3 read graph and staging transaction, preserving P3.1, P3.0, R49 and R48 security. This file is a *checkpoint*, not a live feed. A new agent MUST inspect GitHub `main`, open PRs, exact-head CI, production/host release evidence, and the current progress ledger before asserting current status or changing code.
 >
 > **Repo:** [OJ-Holdings/oj-workspace](https://github.com/OJ-Holdings/oj-workspace) · **Branch:** `main` · **Active program:** Exterior Integration & Adoption P1–P7 · **Historical P2 feature:** R44 / P2 deployment proof [PR #132](https://github.com/OJ-Holdings/oj-workspace/pull/132), merged `492b68687c5f6ade237118bac5d823480c4f1a97`, exact head `e00022d5f57e6bbc229ace607fff38a7dd74fa2f` [CI #40141928898](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40141928898) SUCCESS for TypeScript/full tests/Next production build/new offline PowerShell refusal tests and synthetic isolated PG17 recovery. Feature merged-main [CI #40142096003](https://github.com/OJ-Holdings/oj-workspace/actions/runs/40142096003) completed SUCCESS, both app and synthetic recovery jobs. **Engineering 42/100 unchanged (+0)** because founder served-app/phone/recovery acceptance not actually observed. NO production DDL, actual private archive or actual Auth actor writes. Original P1 source-backed shared-task implementation remains built and green. [P2 release evidence runbook](./EXTERIOR_R44_RELEASE_EVIDENCE.md).

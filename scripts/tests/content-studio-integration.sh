@@ -31,8 +31,8 @@ sql "insert into auth.users(id) values ('$owner'),('$member'),('$viewer'),('$out
  insert into public.oj_organizations(id,name) values ('$org','Synthetic content');
  insert into public.oj_memberships(organization_id,user_id,role,display_name) values
  ('$org','$owner','owner','Owner'),('$org','$member','member','Member'),('$org','$viewer','viewer','Viewer');" >/dev/null
-file "$repo/supabase/staging/oj-content-studio.sql"
-file "$repo/supabase/staging/oj-content-brand-compatibility.sql"
+file "$repo/supabase/applied/2026-10-26-content-studio.sql"
+file "$repo/supabase/applied/2026-10-26-content-brand-compatibility.sql"
 actor "$owner" "insert into public.oj_content_projects(id,organization_id,title,kind,stage,created_by) values('$project','$org','Synthetic film','Video','Idea','$owner');" >/dev/null
 eq "$(actor "$member" 'select count(*) from public.oj_content_projects;')" 1 'member independent read'
 actor "$owner" "insert into public.oj_cards(organization_id,title,business) values('$org','Synthetic content task','content');" >/dev/null

@@ -1,5 +1,6 @@
--- REVIEWED STAGING INPUT ONLY. Not an auto-applied migration or release approval.
--- Activate separately after recovery, actor-role and live release gates pass.
+-- Applied to the configured OJ project by owner-authorized release on 2026-10-26.
+-- Supabase migration 20261026144619: oj_content_studio_shared_records.
+-- Retained for independent recovery/synthetic tests; do not reapply blindly.
 -- Uses the existing OJ organization/membership system; no other venture is changed.
 begin;
 create table public.oj_content_projects (

@@ -51,8 +51,9 @@ export const ventures: Record<VentureId, Venture> = {
   },
 };
 
-/** Release gate: the live DB has no 'content' schema yet. Flip only in a post-migration release. */
-export const contentPersistenceEnabled = false;
+/** Enabled after the dedicated Content tables and eight brand checks were
+ * installed and the production rollback-only actor/readback checks passed. */
+export const contentPersistenceEnabled = true;
 
 /** Discover all four brands without changing which ventures server actions
  * accept for writes. The fourth brand links to a labeled fictional preview

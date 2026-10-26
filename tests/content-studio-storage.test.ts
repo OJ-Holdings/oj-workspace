@@ -23,8 +23,8 @@ test('Content Studio staged storage enforces real actor permissions, revisions a
     insert into public.oj_memberships(organization_id,user_id,role,display_name) values
       ('${org}','${owner}','owner','Owner'),('${org}','${member}','member','Member'),
       ('${org}','${viewer}','viewer','Viewer'),('${other}','${outsider}','owner','Other');`);
-  await db.exec(await readFile(new URL('../supabase/staging/oj-content-studio.sql', import.meta.url),'utf8'));
-  await db.exec(await readFile(new URL('../supabase/staging/oj-content-brand-compatibility.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/applied/2026-10-26-content-studio.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/applied/2026-10-26-content-brand-compatibility.sql', import.meta.url),'utf8'));
   const as = (id:string, role='authenticated') => db.exec(`reset role; set request.jwt.claim.sub='${id}'; set role ${role};`);
   try {
     await t.test('owner creates; member independently reads actual script and trigger-generated activity', async () => {

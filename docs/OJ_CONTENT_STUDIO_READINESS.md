@@ -1,4 +1,37 @@
-# Content Studio development and activation boundary
+# Content Studio activation and recovery evidence
+
+## October 26, 2026 owner-authorized activation
+
+The owner explicitly requested activation and live release. The following
+supersedes the earlier staging-only checkpoint below.
+
+- A fresh encrypted source backup and its separate USB-disk mirror passed after
+  correcting the backup utility's unnecessary audit-privilege request. The strict
+  owner/SYSTEM/Administrators DACL remains enforced and independently read back.
+- Applied `20261026144619 oj_content_studio_shared_records` and
+  `20261026144621 oj_content_brand_compatibility`. Reviewed SQL is retained under
+  `supabase/applied/2026-10-26-content-*.sql`; it is not pending DDL.
+- Installed production role checks passed: owner create, independent member
+  read/update, stale-write refusal, viewer read/write restriction, revoked-member
+  and outsider denial, anonymous denial and automatic actor-bound history.
+  All synthetic organization/project/membership rows were rolled back. These are
+  database actor checks, not independent authenticated phone/browser sessions.
+- The live feature flag is enabled in this release. Old authenticated
+  `/workspace/tools/content-preview` bookmarks redirect to `/workspace/b/content`.
+  The intentionally fictional `/preview` demo remains separate and safe.
+- Local validation: 748 application tests, TypeScript/production Webpack build,
+  and Windows synthetic private-folder DACL verification PASS. Exact-head CI and
+  served-SHA proof remain release steps; see PR #169 for the final runtime status.
+
+Offline/off-site custody and two-founder device acceptance remain unverified.
+They are not claimed complete by this activation. The owner requested a controlled
+live release with these previously reported acceptance limits still outstanding.
+
+Rollback: use the retained prior application release, leaving additive tables and
+stored content intact. Do not drop content tables or narrow brand checks once any
+content records exist. No public publishing, outbound messages or spending was enabled.
+
+## Historical development checkpoint (superseded by activation above)
 
 October 25, 2026. This pass develops the existing Oscar Jacob preview rather than
 adding a competing content system. It does not apply SQL or enable live content.
