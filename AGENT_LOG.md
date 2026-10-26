@@ -22,6 +22,15 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-26 UTC -- Claude Code (OJ Solutions growth dashboard: Daily 10 + email engine)
+**Summary:** Rebuilt the OJ Solutions section around the new plan (exterior cleaning niche, automated email, 10 DMs per founder per day, warm-lead-only calling). New tabs: Command, Daily 10, Email engine, Prospects, Warm leads. Daily 10 is a game (XP, levels, streaks, duo streak, undo, 10/2/6/8 PM Central reminder emails). Email engine has no approval queue: server-side guardrails (send window, warm-up ramp, draft lint, bounce brake, stop handling, CAN-SPAM footer). Status reads Running only after a real heartbeat from the sender script (25 min).
+**Files:** supabase/schemas/solutions-dm-quests.sql, supabase/schemas/solutions-email-engine.sql (NOT applied), netlify/functions/outreach-email-engine.ts, scripts/google-apps-script/outreach-email-engine.gs, src/lib/{dm-quests,email-engine,email-engine-api,growth-summary,growth-preview}.ts, src/app/workspace/growth-actions.ts, src/components/app/solutions/*, VentureView, BusinessNav, OutreachQueueView, src/styles/solutions-growth.css, docs/SOLUTIONS_GROWTH_ENGINE.md.
+**Verified:** typecheck clean; npm test 795/795 (includes 13 PGlite permission tests for the new tables and RPCs); npm run build passes (needed Google Fonts stubbed because the sandbox has no access to them; fonts are unchanged in the repo); /preview/b/solutions, /dms, /email, /warm screenshotted at 1440 and 390 px with no console errors and no horizontal scroll.
+**Not verified:** the SQL has not been applied to the live Supabase project (needs backup and a founder OK). The Apps Script has never run against real Gmail (syntax check only). No real email deliverability, reminder emails or live Netlify function call tested. Live /workspace screens need the tables installed; until then they show an install note.
+**Notes:** Founder steps: apply both SQL files, set OJ_EMAIL_POSTAL_ADDRESS (and optionally OJ_EMAIL_COMPANY) in Netlify, paste the script, set SENDER_NAME and NAG_EMAILS, run previewNextEmails, then installEngineTriggers. Use a separate warmed sending domain, not the main business mailbox. The email engine only updates prospect status; the one SMS sender (oj-sms-system) is untouched.
+
+---
+
 ## 2026-10-26 UTC -- ChatGPT (rebased private Storage backup tooling)
 **Summary:** Integrated PR #167's owner-only encrypted Supabase Storage byte recovery scripts and synthetic tests onto the latest main without overwriting concurrent Content Studio activation or changing production data. Original PR #167 had a merge conflict after main advanced.
 **Verified:** PR #167 exact-head 4/4 CI green. Owner separately reported fresh R40 disposable database recovery PASS, all 28 public tables and source rows matching, member positive and outsider/anonymous negative checks. Storage-byte hash-verified readback for both original files was reported PASS. This branch needs fresh integrated CI.

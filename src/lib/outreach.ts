@@ -18,14 +18,19 @@ export type OutreachActivity = { id: string; prospect_id: string; actor_id: stri
 export const effectiveOutreachStatus = (p: Pick<OutreachProspect, 'outreach_status' | 'source_status'>): OutreachStatus => p.outreach_status ?? p.source_status;
 export const isOutreachComplete = (status: OutreachStatus) => status !== 'Not Sent';
 
-export type OutreachQueue = 'all' | 'pending' | 'replies' | 'demos';
+/** Our first niche: exterior cleaning, the trade the founders also run (OJ Exterior Care). */
+const exteriorNiche = /(pressure|power)[\s-]*wash|soft[\s-]*wash|house[\s-]*wash|window[\s-]*clean|exterior[\s-]*clean|gutter|driveway|\bdeck\b|paver/i;
+export const isExteriorNiche = (p: Pick<OutreachSourceRow, 'industry' | 'best_fit_service' | 'business_name' | 'secondary_fit'>) =>
+  [p.industry, p.best_fit_service, p.secondary_fit, p.business_name].some(v => v != null && exteriorNiche.test(v));
+
+export type OutreachQueue = 'all' | 'pending' | 'replies' | 'demos' | 'exterior';
 export function selectProspects(prospects: OutreachProspect[], query: string, owner: string, status: string, queue: OutreachQueue) {
   const q = query.trim().toLowerCase();
   return prospects.filter(p => {
     const current = effectiveOutreachStatus(p);
     return (!q || [p.business_name, p.industry, p.city_state, p.best_fit_service, p.secondary_fit, p.decision_maker, p.email, p.sent_by].some(v => v?.toLowerCase().includes(q)))
       && (!owner || p.sent_by === owner) && (!status || current === status)
-      && (queue === 'all' || (queue === 'pending' && current === 'Not Sent') || (queue === 'replies' && current === 'Replied') || (queue === 'demos' && current === 'Demo Booked'));
+      && (queue === 'all' || (queue === 'pending' && current === 'Not Sent') || (queue === 'replies' && current === 'Replied') || (queue === 'demos' && current === 'Demo Booked') || (queue === 'exterior' && isExteriorNiche(p)));
   });
 }
 

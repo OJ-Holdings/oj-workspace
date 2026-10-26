@@ -9,7 +9,7 @@ import { useViewParams } from './useViewParams';
 
 type Props = { organizationId: string; mode: 'preview' | 'live'; readOnly: boolean; displayName: string; examples: OutreachProspect[] };
 type Sync = { status: string; rows_written: number; error_summary: string; finished_at: string };
-const queues = [['all', 'All prospects'], ['pending', 'To contact'], ['replies', 'Replies'], ['demos', 'Demos']] as const;
+const queues = [['all', 'All prospects'], ['exterior', 'Exterior cleaning'], ['pending', 'To contact'], ['replies', 'Replies'], ['demos', 'Demos']] as const;
 
 export function OutreachQueueView({ organizationId, mode, readOnly, displayName, examples }: Props) {
   const { params, update } = useViewParams();
