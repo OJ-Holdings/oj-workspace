@@ -9,6 +9,7 @@ import { exactLocalProjectIds } from '@/lib/atlas-task-handoff';
 import { emptyFieldCrewPlan, type FieldCrewPlan } from '@/lib/atlas-field-mission';
 import { mergeNonConflictingPortfolio, previewPortfolioMerge, type PortfolioMergePlan } from '@/lib/atlas-portfolio-merge';
 import { AtlasFieldMissionPanel } from './AtlasFieldMissionPanel';
+import { CommercialProjectAccountLink } from './CommercialProjectAccountLink';
 import type { ExtBooking } from '@/lib/exterior';
 import type { EstimateInput } from '@/lib/commercial-estimate';
 import { newEstimate } from '@/lib/commercial-estimate';
@@ -445,6 +446,8 @@ export function AtlasCommercialPortfolio({org,base,mode,readOnly,name,input,revi
         </div>
         <p className="atlas-project-hint">{booking.label}. {selectedBooking?.date?'Recorded date '+selectedBooking.date+'. ':''}A booking reference does not confirm crew, scope, customer authorization or completed work.</p>
         {booking.state==='loaded-active'&&booking.booking&&<Link className="atlas-project-booking-link" href={base+'/b/exterior/calendar'}>Open Exterior bookings <ArrowUpRight size={13}/></Link>}
+        <CommercialProjectAccountLink key={selectedId??'unsaved'} org={org} projectId={selectedId}
+          projectSaved={Boolean(current&&selectedId&&expectedRevision!==null)} />
         <div className="atlas-project-asset-picker"><div><Truck size={16}/><strong>Candidate equipment allocation</strong><span>Not a reservation or dispatch order</span></div>
           <label>Add Fleet Command asset
             <select value={addAsset} onChange={e=>setAddAsset(e.target.value)}>
