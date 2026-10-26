@@ -7,7 +7,7 @@ import { isValidBlock, jobLengths, makeBlock } from '../src/lib/exterior-ops';
 /** The bookings table as it is on the live project: three allowed blocks, enforced by a check. */
 async function legacyBookings(db: PGlite) {
   await db.exec(`create table public.bookings(id uuid primary key default gen_random_uuid(), date date not null,
-    time_block varchar not null check (time_block in ('9-12','12-3','4-6')), status varchar not null default 'pending_approval');
+    time_block varchar(10) not null check (time_block in ('9-12','12-3','4-6')), status varchar not null default 'pending_approval');
     insert into public.bookings(date, time_block, status) values ('2026-10-06','12-3','confirmed'),('2026-10-06','4-6','confirmed'),('2026-10-07','9-12','confirmed');`);
 }
 const insert = (db: PGlite, block: string) => db.query(`insert into public.bookings(date, time_block, status) values ('2026-10-09', $1, 'confirmed')`, [block]);
@@ -23,6 +23,7 @@ test('the any-time update keeps old bookings, accepts every time the workspace c
     const fresh = new PGlite();
     await legacyBookings(fresh);
     await fresh.exec(await readFile(new URL(`../${file}`, import.meta.url), 'utf8'));
+    await fresh.exec(await readFile(new URL('../supabase/applied/2026-10-25-exterior-booking-time-width.sql', import.meta.url), 'utf8'));
     const rows = await fresh.query<{ n: number }>(`select count(*)::int as n from public.bookings`);
     assert.equal(rows.rows[0].n, 3, `${file}: old bookings are untouched`);
     // Running it twice is harmless.
@@ -35,4 +36,22 @@ test('the any-time update keeps old bookings, accepts every time the workspace c
     for (const bad of ['morning', '13-14', '9-', '-3', '0-1', '9-12-1', '', '9 - 12', '4:60-5', '4:5-6', '4:30', '24:00-1']) await assert.rejects(insert(fresh, bad), /./, `${file}: ${bad}`);
     for (const old of ['9-12', '12-3', '4-6']) await insert(fresh, old);
   }
+});
+
+test('already-installed editing and any-time format still need sufficient booking column width', async () => {
+  const db = new PGlite();
+  await legacyBookings(db);
+  await db.exec(await readFile(new URL('../supabase/applied/2026-10-04-exterior-any-time-bookings.sql', import.meta.url), 'utf8'));
+  assert.equal(isValidBlock('10:15-12:30'), true);
+  await assert.rejects(insert(db, '10:15-12:30'), /value too long/);
+  const original = await db.query('select id,date,time_block,status from public.bookings order by id');
+  const repair = await readFile(new URL('../supabase/applied/2026-10-25-exterior-booking-time-width.sql', import.meta.url), 'utf8');
+  await db.exec(repair);
+  assert.deepEqual((await db.query('select id,date,time_block,status from public.bookings order by id')).rows, original.rows);
+  await insert(db, '10:15-12:30');
+  const saved = await db.query<{time_block:string}>("select time_block from public.bookings where date='2026-10-09'");
+  assert.equal(saved.rows[0].time_block, '10:15-12:30');
+  await assert.rejects(insert(db, '10:15-invalid'), /./);
+  await db.exec(repair);
+  await db.close();
 });
