@@ -16,11 +16,15 @@ test('Content Studio staged storage enforces real actor permissions, revisions a
     grant usage on schema auth,public to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;
     insert into auth.users values ('${owner}'),('${member}'),('${viewer}'),('${outsider}');`);
   await db.exec(await readFile(new URL('../supabase/schemas/workspace.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/schemas/collaboration.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/schemas/dashboard.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/schemas/work-leaderboard.sql', import.meta.url),'utf8'));
   await db.exec(`insert into public.oj_organizations(id,name) values ('${org}','Synthetic OJ'),('${other}','Synthetic Other');
     insert into public.oj_memberships(organization_id,user_id,role,display_name) values
       ('${org}','${owner}','owner','Owner'),('${org}','${member}','member','Member'),
       ('${org}','${viewer}','viewer','Viewer'),('${other}','${outsider}','owner','Other');`);
   await db.exec(await readFile(new URL('../supabase/staging/oj-content-studio.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/staging/oj-content-brand-compatibility.sql', import.meta.url),'utf8'));
   const as = (id:string, role='authenticated') => db.exec(`reset role; set request.jwt.claim.sub='${id}'; set role ${role};`);
   try {
     await t.test('owner creates; member independently reads actual script and trigger-generated activity', async () => {
@@ -35,6 +39,15 @@ test('Content Studio staged storage enforces real actor permissions, revisions a
       assert.equal(contentDraftMatches({...draft, script:'Truncated'}, saved), false);
       const activity=await db.query<{action:string;actor_id:string}>(`select action,actor_id from public.oj_content_activity`);
       assert.equal(activity.rows[0].action,'created'); assert.equal(activity.rows[0].actor_id,owner);
+    });
+    await t.test('content brand works in shared tasks, company notes and the existing work timer', async () => {
+      await as(owner);
+      await db.query(`insert into public.oj_cards(organization_id,title,business) values($1,'Synthetic film task','content')`,[org]);
+      await db.query(`insert into public.oj_messages(organization_id,venture,body) values($1,'content','Synthetic production note')`,[org]);
+      // The real timer guard owns its timestamps and caller identity.
+      await db.query(`insert into public.oj_work_sessions(organization_id,user_id,business) values($1,$2,'content')`,[org,owner]);
+      assert.equal((await db.query(`select id from public.oj_cards where business='content'`)).rows.length,1);
+      await assert.rejects(db.query(`insert into public.oj_cards(organization_id,title,business) values($1,'Bad brand','invented')`,[org]));
     });
     await t.test('member update increments revision; stale founder write affects zero rows', async () => {
       await as(member);

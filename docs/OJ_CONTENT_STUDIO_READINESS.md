@@ -23,6 +23,10 @@ adding a competing content system. It does not apply SQL or enable live content.
   every client-side navigation.
 - Preview no longer claims its fictional editor saves company records. Large
   production/history windows disclose truncation rather than imply full coverage.
+- A separate staged compatibility script extends the eight catalog-confirmed
+  brand checks for tasks, files, notes, leads, calendar, finance, metrics and the
+  existing work timer. It changes no rows or policies and refuses unexpected
+  constraint definitions. Synthetic content task, note and timer writes pass.
 
 ## Verification
 
@@ -43,11 +47,10 @@ auto-applied migrations. Nothing in this branch silently enables Content Studio.
 2. Review `supabase/staging/oj-content-studio.sql`, real current catalog and
    existing grants; generate a dedicated approved migration. Do not merge or
    apply the entire historical PR #42 merely to activate Content Studio.
-3. Review the fourth-brand discriminators on shared task/dashboard tables.
-   Existing tables accept Exterior/Solutions/Essentials only. This staged content
-   backend does NOT alter them. They need a narrowly reviewed compatible release
-   before enabling the global `contentPersistenceEnabled` flag, otherwise generic
-   content tasks/files/finance actions can fail database checks.
+3. Review and promote `supabase/staging/oj-content-brand-compatibility.sql` in the
+   same controlled release. It resolves the eight existing brand discriminators;
+   these extensions have NOT been applied to production. Do not enable the global
+   `contentPersistenceEnabled` flag before both staged schema pieces are verified.
 4. Exercise the installed server actions with real owner/member/viewer/revoked
    sessions, dropped responses, mismatched readback and concurrent edits. The
    database tests do not claim authenticated browser end-to-end acceptance.

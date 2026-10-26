@@ -18,6 +18,9 @@ eq(){ [[ "$1" == "$2" ]] || { echo "FAIL: $3"; exit 1; }; echo "PASS: $3"; }
 deny(){ if actor "$1" "$2" >/dev/null 2>&1; then echo 'FAIL: forbidden content write'; exit 1; fi; echo 'PASS: forbidden write rejected'; }
 file "$repo/scripts/tests/exterior-p3-schema-bootstrap.sql"
 file "$repo/supabase/schemas/workspace.sql"
+file "$repo/supabase/schemas/collaboration.sql"
+file "$repo/supabase/schemas/dashboard.sql"
+file "$repo/supabase/schemas/work-leaderboard.sql"
 org=10000000-0000-4000-8000-000000000001
 owner=20000000-0000-4000-8000-000000000001
 member=20000000-0000-4000-8000-000000000002
@@ -29,8 +32,11 @@ sql "insert into auth.users(id) values ('$owner'),('$member'),('$viewer'),('$out
  insert into public.oj_memberships(organization_id,user_id,role,display_name) values
  ('$org','$owner','owner','Owner'),('$org','$member','member','Member'),('$org','$viewer','viewer','Viewer');" >/dev/null
 file "$repo/supabase/staging/oj-content-studio.sql"
+file "$repo/supabase/staging/oj-content-brand-compatibility.sql"
 actor "$owner" "insert into public.oj_content_projects(id,organization_id,title,kind,stage,created_by) values('$project','$org','Synthetic film','Video','Idea','$owner');" >/dev/null
 eq "$(actor "$member" 'select count(*) from public.oj_content_projects;')" 1 'member independent read'
+actor "$owner" "insert into public.oj_cards(organization_id,title,business) values('$org','Synthetic content task','content');" >/dev/null
+eq "$(actor "$member" "select count(*) from public.oj_cards where business='content';")" 1 'content task shared read'
 eq "$(actor "$member" "update public.oj_content_projects set stage='Script',revision=0 where id='$project' and revision=0 returning revision;")" 1 'revision increment'
 eq "$(actor "$owner" "select count(*) from public.oj_content_projects where id='$project' and revision=0;")" 0 'stale revision unavailable'
 eq "$(actor "$viewer" 'select count(*) from public.oj_content_projects;')" 1 'viewer read'
