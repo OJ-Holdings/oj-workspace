@@ -223,7 +223,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <button type="button" aria-pressed={tab==='accounts'} onClick={()=>setTab('accounts')}>Companies &amp; properties</button>
       <button type="button" aria-pressed={tab!=='accounts'} onClick={()=>setTab('scope')}>Estimates &amp; project work</button>
     </nav>
-    {tab==='accounts'&&<CommercialAccounts org={org} mode={mode} readOnly={readOnly}/>}
+    {tab==='accounts'&&<CommercialAccounts org={org} base={base} mode={mode} readOnly={readOnly}/>}
     {tab!=='accounts'&&<>
     <div className="com-warning" role="note"><ShieldAlert size={18}/><p>{preview?'Fictional preview · no company changes.':'Saved company projects sync to authorized members. Local recovery copies do not.'} Estimates are internal until separately reviewed and approved; saving does not send a proposal or book a job.</p></div>
     {ready && <div className="atlas-nexus-editor-entry"><Link href={base+'/b/exterior/projects'}><Network size={16}/> Open NEXUS · Project 360 <ArrowUpRight size={14}/></Link></div>}
