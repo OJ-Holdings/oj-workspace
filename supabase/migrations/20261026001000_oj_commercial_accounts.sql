@@ -153,14 +153,27 @@ begin
  -- Validate the entire input BEFORE writing the parent or a child.
  v_seen:=array[]::text[];
  for v_child in select value from jsonb_array_elements(p_payload->'contacts') loop
-  if jsonb_typeof(v_child) is distinct from 'object' or
-    (v_child->>'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
-    jsonb_typeof(v_child->'fullName') is distinct from 'string' or
-    length(btrim(v_child->>'fullName')) not between 1 and 120 or
-    jsonb_typeof(v_child->'role') is distinct from 'string' or length(v_child->>'role')>80 or
-    jsonb_typeof(v_child->'email') is distinct from 'string' or length(v_child->>'email')>180 or
-    jsonb_typeof(v_child->'phone') is distinct from 'string' or length(v_child->>'phone')>60 then
-   raise exception 'Invalid company contact' using errcode='22023';
+  if jsonb_typeof(v_child) is distinct from 'object' then
+   raise exception 'Invalid company contact object' using errcode='22023';
+  end if;
+  if coalesce((v_child->>'id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',false)=false then
+   raise exception 'Invalid company contact ID' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'fullName') is distinct from 'string'
+     or length(btrim(v_child->>'fullName')) not between 1 and 120 then
+   raise exception 'Invalid company contact name' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'role') is distinct from 'string'
+     or length(v_child->>'role')>80 then
+   raise exception 'Invalid company contact role' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'email') is distinct from 'string'
+     or length(v_child->>'email')>180 then
+   raise exception 'Invalid company contact email' using errcode='22023';
+  end if;
+  if jsonb_typeof(v_child->'phone') is distinct from 'string'
+     or length(v_child->>'phone')>60 then
+   raise exception 'Invalid company contact phone' using errcode='22023';
   end if;
   if (v_child->>'id')=any(v_seen) then
    raise exception 'Duplicate company contact ID' using errcode='22023';
