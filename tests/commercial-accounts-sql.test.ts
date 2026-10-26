@@ -31,7 +31,7 @@ test('commercial company profiles are private, tenant-scoped, versioned and non-
     ('${org}','${member}','member','Member'),
     ('${org}','${viewer}','viewer','Viewer'),
     ('${otherOrg}','${outsider}','owner','Other owner');`);
- await db.exec(await readFile(new URL('../supabase/migrations/20261026001000_oj_commercial_accounts.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../docs/production-sql/20261026173732_oj_commercial_accounts_u2.sql',import.meta.url),'utf8'));
  const as=(uid:string,role='authenticated')=>db.exec(`reset role; set request.jwt.claim.sub='${uid}'; set role ${role};`);
  const save=(commandId:string,expected:number,payload:unknown=data,tenant=org)=>db.query<{v:{
   ok:boolean;revision?:number;replayed?:boolean;conflict?:boolean;currentRevision?:number}}>(
