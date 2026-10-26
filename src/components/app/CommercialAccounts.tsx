@@ -6,7 +6,7 @@ import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/comm
 import {CommercialAccountProjects} from './CommercialAccountProjects';
 import {
  commercialAccountMaxContacts,commercialAccountMaxProperties,
- validateCommercialAccountDraft,type CommercialAccount,type CommercialAccountDraft,
+ prepareCommercialPropertyEstimate,validateCommercialAccountDraft,type CommercialAccount,type CommercialAccountDraft,
 } from '@/lib/commercial-accounts';
 
 const empty=():CommercialAccountDraft=>({
@@ -80,7 +80,8 @@ export function CommercialAccounts({org,base,mode,readOnly,onStartEstimate}:Prop
   const site=recorded?.properties.find(p=>p.id===propertyId);
   if(!recorded||!site){setMessage('Save the company and property before preparing an estimate.');return;}
   if(!window.confirm('Start a new internal estimate for '+site.name+'? The current estimate editor will reset. This will NOT book a visit, create a contract, or link records automatically.'))return;
-  onStartEstimate(recorded.id,recorded.name,site.id,site.name);
+  const prepared=prepareCommercialPropertyEstimate(recorded,site.id);
+  onStartEstimate(prepared.accountId,prepared.accountName,prepared.propertyId,prepared.propertyName);
  }
  async function perform(attempt:Attempt){
   if(loading.current)return;
