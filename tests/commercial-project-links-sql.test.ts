@@ -36,7 +36,7 @@ test('U2B exact commercial project-company-property links: actor tenancy, revisi
    primary key(organization_id,id)
   );
   insert into public.oj_commercial_projects values ('${org}','${project}','Warehouse cleaning','scoping');`);
- await db.exec(await readFile(new URL('../supabase/migrations/20261026001000_oj_commercial_accounts.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../docs/production-sql/20261026173732_oj_commercial_accounts_u2.sql',import.meta.url),'utf8'));
  await db.exec(`
   insert into public.oj_commercial_accounts(organization_id,id,name,revision,created_by,updated_by)
    values ('${org}','${account}','Warehouse Group',1,'${owner}','${owner}');
