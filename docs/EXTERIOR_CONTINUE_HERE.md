@@ -1,5 +1,7 @@
 # Exterior Command — CONTINUE HERE (canonical active handoff)
 
+**October 26 private Storage recovery integration:** The two-object encrypted backup tooling from PR #167 is being cleanly integrated into current main (because #167 conflicted after Content Studio activation). Operator-reported separate-disk byte/hash recovery and 28/28 fresh database source parity passed; see [sanitized recovery evidence](./OJ_STORAGE_BYTE_RECOVERY_EVIDENCE.md). Off-PC custody plus owner/viewer/revoked actor checks remain unverified and U2 database/UI drafts remain unapplied. This does not supersede the independent Content Studio production release.
+
 **October 26 Content Studio activation:** The owner requested live activation.
 Its two dedicated migrations are installed and rollback-only production actor/
 readback tests pass; this release enables the existing live Content route. See
