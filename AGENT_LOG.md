@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-25 America/Chicago -- Codex (actual private Storage byte recovery)
+**Summary:** Added owner-host read-only Storage recovery runner using existing DPAPI and age identity. Both real private objects (38,670,441 bytes) encrypted, mirrored to a distinct physical disk, and independently decrypted/hash-checked from that mirror. No production objects or application deployment changed.
+**Files:** scripts/backup-supabase-storage-windows.py/.ps1, synthetic tests, CI and docs/OJ_STORAGE_BYTE_RECOVERY_EVIDENCE.md.
+**Verified:** Nine focused tests, 731 application tests, TypeScript, real source/API inventory reconciliation, full object EOF counts and hashes, ciphertext mirror, separate restore-only process, current DB archive mechanical preflight PASS. Fresh DB restore blocked by unchanged administrator guard; offline/off-PC custody remains unverified. Local build failed in existing Google font loader. U2 activation stays blocked; no production migrations.
+
 ## 2026-10-25 23:07 UTC -- Codex (production shared-save activation)
 **Summary:** Integrated the existing typed internal document implementation with R40/commercial persistence; connected Commercial Desk's primary Save to versioned shared records and added exact revision/payload read-back before module success. Owner explicitly approved production DDL and proceeding despite incomplete private-file recovery. Applied only the two reviewed migrations; merged PR #159 and deployed `8b684d1cf867a539d6fc61e58f4ccc21bc148886` through CI, staging health and rollback checks.
 **Verified:** 730 local tests, TypeScript/build and all PR/main CI jobs PASS. Synthetic real PostgreSQL 17 shared save/member read-back, conflict/replay and denied/revoked roles PASS. Production original table/Auth/Storage counts unchanged by DDL; a labeled archived commercial test persisted and was independently read by another authorized member role. Module/fleet verification rolled back; anonymous public API access denied. Live port 3011 health reports exact release SHA, preview 200, signed-out Workspace 307. Previous release retained.

@@ -29,6 +29,7 @@ jobs:
         run: |
           $scripts = @(
             'scripts/backup-supabase-windows.ps1',
+            'scripts/backup-supabase-storage-windows.ps1',
             'scripts/install-postgresql-client-windows.ps1',
             'scripts/install-age-windows.ps1',
             'scripts/install-supabase-backup-task.ps1',
@@ -58,6 +59,11 @@ jobs:
       - name: Reject unsafe isolated restore targets (offline, no credentials)
         shell: pwsh
         run: ./scripts/tests/restore-supabase-isolated.Tests.ps1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Storage recovery binary streams and refusal tests (synthetic only)
+        run: python -m unittest discover -s scripts/tests -p test_storage_recovery.py -v
       - name: Validate disposable Docker restore isolation guards (offline)
         shell: pwsh
         run: ./scripts/tests/restore-supabase-docker-drill.Tests.ps1
