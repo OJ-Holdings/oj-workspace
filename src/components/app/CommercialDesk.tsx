@@ -11,6 +11,7 @@ import { buildBidWarRoom, warRoomBrief } from '@/lib/commercial-war-room';
 import { parseLocalCommercialDraft } from '@/lib/atlas-field-bridge';
 import { AtlasFieldBridge } from './AtlasFieldBridge';
 import { AtlasCommercialPortfolio, type CommercialSaveHandle } from './AtlasCommercialPortfolio';
+import { CommercialAccounts } from './CommercialAccounts';
 import { exportLocalBusinessArchive, localBusinessArchiveMaxBytes, restoreMissingLocalBusinessArchive, validateLocalBusinessArchive } from '@/lib/local-business-archive';
 
 const dollars=(n:number)=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
@@ -21,7 +22,8 @@ const checklist=[
   'Crew-hours and all direct costs reviewed',
   'Exclusions, schedule, site permission and client terms documented',
 ];
-type Tab = 'scope'|'costs'|'warroom'|'records';
+type Tab = 'accounts'|'scope'|'costs'|'warroom'|'records';
+type PropertyEstimateSuggestion={accountId:string;propertyId:string;accountName:string;propertyName:string};
 const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,step=1)=>
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
@@ -29,11 +31,12 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
 export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean;cards:import('@/lib/board').Card[]}) {
   const router=useRouter();
   const preview=mode==='preview';
-  const [tab,setTab]=useState<Tab>('scope');
+  const [tab,setTab]=useState<Tab>('accounts');
   const [name,setName]=useState('New commercial opportunity');
   const [input,setInput]=useState<EstimateInput>(newEstimate);
   const [review,setReview]=useState<boolean[]>(checklist.map(()=>false));
   const [notice,setNotice]=useState('');
+  const [propertySuggestion,setPropertySuggestion]=useState<PropertyEstimateSuggestion|null>(null);
   const transferInput=useRef<HTMLInputElement>(null);
   const archiveInput=useRef<HTMLInputElement>(null);
   const sharedSaveHandle=useRef<CommercialSaveHandle>(null);
@@ -52,6 +55,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
     setInput(newEstimate());
     setReview(checklist.map(()=>false));
     setNotice('');
+    setPropertySuggestion(null);
     if(preview||readOnly){setReady(true);return;}
     try {
       const stored=window.localStorage.getItem(key);
@@ -67,6 +71,24 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
     setReady(true);
   },[key,org,preview,readOnly]);
 
+  function beginSavedPropertyEstimate(accountId:string,accountName:string,propertyId:string,propertyName:string){
+    if(preview||readOnly||!ready)return;
+    // The founder explicitly chose this saved account/property. This changes
+    // only the local, unsaved estimate; it never creates a contract or link.
+    setPropertySuggestion({accountId,propertyId,accountName,propertyName});
+    setName((accountName+' · '+propertyName).slice(0,160));
+    setInput(newEstimate());
+    setReview(checklist.map(()=>false));
+    setNotice('New internal estimate for '+propertyName+'. Save the shared project first, then separately confirm its exact company/property link.');
+    // Prevent stale ?project= deep links from reopening an unrelated estimate
+    // when the portfolio mounts on the newly selected operator view.
+    const url=new URL(window.location.href);
+    if(url.searchParams.has('project')){
+      url.searchParams.delete('project');
+      router.replace(url.pathname+url.search+url.hash,{scroll:false});
+    }
+    setTab('scope');
+  }
   const patch=(changes:Partial<EstimateInput>)=>setInput(v=>({...v,...changes}));
   const patchSite=(id:string,changes:Partial<Site>)=>setInput(v=>({...v,sites:v.sites.map(s=>s.id===id?{...s,...changes}:s)}));
   const add=()=>setInput(v=>v.sites.length>=12?v:{...v,sites:[...v.sites,{...newSite('site-'+String(Date.now())),name:'Building '+String(v.sites.length+1)}]});
@@ -187,15 +209,15 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
     <header className="com-hero">
       <div>
         <p className="exec-kicker"><Building2 size={16}/> OJ EXTERIOR CARE / COMMERCIAL OPERATIONS</p>
-        <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
+        <h2>Commercial clients.<br/><em>Every property.</em></h2>
         <p>Manage buildings, estimate labor and access costs, and save projects for the whole team.</p>
         <div className="com-actions" role="group" aria-label="Commercial project actions">
-          <button className="primary" disabled={preview||readOnly||!ready} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save to company</button>
-          <button className="secondary" type="button" onClick={()=>setTab('scope')}><Building2 size={16}/> Edit properties</button>
+          <button className="primary" disabled={preview||readOnly||!ready||tab==='accounts'} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save estimate</button>
+          <button className="secondary" type="button" onClick={()=>setTab('accounts')}><Building2 size={16}/> Companies &amp; properties</button>
           <button className="secondary" type="button" onClick={()=>setTab('costs')}><BarChart3 size={16}/> Estimate</button>
           <Link className="secondary" href={base+'/b/exterior/bookings'}><HardHat size={16}/> Jobs</Link>
         </div>
-        <details className="com-recovery">
+        {tab!=='accounts'&&<details className="com-recovery">
           <summary>Files, recovery &amp; team handoff</summary>
           <div className="com-actions" role="group" aria-label="Optional local file and recovery tools">
             <button className="secondary" disabled={preview||readOnly||!ready} onClick={save}><Save size={16}/> Save this browser copy</button>
@@ -214,15 +236,23 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
             }}/>
           </div>
           <p>Local backups stay on this device. Imports do not sync automatically; use Save to company after reviewing them.</p>
-        </details>
+        </details>}
       </div>
       <div className="com-seal" aria-hidden="true"><strong>OJ</strong><span>FIELD / OPERATIONS</span></div>
     </header>
+    <nav className="com-workflow-nav" aria-label="Commercial main views">
+      <button type="button" aria-pressed={tab==='accounts'} onClick={()=>setTab('accounts')}>Companies &amp; properties</button>
+      <button type="button" aria-pressed={tab!=='accounts'} onClick={()=>setTab('scope')}>Estimates &amp; project work</button>
+    </nav>
+    {tab==='accounts'&&<CommercialAccounts org={org} base={base} mode={mode} readOnly={readOnly}
+      onStartEstimate={beginSavedPropertyEstimate}/>}
+    {tab!=='accounts'&&<>
     <div className="com-warning" role="note"><ShieldAlert size={18}/><p>{preview?'Fictional preview · no company changes.':'Saved company projects sync to authorized members. Local recovery copies do not.'} Estimates are internal until separately reviewed and approved; saving does not send a proposal or book a job.</p></div>
     {ready && <div className="atlas-nexus-editor-entry"><Link href={base+'/b/exterior/projects'}><Network size={16}/> Open NEXUS · Project 360 <ArrowUpRight size={14}/></Link></div>}
     {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly} saveHandle={sharedSaveHandle}
       name={name} input={input} review={review} bookings={data.bookings} cards={cards}
-      onLoad={project=>{setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}
+      propertySuggestion={propertySuggestion}
+      onLoad={project=>{setPropertySuggestion(null);setName(project.name);setInput(project.input);setReview(project.review);setTab('scope');}} />}
     <div className="com-snapshot">
       <div><span>BUILDINGS</span><strong>{estimate.sites}</strong><small>{estimate.floors} floors · {estimate.panes} panes (estimated)</small></div>
       <div><span>CREW-HOURS</span><strong>{estimate.crewHours}</strong><small>Total paid crew-hours, not elapsed hours</small></div>
@@ -351,5 +381,6 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
         <section className="com-panel com-safety"><HardHat size={24}/><h3>Site access & safety</h3><p>Multi-floor exterior glass work can require fall protection, lift operator training, restricted site access and specialized insurance. Qualified people must assess the actual site before scheduling or pricing committed work.</p></section>
       </aside>
     </div>
+    </>}
   </section>;
 }
