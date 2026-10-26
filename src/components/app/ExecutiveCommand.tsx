@@ -118,15 +118,15 @@ export function ExecutiveCommand({base,board,store,metrics,jobs,mode,today,displ
             </div>)}
             <small>Missing costs are unknown, not zero. Entered revenue may not have been collected.</small>
           </div>:<p className="exec-footnote">Completed-job financial coverage is not available in this view.</p>}
-          {providers.length>0?<ul className="exec-providers">{providers.map(source=><li key={source.id}>
-            <span className={'exec-status exec-status-'+source.state}/>
-            <div><b>{source.label}</b><small>{source.detail}</small></div><em>{source.state}</em>
-          </li>)}</ul>:<p className="exec-footnote">Provider status has not been supplied. The absence of a status is not proof that a connection is healthy.</p>}
-          {partial.length>0 && <p className="exec-warning">{partial.length} data source(s) are partial, unavailable or not connected.</p>}
-          <Link href={base+'/analytics'} className="exec-review-link">Inspect source records <ArrowRight size={15}/></Link>
+          {partial.length>0&&<p className="exec-warning" role="status">
+            {partial.length} reporting source{partial.length===1?'':'s'} need attention.
+            <Link href={base+'/analytics'}>Check data coverage <ArrowRight size={14}/></Link>
+          </p>}
+          {providers.length===0&&<p className="exec-footnote">Connection health is unknown; reporting coverage cannot be confirmed here.</p>}
+          <Link href={base+'/finance'} className="exec-review-link">Review recorded money <ArrowRight size={15}/></Link>
         </section>
       </aside>
     </div>
-    <p className="exec-disclaimer">Executive figures use only loaded, authorized workspace data. No inferred sales, invented financial values, or outside sends.</p>
+    <p className="exec-disclaimer">Revenue is recorded activity, not bank-confirmed cash.</p>
   </section>;
 }

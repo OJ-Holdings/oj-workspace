@@ -188,28 +188,37 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <div>
         <p className="exec-kicker"><Building2 size={16}/> OJ EXTERIOR CARE / COMMERCIAL OPERATIONS</p>
         <h2>Complex properties.<br/><em>Controlled execution.</em></h2>
-        <p>Develop multi-building scope, model true direct costs, and prepare an internal proposal brief. Nothing here is treated as booked, paid, or contractually approved.</p>
-        <div className="com-actions">
-          <button className="primary" disabled={preview||readOnly||!ready} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save shared project</button>
-          <button className="secondary" disabled={preview||readOnly||!ready} onClick={save}><Save size={16}/> Save browser recovery copy</button>
-          <button className="secondary" type="button" disabled={preview||readOnly||!ready} onClick={()=>void exportLocalBusinessData()}><Download size={16}/> Export local business data</button>
-          <button className="secondary" type="button" disabled={preview||readOnly} onClick={()=>archiveInput.current?.click()}><FileInput size={16}/> Restore missing from archive</button>
-          <input ref={archiveInput} type="file" accept=".json,application/json" hidden aria-label="Restore missing OJ local business data from an archive" onChange={e=>{
-            const file=e.currentTarget.files?.[0];e.currentTarget.value='';void restoreLocalBusinessData(file);
-          }}/>
-          <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
-          <button className="secondary" onClick={download}><Download size={16}/> Export text</button>
-          <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Save browser copy & prepare task</button>
-          <button className="secondary" onClick={exportEditable}><Download size={16}/> Export editable</button>
-          <button className="secondary" disabled={preview||readOnly} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable</button>
-          <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{
-            const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importEditable(file);
-          }}/>
+        <p>Manage buildings, estimate labor and access costs, and save projects for the whole team.</p>
+        <div className="com-actions" role="group" aria-label="Commercial project actions">
+          <button className="primary" disabled={preview||readOnly||!ready} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save to company</button>
+          <button className="secondary" type="button" onClick={()=>setTab('scope')}><Building2 size={16}/> Edit properties</button>
+          <button className="secondary" type="button" onClick={()=>setTab('costs')}><BarChart3 size={16}/> Estimate</button>
+          <Link className="secondary" href={base+'/b/exterior/bookings'}><HardHat size={16}/> Jobs</Link>
         </div>
+        <details className="com-recovery">
+          <summary>Files, recovery &amp; team handoff</summary>
+          <div className="com-actions" role="group" aria-label="Optional local file and recovery tools">
+            <button className="secondary" disabled={preview||readOnly||!ready} onClick={save}><Save size={16}/> Save this browser copy</button>
+            <button className="secondary" type="button" disabled={preview||readOnly||!ready} onClick={()=>void exportLocalBusinessData()}><Download size={16}/> Back up local business data</button>
+            <button className="secondary" type="button" disabled={preview||readOnly} onClick={()=>archiveInput.current?.click()}><FileInput size={16}/> Recover missing local files</button>
+            <input ref={archiveInput} type="file" accept=".json,application/json" hidden aria-label="Restore missing OJ local business data from an archive" onChange={e=>{
+              const file=e.currentTarget.files?.[0];e.currentTarget.value='';void restoreLocalBusinessData(file);
+            }}/>
+            <button className="secondary" onClick={()=>void copy()}><ClipboardCopy size={16}/> Copy brief</button>
+            <button className="secondary" onClick={download}><Download size={16}/> Download brief</button>
+            <button className="secondary" type="button" disabled={preview||readOnly} onClick={prepareSharedTask}><ClipboardCheck size={16}/> Prepare task from local draft</button>
+            <button className="secondary" onClick={exportEditable}><Download size={16}/> Download editable draft</button>
+            <button className="secondary" disabled={preview||readOnly} onClick={()=>transferInput.current?.click()}><FileInput size={16}/> Import editable draft</button>
+            <input ref={transferInput} type="file" accept=".json,application/json" hidden aria-label="Import editable commercial estimate file" onChange={e=>{
+              const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importEditable(file);
+            }}/>
+          </div>
+          <p>Local backups stay on this device. Imports do not sync automatically; use Save to company after reviewing them.</p>
+        </details>
       </div>
       <div className="com-seal" aria-hidden="true"><strong>OJ</strong><span>FIELD / OPERATIONS</span></div>
     </header>
-    <div className="com-warning"><ShieldAlert size={18}/><p><b>Internal planning only.</b> This page does not create customer records, send messages, apply rates, book jobs, or execute payments. {preview?'Preview uses fictional examples.':'Local drafts are private to this browser profile, not synchronized with Jacob. Export an editable estimate file to transfer the full scope and costs securely between devices.'} Verify high-access work, equipment and insurance before issuing a client proposal.</p></div>
+    <div className="com-warning" role="note"><ShieldAlert size={18}/><p>{preview?'Fictional preview · no company changes.':'Saved company projects sync to authorized members. Local recovery copies do not.'} Estimates are internal until separately reviewed and approved; saving does not send a proposal or book a job.</p></div>
     {ready && <div className="atlas-nexus-editor-entry"><Link href={base+'/b/exterior/projects'}><Network size={16}/> Open NEXUS · Project 360 <ArrowUpRight size={14}/></Link></div>}
     {ready && <AtlasCommercialPortfolio org={org} base={base} mode={mode} readOnly={readOnly} saveHandle={sharedSaveHandle}
       name={name} input={input} review={review} bookings={data.bookings} cards={cards}
@@ -233,7 +242,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <span><strong>{estimate.crewHours}</strong> entered paid crew-hours</span>
       <span><strong>{estimate.liftDays}</strong> summed rental days</span>
       <span><strong>{reviewed}/{checklist.length}</strong> internal review items checked</span>
-      <b>{preview?'FICTIONAL PREVIEW':'BROWSER-LOCAL DRAFT'}</b>
+      <b>{preview?'FICTIONAL PREVIEW':'SAVE TO COMPANY TO SYNC'}</b>
     </div>
     {ready && <AtlasFieldBridge base={base} organizationId={org} mode={mode} view="commercial" commercial={{name,input,review}} disabled={readOnly} />}
     <div className="com-body">

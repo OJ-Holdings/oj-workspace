@@ -18,7 +18,7 @@
 .exec-hero h1 em,.com-hero h2 em{font-style:normal;color:var(--accent-hi)}
 .exec-lead{margin:18px 0 23px;color:var(--ink-2);font-size:13px;max-width:62ch;line-height:1.7}
 .exec-quick{display:flex;flex-wrap:wrap;gap:9px}
-.exec-quick a,.com-actions button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:40px;font-weight:700}
+.exec-quick a,.com-actions button,.com-actions a{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:40px;font-weight:700}
 .exec-monogram,.com-seal{flex-shrink:0;width:220px;min-height:185px;display:flex;align-items:center;justify-content:center;flex-direction:column;border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:20px;transform:rotate(-5deg);background:radial-gradient(circle at 50% 50%,var(--exec-glow),transparent 67%);box-shadow:0 20px 65px -48px var(--accent)}
 .exec-monogram div,.com-seal strong{font-size:70px;line-height:1;font-weight:850;letter-spacing:-.095em;color:var(--ink)}
 .exec-monogram span,.com-seal span{margin-top:8px;letter-spacing:.36em;font-weight:800;font-size:10px;color:var(--ink-2)}
@@ -99,6 +99,13 @@
 .com-hero h2{font-size:clamp(30px,3.5vw,48px);font-family:var(--font-display);line-height:1.08;margin:16px 0}
 .com-hero p:not(.exec-kicker){font-size:12px;line-height:1.7;color:var(--ink-2);max-width:62ch}
 .com-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
+.com-recovery{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;max-width:680px}
+.com-recovery summary{cursor:pointer;font-weight:750;font-size:12px;color:var(--ink-2)}
+.com-recovery[open] summary{color:var(--ink)}
+.com-recovery .com-actions{margin-top:12px}
+.com-recovery .com-actions button{font-size:11px;min-height:36px}
+.com-recovery>p{margin:10px 0 0;font-size:11px;line-height:1.5;color:var(--ink-3)}
+.com-recovery:focus-within{border-color:var(--accent)}
 .com-seal{width:175px;min-height:160px}
 .com-seal strong{font-size:60px}
 .com-warning{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
@@ -157,5 +164,5 @@
 .com-safety p{font-size:12px;line-height:1.7;color:var(--ink-3);margin:0}
 @media(max-width:1190px){.exec-grid,.com-body{grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr)}.exec-kpis,.com-snapshot{grid-template-columns:repeat(2,minmax(0,1fr))}.exec-monogram{width:170px;min-height:160px}.exec-monogram div{font-size:54px}}
 @media(max-width:820px){.exec-grid,.com-body{grid-template-columns:minmax(0,1fr)}.exec-hero,.com-hero{padding:25px}.exec-monogram,.com-seal{display:none}.exec-date{margin-top:20px}}
-@media(max-width:600px){.exec-hero h1,.com-hero h2{font-size:34px}.exec-hero,.com-hero{border-radius:14px}.exec-lead{font-size:12px}.exec-quick a,.com-actions button{flex:1 1 140px}.exec-presence{gap:8px 15px}.exec-operator{margin-left:0}.exec-kpis,.com-snapshot{gap:8px}.exec-kpi,.com-snapshot>div{padding:15px 12px}.exec-kpi strong,.com-snapshot strong{font-size:26px}.exec-kpi>span,.com-snapshot>div>span{font-size:9px;letter-spacing:.06em}.exec-kpi small,.com-snapshot small{font-size:10px}.exec-panel,.com-panel{padding:16px}.exec-items li{grid-template-columns:20px minmax(0,1fr) auto;gap:8px}.exec-items li>svg{display:none}.exec-items time{font-size:10px}.exec-tabs button,.com-tabs button{min-width:100px;font-size:10px;padding:10px 6px}.com-fields{grid-template-columns:minmax(0,1fr)}.com-records a{grid-template-columns:minmax(0,1fr) 16px}.com-records a>span{display:none}}
+@media(max-width:600px){.exec-hero h1,.com-hero h2{font-size:34px}.exec-hero,.com-hero{border-radius:14px}.exec-lead{font-size:12px}.exec-quick a,.com-actions button,.com-actions a{flex:1 1 140px}.exec-presence{gap:8px 15px}.exec-operator{margin-left:0}.exec-kpis,.com-snapshot{gap:8px}.exec-kpi,.com-snapshot>div{padding:15px 12px}.exec-kpi strong,.com-snapshot strong{font-size:26px}.exec-kpi>span,.com-snapshot>div>span{font-size:9px;letter-spacing:.06em}.exec-kpi small,.com-snapshot small{font-size:10px}.exec-panel,.com-panel{padding:16px}.exec-items li{grid-template-columns:20px minmax(0,1fr) auto;gap:8px}.exec-items li>svg{display:none}.exec-items time{font-size:10px}.exec-tabs button,.com-tabs button{min-width:100px;font-size:10px;padding:10px 6px}.com-fields{grid-template-columns:minmax(0,1fr)}.com-records a{grid-template-columns:minmax(0,1fr) 16px}.com-records a>span{display:none}}
 @media(prefers-reduced-motion:reduce){.exec *, .com *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
