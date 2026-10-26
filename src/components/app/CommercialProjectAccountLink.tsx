@@ -8,9 +8,10 @@ import type {CommercialAccount} from '@/lib/commercial-accounts';
 import type {CommercialProjectLink} from '@/lib/commercial-project-links';
 
 type Attempt={id:string;expected:number;command:string;accountId:string|null;propertyId:string|null};
-type Props={org:string;projectId:string|null;projectSaved:boolean};
-
-export function CommercialProjectAccountLink({org,projectId,projectSaved}:Props){
+type Props={org:string;projectId:string|null;projectSaved:boolean;
+ propertySuggestion:{accountId:string;propertyId:string;accountName:string;propertyName:string}|null;
+};
+export function CommercialProjectAccountLink({org,projectId,projectSaved,propertySuggestion}:Props){
  const [accounts,setAccounts]=useState<CommercialAccount[]>([]);
  const [current,setCurrent]=useState<CommercialProjectLink|null>(null);
  const [accountId,setAccountId]=useState('');
@@ -62,6 +63,17 @@ export function CommercialProjectAccountLink({org,projectId,projectSaved}:Props)
    setMessage((e instanceof Error?e.message:'Link save unconfirmed.')+' Retry the ORIGINAL command before changing the link.');
   }finally{lock.current=false;}
  }
+ function useSuggestedProperty(){
+  if(!propertySuggestion||!projectSaved||!projectId||state!=='ready'||pending.current||current?.accountId)return;
+  const account=accounts.find(x=>x.id===propertySuggestion.accountId);
+  if(!account||!account.properties.some(p=>p.id===propertySuggestion.propertyId)){
+   setMessage('The original selected company/property could not be verified in loaded shared records. Refresh or choose another saved property.');
+   return;
+  }
+  if(!window.confirm('Select '+propertySuggestion.propertyName+' at '+account.name+'? This only fills the link form. You must separately click Save company link.'))return;
+  setAccountId(account.id);setPropertyId(propertySuggestion.propertyId);
+  setMessage('Property selected from your original company workflow. Association is NOT saved until you explicitly confirm Save company link.');
+ }
  function saveLink(){
   if(!projectId||!projectSaved||pending.current||state!=='ready'||!changed)return;
   if((!accountId)!==(!propertyId)){setMessage('Choose a saved company and one of its exact properties.');return;}
@@ -84,6 +96,12 @@ export function CommercialProjectAccountLink({org,projectId,projectSaved}:Props)
    <button type="button" className="secondary" onClick={reload} disabled={!projectSaved||!!pending.current||state==='saving'}>
     <RefreshCw size={14}/> Refresh link</button>
   </header>
+  {propertySuggestion&&<div className="atlas-project-link-suggestion" role="note">
+   <span>Estimate started for <strong>{propertySuggestion.accountName} · {propertySuggestion.propertyName}</strong>. This is an unsaved association, not a booking or contract.</span>
+   {projectSaved&&<button type="button" className="secondary"
+     disabled={state!=='ready'||!!pending.current||Boolean(current?.accountId)}
+     onClick={useSuggestedProperty}>Use selected property</button>}
+  </div>}
   {!projectSaved||!projectId?
    <p>Save this commercial project in Supabase first. Unsaved local scenarios cannot claim a company relationship.</p>:
    <div className="atlas-project-company-controls">
