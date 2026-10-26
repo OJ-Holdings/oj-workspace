@@ -76,3 +76,21 @@ export function parseAccountReceipt(raw:unknown):{status:'saved';revision:number
   throw Error('Invalid company save receipt.');
  return {status:'saved',revision:x.revision as number,replayed:x.replayed};
 }
+
+
+/**
+ * Resolve an explicit operator-selected property using its exact saved UUID.
+ * Never infer a customer or service property from a matching name/address.
+ * This is an unsaved estimate suggestion, not an account/project association.
+ */
+export function prepareCommercialPropertyEstimate(account:CommercialAccount,propertyId:string){
+ if(!commercialUuid.test(account.id)||!commercialUuid.test(propertyId))
+  throw Error('Invalid saved commercial account or property.');
+ const property=account.properties.find(p=>p.id===propertyId);
+ if(!property)throw Error('Selected property is not on this saved commercial account.');
+ return {
+  accountId:account.id,accountName:account.name,
+  propertyId:property.id,propertyName:property.name,
+  suggestedEstimateTitle:(account.name+' · '+property.name).slice(0,160),
+ };
+}
