@@ -12,7 +12,7 @@ import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
 import { SolutionsConsultations } from './SolutionsConsultations';
-import { OutreachView } from './OutreachView';
+import { SolutionsSuite } from './solutions/SolutionsSuite';
 import { ContentStudio } from './ContentStudio';
 import { ExteriorCommand } from './ExteriorCommand';
 import { ExteriorCommandNav } from './ExteriorCommandNav';
@@ -22,13 +22,15 @@ import type { Board } from './useBoard';
 const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
   exterior: [['leads', 'Leads'], ['customer', 'Customer 360'], ['estimate', 'Estimate Workbench'], ['intake', 'Website Intake'], ['bookings', 'Bookings'], ['field', 'Field Command'], ['calendar', 'Calendar'], ['projects', 'NEXUS / Project 360'], ['commercial', 'Commercial Desk'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
-  solutions: [['clients', 'Clients'], ['outreach', 'Outreach'], ['calls', 'Calls']],
+  solutions: [['dms', 'Daily 10'], ['email', 'Email engine'], ['outreach', 'Prospects'], ['warm', 'Warm leads'], ['consultations', 'Website requests'], ['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
   content: [['studio', 'Production Studio']],
 };
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
-const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'exterior'
+const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'solutions'
+  ? [['overview', 'Command'], ...extraTabs.solutions, ['leads', 'Contacts'], coreTabs[3], coreTabs[4], coreTabs[1], coreTabs[5]]
+  : venture === 'exterior'
   ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 6), coreTabs[3], ...extraTabs.exterior.slice(6), coreTabs[4], coreTabs[5]]
   : venture === 'content'
     ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4], coreTabs[5]]
@@ -44,6 +46,40 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
   const cards = board.data.cards.filter(c => c.business === venture);
   const open = cards.filter(c => c.stage !== 'Done');
 
+  const content = (<>
+    {venture==='exterior'&&active==='overview'&&
+      <ExteriorCommand base={base} org={organizationId} mode={mode} readOnly={readOnly}
+        cards={cards} onNewTask={()=>board.openCard(undefined,{business:'exterior'})}/>}
+
+
+    {active === 'overview' && venture !== 'content' && venture !== 'exterior' && venture !== 'solutions' && (
+      <div className="venture-overview">
+        <div className="kpis">
+          {m ? <>
+            <div><span>Revenue this month</span><strong><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong>{m.change !== null && <small className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}% on last month</small>}</div>
+            <div><span>Active leads</span><strong><NumberFlow value={m.activeLeads} /></strong></div>
+          </> : (
+            <div className="kpi-off"><b>No figures yet.</b><span>Log money on the Money tab or add a lead, and they appear here. {v.source.charAt(0).toUpperCase() + v.source.slice(1)} will add its own once connected.</span></div>
+          )}
+          <div><span>Open tasks</span><strong><NumberFlow value={open.length} /></strong></div>
+        </div>
+        <h2 className="section-title">Work in progress</h2>
+        <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />
+      </div>
+    )}
+    {venture === 'content' && (active === 'overview' || active === 'studio') &&
+      <ContentStudio base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />}
+    {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
+    {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} />}
+    {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
+    {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
+    {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
+    {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
+    {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} activity={board.data.activity ?? []} />}
+    {active === 'consultations' && venture === 'solutions' && <SolutionsConsultations org={organizationId} mode={mode} />}
+    {(active === 'clients' || active === 'calls') && venture === 'solutions' && <GhlView tab={active} org={organizationId} mode={mode} />}
+  </>);
+
   return (
     <div className="venture">
       {venture==='exterior' ? <ExteriorCommandNav base={base} active={active} /> : <>
@@ -53,41 +89,9 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
         </header>
         <BusinessNav base={base} venture={venture} active={active} tabs={tabs} />
       </>}
-      {venture==='exterior'&&active==='overview'&&
-        <ExteriorCommand base={base} org={organizationId} mode={mode} readOnly={readOnly}
-          cards={cards} onNewTask={()=>board.openCard(undefined,{business:'exterior'})}/>}
-
-
-      {active === 'overview' && venture !== 'content' && venture !== 'exterior' && (
-        <div className="venture-overview">
-          <div className="kpis">
-            {m ? <>
-              <div><span>Revenue this month</span><strong><NumberFlow value={m.revenueMtd} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong>{m.change !== null && <small className={m.change >= 0 ? 'delta up' : 'delta down'}>{m.change >= 0 ? '+' : ''}{m.change}% on last month</small>}</div>
-              <div><span>Active leads</span><strong><NumberFlow value={m.activeLeads} /></strong></div>
-            </> : (
-              <div className="kpi-off"><b>No figures yet.</b><span>Log money on the Money tab or add a lead, and they appear here. {v.source.charAt(0).toUpperCase() + v.source.slice(1)} will add its own once connected.</span></div>
-            )}
-            <div><span>Open tasks</span><strong><NumberFlow value={open.length} /></strong></div>
-          </div>
-          {venture === 'solutions' && <SolutionsConsultations org={organizationId} mode={mode} />}
-          <h2 className="section-title">Work in progress</h2>
-          <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />
-        </div>
-      )}
-      {venture === 'content' && (active === 'overview' || active === 'studio') &&
-        <ContentStudio base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />}
-      {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
-      {active === 'leads' && venture !== 'exterior' && <>{venture === 'solutions' && <SolutionsConsultations org={organizationId} mode={mode} />}<CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} /></>}
-      {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
-      {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
-      {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
-      {active === 'outreach' && venture === 'solutions' && <OutreachView organizationId={organizationId} mode={mode} readOnly={readOnly} displayName={displayName} />}
-      {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
-      {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} activity={board.data.activity ?? []} />}
-      {(active === 'clients' || active === 'calls') && venture === 'solutions' && <>
-        {active === 'clients' && <SolutionsConsultations org={organizationId} mode={mode} />}
-        <GhlView tab={active} org={organizationId} mode={mode} />
-      </>}
+      {venture === 'solutions'
+        ? <SolutionsSuite base={base} tab={active} org={organizationId} mode={mode} readOnly={readOnly} displayName={displayName}>{content}</SolutionsSuite>
+        : content}
     </div>
   );
 }
