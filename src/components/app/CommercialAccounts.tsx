@@ -13,8 +13,10 @@ const empty=():CommercialAccountDraft=>({
  name:'',industry:'',website:'',notes:'',contacts:[],properties:[],
 });
 type Attempt={id:string;revision:number;commandId:string;draft:CommercialAccountDraft};
-type Props={org:string;base:string;mode:'live'|'preview';readOnly:boolean};
-export function CommercialAccounts({org,base,mode,readOnly}:Props){
+type Props={org:string;base:string;mode:'live'|'preview';readOnly:boolean;
+ onStartEstimate:(accountId:string,accountName:string,propertyId:string,propertyName:string)=>void;
+};
+export function CommercialAccounts({org,base,mode,readOnly,onStartEstimate}:Props){
  const canEdit=mode==='live'&&!readOnly;
  const [accounts,setAccounts]=useState<CommercialAccount[]>([]);
  const [more,setMore]=useState(false);
@@ -71,6 +73,15 @@ export function CommercialAccounts({org,base,mode,readOnly}:Props){
  const addProperty=()=>edit(d=>({...d,properties:[...d.properties,{
   id:crypto.randomUUID(),name:'',address:'',serviceNotes:'',frequency:'unknown',
  }]}));
+ function startPropertyEstimate(propertyId:string){
+  if(!canEdit||!selected||selected.revision===0||dirty||pending.current||state!=='ready')return;
+  // Use the last confirmed shared account, not editable or unsaved form text.
+  const recorded=accounts.find(a=>a.id===selected.id);
+  const site=recorded?.properties.find(p=>p.id===propertyId);
+  if(!recorded||!site){setMessage('Save the company and property before preparing an estimate.');return;}
+  if(!window.confirm('Start a new internal estimate for '+site.name+'? The current estimate editor will reset. This will NOT book a visit, create a contract, or link records automatically.'))return;
+  onStartEstimate(recorded.id,recorded.name,site.id,site.name);
+ }
  async function perform(attempt:Attempt){
   if(loading.current)return;
   loading.current=true;setState('saving');
@@ -198,8 +209,18 @@ export function CommercialAccounts({org,base,mode,readOnly}:Props){
       <label>Site notes<textarea rows={2} maxLength={2000} value={p.serviceNotes} disabled={!canEdit||state==='saving'||state==='conflict'||!!pending.current}
        onChange={e=>edit(d=>({...d,properties:d.properties.map(v=>v.id===p.id?{...v,serviceNotes:e.target.value}:v)}))}/></label>
      </div>
+     <div className="com-account-property-action">
+      <span>{p.frequency==='unknown'?'No service frequency has been agreed.':p.frequency==='one-time'?'One-time service interest — not a scheduled job.':p.frequency+' service interest — not an active recurring agreement.'}</span>
+      {selected.revision>0&&<button type="button" className="secondary"
+       disabled={!canEdit||dirty||state!=='ready'||!!pending.current
+        ||!accounts.find(a=>a.id===selected.id)?.properties.some(saved=>saved.id===p.id)}
+       onClick={()=>startPropertyEstimate(p.id)}>
+       <Building2 size={14}/> Start estimate for this saved property
+      </button>}
+     </div>
     </fieldset>)}
-    {selected.revision>0&&<CommercialAccountProjects org={org} accountId={selected.id} base={base}/>}
+    {selected.revision>0&&<CommercialAccountProjects org={org} accountId={selected.id} base={base}
+      properties={accounts.find(a=>a.id===selected.id)?.properties??[]}/>}
     <p className="com-account-foot"><Building2 size={14}/> Company initials are used until protected logo uploads are enabled. Contacts and properties do not send messages, schedule work or issue invoices.</p>
    </div>
   </div>}
