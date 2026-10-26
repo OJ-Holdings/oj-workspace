@@ -109,7 +109,7 @@ export async function handler(event: Event, injected?: { store: EngineStore; env
   if (body.action !== 'plan' && body.action !== 'report' && body.action !== 'quests') return response(400, { error: 'Unknown action.' });
 
   try {
-    const env = injected?.env ?? { postalAddress: process.env.OJ_EMAIL_POSTAL_ADDRESS?.trim() || null, company: process.env.OJ_EMAIL_COMPANY?.trim() || 'OJ Solutions', workspaceUrl: process.env.OJ_WORKSPACE_URL?.trim() || 'https://ojworkspace.netlify.app' };
+    const env = injected?.env ?? { postalAddress: process.env.OJ_EMAIL_POSTAL_ADDRESS?.trim() || null, company: process.env.OJ_EMAIL_COMPANY?.trim() || 'OJ Solutions', workspaceUrl: process.env.OJ_WORKSPACE_URL?.trim() || null };
     const store = injected?.store ?? supabaseStore(setting('OJ_OUTREACH_ORGANIZATION_ID'));
     const now = injected?.now ?? new Date();
     if (body.action === 'plan') return response(200, await planRun(store, env, { now, senderName: body.senderName, senderFilter: body.senderFilter, senderDomain: body.senderDomain, dryRun: body.dryRun === true }));

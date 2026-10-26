@@ -13,7 +13,7 @@ The OJ Solutions section is built around the outreach plan: automated email, a d
 ## What runs where
 
 - **Email sender:** the Google Apps Script `scripts/google-apps-script/outreach-email-engine.gs`, bound to the Outreach spreadsheet. It sends from that Google account. It asks the server what to send, sends exactly that, and reports back.
-- **Rules:** `src/lib/email-engine.ts` (window, warm-up, draft checks, bounce brake, reply handling), exposed by `netlify/functions/outreach-email-engine.ts`. Bearer-token only, using the same secret as the spreadsheet import. The service key stays on Netlify. No signed-in user can trigger it, and it sends nothing itself.
+- **Rules:** `src/lib/email-engine.ts` (window, warm-up, draft checks, bounce brake, reply handling), exposed two ways with the same code: the app route `/api/outreach-email-engine` (served by the Windows/Tailscale Funnel host) and `netlify/functions/outreach-email-engine.ts` (Netlify). Bearer-token only, using the same secret as the spreadsheet import. The service key stays on the server that answers. No signed-in user can trigger it, and it sends nothing itself.
 - **Texting is untouched.** The one SMS sender rule still holds. This is email only.
 - **Reminders:** the same script emails each partner who is under the DM goal at 10 AM, 2 PM, 6 PM and 8 PM Central. The server picks the reminder text.
 
@@ -26,12 +26,15 @@ The dashboard says **Running** only when the sender has checked in within the la
 1. **Database.** Review and apply, in this order, to the OJ Supabase project (after taking the usual backup per `docs/DEPLOYMENT.md`):
    `supabase/schemas/solutions-dm-quests.sql`, then `supabase/schemas/solutions-email-engine.sql`.
    Both are additive. The permission tests are `tests/solutions-growth-sql.test.ts`.
-2. **Netlify settings.** Add `OJ_EMAIL_POSTAL_ADDRESS` (required; shown on every email) and optionally `OJ_EMAIL_COMPANY`. `OJ_OUTREACH_SYNC_TOKEN`, `OJ_OUTREACH_ORGANIZATION_ID` and `OJ_SUPABASE_SERVICE_ROLE_KEY` are already set for the spreadsheet import.
+2. **Server settings, on whichever host answers the script.** On the Windows/Tailscale host these go in `.env.local` (then restart the app); on Netlify, in the site settings. Add `OJ_EMAIL_POSTAL_ADDRESS` (required; shown on every email), optionally `OJ_EMAIL_COMPANY`, and `OJ_WORKSPACE_URL` (the exact https address you open the workspace at, so the reminder emails link to it). The Windows host also needs `OJ_OUTREACH_SYNC_TOKEN`, `OJ_OUTREACH_ORGANIZATION_ID` and `OJ_SUPABASE_SERVICE_ROLE_KEY`; Netlify already has them for the spreadsheet import. Google's servers run the script, so it can only reach a **public** address: the Tailscale **Funnel** address works, a tailnet-only address does not.
 3. **Apps Script.** In the Outreach spreadsheet, Extensions, Apps Script, add the file `outreach-email-engine.gs` next to `outreach-sync.gs`. Project Settings, Script properties:
    - `SENDER_NAME` (signature name, for example Oscar)
    - `NAG_EMAILS` (for example `{"Oscar":"oscar@example.com","Jacob":"jacob@example.com"}`)
    - optional `SENDER_FILTER` (`Oscar` or `Jacob`)
+   - `ENGINE_URL` when the Tailscale Funnel host is the one answering: `https://<your-funnel-host>/api/outreach-email-engine`. Blank uses the Netlify function.
 4. Run `previewNextEmails` once. It logs the emails that would go out and sends nothing. Then run `installEngineTriggers` and approve the Gmail permission. The Email engine screen switches to Running after the first check-in (within 10 minutes during the day).
+
+If the Windows PC is off or asleep, the script cannot reach it. Nothing sends, and the screen says Stopped checking in after 25 minutes. It never claims Running without a real check-in.
 
 To stop: press Pause on the Email engine screen (takes effect within 10 minutes), or delete the triggers in Apps Script.
 
