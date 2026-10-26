@@ -16,7 +16,7 @@ sql(){ docker exec "$container" psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -c
 actor(){ sql "BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$1',true); $2 COMMIT;" | tail -1; }
 eq(){ [[ "$1" == "$2" ]] || { echo "FAIL: $3"; exit 1; }; echo "PASS: $3"; }
 deny(){ if actor "$1" "$2" >/dev/null 2>&1; then echo 'FAIL: forbidden content write'; exit 1; fi; echo 'PASS: forbidden write rejected'; }
-file "$repo/scripts/tests/restore-fixtures/bootstrap.sql"
+file "$repo/scripts/tests/exterior-p3-schema-bootstrap.sql"
 file "$repo/supabase/schemas/workspace.sql"
 org=10000000-0000-4000-8000-000000000001
 owner=20000000-0000-4000-8000-000000000001
