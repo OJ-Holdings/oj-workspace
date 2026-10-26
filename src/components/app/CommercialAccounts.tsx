@@ -3,6 +3,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Building2,Download,MapPin,Plus,RefreshCw,Save,UserRound} from 'lucide-react';
 import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/commercial-account-actions';
+import {CommercialAccountProjects} from './CommercialAccountProjects';
 import {
  commercialAccountMaxContacts,commercialAccountMaxProperties,
  validateCommercialAccountDraft,type CommercialAccount,type CommercialAccountDraft,
@@ -12,8 +13,8 @@ const empty=():CommercialAccountDraft=>({
  name:'',industry:'',website:'',notes:'',contacts:[],properties:[],
 });
 type Attempt={id:string;revision:number;commandId:string;draft:CommercialAccountDraft};
-type Props={org:string;mode:'live'|'preview';readOnly:boolean};
-export function CommercialAccounts({org,mode,readOnly}:Props){
+type Props={org:string;base:string;mode:'live'|'preview';readOnly:boolean};
+export function CommercialAccounts({org,base,mode,readOnly}:Props){
  const canEdit=mode==='live'&&!readOnly;
  const [accounts,setAccounts]=useState<CommercialAccount[]>([]);
  const [more,setMore]=useState(false);
@@ -198,6 +199,7 @@ export function CommercialAccounts({org,mode,readOnly}:Props){
        onChange={e=>edit(d=>({...d,properties:d.properties.map(v=>v.id===p.id?{...v,serviceNotes:e.target.value}:v)}))}/></label>
      </div>
     </fieldset>)}
+    {selected.revision>0&&<CommercialAccountProjects org={org} accountId={selected.id} base={base}/>}
     <p className="com-account-foot"><Building2 size={14}/> Company initials are used until protected logo uploads are enabled. Contacts and properties do not send messages, schedule work or issue invoices.</p>
    </div>
   </div>}
