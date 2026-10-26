@@ -46,7 +46,7 @@ test('U2B exact commercial project-company-property links: actor tenancy, revisi
    values ('${other}','${other}','Other company',1,'${outsider}','${outsider}');
   insert into public.oj_commercial_properties(organization_id,account_id,id,name)
    values ('${other}','${other}','${otherProperty}','Outsider property');`);
- await db.exec(await readFile(new URL('../supabase/staging/exterior-u2b-project-account-links.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../docs/production-sql/20261026174014_oj_commercial_project_property_links_u2b.sql',import.meta.url),'utf8'));
  const as=(who:string,role='authenticated')=>db.exec(`reset role;set request.jwt.claim.sub='${who}';set role ${role};`);
  const save=(revision:number,command:string,selectedAccount:string|null=account,
   selectedProperty:string|null=property,tenant=org)=>
