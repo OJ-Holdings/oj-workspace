@@ -84,7 +84,7 @@ test('U2B exact commercial project-company-property links: actor tenancy, revisi
   const reattached=await save(2,'00000000-0000-4000-8000-000000000035');
   assert.equal(reattached.rows[0].v.revision,3);
   await db.exec('reset role');
-  assert.equal((await db.query('select count(*)::integer as n from public.oj_commercial_projects')).rows[0].n,1);
+  assert.equal((await db.query<{n:number}>('select count(*)::integer as n from public.oj_commercial_projects')).rows[0].n,1);
   await assert.rejects(()=>db.query('delete from oj_private.oj_commercial_project_link_commands'));
  });
  await t.test('viewer, outsider, anonymous and revoked member cannot read, list or link',async()=>{
