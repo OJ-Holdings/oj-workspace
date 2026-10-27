@@ -131,6 +131,8 @@ export function PresencePanel({ mode, organizationId, members, cards, onOpenCard
   }
   const roster = mode === 'preview' ? members.map((name, index) => ({ user_id: index ? `demo-${index}` : 'local-demo', display_name: name })) : snapshot?.members ?? members.map(name => ({ user_id: name, display_name: name }));
 
+  // Live availability needs the presence tables; until they exist the banner would only say 'Not connected', so show nothing.
+  if (mode === 'live' && phase === 'unavailable') return null;
   return <section className="presence-panel" aria-label="Team availability">
     <details>
       <summary><span className="presence-heading"><UsersRound size={17} aria-hidden="true" />Team at work</span><span className="presence-summary">{mode === 'preview' ? 'Local demo' : phase === 'connected' ? `${roster.filter(m => memberPresence(snapshot?.sessions ?? [], m.user_id, now).state === 'online').length} online` : phase === 'connecting' ? 'Connecting…' : phase === 'unavailable' ? 'Not connected' : 'Reconnecting…'}</span></summary>

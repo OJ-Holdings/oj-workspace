@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS quick wins: rebooking list, expense categories, no dead presence banner)
+**Summary:** (1) Customers page: collapsible Rebooking list (past customers whose latest completed job is 3, 5, 8 or 11+ months old, one row per customer, oldest first, with Copy list for a spreadsheet or mail merge). (2) Money: the expense and income Category field now suggests common categories (fuel, chemicals, equipment, repairs, Local Services Ads, insurance, software, crew commission and so on); free text still allowed. (3) The 'Team at work: Not connected' banner is hidden in the live app until the presence tables exist (see docs/db-change-proposals/RUN-ME-2026-10-27-presence.sql); it returns automatically once they do.
+**Files:** src/lib/exterior-rebook.ts, src/components/app/{RebookList,ExteriorManage,Pages,PresencePanel}.tsx, tests/exterior-rebook.test.ts.
+**Verified:** typecheck; npm test 816/816 (3 new tests for the rebooking selection); build.
+**Not verified:** signed-in live pages; Copy list in the live browser.
 ## 2026-10-27 UTC -- Claude Code (OJ OS copy diet: Exterior Care landing page)
 **Summary:** Compacted /b/exterior (the Exterior Care command page) from about 3,900 px to about 1,900 px: one-row header with shortcuts (no season switch or poster), short stat captions, removed the long 'Before crews roll out' preflight block and the 'Work that cannot fall between founders' inbox from this page (the preflight stays on the Jobs page; the inbox component is unchanged and unused here), calm headings instead of numbered eyebrows, a note that links to adding missing job costs and to tagging lead sources, and plain link chips instead of the 'specialist applications' grid with paragraphs. Also trimmed the Jobs and Customers pages: plain headings (Jobs, Customers) instead of posters, shorter stat captions and partial-history notices, removed the queue explanation line, and the 'Heads-up for upcoming jobs' preflight on Jobs is now a collapsed section. No data, logic or schema changes.
 **Files:** src/components/app/{ExteriorCommand,ExteriorManage}.tsx, src/styles/exterior-command.css.
