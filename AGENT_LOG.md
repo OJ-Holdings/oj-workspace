@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS Phase 0, slice 3b: founder chat bubble)
+**Summary:** Floating chat bubble on every screen (bottom right, left of the quick-add button). It reads and writes the same shared oj_messages as the Messages page, so history stays in one place, and new messages arrive through the workspace's existing live updates. Unread count is per device (localStorage). Read-only members can read but not send. No new tables.
+**Files:** src/components/app/ChatBubble.tsx, src/styles/chat-bubble.css, src/components/app/App.tsx, src/app/globals.css.
+**Verified:** typecheck; 804/804 tests; build; /preview browser check (bubble, unread badge, panel, history).
+**Not verified:** sending and live arrival in a signed-in session with two people; phone layout.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 0, slice 3: company switcher, icon rail, command actions)
 **Summary:** New top-bar company switcher (OJ Holdings, Exterior Care, Solutions, Essentials, Oscar Jacob) that opens the business room and re-themes it; the sidebar can fold to an icon dock (choice remembered per device, desktop only); Ctrl K now lists quick actions (New lead, Book a job, Record expense, New task) in live mode for members; brand text now reads OJ OS.
 **Files:** src/components/app/{EntitySwitcher,Shell}.tsx, src/styles/entity-switch.css, src/app/globals.css.
