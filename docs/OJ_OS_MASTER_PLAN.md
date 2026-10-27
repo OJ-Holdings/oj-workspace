@@ -708,6 +708,21 @@ Answered: see sections 1b to 1e. Still open:
 
 **Google Business Profile API (apply early because approval takes time):** per Google's documentation (checked via search; confirm on the live page), you apply for "Basic API Access" through the Business Profile API contact form with a Google Cloud project number and an email that is an owner or manager of the profile; until approved the project's quota is zero. Secondary sources say approval can take days to a few weeks and recommend a complete, current profile with the website listed. Traffic data is easier: Google Analytics 4 and Search Console use standard Google Cloud OAuth (no special approval). Plan: in Phase 4 I will walk Oscar through creating the Cloud project and filing the form (one sitting).
 
+## 17. Build progress (updated 2026-10-27, overnight session)
+
+**Live on the site (merged to main and deployed by the guarded deployer):**
+- Phase 0: 13 placeholder tools and dead code deleted; sidebar cut from 17 items to 7 primary plus a collapsed More group; collapsible icon rail; company switcher in the top bar; Ctrl K quick actions; compact Today (about 1,700 px instead of about 4,000 px); retired report pages and the Tools hub removed; Exterior Care landing, Jobs and Customers pages trimmed (about half the height); founder chat bubble (shared with the Messages page); mobile top-bar and bubble fixes.
+- Phase 1 start: Add or Edit figures right in the Jobs report list; bulk Tag lead sources tool with Local Services Ads and Google Business Profile sources; Rebooking list with a spreadsheet-safe Copy button; expense and income category suggestions; Work truck fund card ($20,000 by Apr 1, 2027; balance logged by a founder); the dead "Team at work: Not connected" banner hidden until presence exists.
+
+**Built, merged to main, switches on only after an owner runs SQL (nothing here is applied):**
+- docs/db-change-proposals/RUN-ME-money-core.sql: double-entry ledger + invoices and payments (27 database checks). The Invoices page (new, under Money) and a printable invoice page ship in the same release and say "not switched on yet" until the SQL is applied.
+- docs/db-change-proposals/RUN-ME-2026-10-27-presence.sql: live "who is online / working on what".
+- docs/db-change-proposals/RUN-ME-2026-10-27-cleanup-junk-rows.sql: removes 7 test/spam website requests and 1 abusive message by exact id.
+
+**Correction to section 1:** Finance already includes Exterior job revenue; the earlier "two money stores" claim was a date-range misunderstanding.
+
+**Not started yet (next, in the order I would do them):** Stripe/Mercury payment links (needs Oscar's Stripe account), Mercury bank feed and reconciliation (needs a read-only Mercury token), receipt capture and OCR, expense-to-job linking and job costing, live operations board and dispatch map, crew phone app with clock-in and GPS (needs the iOS wrapper decision and the $99 developer account), commission statements at the flat 20%, customer portal, quote/proposal generator and e-sign, LSA lead import and speed-to-lead tracking, automations engine, assistant, Solutions and Essentials depth.
+
 ## 16. Sources (research done 2026-10-26)
 - REA repository: https://github.com/morluto/rea (README: MIT, MCP reverse-engineering toolkit, lawful-use scope)
 - Field service software landscape and prices: https://www.servicetitan.com/blog/housecall-pro-vs-jobber-vs-servicetitan (vendor page), https://fieldservicesoftware.io/best-field-service-software/servicetitan-competitors/ , https://www.selecthub.com/field-service-software/housecall-pro-vs-servicetitan/
