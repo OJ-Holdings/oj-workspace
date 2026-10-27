@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: plain-language customer page)
+**Summary:** The customer page (ExteriorCustomer360) read like an audit: numbered eyebrows, source-ID cards, an Evidence gaps panel, a workflow lecture and disclaimers on every block. Now: Customers breadcrumb, name and status, four tiles (Quote, Bookings, Paid, Profit), Details, Jobs, History, Possible duplicates. The money button is Add job figures and works for any customer, not only completed ones. Removed the source-ID card, evidence panel, recommended-workflow panel and timeline caveats. Cards use the OJ OS glass. Data, links and actions are unchanged.
+**Files:** src/components/app/ExteriorCustomer360.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; 862 tests; build; /preview customer page at 800 px.
+**Not verified:** live customer with several bookings; phone width.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: older Exterior screens lose their navy)
 **Summary:** Styling only. The Exterior command header, dispatch tiles, inbox, job journey, field hero and shared follow-up panels still carried hard-coded navy and teal gradients from the earlier design. A block at the end of src/styles/os-skin.css now gives those classes the same warm glass surface, line colour and champagne/mint accents as the rest of the OJ OS skin. No markup, data or logic changes.
 **Files:** src/styles/os-skin.css.
