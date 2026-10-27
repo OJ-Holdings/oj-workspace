@@ -135,3 +135,4 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
   box-shadow: var(--shadow);
 }
 .ecinbox, .ecjourney, .ecfield-shared { --inbox-line: var(--line-2); --ej-edge: var(--line-2); --shared-line: var(--line-2); --inbox-mint: var(--accent-2); --shared-green: var(--accent-2); --inbox-coral: var(--accent-hi); }
+.ecc-head, .ecc-metric, .ecc-panel, .ecc-blank { background: var(--os-glass), var(--panel); border-color: var(--line-2); box-shadow: var(--shadow); }
