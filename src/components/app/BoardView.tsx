@@ -43,7 +43,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
 
   return (
     <div className="boardview">
-      <header className="atlas-workbench-head"><div><p>ATLAS / EXECUTION WORKBENCH</p><h1>Mission Board</h1><small>One source of truth for assigned work across company divisions. Dragging a task changes its recorded stage; review does not mean approved.</small></div><a href={base}>Executive HQ →</a></header>
+      <header className="atlas-workbench-head"><div><h1>Tasks</h1><small>Drag a task between columns, or use Move to.</small></div></header>
       <div className="statstrip">
         <div><span>Open in this view</span><strong><NumberFlow value={filtered.filter(c => c.stage !== 'Done').length} /></strong></div>
         <div><span>In progress</span><strong><NumberFlow value={count('In progress')} /></strong></div>

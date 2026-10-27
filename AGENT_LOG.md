@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Tasks header, sticky job actions)
+**Summary:** The Tasks page opened with 'ATLAS / EXECUTION WORKBENCH', 'Mission Board' and a paragraph of caveats. It now says Tasks with one line on dragging or Move to. The Job sheet's action buttons stay pinned to the bottom of the dialog so Mark complete and save is always on screen on a phone. No logic changes.
+**Files:** src/components/app/BoardView.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; build; Job sheet at 375 px in /preview.
+**Not verified:** sticky buttons with the on-screen keyboard open on a real iPhone.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: plain-language customer page)
 **Summary:** The customer page (ExteriorCustomer360) read like an audit: numbered eyebrows, source-ID cards, an Evidence gaps panel, a workflow lecture and disclaimers on every block. Now: Customers breadcrumb, name and status, four tiles (Quote, Bookings, Paid, Profit), Details, Jobs, History, Possible duplicates. The money button is Add job figures and works for any customer, not only completed ones. Removed the source-ID card, evidence panel, recommended-workflow panel and timeline caveats. Cards use the OJ OS glass. Data, links and actions are unchanged.
 **Files:** src/components/app/ExteriorCustomer360.tsx, src/styles/os-skin.css.

@@ -136,3 +136,4 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 }
 .ecinbox, .ecjourney, .ecfield-shared { --inbox-line: var(--line-2); --ej-edge: var(--line-2); --shared-line: var(--line-2); --inbox-mint: var(--accent-2); --shared-green: var(--accent-2); --inbox-coral: var(--accent-hi); }
 .ecc-head, .ecc-metric, .ecc-panel, .ecc-blank { background: var(--os-glass), var(--panel); border-color: var(--line-2); box-shadow: var(--shadow); }
+.jobsheet .dialog-actions { position: sticky; bottom: calc(-1 * var(--s-6, 24px)); margin: 0 calc(-1 * var(--s-6, 24px)) calc(-1 * var(--s-6, 24px)); padding: 12px var(--s-6, 24px); background: var(--panel); border-top: 1px solid var(--line); border-radius: 0 0 var(--r-xl) var(--r-xl); }
