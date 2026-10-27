@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { makeRoute, makeTerrain, MOUNTAIN_R, routeAt, routeTop, worldYFor, type RoutePoint } from '@/lib/hyperborea-terrain';
 import type { Weather } from '@/lib/hyperborea';
+import { alpineMaterial } from './alpine-material';
+import { expeditionProps, moraine } from './expedition-props';
 
 /**
  * Hyperborea's 3D scene. Imperative three.js, mounted into a container by HyperboreaView.
@@ -34,8 +36,8 @@ function readPalette(el: HTMLElement): Palette {
     snow: get('--hb3-snow'), cloud: get('--hb3-cloud'), plain: get('--hb3-plain'), rock: get('--hb3-rock'), snowpack: get('--hb3-snowpack'),
   };
 }
-const fogDensity: Record<Weather, number> = { clear: 0.0075, wind: 0.0105, storm: 0.016, unknown: 0.014 };
-const flakeCount: Record<Weather, number> = { clear: 1400, wind: 3600, storm: 6500, unknown: 2600 };
+const fogDensity: Record<Weather, number> = { clear: 0.0045, wind: 0.006, storm: 0.009, unknown: 0.008 };
+const flakeCount: Record<Weather, number> = { clear: 500, wind: 1400, storm: 2800, unknown: 1100 };
 const windFor: Record<Weather, THREE.Vector3> = {
   clear: new THREE.Vector3(-0.8, -1.4, 0.3), wind: new THREE.Vector3(-7, -2.2, 1.8),
   storm: new THREE.Vector3(-16, -3.5, 4), unknown: new THREE.Vector3(-1.4, -0.9, 0.4),
@@ -79,11 +81,15 @@ const smooth = (a: number, b: number, x: number) => { const t = Math.min(Math.ma
 
 export function mountScene(container: HTMLElement, labelLayer: HTMLElement, first: SceneInput, opts: { reducedMotion: boolean; onView: (metres: number) => void; onInspect?: (id: string) => void }): SceneHandle {
   const small = container.clientWidth < 700;
+  container.dataset.materialStatus='loading';
+  container.dataset.renderQuality=small?'compact':'desktop';
   const renderer = new THREE.WebGLRenderer({ antialias: !small, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.75));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled = !small; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
   container.appendChild(renderer.domElement);
   renderer.domElement.setAttribute('aria-hidden', 'true');
 
@@ -102,11 +108,11 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   // ---- sky: a dark gradient dome, faint stars, a moon smothered in haze ----
   const skyMat = keep(new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(C.skyTop) }, low: { value: new THREE.Color(C.skyLow) } },
+    uniforms: { top: { value: new THREE.Color(C.skyTop).lerp(new THREE.Color(0x15253e),0.38) }, low: { value: new THREE.Color(C.skyLow).lerp(new THREE.Color(0x516078),0.48) } },
     vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'uniform vec3 top; uniform vec3 low; varying vec3 vP; void main(){ float h = clamp(vP.y*1.6+0.15,0.0,1.0); gl_FragColor = vec4(mix(low, top, h),1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 low; varying vec3 vP; void main(){ float h = clamp(vP.y*1.45+0.04,0.0,1.0); gl_FragColor = vec4(mix(low, top, h),1.0); }',
   }));
-  const sky = new THREE.Mesh(keep(new THREE.SphereGeometry(700, 32, 16)), skyMat); scene.add(sky);
+  const sky = new THREE.Mesh(keep(new THREE.SphereGeometry(1800, 32, 16)), skyMat); scene.add(sky);
   const starGeo = keep(new THREE.BufferGeometry());
   const starPos = new Float32Array(1600 * 3);
   for (let i = 0; i < 1600; i++) {
@@ -121,49 +127,52 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   const moon = new THREE.Sprite(moonMat); moon.position.set(-260, 330, -380); moon.scale.setScalar(90); scene.add(moon);
 
   // ---- light ----
-  const hemi = new THREE.HemisphereLight(C.hemiSky, C.hemiGround, 0.55); scene.add(hemi);
-  const moonLight = new THREE.DirectionalLight(C.moon, 1.9); moonLight.position.set(-160, 220, -200); scene.add(moonLight);
-  const fill = new THREE.DirectionalLight(C.fill, 0.35); fill.position.set(200, 60, 220); scene.add(fill);
+  const hemi = new THREE.HemisphereLight(0x9bb5d4, 0x222430, 0.85); scene.add(hemi);
+  const moonLight = new THREE.DirectionalLight(0xdde8ff, 2.15); moonLight.position.set(-90, 155, 110); scene.add(moonLight);
+  moonLight.castShadow = !small;
+  moonLight.shadow.mapSize.set(1024,1024);
+  Object.assign(moonLight.shadow.camera,{left:-135,right:135,top:155,bottom:-110,near:1,far:430});
+  moonLight.shadow.bias=-0.0005; moonLight.shadow.normalBias=0.16;
+  keep(moonLight.shadow);
+  moonLight.target.position.set(0,35,0);scene.add(moonLight.target);
+  const dawnRim = new THREE.DirectionalLight(0xe4ae77,0.75);dawnRim.position.set(60,90,-130);scene.add(dawnRim);
+  const fill = new THREE.DirectionalLight(0x8ea9cb, 0.6); fill.position.set(200, 60, 220); scene.add(fill);
   const headlamp = new THREE.PointLight(C.ember, 7, 12, 1.8); scene.add(headlamp);
 
   // ---- the mountain ----
   const size = MOUNTAIN_R * 2.3, seg = small ? 190 : 330;
   const geo = keep(new THREE.PlaneGeometry(size, size, seg, seg)); geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
-  const ridgeVals = new Float32Array(pos.count);
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i);
-    pos.setY(i, terrain.height(x, z)); ridgeVals[i] = terrain.ridge(x, z);
-  }
+  for (let i = 0; i < pos.count; i++) pos.setY(i,terrain.height(pos.getX(i),pos.getZ(i)));
   geo.computeVertexNormals();
-  const normals = geo.attributes.normal as THREE.BufferAttribute;
-  const colors = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), ny = normals.getY(i);
-    const n = terrain.noise(x / 9, z / 9), n2 = terrain.noise(x / 2.5 + 40, z / 2.5);
-    const shade = 0.7 + 0.25 * n + 0.12 * n2;
-    const gully = 0.55 + 0.45 * ridgeVals[i];
-    let r = C.rock.r * shade * gully, g = C.rock.g * shade * gully, b = C.rock.b * shade * gully;
-    const snowline = 30 - 12 * smooth(55, 95, y);
-    const flatness = smooth(0.32 - 0.14 * smooth(55, 95, y), 0.7, ny);
-    const snow = smooth(snowline - 10, snowline + 8, y + n * 12) * flatness;
-    const s = 0.78 + 0.22 * n2;
-    r += (s * C.snowpack.r - r) * snow; g += (s * C.snowpack.g - g) * snow; b += (s * C.snowpack.b - b) * snow;
-    const far = smooth(MOUNTAIN_R * 0.95, MOUNTAIN_R * 1.15, Math.hypot(x, z));
-    r *= 1 - far * 0.6; g *= 1 - far * 0.6; b *= 1 - far * 0.55;
-    colors.set([r, g, b], i * 3);
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const grain = keep(grainTexture(terrain.noise));
-  const rockMat = keep(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, metalness: 0, bumpMap: grain, bumpScale: 1.4 }));
-  scene.add(new THREE.Mesh(geo, rockMat));
+  grain.anisotropy = Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  const rockMat = keep(alpineMaterial(grain,C.rock,C.snowpack,C.plain,small,keep,state=>{container.dataset.materialStatus=state;}));
+  const mountain = new THREE.Mesh(geo,rockMat);mountain.castShadow=!small;mountain.receiveShadow=!small;scene.add(mountain);
+  scene.add(moraine(terrain,route,keep,small));
+  // Far ridgelines establish scale without adding expensive foreground detail.
+  for (const [i,x,z,scale] of [[0,-140,-155,0.8],[1,135,-180,0.95],[2,-210,25,0.6]]) {
+    const distant=makeTerrain(610+i*137),g=keep(new THREE.PlaneGeometry(310,310,small?40:64,small?40:64));g.rotateX(-Math.PI/2);
+    const points=g.attributes.position as THREE.BufferAttribute;
+    for(let n=0;n<points.count;n++)points.setY(n,distant.height(points.getX(n),points.getZ(n)));
+    g.computeVertexNormals();
+    const distantColors=new Float32Array(points.count*3),baseColor=C.plain.clone(),ridgeColor=new THREE.Color(0x445366);
+    for(let n=0;n<points.count;n++) {
+      const color=baseColor.clone().lerp(ridgeColor,smooth(0,12,points.getY(n)));
+      distantColors.set([color.r,color.g,color.b],n*3);
+    }
+    g.setAttribute('color',new THREE.BufferAttribute(distantColors,3));
+    const m=keep(new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));
+    const peak=new THREE.Mesh(g,m);peak.position.set(x,-4,z);peak.scale.setScalar(scale);scene.add(peak);
+  }
+  renderer.shadowMap.needsUpdate=true;
   const plain = new THREE.Mesh(keep(new THREE.CircleGeometry(800, 48)), keep(new THREE.MeshStandardMaterial({ color: C.plain, roughness: 1 })));
   plain.rotation.x = -Math.PI / 2; plain.position.y = -0.4; scene.add(plain);
 
   // ---- the route ----
-  const lineFrom = (pts: RoutePoint[]) => {
-    const g = keep(new THREE.BufferGeometry());
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts.flatMap(p => [p.x, p.y + 0.3, p.z])), 3)); return g;
+  const lineFrom = (pts: RoutePoint[], tracked=true) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts.flatMap(p => [p.x, p.y + 0.3, p.z])), 3)); return tracked?keep(g):g;
   };
   const routeLine = new THREE.Line(lineFrom(route), keep(new THREE.LineDashedMaterial({ color: C.route, dashSize: 0.7, gapSize: 1.1, transparent: true, opacity: 0.4 })));
   routeLine.computeLineDistances(); scene.add(routeLine);
@@ -173,12 +182,15 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   const emberTex = keep(glowTexture(C.ember, 1));
   const coldTex = keep(glowTexture(C.ghost, 0.7));
   const climber = new THREE.Sprite(keep(new THREE.SpriteMaterial({ map: emberTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })));
-  climber.scale.setScalar(2.6); scene.add(climber);
+  climber.scale.setScalar(0.65); scene.add(climber);
+  const props=expeditionProps(keep,C.ember);
+  const founders=[props.climber(false),props.climber(true)];founders.forEach(f=>scene.add(f));
+  const safetyRopeGeo=keep(new THREE.BufferGeometry());
+  const safetyRope=new THREE.Line(safetyRopeGeo,keep(new THREE.LineBasicMaterial({color:C.ember,transparent:true,opacity:0.8})));scene.add(safetyRope);
   const ghost = new THREE.Sprite(keep(new THREE.SpriteMaterial({ map: coldTex, transparent: true, depthWrite: false, opacity: 0.45 })));
   ghost.scale.setScalar(2.2); scene.add(ghost);
 
   const campGroup = new THREE.Group(); scene.add(campGroup);
-  const tentGeo = keep(new THREE.ConeGeometry(0.45, 0.6, 4)), tentMat = keep(new THREE.MeshStandardMaterial({ color: C.tent, roughness: 0.8 }));
   const poleGeo = keep(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 5)), poleMat = keep(new THREE.MeshBasicMaterial({ color: C.ghost }));
   const flagGeo = keep(new THREE.PlaneGeometry(0.9, 0.55)), flagMat = keep(new THREE.MeshBasicMaterial({ color: C.ember, side: THREE.DoubleSide }));
   const campGlowWarm = keep(new THREE.SpriteMaterial({ map: emberTex, transparent: true, depthWrite: false, opacity: 0.55, blending: THREE.AdditiveBlending }));
@@ -193,8 +205,8 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     const s = new THREE.Sprite(m); s.position.set(x, y, z); s.scale.set(scale, scale * 0.55, 1); s.material.rotation = Math.random() * Math.PI;
     scene.add(s); clouds.push({ s, base: s.position.clone(), phase: Math.random() * 10, summit });
   };
-  for (let i = 0; i < 34; i++) { const a = Math.random() * Math.PI * 2, r = Math.random() * 26; addCloud(Math.cos(a) * r, top - 10 + Math.random() * 16, Math.sin(a) * r, 22 + Math.random() * 22, 0.42, true); }
-  for (let i = 0; i < 46; i++) { const a = Math.random() * Math.PI * 2, r = 28 + Math.random() * 110; addCloud(Math.cos(a) * r, 22 + Math.random() * 62, Math.sin(a) * r, 30 + Math.random() * 40, 0.16 + Math.random() * 0.14, false); }
+  for (let i = 0; i < (small?7:12); i++) { const a = Math.random() * Math.PI * 2, r = Math.random() * 26; addCloud(Math.cos(a) * r, top - 10 + Math.random() * 16, Math.sin(a) * r, 22 + Math.random() * 22, 0.16, true); }
+  for (let i = 0; i < (small?9:18); i++) { const a = Math.random() * Math.PI * 2, r = 28 + Math.random() * 110; addCloud(Math.cos(a) * r, 22 + Math.random() * 62, Math.sin(a) * r, 30 + Math.random() * 40, 0.065 + Math.random() * 0.07, false); }
 
   // ---- snow ----
   const BOX = new THREE.Vector3(46, 30, 46), maxFlakes = 6500;
@@ -235,8 +247,13 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       if (c.id === 'summit') continue;
       const p = routeAt(route, yFor(c.altitude));
       const g = new THREE.Group(); g.position.set(p.x, terrain.height(p.x, p.z), p.z);
-      const tent = new THREE.Mesh(tentGeo, tentMat); tent.position.set(1.1, 0.25, 0.4); tent.rotation.y = Math.PI / 4; g.add(tent);
-      const glow = new THREE.Sprite(c.reached ? campGlowWarm : campGlowCold); glow.position.y = 0.8; glow.scale.setScalar(c.reached ? 2.6 : 1.8); g.add(glow);
+      const shelter=props.camp(c.reached,c.id==='base');
+      for(const item of shelter.children) {
+        const ground=terrain.height(g.position.x+item.position.x,g.position.z+item.position.z)-g.position.y;
+        item.position.y+=ground;
+      }
+      g.add(shelter);
+      const glow = new THREE.Sprite(c.reached ? campGlowWarm : campGlowCold); glow.position.y = 0.8; glow.scale.setScalar(c.reached ? 1.0 : 0.55); g.add(glow);
       if (c.reached && c.id !== 'base') {
         const pole = new THREE.Mesh(poleGeo, poleMat); pole.position.y = 1.1; g.add(pole);
         const flag = new THREE.Mesh(flagGeo, flagMat); flag.position.set(0.45, 1.9, 0); g.add(flag);
@@ -248,7 +265,13 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     makeLabel(input.summitReached ? 'Summit' : 'Summit, 8,849 m', 'is-summit', peak, 400, 'camp:summit');
     const me = routeAt(route, yFor(input.altitude));
     climber.position.set(me.x, me.y + 1.1, me.z);
-    headlamp.position.set(me.x, me.y + 1.8, me.z);
+    headlamp.position.set(me.x, me.y + 0.9, me.z);
+    founders[0].position.set(me.x,terrain.height(me.x,me.z)+0.08,me.z);
+    const behind=route[Math.max(0,me.index-14)],partnerX=behind.x+0.25*me.dir.z,partnerZ=behind.z-0.25*me.dir.x;
+    founders[1].position.set(partnerX,terrain.height(partnerX,partnerZ)+0.08,partnerZ);
+    founders.forEach(f=>{f.rotation.y=Math.atan2(-me.dir.x,-me.dir.z);});
+    safetyRopeGeo.setFromPoints([founders[0].position.clone().add(new THREE.Vector3(0,0.45,0)),founders[1].position.clone().add(new THREE.Vector3(0,0.45,0))]);
+    renderer.shadowMap.needsUpdate=true;
     // The next objectives: small cold cairns on the route ahead.
     input.waypoints.forEach((w, i) => {
       const wp = routeAt(route, yFor(w.altitude));
@@ -262,12 +285,12 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     ghost.visible = Math.abs(input.ghost - input.altitude) > 20;
     if (ghost.visible) makeLabel('Pace for 2046', 'is-ghost', ghost.position.clone().add(new THREE.Vector3(0, 1.6, 0)), 120);
     if (doneLine) { scene.remove(doneLine); doneLine.geometry.dispose(); }
-    doneLine = new THREE.Line(lineFrom(route.slice(0, Math.max(me.index, 1)).concat([{ ...me, climb: me.climb }])), doneMat);
+    doneLine = new THREE.Line(lineFrom(route.slice(0, Math.max(me.index, 1)).concat([{ ...me, climb: me.climb }]),false), doneMat);
     scene.add(doneLine);
-    for (const cl of clouds) if (cl.summit) (cl.s.material as THREE.SpriteMaterial).opacity = input.summitReached ? 0 : 0.42;
+    for (const cl of clouds) (cl.s.material as THREE.SpriteMaterial).opacity = cl.summit ? (input.summitReached ? 0 : 0.13) : ({clear:0.025,wind:0.06,storm:0.11,unknown:0.08}[input.weather]);
     (scene.fog as THREE.FogExp2).density = fogDensity[input.weather];
     starMat.opacity = input.weather === 'clear' ? 0.55 : input.weather === 'wind' ? 0.25 : 0.04;
-    moonMat.opacity = input.weather === 'storm' ? 0.12 : input.weather === 'clear' ? 0.6 : 0.3;
+    moonMat.opacity = input.weather === 'storm' ? 0.14 : input.weather === 'clear' ? 0.45 : 0.25;
     wind = windFor[input.weather].clone();
     flakeGeo.setDrawRange(0, opts.reducedMotion ? 600 : small ? Math.round(flakeCount[input.weather] * 0.55) : flakeCount[input.weather]);
   }
@@ -333,13 +356,28 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   }
 
   // ---- loop ----
-  const clock = new THREE.Clock();
+  const clock = keep(new THREE.Timer()); clock.connect(document);
   const tmp = new THREE.Vector3(), look = new THREE.Vector3(), peak = new THREE.Vector3(0, top, 0);
   let raf = 0;
+  let frameSamples=0,meanFrameMs=16.7,qualityReduced=false;
   function frame() {
     raf = requestAnimationFrame(frame);
-    if (!visible || document.hidden) { clock.getDelta(); return; }
-    const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+    clock.update();
+    if (!visible || document.hidden) return;
+    const dt = Math.min(clock.getDelta(), 0.05), t = clock.getElapsed();
+    meanFrameMs+=(Math.min(clock.getDelta()*1000,100)-meanFrameMs)*0.025;
+    frameSamples++;
+    // Local-only diagnostics and one bounded downgrade; never send telemetry externally.
+    if(frameSamples%120===0) {
+      container.dataset.frameMs=meanFrameMs.toFixed(1);
+      container.dataset.triangles=String(renderer.info.render.triangles);
+      if(frameSamples>240&&meanFrameMs>32&&!qualityReduced) {
+        qualityReduced=true;renderer.setPixelRatio(1);resize();
+        renderer.shadowMap.enabled=false;
+        flakeGeo.setDrawRange(0,Math.min(flakeGeo.drawRange.count,900));
+        container.dataset.renderQuality='adaptive';
+      }
+    }
     const k = opts.reducedMotion ? 1 : 1 - Math.exp(-dt * 3.4);
     viewNow += (viewTarget - viewNow) * k; orbitNow += (orbitTarget - orbitNow) * k;
     overviewNow += (overviewTarget - overviewNow) * (opts.reducedMotion ? 1 : 1 - Math.exp(-dt * 3));
@@ -348,7 +386,7 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     // Camera: close on the route at the viewed altitude, outside the mountain, looking a little up the face.
     const focus = routeAt(route, yFor(viewNow));
     const outward = Math.atan2(focus.z, focus.x) + orbitNow;
-    const dist = 14 + 4 * (1 - viewFrac), lift = 4 + 1.5 * viewFrac;
+    const dist = 28 + 8 * (1 - viewFrac), lift = 6 + 2 * viewFrac;
     tmp.set(focus.x + Math.cos(outward) * dist, focus.y + lift, focus.z + Math.sin(outward) * dist);
     // Keep the camera out of the rock and the line of sight to the focus clear of ridges.
     const ground = terrain.height(tmp.x, tmp.z) + 2.2; if (tmp.y < ground) tmp.y = ground;
@@ -359,14 +397,14 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       const lineY = tmp.y + (fy - tmp.y) * f;
       if (lineY < need) tmp.y += (need - lineY) / (1 - f);
     }
-    look.set(focus.x, focus.y + 2.2, focus.z).lerp(peak, 0.035);
+    look.set(focus.x, focus.y + 2.2, focus.z).lerp(peak, 0.13);
     // Fit the entire route/massif even on a portrait phone. Smooth position AND aim,
     // rather than snapping X/Z and lookAt while only damping camera height.
     const halfFov = Math.min(THREE.MathUtils.degToRad(camera.fov / 2), Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
-    const radius = Math.max(MOUNTAIN_R * 1.12, top * 0.65);
+    const radius = Math.max(MOUNTAIN_R * 0.82, top * 0.65);
     const overviewDistance = radius / Math.sin(halfFov) * 1.12;
-    const wholeLook = new THREE.Vector3(0, top * 0.35, 0);
-    const wholePosition = new THREE.Vector3(Math.cos(0.9 + orbitNow) * overviewDistance * 0.88, top * 0.35 + overviewDistance * 0.48, Math.sin(0.9 + orbitNow) * overviewDistance * 0.88);
+    const wholeLook = new THREE.Vector3(0, top * 0.43, 0);
+    const wholePosition = new THREE.Vector3(Math.cos(0.9 + orbitNow) * overviewDistance * 0.88, top * 0.43 + overviewDistance * 0.42, Math.sin(0.9 + orbitNow) * overviewDistance * 0.88);
     tmp.lerp(wholePosition, overviewNow); look.lerp(wholeLook, overviewNow);
     if (!cameraReady || opts.reducedMotion) { camera.position.copy(tmp); smoothLook.copy(look); cameraReady = true; }
     else { camera.position.lerp(tmp, 1 - Math.exp(-dt * 5)); smoothLook.lerp(look, 1 - Math.exp(-dt * 5)); }
@@ -379,7 +417,7 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
 
     // Headlamp flicker and the climber's breath.
     headlamp.intensity = 6.5 + Math.sin(t * 13) * 0.6 + Math.sin(t * 31) * 0.4 + (Math.random() < 0.01 ? -3.5 : 0);
-    climber.scale.setScalar(2 + Math.sin(t * 2.2) * 0.2);
+    climber.scale.setScalar(0.6 + Math.sin(t * 1.2) * 0.025);
     (ghost.material as THREE.SpriteMaterial).opacity = 0.3 + 0.15 * Math.sin(t * 0.9);
 
     // Snow in a box that follows the camera.
@@ -404,7 +442,7 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       if (nextBolt <= 0) { lightning = 1; nextBolt = 6 + Math.random() * 9; setTimeout(() => { lightning = Math.max(lightning, 0.7); }, 110); if (audio) setTimeout(() => audio?.thunder(), 400 + Math.random() * 1400); }
     }
     lightning = Math.max(0, lightning - dt * 3.2);
-    hemi.intensity = 0.55 + lightning * 5; moonLight.intensity = 1.9 + lightning * 3;
+    hemi.intensity = 0.85 + lightning * 0.7; moonLight.intensity = 2.15 + lightning * 0.9;
 
     // Wind sound tracks the weather, the gusts and the altitude.
     if (audio) {

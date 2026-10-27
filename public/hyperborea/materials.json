@@ -1,0 +1,30 @@
+{
+  "asset": "Rocky Terrain",
+  "author": "Amal Kumar / Poly Haven",
+  "source": "https://polyhaven.com/a/rocky_terrain",
+  "license": "CC0-1.0",
+  "license_url": "https://polyhaven.com/license",
+  "processing": "Official 2K JPEG sources verified against provider byte size and MD5, resized/compressed as WebP. No private data.",
+  "files": [
+    {
+      "file": "rock-color-desktop.webp",
+      "bytes": 765146,
+      "sha256": "20cff3821a327b660076ba751246d6dddfe4de7dce9b64d0547dead14bb9cd0d"
+    },
+    {
+      "file": "rock-color-compact.webp",
+      "bytes": 151590,
+      "sha256": "94b64de01b8017ec9e64e85294a69f2253dfde9cb2c3ec3b6409d5bbe74a9352"
+    },
+    {
+      "file": "rock-height-desktop.webp",
+      "bytes": 150634,
+      "sha256": "bed782a0f707d0f3fc51f81fd7e378988b9e68ccc985ffa84fce4f91caca3346"
+    },
+    {
+      "file": "rock-height-compact.webp",
+      "bytes": 45204,
+      "sha256": "0690d7e82ade49f0c0a2b0ba283bc2467937234aa27ed43db8ece1aed055b804"
+    }
+  ]
+}

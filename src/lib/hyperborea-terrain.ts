@@ -70,13 +70,21 @@ export function makeTerrain(seed = 8849): Terrain {
   };
   const height = (x: number, z: number) => {
     const r = Math.hypot(x, z);
-    const massif = Math.exp(-Math.pow(r / (MOUNTAIN_R * 0.4), 1.22));
-    const shoulder = Math.exp(-Math.pow(Math.hypot(x - 46, z + 30) / 34, 2)) * 0.22;
-    const body = SUMMIT_Y * (massif + shoulder * (1 - massif));
-    const rough = smooth(0, 26, r) * (0.35 + 0.65 * massif);
-    const crests = (ridge(x, z) - 0.45) * 26 * rough;
-    const detail = fbm(x, z) * 4.5 * (0.4 + massif);
-    return Math.max(0, body + crests + detail);
+    // An asymmetric pyramidal massif, not a radial dome. Long buttresses and
+    // glacial bowls establish geology; fine roughness never changes the business scale.
+    const theta = Math.atan2(z, x);
+    const buttress = Math.pow(0.5 + 0.5 * Math.cos(theta * 4 + warp(x / 65, z / 65) * 0.5), 3);
+    const radius = Math.hypot(x * 0.91, z * 1.04) * (0.88 + 0.32 * (1 - buttress));
+    const massif = Math.pow(Math.max(0, 1 - radius / 157), 1.72);
+    const edge = 1 - smooth(112, 151, r);
+    const peakFade = smooth(3, 22, r);
+    const shoulder = Math.exp(-((x + 48) ** 2 / 650 + (z + 26) ** 2 / 490)) * 15
+      + Math.exp(-((x - 43) ** 2 / 360 + (z + 17) ** 2 / 720)) * 12;
+    const bowl = Math.exp(-((x - 23) ** 2 / 220 + (z - 54) ** 2 / 380)) * 9;
+    const rough = peakFade * edge * (0.25 + 0.75 * Math.sqrt(massif));
+    const crests = ((ridge(x, z) - 0.38) * 16 + buttress * 9) * rough;
+    const detail = fbm(x, z) * 3.4 * rough;
+    return Math.max(0, SUMMIT_Y * massif + (shoulder - bowl) * peakFade * edge + crests + detail);
   };
   return { height, ridge, noise };
 }
