@@ -12,8 +12,6 @@ import {loadExterior} from '@/app/workspace/exterior-actions';
 import {sampleExterior} from '@/lib/exterior-sample';
 import {businessDay} from '@/lib/reporting';
 import {buildExteriorCommand,type ExteriorCommandSnapshot} from '@/lib/exterior-command';
-import {ExteriorDispatchPreflight} from './ExteriorDispatchPreflight';
-import {ExteriorOperationsInbox} from './ExteriorOperationsInbox';
 import type {Card} from '@/lib/board';
 import type {ExteriorResult} from '@/lib/exterior';
 
@@ -60,39 +58,30 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
   const maxMonth=Math.max(1,...s.months.map(m=>m.revenue??0));
   const maxSource=Math.max(1,...s.sales.bySource.map(m=>m.count));
   const stats=[
-    {key:'recorded',label:'Recorded job revenue',value:money(s.production.recordedJobRevenue),caption:`${s.production.withRevenue} of ${s.production.completed} completed records · not verified cash`,icon:Wallet,href:`${parent}/jobs`,tag:'HISTORICAL'},
-    {key:'booked',label:'Quoted upcoming visits',value:money(s.dispatch.quotedUpcomingValue),caption:`${s.dispatch.priced} source-qualified of ${s.dispatch.confirmedUpcoming} confirmed visits · not accepted or collected`,icon:CalendarDays,href:`${parent}/bookings`,tag:'SOURCE / CONFIRMED'},
-    {key:'pipeline',label:'Unbooked lead quotes',value:money(s.sales.quotedOpenValue),caption:`${s.sales.openPriced} priced · ${s.sales.openUnpriced} without a quote · new/contacted/follow-up only`,icon:Target,href:`${parent}/leads`,tag:'POTENTIAL'},
-    {key:'contribution',label:'Known job contribution',value:money(s.production.matchedContribution),caption:`${s.production.fullyCosted} completed jobs with revenue + cost · not total profit`,icon:BarChart3,href:`${parent}/jobs`,tag:'MATCHED SUBSET'},
+    {key:'recorded',label:'Recorded job revenue',value:money(s.production.recordedJobRevenue),caption:`${s.production.withRevenue} of ${s.production.completed} completed jobs have revenue`,icon:Wallet,href:`${parent}/jobs`,tag:'RECORDED'},
+    {key:'booked',label:'Quoted upcoming visits',value:money(s.dispatch.quotedUpcomingValue),caption:`${s.dispatch.confirmedUpcoming} confirmed visits`,icon:CalendarDays,href:`${parent}/bookings`,tag:'BOOKED'},
+    {key:'pipeline',label:'Unbooked lead quotes',value:money(s.sales.quotedOpenValue),caption:`${s.sales.openPriced} open leads with a quote`,icon:Target,href:`${parent}/leads`,tag:'OPEN LEADS'},
+    {key:'contribution',label:'Known job contribution',value:money(s.production.matchedContribution),caption:`${s.production.fullyCosted} jobs have revenue and cost`,icon:BarChart3,href:`${parent}/jobs`,tag:'WHERE COST IS KNOWN'},
   ];
   return <main className="excmd" id="exterior-command">
-    <section className="excmd-hero" aria-label="Exterior division command">
+    <section className="excmd-hero is-compact" aria-label="Exterior division command">
       <div className="excmd-hero-text">
-        <div className="excmd-eyebrow"><span className="excmd-lamp"/>ATLAS / EXTERIOR CARE <span className="excmd-separator">/</span> DIVISION COMMAND</div>
-        <h1>Exterior Care.<br/><em>Today's work.</em></h1>
-        <p>Book jobs, follow up with customers, and keep today's work on track.</p>
+        <h1>Exterior Care</h1>
         <div className="excmd-hero-actions">
           {!readOnly&&<Link className="excmd-primary" href={parent+'/bookings?new=1'}><Plus size={16}/> Book a job</Link>}
-          {!readOnly&&<Link className="excmd-outline" href={parent+'/leads?new=1'}><UsersRound size={15}/> Capture a lead</Link>}
+          {!readOnly&&<Link className="excmd-outline" href={parent+'/leads?new=1'}><UsersRound size={15}/> New lead</Link>}
           <Link className="excmd-text-link" href={parent+'/estimate'}>Estimates <ArrowUpRight size={15}/></Link>
           <Link className="excmd-text-link" href={parent+'/field'}>Field reports <ArrowUpRight size={15}/></Link>
-          <Link className="excmd-text-link" href={parent+'/intake'}>Website intake <ArrowUpRight size={15}/></Link>
+          <Link className="excmd-text-link" href={parent+'/intake'}>Website requests <ArrowUpRight size={15}/></Link>
           <Link className="excmd-text-link" href={parent+'/commercial'}>Commercial <ArrowUpRight size={15}/></Link>
         </div>
       </div>
       <div className="excmd-hero-side">
         <div className="excmd-hero-asof"><Database size={14}/>
-          <span>{mode==='preview'?'SAMPLE / NO WRITES':'AUTHORIZED EXTERIOR SOURCE'}<small>Loaded {loadedAt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</small></span>
-          <button type="button" onClick={()=>setRefresh(n=>n+1)} aria-label="Refresh Exterior source" title="Refresh records"><RefreshCw size={16}/></button>
+          <span>{mode==='preview'?'Sample data':'Updated '+loadedAt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>
+          <button type="button" onClick={()=>setRefresh(n=>n+1)} aria-label="Refresh Exterior records" title="Refresh records"><RefreshCw size={16}/></button>
         </div>
-        <div className="excmd-season-title"><span>OPERATING FOCUS</span><strong>{season==='field'?'Jobs & crews':'Planning & growth'}</strong></div>
-        <div className="excmd-season-switch" role="group" aria-label="Operational planning mode">
-          <button type="button" aria-pressed={season==='field'} onClick={()=>setSeason('field')}>Field season</button>
-          <button type="button" aria-pressed={season==='build'} onClick={()=>setSeason('build')}>Build season</button>
-        </div>
-        <p>{season==='field'?'Manage upcoming jobs and field readiness.':'Plan commercial work and equipment maintenance.'}</p>
       </div>
-      <div className="excmd-hero-marker" aria-hidden="true">EC<span>01</span></div>
     </section>
 
     {s.source.partial&&<div className="excmd-source-warning" role="status">
@@ -110,14 +99,11 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
       </Link>)}
     </section>
 
-    <ExteriorDispatchPreflight data={result.data} now={loadedAt} base={base} mode={mode} org={org} readOnly={readOnly} compact/>
-    <ExteriorOperationsInbox org={org} mode={mode} base={base} readOnly={readOnly}/>
     <section className="excmd-workspace" aria-label="Operations and founder decisions">
       <div className="excmd-mission-board">
         <header className="excmd-section-header">
-          <div><span className="excmd-eyebrow">01 / UPCOMING</span><h2>Scheduled jobs</h2>
-            <p>{s.dispatch.confirmedUpcoming} confirmed upcoming visits in the loaded schedule.</p></div>
-          <Link href={parent+'/bookings'}>Open dispatch <ArrowUpRight size={15}/></Link>
+          <div><h2>Scheduled jobs</h2></div>
+          <Link href={parent+'/bookings'}>Open jobs <ArrowUpRight size={15}/></Link>
         </header>
         <div className="excmd-quick-focus" role="group" aria-label="Mission panel focus">
           <button type="button" aria-pressed={focus==='dispatch'} onClick={()=>setFocus('dispatch')}><CalendarDays size={14}/> Schedule</button>
@@ -136,11 +122,11 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
             </div>
             <span className="excmd-booking-index">{String(i+1).padStart(2,'0')}</span>
           </li>)}
-        </ol>:<div className="excmd-empty"><CalendarDays size={22}/><strong>No confirmed future booking in the loaded window.</strong><span>Use the booking workbench to inspect all scheduled and pending work.</span></div>
+        </ol>:<div className="excmd-empty"><CalendarDays size={22}/><strong>No confirmed jobs coming up.</strong><span>Book one to see it here.</span></div>
         : <div className="excmd-growth-focus">
           <div><strong><NumberFlow value={s.sales.newRequests}/></strong><span>new source records</span><Link href={parent+'/leads'}>Triage leads <ArrowRight size={14}/></Link></div>
           <div><strong><NumberFlow value={s.sales.followingUp}/></strong><span>follow-ups in progress</span><Link href={parent+'/leads'}>Inspect follow-ups <ArrowRight size={14}/></Link></div>
-          <p>Lead statuses represent recorded workflow progress. No message-response timestamp or advertising spend has been inferred.</p>
+          
         </div>}
         <footer className="excmd-board-footer"><span><ClipboardCheck size={15}/> {s.tasks.open} open shared tasks · {s.tasks.overdue} overdue</span>
           <Link href={base+'/tasks'}>Open mission board <ChevronRight size={14}/></Link></footer>
@@ -148,12 +134,12 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
 
       <aside className="excmd-decision-panel">
         <header className="excmd-section-header">
-          <div><span className="excmd-eyebrow">02 / ACTION REQUIRED</span><h2>Needs attention</h2></div>
+          <div><h2>Needs attention</h2></div>
         </header>
         {s.decisions.length?<ol className="excmd-decision-list">{s.decisions.slice(0,3).map((item,i)=><li key={item.id}>
           <span className="excmd-decision-index">{String(i+1).padStart(2,'0')}</span>
           <div><strong>{item.title}</strong><small>{item.detail}</small><Link href={base+item.href}>Open action <ArrowUpRight size={13}/></Link></div>
-        </li>)}</ol>:<div className="excmd-empty"><ShieldCheck size={23}/><strong>No specific exception detected.</strong><span>Only loaded source checks were evaluated; this is not an all-clear.</span></div>}
+        </li>)}</ol>:<div className="excmd-empty"><ShieldCheck size={23}/><strong>Nothing needs attention.</strong></div>}
         {s.decisions.length>3&&<details className="excmd-more-decisions">
           <summary>{s.decisions.length-3} more recorded issues</summary>
           <ol className="excmd-decision-list">{s.decisions.slice(3).map((item,i)=><li key={item.id}>
@@ -166,7 +152,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
 
     <section className="excmd-intelligence" aria-label="Service economics and growth history">
       <div className="excmd-revenue-panel">
-        <header className="excmd-section-header"><div><span className="excmd-eyebrow">03 / PERFORMANCE RECORD</span><h2>Production & recorded revenue</h2><p>Historical completed-job revenue fields; dates may be inferred. Not verified deposits.</p></div><Link href={parent+'/jobs'}>Explore jobs <ArrowUpRight size={15}/></Link></header>
+        <header className="excmd-section-header"><div><h2>Revenue by month</h2></div><Link href={parent+'/jobs'}>Jobs <ArrowUpRight size={15}/></Link></header>
         <div className="excmd-chart" role="img" aria-label="Last six months, recorded completed-job revenue by month; missing months shown as unknown">
           {s.months.map((item,i)=><div key={item.key} className="excmd-chart-column" title={`${item.key}: ${item.revenue===null?'No revenue figure recorded':money(item.revenue)} · ${item.recordedJobs} revenue-coded jobs / ${item.completedJobs} completed`}>
             <div className="excmd-chart-track">{item.revenue!==null&&<div className="excmd-chart-bar" style={{height:`${Math.max(3,(item.revenue/maxMonth)*100)}%`,animationDelay:`${i*80}ms`}}/>}
@@ -174,29 +160,28 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
             <strong>{month(item.key)}</strong><span>{item.revenue===null?'Unknown':money(item.revenue)}</span>
           </div>)}
         </div>
-        <div className="excmd-economics-notice"><HardHat size={17}/><p>Cost evidence exists on <strong>{s.production.withCosts}/{s.production.completed}</strong> completed records; combined margin is withheld. <strong>{s.production.fullyCosted}</strong> jobs currently support a recorded revenue-minus-cost calculation. {s.production.estimatedCompletionDates} completion dates use a fallback date.</p></div>
+        {s.production.withCosts<s.production.completed&&<div className="excmd-economics-notice"><HardHat size={17}/><p>Cost is recorded on <strong>{s.production.withCosts}</strong> of <strong>{s.production.completed}</strong> completed jobs. <Link href={parent+'/jobs'}>Add the missing figures</Link></p></div>}
       </div>
       <div className="excmd-acquisition-panel">
-        <header className="excmd-section-header"><div><span className="excmd-eyebrow">04 / ACQUISITION MAP</span><h2>Where inquiries originated</h2><p>All-time recorded source tags, not acquisition ROI.</p></div><Link href={parent+'/door-knocking'}>Historical detail <ArrowUpRight size={15}/></Link></header>
+        <header className="excmd-section-header"><div><h2>Where customers come from</h2></div><Link href={parent+'/door-knocking'}>Door knocking <ArrowUpRight size={15}/></Link></header>
         <div className="excmd-source-bars">
           {s.sales.bySource.length?s.sales.bySource.map(source=><div key={source.name} className="excmd-source-line">
             <span>{source.name}</span><div className="excmd-source-track"><i style={{width:`${(source.count/maxSource)*100}%`}}/></div>
             <strong>{source.count}</strong></div>):<p>No tagged acquisition sources exist in the loaded records.</p>}
         </div>
-        <div className="excmd-source-foot"><Target size={16}/><span>Next: connect actual LSA spend, inquiry receipts and booked-to-paid conversion before showing advertising ROI.</span></div>
+        {s.sales.bySource.length>0&&<div className="excmd-source-foot"><Target size={16}/><span>Not tagged correctly? <Link href={parent+'/leads'}>Tag lead sources</Link> on the Customers page.</span></div>}
       </div>
     </section>
-    <section className="excmd-deep-links" aria-label="Complete operating applications">
-      <header className="excmd-section-header"><div><span className="excmd-eyebrow">05 / SPECIALIST APPLICATIONS</span><h2>Go deeper without losing context.</h2></div></header>
+    <section className="excmd-deep-links" aria-label="More Exterior Care tools">
       <div className="excmd-app-grid">
         {[
-          {title:'Customer Command',body:'Records, inquiries, status, history and booking handoff.',href:parent+'/leads',icon:UsersRound},
-          {title:'Field Operations',body:'Dispatch plus on-site crew hours, material usage, rig readiness and local job evidence.',href:parent+'/field',icon:Truck},
-          {title:'Commercial War Room',body:'Multi-building scope, pricing and project portfolio.',href:parent+'/commercial',icon:BriefcaseBusiness},
-          {title:'Fleet Engineering',body:'Assets, service, readiness and rig planning.',href:base+'/tools/fleet',icon:Layers3},
-          {title:'Finance & Accounting',body:'Source-labeled money, exceptions and accounting preparation.',href:base+'/finance',icon:Wallet},
-          {title:'Growth Intelligence',body:'Service performance, acquisition and historical data.',href:parent+'/jobs',icon:Compass},
-        ].map(app=><Link key={app.title} href={app.href} className="excmd-app-link"><app.icon size={21}/><strong>{app.title}</strong><span>{app.body}</span><ArrowUpRight size={15}/></Link>)}
+          {title:'Customers',href:parent+'/leads',icon:UsersRound},
+          {title:'Field reports',href:parent+'/field',icon:Truck},
+          {title:'Commercial',href:parent+'/commercial',icon:BriefcaseBusiness},
+          {title:'Fleet',href:base+'/tools/fleet',icon:Layers3},
+          {title:'Money',href:base+'/finance',icon:Wallet},
+          {title:'Jobs and revenue',href:parent+'/jobs',icon:Compass},
+        ].map(app=><Link key={app.title} href={app.href} className="excmd-app-link"><app.icon size={21}/><strong>{app.title}</strong><ArrowUpRight size={15}/></Link>)}
       </div>
     </section>
     <footer className="excmd-source-footer"><Activity size={14}/>

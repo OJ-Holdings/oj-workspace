@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS copy diet: Exterior Care landing page)
+**Summary:** Compacted /b/exterior (the Exterior Care command page) from about 3,900 px to about 1,900 px: one-row header with shortcuts (no season switch or poster), short stat captions, removed the long 'Before crews roll out' preflight block and the 'Work that cannot fall between founders' inbox from this page (the preflight stays on the Jobs page; the inbox component is unchanged and unused here), calm headings instead of numbered eyebrows, a note that links to adding missing job costs and to tagging lead sources, and plain link chips instead of the 'specialist applications' grid with paragraphs. No data, logic or schema changes.
+**Files:** src/components/app/ExteriorCommand.tsx, src/styles/exterior-command.css.
+**Verified:** typecheck; npm test 804/804; build; /preview/b/exterior renders (page height about 1,930 px).
+**Not verified:** signed-in live page; phone width.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 1 start: fill in job money, tag lead sources)
 **Summary:** (1) Jobs report (Exterior > Intelligence tab): each completed job row now has an Add figures / Edit button that opens the existing recorded-figures form, so the 17 missing revenues and 60 missing costs can be filled in right from the list. (2) Customers: new 'Tag lead sources' tool to set the source on many leads at once (tick leads, pick source, apply; only the source field changes, up to 200 at a time) via a new setLeadSources server action. (3) Added 'Local Services Ads' (lsa) and 'Google Business Profile' (gbp) as lead sources with readable labels; one existing test label updated from 'Lsa'. (4) Today: new Work truck fund card (goal $20,000 by Apr 1, 2027, editable in src/lib/truck-fund.ts). The balance is logged by a founder as a hand-logged metric ('Truck fund balance', Exterior) so both see the same number; with none logged the card asks for it. Shows needed per week/month and a projected finish from the logged pace.
 **Files:** src/components/app/{ExteriorView,ExteriorManage,LeadSourceTagger}.tsx, src/app/workspace/exterior-actions.ts, src/lib/{exterior,exterior-ops,truck-fund}.ts, src/components/app/{TruckFundCard,TodayBoard}.tsx, tests/{lead-sources,truck-fund,exterior-command}.test.ts.
