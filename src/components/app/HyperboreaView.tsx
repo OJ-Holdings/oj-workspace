@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronDown, ChevronUp, Crosshair, Flag, Lock, Volume2, VolumeX, Wind, X } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Crosshair, Lock, Volume2, VolumeX, Wind, X } from 'lucide-react';
 import type { Dashboard } from '@/lib/dashboard';
-import { campFor, camps, expedition, SUMMIT_ALTITUDE, SUMMIT_COMPANIES, type Expedition, type Weather } from '@/lib/hyperborea';
+import { campFor, camps, expedition, SUMMIT_ALTITUDE, type Expedition, type Weather } from '@/lib/hyperborea';
 import { codex, type Chapter } from '@/lib/hyperborea-codex';
 import type { SceneHandle, SceneInput } from './hyperborea/scene';
-import { Journal } from './hyperborea/Journal';
-import { objectives } from '@/lib/hyperborea-journal';
+import { ExpeditionDesk } from './hyperborea/ExpeditionDesk';
+import { altitudeHistory, objectives } from '@/lib/hyperborea-journal';
 
 type Props = { data: Dashboard | null; now: Date | null; companies: number; coreVentures: readonly string[]; businesses: { id: string; name: string }[]; base: string; mode: 'preview' | 'live' };
 
@@ -43,11 +43,14 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
   const [view, setView] = useState<number | null>(null);
   const [sceneState, setSceneState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [sound, setSound] = useState(false);
+  const [selection, setSelection] = useState<string | null>(null);
+  const [overview, setOverview] = useState(false);
+  const inspectAltitude = useCallback((altitude: number) => { handle.current?.look(altitude); setOverview(false); }, []);
 
   const sceneInput = useMemo<SceneInput | null>(() => ex && {
     altitude: ex.altitude, ghost: ex.ghost.altitude, weather: ex.weather.weather, summitReached: ex.summitReached, summitMetres: SUMMIT_ALTITUDE,
     camps: camps.map(c => ({ id: c.id, name: c.name, altitude: c.altitude, reached: ex.altitude >= c.altitude })),
-    waypoints: data ? objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ altitude: o.altitude, label: o.name })) : [],
+    waypoints: data ? [...altitudeHistory(data.finance, ex.today).slice(-12).map(h => ({ id: 'history:' + h.through, altitude: h.altitude, label: new Date(h.through + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) })), ...objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ id: 'goal:' + o.revenue, altitude: o.altitude, label: o.name }))] : [],
   }, [ex, data]);
   const nextRidge = useMemo(() => ex && data ? objectives(data.finance, ex.today, ex.ghost.start)[0] ?? null : null, [ex, data]);
   const inputKey = sceneInput ? JSON.stringify(sceneInput) : '';
@@ -65,7 +68,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
       requestAnimationFrame(() => {
         if (cancelled || !host.current || !labelLayer.current || !latest.current) return;
         try {
-          handle.current = mountScene(host.current, labelLayer.current, latest.current, { reducedMotion, onView: setView });
+          handle.current = mountScene(host.current, labelLayer.current, latest.current, { reducedMotion, onView: setView, onInspect: setSelection });
           setSceneState('ready');
         } catch { setSceneState('failed'); }
       });
@@ -76,7 +79,6 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
 
   if (!ex) return <div className="hb" data-weather="unknown"><p className="hb-loading">Reading the mountain…</p></div>;
 
-  const o = ex.oxygen;
   const active = codex.find(c => c.id === chapter) ?? codex[0];
   const activeOpen = chapterOpen(active, ex);
   const unlockName = (ch: Chapter) => ch.unlock === 'beyond' ? 'the summit' : camps.find(c => c.id === ch.unlock)?.name ?? '';
@@ -89,7 +91,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
     <div className="hb" data-weather={ex.weather.weather} data-summit={ex.summitReached ? 'reached' : 'shrouded'}>
       <section ref={stage} className="hb3" data-state={sceneState} aria-label={`Hyperborea. The expedition is at ${metres(ex.altitude)}, ${ex.camp.current.name}. ${weatherWord[ex.weather.weather]}.`}>
         <div ref={host} className="hb3-canvas" />
-        <div ref={labelLayer} className="hb3-labels" aria-hidden="true" />
+        <div ref={labelLayer} className="hb3-labels" />
         <div className="hb3-vignette" aria-hidden="true" />
         <div className="hb3-deathzone" aria-hidden="true" style={{ opacity: deathZone }} />
         {sceneState === 'loading' && <p className="hb3-status">Reading the mountain…</p>}
@@ -97,7 +99,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
 
         <header className="hb3-title">
           <h1>Hyperborea</h1>
-          <p>Day {ex.clock.day.toLocaleString('en-US')} of {ex.clock.totalDays.toLocaleString('en-US')}. {ex.clock.daysLeft.toLocaleString('en-US')} days until the summit window closes.</p>
+          <p>Expedition day {ex.clock.day.toLocaleString('en-US')} of {ex.clock.totalDays.toLocaleString('en-US')}. {ex.clock.daysLeft.toLocaleString('en-US')} days until the summit window closes.</p>
         </header>
         <div className="hb3-tools">
           <button type="button" className="hb3-btn" onClick={toggleSound} aria-pressed={sound} disabled={sceneState !== 'ready'}>
@@ -118,7 +120,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
             <i className="hb3-gauge-death" style={{ bottom: pct(8000) }} />
           </div>
           {camps.map(c => (
-            <button key={c.id} type="button" className={ex.altitude >= c.altitude ? 'hb3-tick is-reached' : 'hb3-tick'} style={{ bottom: pct(c.altitude) }} onClick={() => handle.current?.look(c.altitude)}>
+            <button key={c.id} type="button" className={ex.altitude >= c.altitude ? 'hb3-tick is-reached' : 'hb3-tick'} style={{ bottom: pct(c.altitude) }} onClick={() => { handle.current?.look(c.altitude); setOverview(false); setSelection('camp:' + c.id); }}>
               <span>{c.id === 'base' ? 'Base Camp' : c.id === 'summit' ? 'Summit' : c.name.replace(/^Camp [IV]+: /, '')}</span>
             </button>
           ))}
@@ -133,74 +135,19 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
           <small>{words.where}</small>
         </div>
         <div className="hb3-controls">
-          <button type="button" className="hb3-btn" onClick={() => handle.current?.nudge(400)} disabled={sceneState !== 'ready'}><ChevronUp size={16} aria-hidden="true" /><span>Look higher</span></button>
-          <button type="button" className="hb3-btn" onClick={() => handle.current?.nudge(-400)} disabled={sceneState !== 'ready'}><ChevronDown size={16} aria-hidden="true" /><span>Look lower</span></button>
-          <button type="button" className="hb3-btn" onClick={() => handle.current?.recenter()} disabled={sceneState !== 'ready'}><Crosshair size={16} aria-hidden="true" /><span>Back to the expedition</span></button>
+          <button type="button" className="hb3-btn" onClick={() => { handle.current?.nudge(400); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronUp size={16} aria-hidden="true" /><span>Look higher</span></button>
+          <button type="button" className="hb3-btn" onClick={() => { handle.current?.nudge(-400); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronDown size={16} aria-hidden="true" /><span>Look lower</span></button>
+          <button type="button" className="hb3-btn" aria-pressed={overview} onClick={() => { const next = !overview; handle.current?.overview(next); setOverview(next); }} disabled={sceneState !== 'ready'}>{overview ? 'Return to route' : 'Whole mountain'}</button>
+          <button type="button" className="hb3-btn" onClick={() => setSelection('climb')}>Inspect this climb</button>
+          <button type="button" className="hb3-btn" onClick={() => { handle.current?.recenter(); setOverview(false); }} disabled={sceneState !== 'ready'}><Crosshair size={16} aria-hidden="true" /><span>Back to the expedition</span></button>
         </div>
         <p className="hb3-weather"><Wind size={14} aria-hidden="true" /> {weatherWord[ex.weather.weather]}{ex.weather.change !== null && `, ${ex.weather.change >= 0 ? '+' : ''}${Math.round(ex.weather.change * 100)}% revenue over the last 90 days`}</p>
-        <p className="hb3-hint" aria-hidden="true">Scroll to climb. Drag to look around.</p>
+        <p className="hb3-hint" aria-hidden="true">Select a trail marker to inspect. Drag gently to explore.</p>
       </section>
 
       {mode === 'live' && !ex.hasRecords && <p className="hb-notice">No revenue recorded yet, so the expedition stands at base camp. <Link href={`${base}/finance`}>Record income in Money</Link> and the climb starts.</p>}
 
-      <section className="hb-stats" aria-label="Expedition instruments">
-        <div className="hb-stat">
-          <span>Altitude</span><strong>{metres(ex.altitude)}</strong>
-          <small>{ex.hasRecords ? `${money(ex.revenue)} recorded revenue in the last 12 months` : 'No revenue recorded yet'}</small>
-        </div>
-        <div className="hb-stat">
-          <span>Next camp</span><strong>{ex.camp.next ? ex.camp.next.name : 'None left'}</strong>
-          <small>{ex.camp.next ? `${money(ex.toNext ?? 0)} more a year to get there` : 'Every camp reached'}</small>
-        </div>
-        <div className="hb-stat">
-          <span>Pace</span>
-          <strong>{ex.ghost.ahead === null ? 'Not started' : ex.ghost.gap === 0 ? 'On the line' : `${ex.ghost.ahead ? 'Ahead' : 'Behind'} by ${metres(Math.abs(ex.ghost.gap))}`}</strong>
-          <small>The 2046 summit needs {Math.round(ex.ghost.requiredGrowth * 100)}% growth a year, every year, from {money(ex.ghost.start)}</small>
-        </div>
-        <div className="hb-stat">
-          <span>Oxygen</span>
-          {o.state === 'known' ? <>
-            <strong>{o.months === null ? money(o.cash) : `${o.months.toFixed(1)} months`}</strong>
-            {o.level !== null && <div className={o.level < 0.25 ? 'hb-o2 is-low' : 'hb-o2'} role="meter" aria-valuemin={0} aria-valuemax={12} aria-valuenow={Math.min(o.months ?? 0, 12)} aria-label="Months of runway"><i style={{ width: `${o.level * 100}%` }} /></div>}
-            <small>{o.months === null ? o.detail : `${money(o.cash)} in the bank against ${money(o.burn ?? 0)} of recorded costs a month`}</small>
-          </> : <><strong>Unread</strong><small>{o.detail}</small></>}
-        </div>
-        <div className="hb-stat">
-          <span>Banners</span><strong>{ex.companies} <small>of {SUMMIT_COMPANIES}</small></strong>
-          <div className="hb-banners" aria-hidden="true">{Array.from({ length: SUMMIT_COMPANIES }, (_, i) => <Flag key={i} size={14} className={i < ex.companies ? 'is-planted' : ''} />)}</div>
-          <small>Operating companies under OJ Holdings</small>
-        </div>
-      </section>
-
-      {data && <Journal ex={ex} finance={data.finance} businesses={businesses} />}
-
-
-      <div className="hb-columns">
-        <section className="hb-panel" aria-labelledby="hb-route-title">
-          <h2 id="hb-route-title">The route</h2>
-          <ol className="hb-camps">
-            {[...camps].reverse().map(c => {
-              const state = ex.camp.current.id === c.id ? 'is-current' : ex.altitude >= c.altitude ? 'is-reached' : '';
-              return <li key={c.id} className={state}>
-                <div className="hb-camp-row"><b>{c.name}</b><span>{metres(c.altitude)}{c.revenue ? `, ${money(c.revenue)} a year` : ''}</span></div>
-                <p>{c.era}</p>
-                <ul>{c.gates.map(g => <li key={g}>{g}</li>)}</ul>
-              </li>;
-            })}
-          </ol>
-          <p className="hb-fine">Gates are the objectives for each camp. Marking them done arrives with the next, staged database step.</p>
-        </section>
-
-        <section className="hb-panel" aria-labelledby="hb-badges-title">
-          <h2 id="hb-badges-title">Achievements</h2>
-          <ul className="hb-badges">
-            {ex.achievements.map(a => <li key={a.id} className={a.earned ? 'is-earned' : a.earned === null ? 'is-pending' : ''}>
-              <b>{a.name}</b><span>{a.detail}</span>
-              <small>{a.earned ? `Earned${a.on ? ` in ${new Date(a.on + '-15T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
-            </li>)}
-          </ul>
-        </section>
-      </div>
+      {data && <ExpeditionDesk ex={ex} data={data} businesses={businesses} base={base} selection={selection} onSelect={setSelection} onLook={inspectAltitude} />}
 
       <dialog ref={dialog} className="hb-codex" aria-labelledby="hb-codex-title" onClick={e => { if (e.target === dialog.current) dialog.current?.close(); }}>
         <div className="hb-codex-inner">

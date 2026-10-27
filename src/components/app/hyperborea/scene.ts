@@ -9,7 +9,7 @@ import type { Weather } from '@/lib/hyperborea';
  */
 
 export type SceneCamp = { id: string; name: string; altitude: number; reached: boolean };
-export type SceneWaypoint = { altitude: number; label: string };
+export type SceneWaypoint = { id?: string; altitude: number; label: string };
 export type SceneInput = { altitude: number; ghost: number; camps: SceneCamp[]; waypoints: SceneWaypoint[]; weather: Weather; summitReached: boolean; summitMetres: number };
 export type SceneHandle = {
   set: (input: SceneInput) => void;
@@ -17,6 +17,7 @@ export type SceneHandle = {
   look: (metres: number) => void;
   nudge: (metres: number) => void;
   recenter: () => void;
+  overview: (on: boolean) => void;
   setSound: (on: boolean) => Promise<boolean>;
   dispose: () => void;
 };
@@ -76,7 +77,7 @@ function grainTexture(noise: (x: number, y: number) => number) {
 }
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
 
-export function mountScene(container: HTMLElement, labelLayer: HTMLElement, first: SceneInput, opts: { reducedMotion: boolean; onView: (metres: number) => void }): SceneHandle {
+export function mountScene(container: HTMLElement, labelLayer: HTMLElement, first: SceneInput, opts: { reducedMotion: boolean; onView: (metres: number) => void; onInspect?: (id: string) => void }): SceneHandle {
   const small = container.clientWidth < 700;
   const renderer = new THREE.WebGLRenderer({ antialias: !small, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.75));
@@ -90,7 +91,7 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(C.abyss);
   scene.fog = new THREE.FogExp2(C.fog, fogDensity[first.weather]);
-  const camera = new THREE.PerspectiveCamera(48, container.clientWidth / container.clientHeight, 0.1, 900);
+  const camera = new THREE.PerspectiveCamera(48, container.clientWidth / container.clientHeight, 0.1, 2400);
 
   const terrain = makeTerrain();
   const route = makeRoute(terrain);
@@ -208,8 +209,12 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   // ---- labels (DOM, positioned each frame) ----
   type Label = { el: HTMLElement; at: THREE.Vector3; near: number };
   let labels: Label[] = [];
-  const makeLabel = (text: string, cls: string, at: THREE.Vector3, near = 70) => {
-    const el = document.createElement('div'); el.className = 'hb3-label ' + cls; el.textContent = text;
+  const makeLabel = (text: string, cls: string, at: THREE.Vector3, near = 70, id?: string) => {
+    const el = document.createElement(id ? 'button' : 'div'); el.className = 'hb3-label ' + cls; el.textContent = text;
+    if (el instanceof HTMLButtonElement) {
+      el.type = 'button'; el.setAttribute('aria-label', `Inspect ${text}`);
+      el.addEventListener('click', () => { if (id) opts.onInspect?.(id); });
+    }
     labelLayer.appendChild(el); labels.push({ el, at, near }); return el;
   };
 
@@ -219,7 +224,8 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
   let viewTarget = first.altitude, viewNow = first.altitude, orbitTarget = 0, orbitNow = 0;
   let lastEmitted = -1;
   let wind = windFor[first.weather].clone();
-  let camY = 0;
+  let overviewTarget = 0, overviewNow = 0, cameraReady = false;
+  const smoothLook = new THREE.Vector3();
   let lightning = 0, nextBolt = 4 + Math.random() * 6;
 
   function build() {
@@ -236,10 +242,10 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
         const flag = new THREE.Mesh(flagGeo, flagMat); flag.position.set(0.45, 1.9, 0); g.add(flag);
       }
       campGroup.add(g);
-      makeLabel(c.name, c.reached ? 'is-reached' : '', g.position.clone().add(new THREE.Vector3(0, 3, 0)));
+      makeLabel(c.name, c.reached ? 'is-reached' : '', g.position.clone().add(new THREE.Vector3(0, 3, 0)), 70, 'camp:' + c.id);
     }
     const peak = new THREE.Vector3(0, top + 4, 0);
-    makeLabel(input.summitReached ? 'Summit' : 'Summit, 8,849 m', 'is-summit', peak, 400);
+    makeLabel(input.summitReached ? 'Summit' : 'Summit, 8,849 m', 'is-summit', peak, 400, 'camp:summit');
     const me = routeAt(route, yFor(input.altitude));
     climber.position.set(me.x, me.y + 1.1, me.z);
     headlamp.position.set(me.x, me.y + 1.8, me.z);
@@ -248,9 +254,9 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       const wp = routeAt(route, yFor(w.altitude));
       const cairn = new THREE.Sprite(campGlowCold); cairn.position.set(wp.x, terrain.height(wp.x, wp.z) + 0.5, wp.z); cairn.scale.setScalar(1.3);
       campGroup.add(cairn);
-      makeLabel(i === 0 ? `Next: ${w.label}` : w.label, 'is-waypoint', cairn.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 60);
+      makeLabel(w.label, w.id?.startsWith('history:') ? 'is-history' : 'is-waypoint', cairn.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 60, w.id);
     });
-    makeLabel('OJ', 'is-me', climber.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 200);
+    makeLabel('OJ · inspect', 'is-me', climber.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 200, 'records');
     const gh = routeAt(route, yFor(input.ghost));
     ghost.position.set(gh.x, gh.y + 1.1, gh.z);
     ghost.visible = Math.abs(input.ghost - input.altitude) > 20;
@@ -277,11 +283,13 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     if (!drag || drag.id !== e.pointerId) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
     orbitTarget = Math.min(Math.max(orbitTarget - dx * 0.006, -1.2), 1.2);
-    if (!drag.touch) viewTarget = clampView(viewTarget + dy * 9);
+    if (!drag.touch) viewTarget = clampView(viewTarget + dy * 3);
   };
   const onUp = (e: PointerEvent) => { if (drag?.id === e.pointerId) drag = null; };
   const onWheel = (e: WheelEvent) => {
-    const next = clampView(viewTarget - e.deltaY * 2.2);
+    if (overviewTarget) return; // Let the surrounding page scroll in the overview.
+    const pixels = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? container.clientHeight : 1);
+    const next = clampView(viewTarget - Math.max(-100, Math.min(100, pixels)) * 0.8);
     // At the foot or the summit, let the page scroll on.
     if (next === viewTarget) return;
     e.preventDefault(); viewTarget = next; container.dataset.touched = '1';
@@ -332,18 +340,16 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     raf = requestAnimationFrame(frame);
     if (!visible || document.hidden) { clock.getDelta(); return; }
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
-    const k = 1 - Math.exp(-dt * 2.6);
+    const k = opts.reducedMotion ? 1 : 1 - Math.exp(-dt * 3.4);
     viewNow += (viewTarget - viewNow) * k; orbitNow += (orbitTarget - orbitNow) * k;
+    overviewNow += (overviewTarget - overviewNow) * (opts.reducedMotion ? 1 : 1 - Math.exp(-dt * 3));
     const viewFrac = viewNow / input.summitMetres;
 
     // Camera: close on the route at the viewed altitude, outside the mountain, looking a little up the face.
     const focus = routeAt(route, yFor(viewNow));
     const outward = Math.atan2(focus.z, focus.x) + orbitNow;
     const dist = 14 + 4 * (1 - viewFrac), lift = 4 + 1.5 * viewFrac;
-    const sway = opts.reducedMotion ? 0 : 1;
     tmp.set(focus.x + Math.cos(outward) * dist, focus.y + lift, focus.z + Math.sin(outward) * dist);
-    tmp.x += Math.sin(t * 0.7) * 0.18 * sway; tmp.y += Math.sin(t * 1.1 + 1) * 0.12 * sway;
-    if (input.weather === 'storm') { tmp.x += Math.sin(t * 9) * 0.05 * sway; tmp.y += Math.sin(t * 11.3) * 0.04 * sway; }
     // Keep the camera out of the rock and the line of sight to the focus clear of ridges.
     const ground = terrain.height(tmp.x, tmp.z) + 2.2; if (tmp.y < ground) tmp.y = ground;
     const fy = focus.y + 1.2;
@@ -353,14 +359,23 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       const lineY = tmp.y + (fy - tmp.y) * f;
       if (lineY < need) tmp.y += (need - lineY) / (1 - f);
     }
-    camY += (tmp.y - camY) * (camY === 0 ? 1 : k); tmp.y = camY;
-    camera.position.copy(tmp);
     look.set(focus.x, focus.y + 2.2, focus.z).lerp(peak, 0.035);
-    camera.lookAt(look);
+    // Fit the entire route/massif even on a portrait phone. Smooth position AND aim,
+    // rather than snapping X/Z and lookAt while only damping camera height.
+    const halfFov = Math.min(THREE.MathUtils.degToRad(camera.fov / 2), Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
+    const radius = Math.max(MOUNTAIN_R * 1.12, top * 0.65);
+    const overviewDistance = radius / Math.sin(halfFov) * 1.12;
+    const wholeLook = new THREE.Vector3(0, top * 0.35, 0);
+    const wholePosition = new THREE.Vector3(Math.cos(0.9 + orbitNow) * overviewDistance * 0.88, top * 0.35 + overviewDistance * 0.48, Math.sin(0.9 + orbitNow) * overviewDistance * 0.88);
+    tmp.lerp(wholePosition, overviewNow); look.lerp(wholeLook, overviewNow);
+    if (!cameraReady || opts.reducedMotion) { camera.position.copy(tmp); smoothLook.copy(look); cameraReady = true; }
+    else { camera.position.lerp(tmp, 1 - Math.exp(-dt * 5)); smoothLook.lerp(look, 1 - Math.exp(-dt * 5)); }
+    camera.position.y = Math.max(camera.position.y, terrain.height(camera.position.x, camera.position.z) + 2.2);
+    camera.lookAt(smoothLook);
 
     // Weather-driven fog: thicker in the Death Zone.
     const deathZone = smooth(7800, 8300, viewNow);
-    (scene.fog as THREE.FogExp2).density = fogDensity[input.weather] * (1 + 0.5 * deathZone);
+    (scene.fog as THREE.FogExp2).density = fogDensity[input.weather] * (1 + 0.5 * deathZone) * (1 - overviewNow * 0.94);
 
     // Headlamp flicker and the climber's breath.
     headlamp.intensity = 6.5 + Math.sin(t * 13) * 0.6 + Math.sin(t * 31) * 0.4 + (Math.random() < 0.01 ? -3.5 : 0);
@@ -402,11 +417,16 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
 
     // Labels follow their anchors; far ones fade.
     const w = container.clientWidth, h = container.clientHeight;
-    for (const l of labels) {
+    const occupied: {x:number;y:number}[] = [];
+    for (const l of [...labels].sort((a,b)=>Number(b.el.classList.contains('is-me'))-Number(a.el.classList.contains('is-me')))) {
       tmp.copy(l.at).project(camera);
       const d = camera.position.distanceTo(l.at);
-      const fade = tmp.z < 1 && Math.abs(tmp.x) < 1.1 && Math.abs(tmp.y) < 1.1 ? Math.max(0, Math.min(1, 1 - (d - l.near) / 40)) : 0;
+      const x=(tmp.x+1)/2*w, y=(1-tmp.y)/2*h;
+      let fade = tmp.z > -1 && tmp.z < 1 && Math.abs(tmp.x) < 0.95 && Math.abs(tmp.y) < 0.95 ? Math.max(overviewNow, Math.max(0, Math.min(1, 1 - (d - l.near) / 40))) : 0;
+      if (fade > 0.3 && occupied.some(p=>Math.abs(p.x-x)<135&&Math.abs(p.y-y)<35)) fade=0;
+      if (fade>0.3) occupied.push({x,y});
       l.el.style.opacity = fade.toFixed(2);
+      l.el.style.visibility = fade>0.3 ? 'visible' : 'hidden';
       l.el.style.transform = `translate(${((tmp.x + 1) / 2 * w).toFixed(1)}px, ${((1 - tmp.y) / 2 * h).toFixed(1)}px) translate(-50%, -100%)`;
     }
 
@@ -417,9 +437,10 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
 
   return {
     set(next) { const moved = next.altitude !== input.altitude; input = next; build(); if (moved) viewTarget = next.altitude; },
-    look(m) { viewTarget = clampView(m); },
-    nudge(m) { viewTarget = clampView(viewTarget + m); },
-    recenter() { viewTarget = input.altitude; orbitTarget = 0; },
+    look(m) { overviewTarget = 0; viewTarget = clampView(m); },
+    nudge(m) { overviewTarget = 0; viewTarget = clampView(viewTarget + m); },
+    recenter() { overviewTarget = 0; viewTarget = input.altitude; orbitTarget = 0; },
+    overview(on) { overviewTarget = on ? 1 : 0; },
     setSound,
     dispose() {
       cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();

@@ -32,8 +32,8 @@ export function altitudeHistory(finance: readonly FinanceEntry[], today: string)
 }
 
 export type Milestone = { on: string; title: string; detail: string; kind: 'first' | 'month' | 'lifetime' | 'camp' | 'record' };
-const MONTH_MARKS = [1_000, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 1_000_000];
-const LIFETIME_MARKS = [1_000, 10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 5_000_000, 10_000_000];
+const MONTH_MARKS = [500, 1_000, 2_500, 5_000, 7_500, 10_000, 15_000, 25_000, 50_000, 100_000, 250_000, 1_000_000];
+const LIFETIME_MARKS = [500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 500_000, 1_000_000, 5_000_000, 10_000_000];
 const usd = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: n >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: n >= 100_000 ? 1 : 0 }).format(n);
 
 /** Everything the record shows the founders have already done, oldest first. */
@@ -138,7 +138,9 @@ export function daysToReach(finance: readonly FinanceEntry[], today: string, tar
   const leaving = new Map<number, number>();
   for (const f of rev) { const off = daysBetween(addDays(today, -365), day(f)); if (off > 0) leaving.set(off, (leaving.get(off) ?? 0) + f.amount); }
   let running = ttm;
-  for (let d = 1; d <= 365 * 25; d++) {
+  // Once all historic entries have expired, the constant daily pace is stationary.
+  // Projected daily earnings must expire too; they cannot accumulate forever.
+  for (let d = 1; d <= 365; d++) {
     running += perDay - (leaving.get(d) ?? 0);
     if (running >= target) return d;
   }

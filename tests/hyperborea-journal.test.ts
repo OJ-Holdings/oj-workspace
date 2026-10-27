@@ -59,7 +59,7 @@ test('days to reach: zero when already there, never with nothing recent, and age
   assert.equal(daysToReach(book, today, 1000), 0);
   assert.equal(daysToReach([rev(5000, '2025-12-01')], today, 10_000), null);
   const d = daysToReach(book, today, 250_000);
-  assert.ok(d !== null && d > 365, 'a ~$111K run rate cannot reach $250K inside a year');
+  assert.equal(d, null, 'a constant ~$111K annual pace never reaches $250K trailing revenue');
 });
 
 test('ghost due dates run from the founding day to the deadline', () => {
