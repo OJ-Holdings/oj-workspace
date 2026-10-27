@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS Phase 0, slice 2: retire the report pages)
+**Summary:** Deleted the retired pages: NEXUS / Company View (ConnectedOperations + NexusCorporateExtension), Corporate Intelligence Desk, Founder Weekly Review, Business Scenario Lab and the Tools hub. Their registry entries are gone from the command palette. /tools and /tools/operations now simply show Today. Fleet's back link points to Today. Added a 'System status' link in the collapsed More group (the page itself is unchanged). Project 360 and the workspace CRM page are kept for now because libs and links still reference them.
+**Files:** src/components/app/{App,Shell,FleetCommand}.tsx, src/lib/corporate-tools.ts; deleted ConnectedOperations, NexusCorporateExtension, CorporateIntelligence, FounderWeeklyReview, ScenarioLab, CorporateTools components.
+**Verified:** typecheck clean; npm test 804/804; production build passes; /preview, /preview/tools, /preview/tools/systems, /preview/tools/fleet, /preview/crm and /preview/tools/operations all return 200 from a local build.
+**Not verified:** signed-in live pages. CSS for the deleted pages is left in src/styles for a later tidy.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 0, slice 1: cut and compact Today)
 **Summary:** First slice of the OJ OS master overhaul (docs/OJ_OS_MASTER_PLAN.md, PR #174). Removed 13 placeholder 'Planned' tools from the tools catalogue, deleted unused code (ExecutiveCommand, TodayWork, Hero, AtlasHQ, atlas-posting-preflight and its test), cut the sidebar from 17 items to 7 primary plus a collapsed More group (Reports, Fleet, Files, Messages, Team, Settings), and replaced the 4,000 px Today page with a compact TodayBoard (shortcuts, 4 stats, Next up, Needs you) followed by the existing leaderboard.
 **Files:** src/components/app/{Shell,HomeView,TodayBoard}.tsx, src/styles/today-board.css, src/app/globals.css, src/lib/corporate-tools.ts, tests/corporate-tools.test.ts; deleted files listed above.

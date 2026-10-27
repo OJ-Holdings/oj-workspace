@@ -11,17 +11,12 @@ import { contentPersistenceEnabled, isVenture, ventureList, ventures, type Ventu
 import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
-import { CorporateToolsView } from './CorporateTools';
-import { CorporateIntelligenceDesk } from './CorporateIntelligence';
-import { FounderWeeklyReview } from './FounderWeeklyReview';
 import { SystemsHealthDesk } from './SystemsHealthDesk';
-import { ConnectedOperations } from './ConnectedOperations';
 import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
 import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
 import { commercialPortfolioTask, commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
 import { fleetServiceTask } from '@/lib/atlas-fleet-service-handoff';
 import { loadCommercialProject } from '@/app/workspace/commercial-actions';
-import { ScenarioLab } from './ScenarioLab';
 import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
@@ -221,7 +216,6 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     venture = parts[1];
   }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
-  else if (parts[0] === 'tools' && parts[1] === 'operations') current = 'operations';
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
@@ -238,12 +232,10 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
-      ) : current === 'operations' ? (
-        <ConnectedOperations base={base} org={organizationId} cards={board.data.cards} activity={board.data.activity ?? []} dashboard={store.data} jobs={jobs} jobsState={jobsState} mode={mode} limited={limited} readOnly={readOnly} />
       ) : current === 'fleet' ? (
         <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} bookings={jobs} bookingsState={jobsState} cards={board.data.cards} />
       ) : current === 'tools' ? (
-        parts[1] === 'scenarios' ? <ScenarioLab base={base} /> : parts[1] === 'intelligence' ? <CorporateIntelligenceDesk base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} /> : parts[1] === 'weekly-review' ? <FounderWeeklyReview base={base} cards={board.data.cards} dashboard={store.data} jobs={jobs} mode={mode} limited={limited} /> : parts[1] === 'systems' ? <SystemsHealthDesk mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <CorporateToolsView base={base} owner={owner} connections={connections} mode={mode} />
+        parts[1] === 'systems' ? <SystemsHealthDesk mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across your active businesses.</p></header>
