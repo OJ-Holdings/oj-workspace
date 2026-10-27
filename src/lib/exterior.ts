@@ -22,6 +22,8 @@ export const sourceLabel = (s: string | null) => {
   const v = (s ?? '').trim().toLowerCase();
   if (!v) return 'Unknown';
   if (v === 'dtd' || v === 'door-to-door') return 'Door to door';
+  if (v === 'lsa') return 'Local Services Ads';
+  if (v === 'gbp') return 'Google Business Profile';
   return v.charAt(0).toUpperCase() + v.slice(1);
 };
 

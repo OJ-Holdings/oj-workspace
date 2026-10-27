@@ -17,6 +17,7 @@ import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, D
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { saveEmployeeAssignment } from '@/app/workspace/employees/actions';
+import { LeadSourceTagger } from './LeadSourceTagger';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -30,7 +31,7 @@ const shownPhone = (p: string | null) => !p ? '-' : !isRealPhone(p) ? 'No usable
 const usd = { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } as const;
 
 /** A modal form. Escape or a click outside closes it. */
-function Modal({ title, open, onClose, children }: { title: string; open: boolean; onClose: () => void; children: ReactNode }) {
+export function Modal({ title, open, onClose, children }: { title: string; open: boolean; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (open && !ref.current?.open) ref.current?.showModal(); if (!open && ref.current?.open) ref.current.close(); }, [open]);
   return (
@@ -56,6 +57,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [editing, setEditing] = useState<LeadInput | null>(null);
   const [paying, setPaying] = useState<ExtLead | null>(null);
   const [booking, setBooking] = useState<ExtLead | null>(null);
+  const [tagging, setTagging] = useState(false);
   const leadPathname=usePathname();
   const base=leadPathname.startsWith('/preview')?'/preview':'/workspace';
   const leadParams=useSearchParams();
@@ -107,6 +109,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
         <div className="exterior-customer-head-actions">
           <Link className="secondary" href={`${base}/b/exterior/intake`}>Website intake <span aria-hidden="true">↗</span></Link>
+          {!readOnly && <button className="secondary" disabled={busy} onClick={() => setTagging(true)}>Tag lead sources</button>}
           {!readOnly && <button className="primary" disabled={busy} onClick={() => setEditing({ ...blankLead })}><Plus size={15} aria-hidden="true" />New lead</button>}
         </div>
       </header>
@@ -196,6 +199,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
     </section>
 
     <LeadDialog lead={editing} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
+    <LeadSourceTagger open={tagging} close={() => setTagging(false)} data={data} act={act} busy={busy} org={org} />
     <MoneyDialog lead={paying} close={() => setPaying(null)} act={act} busy={busy} org={org} />
     <BookDialog lead={booking} close={() => setBooking(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
   </>;

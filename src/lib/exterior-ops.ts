@@ -55,7 +55,7 @@ export const blocksOverlap = (a: string | null, b: string | null) => {
   return x && y ? x.start < y.end && y.start < x.end : a === b;
 };
 export const services = ['House Washing', 'Roof Cleaning', 'Driveway Cleaning', 'Deck Cleaning', 'Gutter Cleaning', 'Window Cleaning', 'Pressure Washing', 'Full Service'];
-export const leadSources = [['dtd', 'Door to door'], ['Facebook', 'Facebook'], ['Nextdoor', 'Nextdoor'], ['Referral', 'Referral'], ['phone', 'Phone'], ['website', 'Website'], ['other', 'Other']] as const;
+export const leadSources = [['lsa', 'Local Services Ads'], ['gbp', 'Google Business Profile'], ['dtd', 'Door to door'], ['Facebook', 'Facebook'], ['Nextdoor', 'Nextdoor'], ['Referral', 'Referral'], ['phone', 'Phone'], ['website', 'Website'], ['other', 'Other']] as const;
 
 /** Fields a person can edit. Once edited by hand, the sheet sync leaves that field alone. */
 export const trackable = ['name', 'address', 'phone', 'service_requested', 'quote_amount', 'notes', 'status', 'source', 'job_cost', 'job_revenue'] as const;
