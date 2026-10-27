@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: simple Job screen and Field today)
+**Summary:** Oscar could not use the job screens to enter revenue: Open job workflow opened a wall of evidence and caveat panels, and the Field page was thirteen device-local checklists. New JobSheet (ExteriorManage.tsx): one dialog per job with customer, service, quote, address, call and directions, Customer paid and Job costs inputs with live profit, notes, Mark complete and save (sets the lead completed, then saves figures through the existing setLeadStatus and saveFinancials), and Save figures. Jobs cards and table now say Open job and open the sheet (the ?booking= deep link too). Crew, field and closeout details stays reachable from a link inside the sheet (the old ExteriorJobContinuity panel, unchanged). The Field page is now ExteriorFieldToday: today, past jobs missing their figures (last 45 days), and the next 7 days, each with Call, Directions and Open job; the old field log is folded under one details control. No SQL, no new server actions.
+**Files:** src/components/app/{ExteriorManage,ExteriorFieldToday,ExteriorView}.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; 862 tests; build; /preview field page and job sheet at 800 px.
+**Not verified:** saving figures against live data (preview is read-only); phone width; the old continuity panel still has hard-coded navy styling.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS redesign: new shell and skin)
 **Summary:** First real redesign step, in response to Oscar's feedback that earlier passes kept the same template. New skin (src/styles/os-skin.css, loaded last): obsidian canvas with a soft gold and teal vignette, warm glass panels, rounder corners, champagne shared accent (each business room still re-tints to its own colours), gradient primary buttons. New structure: the left sidebar becomes a Dock of large icon tiles with labels (desktop 1001px and up; phones keep the drawer and bottom tabs), the top bar becomes a glass menu bar with a centred search pill, every screen you visit becomes an open window in a tab strip under the menu bar (kept for the browser session, closable), and a live status bar runs along the bottom (connection, jobs today and tomorrow, open tasks, Chicago time). No data or logic changes.
 **Files:** src/styles/os-skin.css, src/components/app/{WindowTabs,StatusBar,Shell}.tsx, src/app/globals.css.

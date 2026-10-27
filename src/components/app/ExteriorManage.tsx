@@ -266,6 +266,61 @@ export function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | n
   );
 }
 
+/**
+ * One job, one simple screen: who, where, when, what it was quoted at, and the two numbers that matter, what the customer paid
+ * and what the job cost. "Mark complete" closes the job and saves those figures in one go. Everything deeper is behind one link.
+ */
+export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base, onAdvanced }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; readOnly: boolean; base: string; onAdvanced?: () => void }) {
+  const [f, setF] = useState({ job_revenue: '', job_cost: '', notes: '' });
+  useEffect(() => { if (lead) setF({ job_revenue: lead.job_revenue?.toString() ?? '', job_cost: lead.job_cost?.toString() ?? '', notes: lead.notes ?? '' }); }, [lead?.id, booking?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const revenue = f.job_revenue.trim() === '' ? null : Number(f.job_revenue), cost = f.job_cost.trim() === '' ? null : Number(f.job_cost);
+  const profit = revenue === null || cost === null ? null : revenue - cost;
+  const done = lead?.status === 'completed' || lead?.status === 'closed';
+  const set = (k: 'job_revenue' | 'job_cost' | 'notes') => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const save = (complete: boolean) => {
+    if (!lead) return;
+    void act(async () => {
+      if (complete) { const r = await setLeadStatus(org, lead.id, 'completed'); if (!r.ok) return r; }
+      return saveFinancials(org, lead.id, f);
+    }, () => complete ? `${lead.name ?? 'Job'} completed and saved.` : 'Saved.').then(ok => ok && close());
+  };
+  return (
+    <Modal title={lead?.name || 'Job'} open={!!booking} onClose={close}>
+      {booking && <div className="jobsheet">
+        <p className="jobsheet-when"><b>{day(booking.date)}</b><span>{blockLabel(booking.time_block)}</span><span className={`jobsheet-state${done ? ' is-done' : ''}`}>{done ? 'Completed' : statusLabel(lead?.status ?? booking.status)}</span></p>
+        {!lead ? <p className="quiet">The customer record for this job is not loaded, so figures cannot be saved here.</p> : <>
+          <dl className="jobsheet-facts">
+            <div><dt>Service</dt><dd>{lead.service_requested || 'Not entered'}</dd></div>
+            <div><dt>Quote</dt><dd>{cash(lead.quote_amount)}</dd></div>
+            <div><dt>Address</dt><dd>{lead.address || 'Not entered'}</dd></div>
+            <div><dt>Phone</dt><dd>{shownPhone(lead.phone)}</dd></div>
+          </dl>
+          <div className="jobsheet-links">
+            {lead.phone && isRealPhone(lead.phone) && <a className="secondary small" href={`tel:${lead.phone}`}>Call</a>}
+            {lead.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`}>Directions</a>}
+            <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(lead.id)}`}>Customer record</Link>
+          </div>
+          <fieldset className="jobsheet-money" disabled={readOnly || busy}>
+            <legend>Money</legend>
+            <div className="form-grid">
+              <label>Customer paid (revenue)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_revenue} onChange={set('job_revenue')} placeholder="0.00" />
+                {lead.quote_amount !== null && f.job_revenue.trim() === '' && <button type="button" className="linkish" onClick={() => setF({ ...f, job_revenue: String(lead.quote_amount) })}>Use the {cash(lead.quote_amount)} quote</button>}</label>
+              <label>Job costs (supplies, gas, help)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={set('job_cost')} placeholder="0.00" /></label>
+            </div>
+            <p className="jobsheet-profit">Profit <b className={profit !== null && profit < 0 ? 'neg' : ''}>{profit === null ? 'enter both amounts' : dollars(profit)}</b>{profit !== null && revenue ? <small> {Math.round((profit / revenue) * 100)}% margin</small> : null}</p>
+            <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
+          </fieldset>
+          <div className="dialog-actions">
+            {onAdvanced && <button type="button" className="linkish" onClick={onAdvanced}>Crew, field and closeout details</button>}
+            {!readOnly && !done && <button type="button" className="primary" disabled={busy} onClick={() => save(true)}>{busy ? 'Saving' : 'Mark complete and save'}</button>}
+            {!readOnly && <button type="button" className={done ? 'primary' : 'secondary'} disabled={busy} onClick={() => save(false)}>{busy ? 'Saving' : 'Save figures'}</button>}
+          </div>
+        </>}
+      </div>}
+    </Modal>
+  );
+}
+
 /** Today and the next three weeks, Thursdays and Fridays marked as the usual job days. */
 function nextDays(now: Date) {
   return Array.from({ length: 22 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)).map((d, i) => ({ key: dayKey(d), label: i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), usual: d.getDay() === 4 || d.getDay() === 5 }));
@@ -456,6 +511,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(30);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useState(false);
   const [completing, setCompleting] = useState<ExtLead | null>(null);
   const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const bookingParams = useSearchParams();
@@ -473,6 +529,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     url.searchParams.delete('booking');
     window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
     setSelectedJob(null);
+    setAdvanced(false);
   };
   useEffect(() => {
     if (readOnly || launchNewBooking !== '1') return;
@@ -541,7 +598,8 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       The requested exact booking is not in this authorized source window. No customer, job or field data was substituted.
       <button type="button" onClick={closeJob}>Clear selection</button>
     </p>}
-    {selectedBooking&&<ExteriorJobContinuity
+    <JobSheet booking={advanced?null:selectedBooking??null} lead={selectedBooking?lead.get(selectedBooking.lead_id??''):undefined} close={closeJob} act={act} busy={busy} org={org} readOnly={readOnly} base={base} onAdvanced={()=>setAdvanced(true)} />
+    {selectedBooking&&advanced&&<ExteriorJobContinuity
       key={selectedBooking.id} data={data} booking={selectedBooking} org={org}
       base={base} mode={base==='/preview'?'preview':'live'} readOnly={readOnly}
       crew={{available:!!crew,employeeName:crew?.assignments.find(a=>a.booking_id===selectedBooking.id)?.employee_name??null}}
@@ -581,10 +639,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               </div>
               <footer>
                 <div className="atlas-booking-contact-actions">
-                  <button type="button" className="primary small" aria-expanded={selectedJobId===b.id}
-                    aria-controls="exterior-job-continuity" onClick={()=>selectedJobId===b.id?closeJob():openJob(b.id)}>
-                    {selectedJobId===b.id?'Close job view':'Open job workflow'}
-                  </button>
+                  <button type="button" className="primary small" onClick={()=>openJob(b.id)}>Open job</button>
                   {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer record</Link>}
                   {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                   {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
@@ -611,7 +666,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
               <td data-label="Service">{l?.service_requested || '-'}</td><td data-label="Address">{l?.address || '-'}</td>
               <td className="num" data-label="Quoted, not paid">{cash(l?.quote_amount ?? null)}</td>
               {!readOnly && <td data-label="Actions"><div className="row-actions">
-                <button type="button" className="primary small" onClick={()=>openJob(b.id)}>Open job workflow</button>
+                <button type="button" className="primary small" onClick={()=>openJob(b.id)}>Open job</button>
                 {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
                 {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
                 {canComplete(b, l) && <button className="primary small" disabled={busy} onClick={() => void markDone(l!)}>Mark complete</button>}
