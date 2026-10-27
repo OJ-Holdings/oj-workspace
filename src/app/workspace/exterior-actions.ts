@@ -3,7 +3,7 @@
 import { requireMember } from '@/lib/supabase';
 import type { Done, ExteriorData, ExteriorResult, ExtExtras, ExtLead, ExtSession } from '@/lib/exterior';
 import { upgradeGroups } from '@/lib/upgrades';
-import { isSheetUrl, isValidBlock, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, type LeadPatch } from '@/lib/exterior-ops';
+import { isSheetUrl, isValidBlock, leadSources, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, type LeadPatch } from '@/lib/exterior-ops';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
@@ -116,6 +116,25 @@ export async function saveLead(org: string, input: LeadInput): Promise<Done<{ id
     await changed(client.from('leads').update(planLeadUpdate(current!, fields, now)).eq('id', id).select('id'));
     await log(client, who, 'lead_updated', `Updated ${fields.name}: ${Object.keys(fields).join(', ')}`, { id, name: fields.name }, { fields: Object.keys(fields) });
     return { ok: true, id };
+  });
+}
+
+/** Sets the lead source on several customers at once (for example tagging this season's Local Services Ads leads). Only the source field changes. */
+export async function setLeadSources(org: string, ids: string[], source: string): Promise<Done<{ count: number }>> {
+  return guarded(org, async (client, who) => {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200) say('Choose between 1 and 200 customers.');
+    if (!leadSources.some(([value]) => value === source)) say('Choose a lead source from the list.');
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const raw of ids) {
+      const id = uuid(raw);
+      const { data: current } = await client.from('leads').select('status,quote_amount,job_revenue,completed_at,manually_updated_fields,name').eq('id', id).maybeSingle();
+      if (!current) continue;
+      await changed(client.from('leads').update(planLeadUpdate(current, { source }, now)).eq('id', id).select('id'));
+      count++;
+    }
+    await log(client, who, 'lead_updated', `Set lead source to ${source} on ${count} customer${count === 1 ? '' : 's'}`, null, { fields: ['source'], source, count });
+    return { ok: true, count };
   });
 }
 

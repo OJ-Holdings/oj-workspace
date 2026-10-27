@@ -94,7 +94,7 @@ test('strict 6-month chart and only recorded monthly revenue; source tags are al
  const x=buildExteriorCommand(data,[],'2026-10-23');
  assert.deepEqual(x.months.map(m=>m.key),['2026-05','2026-06','2026-07','2026-08','2026-09','2026-10']);
  assert.deepEqual(x.months.map(m=>m.revenue),[null,null,null,0,400,225]);
- assert.equal(x.sales.bySource[0].name,'Lsa');
+ assert.equal(x.sales.bySource[0].name,'Local Services Ads');
  assert.equal(x.sales.bySource[0].count,6);
  assert.equal(x.sales.bySource[1].name,'Door to door');
 });

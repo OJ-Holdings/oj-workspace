@@ -10,7 +10,8 @@ import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type C
 import { doorDetails, isRecordedJobAmount, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
 import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type JobFilters } from '@/lib/reporting';
 import { sampleExterior } from '@/lib/exterior-sample';
-import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, SessionsManager } from './ExteriorManage';
+import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, MoneyDialog, SessionsManager, type Act } from './ExteriorManage';
+import type { ExtLead } from '@/lib/exterior';
 import { JobsCalendar } from './ExteriorCalendar';
 import { ExteriorCustomer360 } from './ExteriorCustomer360';
 import { ExteriorIntakeDesk } from './ExteriorIntakeDesk';
@@ -96,7 +97,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
-  if (tab === 'jobs') return <ExteriorJobReport data={data} now={now} mode={mode} />;
+  if (tab === 'jobs') return <ExteriorJobReport data={data} now={now} mode={mode} act={act} busy={busy} readOnly={common.readOnly} org={org} />;
 
   if ((tab === 'upgrades' || tab === 'quotes' || tab === 'intake') && !data.extras) return (
     <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update.</p></div>
@@ -173,7 +174,10 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
 }
 
 /** A single filtered population drives totals and every drilldown, including the accessible record table. */
-export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now: Date; mode: 'preview' | 'live' }) {
+export function ExteriorJobReport({ data, now, mode, act, busy = false, readOnly = true, org = '' }: { data: ExteriorData; now: Date; mode: 'preview' | 'live'; act?: Act; busy?: boolean; readOnly?: boolean; org?: string }) {
+  // Fill in missing money right in the list: Add or Edit opens the same recorded-figures form the customer screen uses.
+  const [figuresFor, setFiguresFor] = useState<ExtLead | null>(null);
+  const canEdit = Boolean(act) && !readOnly && mode === 'live';
   const pathname = usePathname(), query = useSearchParams(), router = useRouter();
   const filterDate = (key: string) => /^\d{4}-\d{2}-\d{2}$/.test(query.get(key) || '') ? query.get(key)! : '';
   const filters: JobFilters = { from: filterDate('from'), to: filterDate('to'), service: query.get('service') || '', source: query.get('source') || '' };
@@ -271,9 +275,10 @@ export function ExteriorJobReport({ data, now, mode }: { data: ExteriorData; now
       <header className="panel-head"><h2 ref={records} tabIndex={-1}>Jobs behind the figures</h2><span className="quiet" role="status">{rows.length} jobs{inspection !== 'all' ? ` / ${inspection === 'missing-revenue' ? 'job revenue missing' : inspection === 'missing-cost' ? 'cost not recorded' : 'both figures entered'}` : ''}</span></header>
       {rows.length ? <div className="tablewrap"><table className="table">
         <caption className="sr-only">Source job records for the selected report and completeness filter</caption>
-        <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Recorded job revenue</th><th scope="col" className="num">Cost entered</th></tr></thead>
-        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{isRecordedJobAmount(lead.job_revenue)?cash(lead.job_revenue):'Not recorded'}</td><td className="num">{isRecordedJobAmount(lead.job_cost)?cash(lead.job_cost):'Not recorded'}</td></tr>)}</tbody>
+        <thead><tr><th scope="col">Work date</th><th scope="col">Customer</th><th scope="col">Service / source</th><th scope="col" className="num">Quote</th><th scope="col" className="num">Recorded job revenue</th><th scope="col" className="num">Cost entered</th>{canEdit && <th scope="col"><span className="sr-only">Figures</span></th>}</tr></thead>
+        <tbody>{rows.slice(0, shown).map(lead => <tr key={lead.id}><td>{businessDay(jobDate(lead)) || 'Unknown'}{jobDateBasis(lead) !== 'completion' && <small className="quiet block">Estimated from {lead.updated_at ? 'last update' : 'creation'}</small>}</td><th scope="row"><Link className="secondary small" href={`${base}/b/exterior/leads?lead=${encodeURIComponent(lead.id)}`}>{lead.name || 'Unnamed customer'}</Link></th><td>{serviceName(lead)}<small className="quiet block">{sourceLabel(lead.source)}</small></td><td className="num">{cash(lead.quote_amount)}</td><td className="num">{isRecordedJobAmount(lead.job_revenue)?cash(lead.job_revenue):'Not recorded'}</td><td className="num">{isRecordedJobAmount(lead.job_cost)?cash(lead.job_cost):'Not recorded'}</td>{canEdit && <td><button className="secondary small" onClick={() => setFiguresFor(lead)}>{isRecordedJobAmount(lead.job_revenue) && isRecordedJobAmount(lead.job_cost) ? 'Edit' : 'Add figures'}</button></td>}</tr>)}</tbody>
       </table>{rows.length > shown && <button className="secondary showmore" onClick={() => setShown(value => value + 50)}>Show {Math.min(50, rows.length - shown)} more jobs</button>}</div> : <div className="empty"><p><b>No jobs in this selection.</b> Choose another completeness filter to return to the source records.</p></div>}
     </section>
+    {act && <MoneyDialog lead={figuresFor} close={() => setFiguresFor(null)} act={act} busy={busy} org={org} />}
   </>;
 }
