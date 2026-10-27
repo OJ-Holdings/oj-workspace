@@ -22,6 +22,15 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS Phase 0, slice 1: cut and compact Today)
+**Summary:** First slice of the OJ OS master overhaul (docs/OJ_OS_MASTER_PLAN.md, PR #174). Removed 13 placeholder 'Planned' tools from the tools catalogue, deleted unused code (ExecutiveCommand, TodayWork, Hero, AtlasHQ, atlas-posting-preflight and its test), cut the sidebar from 17 items to 7 primary plus a collapsed More group (Reports, Fleet, Files, Messages, Team, Settings), and replaced the 4,000 px Today page with a compact TodayBoard (shortcuts, 4 stats, Next up, Needs you) followed by the existing leaderboard.
+**Files:** src/components/app/{Shell,HomeView,TodayBoard}.tsx, src/styles/today-board.css, src/app/globals.css, src/lib/corporate-tools.ts, tests/corporate-tools.test.ts; deleted files listed above.
+**Verified:** typecheck clean; npm test 804/804; npm run build passes; /preview rendered from the dev build (nav shows Today, Jobs, Customers, Schedule, Tasks & Crew, Money, Businesses; Today page height 1,673 px versus about 4,079 before).
+**Not verified:** signed-in live pages (not logged in from the dev build), phone-width on a real device. Retired routes (/crm, /tools hub, NEXUS, Project 360, Intelligence, Weekly Review, Scenario Lab, Systems) still exist by URL; they are only unlinked from the rail and Today. No schema, data, or environment changes.
+**Notes:** Next slices: delete the retired pages, new shell (entity switcher, command bar, live strip), Jobs/Customers screens. Database cleanup (test intake rows, synthetic project, junk message) will be proposed as SQL for Oscar to run.
+
+---
+
 ## 2026-10-26 UTC -- Claude Code (OJ Solutions growth dashboard: Daily 10 + email engine)
 **Summary:** Rebuilt the OJ Solutions section around the new plan (exterior cleaning niche, automated email, 10 DMs per founder per day, warm-lead-only calling). New tabs: Command, Daily 10, Email engine, Prospects, Warm leads. Daily 10 is a game (XP, levels, streaks, duo streak, undo, 10/2/6/8 PM Central reminder emails). Email engine has no approval queue: server-side guardrails (send window, warm-up ramp, draft lint, bounce brake, stop handling, CAN-SPAM footer). Status reads Running only after a real heartbeat from the sender script (25 min).
 **Files:** supabase/schemas/solutions-dm-quests.sql, supabase/schemas/solutions-email-engine.sql (NOT applied), netlify/functions/outreach-email-engine.ts, scripts/google-apps-script/outreach-email-engine.gs, src/lib/{dm-quests,email-engine,email-engine-api,growth-summary,growth-preview}.ts, src/app/workspace/growth-actions.ts, src/components/app/solutions/*, VentureView, BusinessNav, OutreachQueueView, src/styles/solutions-growth.css, docs/SOLUTIONS_GROWTH_ENGINE.md.

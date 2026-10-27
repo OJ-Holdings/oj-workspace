@@ -8,7 +8,7 @@ const disconnected = { owner: true, connections: { shopify: false, ghl: false } 
 
 test('every tool has a unique stable ID and a known category', () => {
   assert.equal(new Set(corporateTools.map(tool => tool.id)).size, corporateTools.length);
-  assert.ok(corporateTools.length >= 30);
+  assert.ok(corporateTools.length >= 20);
   for (const tool of corporateTools) {
     assert.ok(tool.title && tool.description && tool.keywords);
     assert.ok(toolCategories.includes(tool.category));

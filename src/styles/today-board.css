@@ -1,0 +1,39 @@
+/* Today screen (OJ OS Phase 0). Tokens only; compact by design: it should fit in roughly two screens. */
+.today-board { display: flex; flex-direction: column; gap: var(--s-5); }
+.today-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); }
+.today-head h1 { margin: 0; font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-track); font-size: var(--t-2xl); }
+.today-date { margin: 0 0 var(--s-1); color: var(--ink-3); font-size: var(--t-sm); }
+
+.today-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
+.today-stat { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--line); border-radius: var(--r); background: linear-gradient(155deg, var(--panel-2), var(--panel) 60%); text-decoration: none; color: var(--ink); min-width: 0; }
+.today-stat:hover { border-color: var(--line-2); }
+.today-stat > span { display: flex; align-items: center; gap: var(--s-2); color: var(--ink-3); font-size: var(--t-xs); font-weight: 700; }
+.today-stat strong { font-size: var(--t-2xl); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.today-stat small { color: var(--ink-3); font-size: var(--t-xs); }
+
+.today-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.today-card { border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); padding: var(--s-5); min-width: 0; }
+.today-card header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); }
+.today-card h2 { margin: 0; font-size: var(--t-lg); }
+.today-card header a { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--accent-hi); font-size: var(--t-sm); font-weight: 700; text-decoration: none; }
+.today-empty { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
+.today-empty a { color: var(--accent-hi); }
+.today-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.today-list li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--s-3); align-items: baseline; padding: var(--s-3) 0; border-top: 1px solid var(--line); }
+.today-list li:first-child { border-top: 0; padding-top: 0; }
+.today-list time, .today-sev { color: var(--ink-3); font-size: var(--t-xs); font-weight: 700; }
+.today-list a { display: flex; flex-direction: column; gap: 2px; color: var(--ink); text-decoration: none; min-width: 0; }
+.today-list a:hover strong { color: var(--accent-hi); }
+.today-list strong { font-size: var(--t-md); overflow-wrap: anywhere; }
+.today-list small { color: var(--ink-3); font-size: var(--t-xs); }
+.today-sev { display: inline-flex; align-items: center; gap: var(--s-1); }
+.today-sev-urgent { color: var(--bad); }
+.today-sev-attention { color: var(--watch); }
+
+@media (max-width: 900px) {
+  .today-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .today-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .today-list li { grid-template-columns: minmax(0, 1fr); gap: var(--s-1); }
+}
