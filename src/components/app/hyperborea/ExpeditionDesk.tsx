@@ -7,6 +7,7 @@ import type { Dashboard } from '@/lib/dashboard';
 import { camps, EXPEDITION_START, SUMMIT_ALTITUDE, type Expedition } from '@/lib/hyperborea';
 import { altitudeHistory, breakdown, campSchedule, milestones, objectives, totals } from '@/lib/hyperborea-journal';
 import { climbRequirement, periodProgress, periods, trailAchievements, type Period } from '@/lib/hyperborea-progress';
+import {trailSteps,trailWindow} from '@/lib/hyperborea-trail';
 
 type Props = { ex: Expedition; data: Dashboard; businesses: {id:string;name:string}[]; base:string;
   selection:string|null; onSelect:(id:string|null)=>void; onLook:(altitude:number)=>void };
@@ -20,6 +21,7 @@ export const ExpeditionDesk = memo(function ExpeditionDesk({ex,data,businesses,b
   const [period,setPeriod] = useState<Period>('30D');
   const [gain,setGain] = useState(100);
   const [filter,setFilter] = useState('All');
+  const [trailCenter,setTrailCenter]=useState(ex.altitude);
   const dialog = useRef<HTMLDialogElement>(null);
   const {finance} = data;
   const names = useMemo(()=>Object.fromEntries(businesses.map(b=>[b.id,b.name])),[businesses]);
@@ -30,13 +32,16 @@ export const ExpeditionDesk = memo(function ExpeditionDesk({ex,data,businesses,b
   const t = useMemo(()=>totals(finance,ex.today),[finance,ex.today]);
   const why = useMemo(()=>breakdown(finance,ex.today,businesses.map(b=>b.id),names),[finance,ex.today,businesses,names]);
   const next = useMemo(()=>objectives(finance,ex.today,ex.ghost.start),[finance,ex.today,ex.ghost.start]);
+  const steps=useMemo(()=>trailSteps(),[]);
+  const selectedStep=selection?.startsWith('step:')?steps.find(s=>s.altitude===Number(selection.slice(5))):null;
+  useEffect(()=>{if(selection?.startsWith('trail:'))setTrailCenter(Math.max(0,Math.min(8849,Number(selection.slice(6))||0)));},[selection]);
   const required = useMemo(()=>climbRequirement(finance,ex.today,gain),[finance,ex.today,gain]);
   useEffect(()=>{ if(selection && !dialog.current?.open) dialog.current?.showModal(); else if(!selection) dialog.current?.close(); },[selection]);
   const page = selection?.split(':')[0] ?? 'history';
   const selectedDate = selection?.startsWith('history:') ? selection.slice(8) : null;
   const selectedCamp = selection?.startsWith('camp:') ? camps.find(c=>c.id===selection.slice(5)) : null;
   const selectedObjective = selection?.startsWith('goal:') ? next.find(o=>o.revenue===Number(selection.slice(5))) : null;
-  const titles:Record<string,string> = {history:'The expedition journal',climb:'Earn the next meters',camp:'The route to 2046',goal:'The next ridgeline',achievements:'The achievement cabinet',records:'Behind the altitude'};
+  const titles:Record<string,string> = {history:'The expedition journal',climb:'Earn the next meters',camp:'The route to 2046',goal:'The next ridgeline',achievements:'The achievement cabinet',records:'Behind the altitude',trail:'Every step of the route',step:'A smaller step'};
   const W=800,H=120,pad=14, lo=Math.min(...progress.points.map(p=>p.altitude))-30, hi=Math.max(...progress.points.map(p=>p.altitude))+30;
   const xy=(alt:number,i:number)=>`${pad+i/Math.max(progress.points.length-1,1)*(W-2*pad)},${H-pad-(alt-lo)/(hi-lo)*(H-pad*2)}`;
   const line=progress.points.map((p,i)=>`${i?'L':'M'}${xy(p.altitude,i)}`).join(' ');
@@ -54,8 +59,21 @@ export const ExpeditionDesk = memo(function ExpeditionDesk({ex,data,businesses,b
 
     <dialog ref={dialog} className="hb-inspector" aria-labelledby="hb-inspector-title" onClose={()=>onSelect(null)} onClick={e=>{if(e.target===dialog.current)dialog.current?.close();}}>
       <header><div><small>Hyperborea</small><h2 id="hb-inspector-title">{titles[page]??titles.history}</h2></div><button className="icon-button" aria-label="Close expedition details" onClick={()=>dialog.current?.close()}><X size={20}/></button></header>
-      <nav aria-label="Expedition details">{[['history','Journal'],['climb','Next meters'],['camp','Route'],['achievements','Achievements'],['records','Evidence']].map(([id,title])=><button key={id} aria-pressed={page===id||(page==='goal'&&id==='climb')} onClick={()=>onSelect(id)}>{title}</button>)}</nav>
+      <nav aria-label="Expedition details">{[['history','Journal'],['climb','Next meters'],['trail','Steps'],['camp','Route'],['achievements','Achievements'],['records','Evidence']].map(([id,title])=><button key={id} aria-pressed={page===id||(page==='goal'&&id==='climb')||(page==='step'&&id==='trail')} onClick={()=>onSelect(id)}>{title}</button>)}</nav>
       <div className="hb-inspector-body" key={selection}>
+        {page==='trail'&&<>
+          <p>Browse {steps.length.toLocaleString('en-US')} revenue steps, spaced every 5 m. This list works at every camera angle.</p>
+          <label className="hb-trail-range">Trail altitude: {metres(trailCenter)}<input type="range" min="5" max="8849" step="5" value={trailCenter} onChange={e=>setTrailCenter(Number(e.target.value))}/></label>
+          <div className="hb-gain-choices"><button onClick={()=>setTrailCenter(Math.max(5,trailCenter-100))}>100 m lower</button><button onClick={()=>setTrailCenter(ex.altitude)}>Our position</button><button onClick={()=>setTrailCenter(Math.min(8849,trailCenter+100))}>100 m higher</button></div>
+          <ul className="hb-ridge-list">{trailWindow(steps,trailCenter).map(s=><li key={s.id}><button onClick={()=>{onLook(s.altitude);onSelect(s.id);}}><b>{s.label}</b><span>{money(s.revenue)} / year</span></button></li>)}</ul>
+          <p className="hb-method">These are calculated revenue requirements. They are not completed tasks, promised revenue or operational achievements.</p>
+        </>}
+        {page==='step'&&selectedStep&&<>
+          <h3>{selectedStep.label}</h3><p>Requires {money(selectedStep.revenue)} recorded in the rolling 365-day window: {money(Math.max(0,selectedStep.revenue-ex.revenue))} above the current recorded total. Holding it means roughly {money(selectedStep.revenue/12)} a month.</p>
+          <p>{selectedStep.altitude<=ex.altitude?'Current revenue altitude is at or above this step.':'This step is still ahead of the current revenue altitude.'}</p>
+          <div className="hb-gain-choices"><button onClick={()=>onLook(selectedStep.altitude)}>Bring this step into view</button><button onClick={()=>onSelect('trail:'+selectedStep.altitude)}>All nearby steps</button><button onClick={()=>onSelect('climb')}>Plan the next meters</button></div>
+          <p className="hb-method">A revenue requirement, not a work-completion claim. Previously recorded income can age out while you climb. Zoom in on the mountain to reveal finer markers.</p>
+        </>}
         {page==='history'&&<>
           <p className="hb-detail-lead">Your business history began {t.firstOn?date(t.firstOn):'when the first income is recorded'}. The twenty-year expedition began {date(EXPEDITION_START)}.</p>
           <div className="hb-detail-pair"><div><b>{money(t.lifetimeRevenue)}</b><span>lifetime recorded income</span></div><div><b>{t.bestMonth?money(t.bestMonth.amount):'None'}</b><span>best calendar month</span></div></div>

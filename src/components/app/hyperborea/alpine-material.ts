@@ -57,7 +57,7 @@ export function alpineMaterial(grain: THREE.Texture, rock: THREE.Color, snow: TH
       float hbLuma=dot(hbPhotographicRock,vec3(0.2126,0.7152,0.0722));
       hbPhotographicRock=mix(vec3(hbLuma),hbPhotographicRock,0.45);
       hbStone=mix(hbStone,hbPhotographicRock*(0.65+hbShade*0.45),hbPhotoReady*0.92);
-      hbSnowAmount = smoothstep(35.0,72.0,hbP.y + hbBroad*10.0) * smoothstep(0.48,0.88,hbN.y);
+      hbSnowAmount = smoothstep(13.0,49.0,hbP.y + hbBroad*13.0) * smoothstep(0.30,0.78,hbN.y);
       hbSnowAmount = max(hbSnowAmount, smoothstep(77.0,98.0,hbP.y)*0.62);
       float hbChannel = abs(hbP.x*0.84 - hbP.z*0.54 + sin(hbP.y*0.14)*2.0);
       hbIceAmount = (1.0-smoothstep(3.0,12.0,hbChannel))*smoothstep(21.0,38.0,hbP.y)*(1.0-smoothstep(78.0,94.0,hbP.y))*smoothstep(0.18,0.7,hbN.y);

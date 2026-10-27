@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronDown, ChevronUp, Crosshair, Lock, Volume2, VolumeX, Wind, X } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Crosshair, Lock, Volume2, VolumeX, Wind, X, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
 import type { Dashboard } from '@/lib/dashboard';
 import { campFor, camps, expedition, SUMMIT_ALTITUDE, type Expedition, type Weather } from '@/lib/hyperborea';
 import { codex, type Chapter } from '@/lib/hyperborea-codex';
 import type { SceneHandle, SceneInput } from './hyperborea/scene';
 import { ExpeditionDesk } from './hyperborea/ExpeditionDesk';
 import { altitudeHistory, objectives } from '@/lib/hyperborea-journal';
+import { trailSteps } from '@/lib/hyperborea-trail';
 
 type Props = { data: Dashboard | null; now: Date | null; companies: number; coreVentures: readonly string[]; businesses: { id: string; name: string }[]; base: string; mode: 'preview' | 'live' };
 
@@ -50,10 +51,10 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
   const sceneInput = useMemo<SceneInput | null>(() => ex && {
     altitude: ex.altitude, ghost: ex.ghost.altitude, weather: ex.weather.weather, summitReached: ex.summitReached, summitMetres: SUMMIT_ALTITUDE,
     camps: camps.map(c => ({ id: c.id, name: c.name, altitude: c.altitude, reached: ex.altitude >= c.altitude })),
-    waypoints: data ? [...altitudeHistory(data.finance, ex.today).slice(-12).map(h => ({ id: 'history:' + h.through, altitude: h.altitude, label: new Date(h.through + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) })), ...objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ id: 'goal:' + o.revenue, altitude: o.altitude, label: o.name }))] : [],
+    waypoints: data ? [...trailSteps(), ...altitudeHistory(data.finance, ex.today).slice(-12).map(h => ({ id: 'history:' + h.through, altitude: h.altitude, label: new Date(h.through + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) })), ...objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ id: 'goal:' + o.revenue, altitude: o.altitude, label: o.name }))] : [],
   }, [ex, data]);
   const nextRidge = useMemo(() => ex && data ? objectives(data.finance, ex.today, ex.ghost.start)[0] ?? null : null, [ex, data]);
-  const inputKey = sceneInput ? JSON.stringify(sceneInput) : '';
+  const inputKey = useMemo(() => sceneInput ? JSON.stringify(sceneInput) : '', [sceneInput]);
   const latest = useRef(sceneInput); latest.current = sceneInput;
 
   // Mount the 3D scene once the figures are known; tear it down on leave.
@@ -89,7 +90,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
 
   return (
     <div className="hb" data-weather={ex.weather.weather} data-summit={ex.summitReached ? 'reached' : 'shrouded'}>
-      <section ref={stage} className="hb3" data-state={sceneState} aria-label={`Hyperborea. The expedition is at ${metres(ex.altitude)}, ${ex.camp.current.name}. ${weatherWord[ex.weather.weather]}.`}>
+      <section ref={stage} className="hb3" data-state={sceneState} data-overview={overview} aria-label={`Hyperborea. The expedition is at ${metres(ex.altitude)}, ${ex.camp.current.name}. ${weatherWord[ex.weather.weather]}.`}>
         <div ref={host} className="hb3-canvas" />
         <div ref={labelLayer} className="hb3-labels" />
         <div className="hb3-vignette" aria-hidden="true" />
@@ -102,10 +103,10 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
           <p>Expedition day {ex.clock.day.toLocaleString('en-US')} of {ex.clock.totalDays.toLocaleString('en-US')}. {ex.clock.daysLeft.toLocaleString('en-US')} days until the summit window closes.</p>
         </header>
         <div className="hb3-tools">
-          <button type="button" className="hb3-btn" onClick={toggleSound} aria-pressed={sound} disabled={sceneState !== 'ready'}>
+          <button type="button" className="hb3-btn" aria-label={sound?'Turn wind sound off':'Turn wind sound on'} onClick={toggleSound} aria-pressed={sound} disabled={sceneState !== 'ready'}>
             {sound ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}<span>{sound ? 'Wind on' : 'Wind off'}</span>
           </button>
-          <button type="button" className="hb3-btn hb3-codex" onClick={() => dialog.current?.showModal()}><BookOpen size={16} aria-hidden="true" /><span>Codex</span></button>
+          <button type="button" className="hb3-btn hb3-codex" aria-label="Open the Codex" onClick={() => dialog.current?.showModal()}><BookOpen size={16} aria-hidden="true" /><span>Codex</span></button>
         </div>
 
         {nextRidge && <aside className="hb3-next" aria-label="Next objective">
@@ -135,14 +136,16 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
           <small>{words.where}</small>
         </div>
         <div className="hb3-controls">
-          <button type="button" className="hb3-btn" onClick={() => { handle.current?.nudge(400); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronUp size={16} aria-hidden="true" /><span>Look higher</span></button>
-          <button type="button" className="hb3-btn" onClick={() => { handle.current?.nudge(-400); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronDown size={16} aria-hidden="true" /><span>Look lower</span></button>
-          <button type="button" className="hb3-btn" aria-pressed={overview} onClick={() => { const next = !overview; handle.current?.overview(next); setOverview(next); }} disabled={sceneState !== 'ready'}>{overview ? 'Return to route' : 'Whole mountain'}</button>
-          <button type="button" className="hb3-btn" onClick={() => setSelection('climb')}>Inspect this climb</button>
-          <button type="button" className="hb3-btn" onClick={() => { handle.current?.recenter(); setOverview(false); }} disabled={sceneState !== 'ready'}><Crosshair size={16} aria-hidden="true" /><span>Back to the expedition</span></button>
+          <button type="button" className="hb3-btn hb3-travel" aria-label="Look higher by 25 meters" onClick={() => { handle.current?.nudge(25); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronUp size={16} aria-hidden="true" /><span>Look higher</span></button>
+          <button type="button" className="hb3-btn hb3-travel" aria-label="Look lower by 25 meters" onClick={() => { handle.current?.nudge(-25); setOverview(false); }} disabled={sceneState !== 'ready'}><ChevronDown size={16} aria-hidden="true" /><span>Look lower</span></button>
+          <button type="button" className="hb3-btn hb3-overview" aria-label={overview?'Return to route':'Whole mountain'} aria-pressed={overview} onClick={() => { const next = !overview; handle.current?.overview(next); setOverview(next); }} disabled={sceneState !== 'ready'}><span>{overview ? 'Route' : 'Mountain'}</span></button>
+          <button type="button" className="hb3-btn hb3-zoom" aria-label="Zoom in for smaller trail steps" onClick={() => { handle.current?.zoom(0.7); setOverview(false); }} disabled={sceneState !== 'ready'}><ZoomIn size={16}/></button>
+          <button type="button" className="hb3-btn hb3-zoom" aria-label="Zoom out" onClick={() => {handle.current?.zoom(1.4);setOverview(false);}} disabled={sceneState !== 'ready'}><ZoomOut size={16}/></button>
+          <button type="button" className="hb3-btn hb3-trail" aria-label="Browse every trail step" onClick={() => setSelection('trail:' + Math.round(viewing))}><MapPin size={15}/><span>Trail</span></button>
+          <button type="button" className="hb3-btn hb3-home" aria-label="Back to the expedition" onClick={() => { handle.current?.recenter(); setOverview(false); }} disabled={sceneState !== 'ready'}><Crosshair size={16} aria-hidden="true" /><span>Back to the expedition</span></button>
         </div>
         <p className="hb3-weather"><Wind size={14} aria-hidden="true" /> {weatherWord[ex.weather.weather]}{ex.weather.change !== null && `, ${ex.weather.change >= 0 ? '+' : ''}${Math.round(ex.weather.change * 100)}% revenue over the last 90 days`}</p>
-        <p className="hb3-hint" aria-hidden="true">Select a trail marker to inspect. Drag gently to explore.</p>
+        <p className="hb3-hint" aria-hidden="true">Tap a marker. Zoom in for smaller steps.</p>
       </section>
 
       {mode === 'live' && !ex.hasRecords && <p className="hb-notice">No revenue recorded yet, so the expedition stands at base camp. <Link href={`${base}/finance`}>Record income in Money</Link> and the climb starts.</p>}
