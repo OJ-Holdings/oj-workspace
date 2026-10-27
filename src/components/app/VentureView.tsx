@@ -48,7 +48,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
 
   const content = (<>
     {venture==='exterior'&&active==='overview'&&
-      <ExteriorCommand base={base} org={organizationId} mode={mode} readOnly={readOnly}
+      <ExteriorCommand base={base} org={organizationId} mode={mode} readOnly={readOnly} store={store}
         cards={cards} onNewTask={()=>board.openCard(undefined,{business:'exterior'})}/>}
 
 

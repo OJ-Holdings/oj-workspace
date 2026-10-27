@@ -13,13 +13,15 @@ import {sampleExterior} from '@/lib/exterior-sample';
 import {businessDay} from '@/lib/reporting';
 import {buildExteriorCommand,type ExteriorCommandSnapshot} from '@/lib/exterior-command';
 import type {Card} from '@/lib/board';
+import type {DashboardStore} from './useDashboard';
+import {LsaCard} from './LsaCard';
 import type {ExteriorResult} from '@/lib/exterior';
 
-type Props={base:string;org:string;mode:'live'|'preview';readOnly:boolean;cards:Card[];onNewTask:()=>void};
+type Props={base:string;org:string;mode:'live'|'preview';readOnly:boolean;cards:Card[];onNewTask:()=>void;store:DashboardStore};
 const money=(n:number|null)=>n===null?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
 const day=(key:string)=>new Date(key+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 const month=(key:string)=>new Date(key+'-15T12:00:00').toLocaleDateString('en-US',{month:'short'});
-export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
+export function ExteriorCommand({base,org,mode,readOnly,cards,store}:Props){
   const [result,setResult]=useState<ExteriorResult|null>(null);
   const [loadedAt,setLoadedAt]=useState<Date|null>(null);
   const [refresh,setRefresh]=useState(0);
@@ -99,6 +101,7 @@ export function ExteriorCommand({base,org,mode,readOnly,cards}:Props){
       </Link>)}
     </section>
 
+    {today&&<LsaCard store={store} leads={result.data.leads} today={today} readOnly={readOnly||mode==='preview'} parent={parent}/>}
     <section className="excmd-workspace" aria-label="Operations and founder decisions">
       <div className="excmd-mission-board">
         <header className="excmd-section-header">

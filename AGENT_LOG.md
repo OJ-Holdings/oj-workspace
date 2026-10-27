@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Local Services Ads card on the Exterior page)
+**Summary:** New card on /b/exterior for Google Local Services Ads, the main lead source: a founder adds the week's spend and lead count (stored as hand-logged metrics 'LSA spend' and 'LSA leads', Exterior, so both founders see the same numbers), and the card shows the month's spend, leads, cost per lead, completed jobs tagged LSA, spend per job, revenue on those jobs and return on spend. Jobs count only when their lead source is Local Services Ads (use Tag lead sources on Customers). Nothing is guessed: cost per lead needs both spend and leads, return needs spend and recorded job revenue.
+**Files:** src/lib/lsa-stats.ts, src/components/app/{LsaCard,ExteriorCommand,VentureView}.tsx, tests/lsa-stats.test.ts.
+**Verified:** typecheck; 4 new tests for the month maths; full suite (see CI).
+**Not verified:** the card with live data; adding entries in a signed-in session; phone layout.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Command screen, jobs timeline)
 **Summary:** The Today screen is now the Command screen: a day header with a glance strip (jobs today, tomorrow, overdue tasks), the quick actions, and a wide timeline of booked jobs (today, tomorrow, rest of the next 7 days; time on the left, customer, service, quote, address with a Directions link and Open job) beside a narrow column with open tasks, money in and out this month, Needs you and the truck fund. Other calendar events (non-booking) sit under the timeline. Grouping and ordering are a pure function with tests (src/lib/today-jobs.ts).
 **Files:** src/components/app/TodayBoard.tsx, src/lib/today-jobs.ts, src/styles/today-board.css, tests/today-jobs.test.ts.
