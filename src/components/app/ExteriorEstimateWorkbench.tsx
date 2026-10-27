@@ -18,6 +18,10 @@ import {
 import {sourceLabel,statusLabel,type ExteriorData} from '@/lib/exterior';
 import {exportQuoteHandoff,importQuoteHandoff,quoteHandoffMaxChars,quoteHandoffPreflight} from '@/lib/exterior-quote-handoff';
 import {BookDialog,type Act} from './ExteriorManage';
+import {
+ captureResidentialArchive,verifyResidentialArchive,planResidentialRestore,
+ restoreMissingResidentialDrafts,residentialArchiveMaxChars,
+} from '@/lib/exterior-residential-archive';
 
 type Props={data:ExteriorData;act:Act;busy:boolean;readOnly:boolean;org:string;now:Date;base:string;mode:'live'|'preview'};
 const usd=(n:number|null)=>n===null?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
@@ -50,6 +54,9 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
  const [checks,setChecks]=useState([false,false,false]);
  const [booking,setBooking]=useState(false);
  const uploadRef=useRef<HTMLInputElement|null>(null);
+ const archiveInputRef=useRef<HTMLInputElement|null>(null);
+ const archiveBusyRef=useRef(false);
+ const [archiveBusy,setArchiveBusy]=useState(false);
  const [filter,setFilter]=useState('');
  const [recentOnly,setRecentOnly]=useState(true);
  const readonly=readOnly||mode!=='live';
@@ -235,6 +242,90 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    );
    if(success){setNotice('Shared lead amount updated. This browser-local version is retained; rebase it on the refreshed customer record before another price update.');setChecks([false,false,false]);}
  };
+ /** Device-local backup only. Never uploads sensitive unit costs to a server. */
+ const flushOpenEstimateForArchive=()=>{
+   // A draft can be actively edited while the autosave debounce is pending.
+   // Capture that current validated state or refuse to claim a complete export.
+   if(!lead||!book||storageFailure)return;
+   if(!isExteriorEstimate(book.current,lead.id)){
+     throw Error('Finish the current invalid estimate fields before exporting or importing; no original records were changed.');
+   }
+   computeExteriorEstimate(book.current);
+   const json=JSON.stringify(book);
+   parseLocalEstimateBook(json,lead.id);
+   window.localStorage.setItem(storageKey(org,lead.id),json);
+ };
+ const exportAllResidential=async()=>{
+   if(readonly||archiveBusyRef.current)return;
+   archiveBusyRef.current=true;setArchiveBusy(true);
+   try{
+     flushOpenEstimateForArchive();
+     const archive=await captureResidentialArchive(org,window.localStorage,new Date().toISOString());
+     const raw=JSON.stringify(archive);
+     const blob=new Blob([raw],{type:'application/json;charset=utf-8'});
+     const uri=URL.createObjectURL(blob);
+     const a=document.createElement('a');
+     a.href=uri;
+     a.download='OJ-PRIVATE-residential-drafts-'+org.slice(0,8)+'-'+archive.capturedAt.slice(0,10)+'.json';
+     a.click();window.setTimeout(()=>URL.revokeObjectURL(uri),1500);
+     const unreadable=archive.entries.filter(e=>e.status==='unreadable').length;
+     setNotice('Prepared a private, checksummed archive of '+archive.entries.length+
+       ' residential browser drafts'+(unreadable?' including '+unreadable+' unreadable originals for manual recovery':'')+
+       '. This unencrypted file contains internal prices, costs and notes. Store it securely. It is NOT a cloud sync or customer proposal.');
+   }catch(error){
+     setNotice(error instanceof Error?error.message:'Browser data export failed. No original drafts were removed.');
+   }finally{archiveBusyRef.current=false;setArchiveBusy(false);}
+ };
+ const importMissingResidential=async(file:File|undefined)=>{
+   if(!file||readonly||archiveBusyRef.current)return;
+   archiveBusyRef.current=true;setArchiveBusy(true);
+   try{
+     if(file.size>residentialArchiveMaxChars*2)
+       throw Error('Residential archive is too large for this single-file recovery flow.');
+     // This makes an actively open new draft an EXISTING key. Import never
+     // overwrites it if a second device happened to export the same lead.
+     flushOpenEstimateForArchive();
+     const archive=await verifyResidentialArchive(await file.text(),org);
+     const plan=planResidentialRestore(archive,window.localStorage);
+     if(plan.missing.length===0){
+       setNotice('Archive verified. No missing validated drafts: '+plan.identical.length+
+         ' already identical, '+plan.conflicts.length+' differing local versions preserved, '+
+         plan.unreadable.length+' unreadable originals retained in the archive file. No writes performed.');
+       return;
+     }
+     const accepted=window.confirm(
+       'Verified PRIVATE archive for this exact OJ company: restore '+plan.missing.length+
+       ' MISSING validated draft(s) into THIS browser only? '+
+       plan.conflicts.length+' existing differing records will NOT be overwritten, and '+
+       plan.unreadable.length+' unreadable originals will stay in the file for manual recovery. '+
+       'No shared quotes, customers or invoices will change. Continue?'
+     );
+     if(!accepted){setNotice('Archive was verified but not restored. Existing browser records are unchanged.');return;}
+     const restored=restoreMissingResidentialDrafts(archive,window.localStorage);
+     setNotice('Private recovery: '+restored.imported+' missing draft(s) restored in this browser; '+
+       restored.skippedExisting+' existing draft(s) preserved; '+
+       restored.skippedUnreadable+' unreadable original(s) kept in the file.'+
+       (restored.failed?' Browser storage stopped at '+restored.failedLeadId+
+       '; earlier restored records remain, and none were overwritten.':'')+
+       ' This operation does not sync to the shared database.');
+   }catch(error){
+     setNotice(error instanceof Error?error.message:'Archive verification failed. Existing drafts remain intact.');
+   }finally{archiveBusyRef.current=false;setArchiveBusy(false);}
+ };
+ const archiveControls=(
+   <div className="ecest-toolbar" aria-label="Recover all residential drafts from this browser">
+     {!readonly&&<button type="button" disabled={archiveBusy}
+       onClick={exportAllResidential}><Download size={15}/> Export all residential drafts</button>}
+     {!readonly&&<button type="button" disabled={archiveBusy}
+       onClick={()=>archiveInputRef.current?.click()}><FileUp size={15}/> Restore missing from archive</button>}
+     <input ref={archiveInputRef} type="file" hidden accept=".json,application/json"
+       aria-label="Select a private checksummed residential archive"
+       onChange={async e=>{
+         const file=e.currentTarget.files?.[0];e.currentTarget.value='';
+         await importMissingResidential(file);
+       }}/>
+   </div>
+ );
  const candidates=data.leads.filter(l=>(l.name??'').toLowerCase().includes(filter.toLowerCase())||
    (l.address??'').toLowerCase().includes(filter.toLowerCase())||
    (l.service_requested??'').toLowerCase().includes(filter.toLowerCase()));
@@ -242,6 +333,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
    <section className="ecest-banner"><span className="ecest-eyebrow">ATLAS / EXTERIOR / ESTIMATING</span>
      <h1>{id?'Selected customer unavailable':'Estimate a real job.'}</h1>
      <p>{id?'That exact lead is not in the authorized source. No similarly named customer was substituted.':'Choose an existing Exterior Care customer record to start a line-item internal estimate. Nothing is sent to customers or entered as revenue.'}</p>
+     {archiveControls}
      <Link href={root+'/leads'}><ArrowLeft size={15}/> Customer workbench</Link>
    </section>
    <section className="ecest-pick"><div className="ecest-section-title"><div><span className="ecest-eyebrow">SOURCE SELECTION</span><h2>Choose a customer record</h2></div><FilePlus2 size={22}/></div>
@@ -250,6 +342,7 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
      <div>{candidates.filter(l=>!recentOnly||['new','contacted','following_up'].includes(l.status??'')).slice(0,80).map(l=>
        <Link key={l.id} href={`${root}/estimate?lead=${encodeURIComponent(l.id)}`}><strong>{l.name??'Unnamed customer'}</strong><span>{l.service_requested??'Unspecified service'} · {statusLabel(l.status)} · {usd(l.quote_amount)}</span><ArrowRight size={14}/></Link>)}</div>
      <small>Only original lead IDs are selectable. A returning completed job should be booked as a new opportunity, not repriced historically.</small>
+     {notice&&<p className="ecest-feedback" role="status">{notice}</p>}
    </section>
  </main>;
  if(!loaded||!book)return <main className="ecest" aria-busy="true"><p>Loading the local estimate workbench…</p></main>;
@@ -266,6 +359,13 @@ export function ExteriorEstimateWorkbench({data,act,busy,readOnly,org,now,base,m
           {pendingShared.current&&<button type="button" disabled={sharedStatus==='saving'} onClick={()=>{if(pendingShared.current)void sendSharedRevision(pendingShared.current);}}>Retry original shared save</button>}
          <button type="button" onClick={copy} disabled={!totals}><ClipboardCopy size={15}/> Copy internal brief</button>
          <button type="button" onClick={exportPortable} disabled={!totals}><Download size={15}/> Export quote package</button>
+         {!readonly&&<button type="button" disabled={archiveBusy} onClick={exportAllResidential}>
+           <Download size={15}/> Backup every residential draft</button>}
+         {!readonly&&<button type="button" disabled={archiveBusy}
+           onClick={()=>archiveInputRef.current?.click()}><FileUp size={15}/> Restore missing drafts</button>}
+         <input ref={archiveInputRef} type="file" hidden accept=".json,application/json"
+           aria-label="Import company-scoped residential draft archive"
+           onChange={async e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';await importMissingResidential(file);}}/>
          {canModify&&<button type="button" onClick={()=>uploadRef.current?.click()} disabled={!!storageFailure}><FileUp size={15}/> Import private package</button>}
          <input ref={uploadRef} type="file" accept=".json,application/json" aria-label="Import validated internal quote file"
            hidden onChange={async e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';await importPortable(file);}}/>
