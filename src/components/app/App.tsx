@@ -27,6 +27,7 @@ import { useDashboard } from './useDashboard';
 import { useJobs } from './useJobs';
 import { useWork } from './useWork';
 import { WorkTimer } from './WorkTimer';
+import { ChatBubble } from './ChatBubble';
 import type { WorkData } from '@/lib/work';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
@@ -282,6 +283,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} workMissing={work.missing} />}
         </div>
       )}
+      <ChatBubble store={store} organizationId={organizationId} displayName={displayName} readOnly={readOnly} mode={mode} />
       <CardDialog board={board} members={members} readOnly={readOnly} mode={mode} dashboard={store.data} jobs={jobs} base={base} />
     </Shell>
   );

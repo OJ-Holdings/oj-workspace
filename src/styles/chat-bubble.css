@@ -1,0 +1,20 @@
+/* Founder chat bubble. Sits left of the quick-add button; tokens only. */
+.chat-bubble { position: fixed; right: 84px; bottom: 22px; z-index: 35; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-3); }
+.chat-toggle { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line-2); border-radius: 50%; background: var(--panel-2); color: var(--ink); cursor: pointer; box-shadow: var(--shadow); }
+.chat-toggle:hover { border-color: var(--accent-hi); }
+.chat-unread { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: var(--t-xs); font-style: normal; font-weight: 800; display: grid; place-items: center; }
+.chat-panel { width: min(360px, calc(100vw - 32px)); height: min(460px, 70dvh); display: flex; flex-direction: column; border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.chat-panel header { display: flex; align-items: center; justify-content: space-between; padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--line); }
+.chat-panel h2 { margin: 0; font-size: var(--t-md); }
+.chat-list { flex: 1; margin: 0; padding: var(--s-4); list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: var(--s-3); }
+.chat-empty { color: var(--ink-3); font-size: var(--t-sm); }
+.chat-msg { max-width: 85%; padding: var(--s-3); border-radius: var(--r); background: var(--panel-3); align-self: flex-start; }
+.chat-msg.is-mine { align-self: flex-end; background: var(--accent-soft); }
+.chat-msg b { display: block; margin-bottom: 2px; font-size: var(--t-xs); color: var(--ink-3); }
+.chat-msg p { margin: 0; font-size: var(--t-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-msg time { display: block; margin-top: 4px; font-size: var(--t-xs); color: var(--ink-4); }
+.chat-form { display: flex; gap: var(--s-2); padding: var(--s-3); border-top: 1px solid var(--line); }
+.chat-form input { flex: 1; min-width: 0; min-height: 40px; padding: 0 var(--s-3); border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--bg-2); color: var(--ink); font: inherit; }
+@media (max-width: 900px) {
+  .chat-bubble { right: 16px; bottom: calc(72px + var(--s-3)); }
+}
