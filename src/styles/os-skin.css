@@ -1,0 +1,100 @@
+/*
+ * OJ OS skin. Loaded after every other stylesheet. One visual language for the whole app: obsidian canvas, warm glass panels,
+ * champagne as the shared accent (each business still re-tints inside its own room), a dock instead of a sidebar, a menu bar,
+ * open "windows" as tabs, and a live status bar along the bottom.
+ */
+:root {
+  --bg: #07080b; --bg-2: #0b0d12; --panel: #10131a; --panel-2: #151922; --panel-3: #1c212c;
+  --line: rgba(255, 244, 220, 0.075); --line-2: rgba(255, 244, 220, 0.16);
+  --ink: #f5f1e8; --ink-2: #c9c4b8; --ink-3: #8f8b81; --ink-4: #615e57;
+  --accent: #e2b866; --accent-hi: #f0cf8d; --accent-ink: #1a1406; --accent-soft: rgba(226, 184, 102, 0.14);
+  --accent-2: #8fd9c3;
+  --good: #66d9a8; --watch: #f0b455; --bad: #ff7b72;
+  --r-sm: 10px; --r: 16px; --r-lg: 22px; --r-xl: 28px;
+  --shadow: 0 0 0 1px rgba(255, 244, 220, 0.035) inset, 0 24px 48px -28px rgba(0, 0, 0, 0.9);
+  --os-glass: linear-gradient(160deg, rgba(255, 244, 220, 0.055), rgba(255, 244, 220, 0.018) 55%);
+  --os-bar-h: 52px; --os-tabs-h: 40px; --os-status-h: 34px; --os-dock-w: 84px;
+}
+html, body { background: var(--bg); }
+body {
+  background:
+    radial-gradient(1200px 600px at 78% -8%, rgba(226, 184, 102, 0.09), transparent 60%),
+    radial-gradient(900px 500px at 4% 108%, rgba(143, 217, 195, 0.06), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Business rooms keep their own colours, on the same obsidian structure. */
+[data-venture='exterior'] { --accent: #f58a2a; --accent-hi: #ffad5c; --accent-ink: #1a0c00; --accent-soft: rgba(245, 138, 42, 0.16); --accent-2: #7bc043; }
+[data-venture='solutions'] { --accent: #d89677; --accent-hi: #e8b69c; --accent-ink: #1c0f08; --accent-soft: rgba(216, 150, 119, 0.16); }
+
+/* ---------- Surfaces: warm glass instead of flat navy cards ---------- */
+.panel, .today-card, .today-stat, .atlas-pulse-card, .excmd-instrument, .excmd-mission-board, .excmd-decision-panel, .excmd-revenue-panel,
+.excmd-acquisition-panel, .excmd-hero, .atlas-treasury-panel, .atlas-treasury-value, .atlas-treasury-top, .atlas-booking-command,
+.atlas-booking-card, .atlas-lead-priority, .atlas-operator-launchpad, .kpis > div, .stop-body, .business-tile, .tools-card, .card-dialog {
+  background: var(--os-glass), var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+.kpis > div, .today-stat { border-radius: var(--r); }
+.stop.is-dim .stop-body { background: transparent; box-shadow: none; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
+.page-head h1, .today-head h1 { font-size: clamp(1.8rem, 3.2vw, 2.6rem); font-weight: 600; letter-spacing: -0.04em; }
+.primary, button.primary, a.primary { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--accent-ink); border: 0; box-shadow: 0 10px 24px -14px var(--accent); font-weight: 700; }
+.primary:hover { filter: brightness(1.06); }
+.secondary { background: var(--os-glass), var(--panel-2); border: 1px solid var(--line-2); color: var(--ink); }
+
+/* ---------- Menu bar ---------- */
+.topbar { min-height: var(--os-bar-h); height: var(--os-bar-h); padding: 0 20px; background: rgba(7, 8, 11, 0.74); backdrop-filter: blur(18px) saturate(140%); border-bottom: 1px solid var(--line); }
+.search-trigger { flex: 0 1 540px; margin: 0 auto; border-radius: 999px; background: var(--os-glass), var(--panel); border: 1px solid var(--line-2); }
+.stage { min-height: 100dvh; }
+.stage > main { flex: 1; }
+
+/* ---------- Open windows (tabs) ---------- */
+.os-tabs { display: flex; align-items: flex-end; height: var(--os-tabs-h); padding: 0 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+.os-tabs ul { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.os-tabs li { display: flex; align-items: center; gap: 2px; height: 32px; padding: 0 4px 0 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: transparent; }
+.os-tabs li.is-current { background: var(--panel); box-shadow: inset 0 2px 0 var(--accent); }
+.os-tabs a { font-size: 12px; font-weight: 650; color: var(--ink-3); text-decoration: none; white-space: nowrap; }
+.os-tabs li.is-current a { color: var(--ink); }
+.os-tabs button { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-4); cursor: pointer; }
+.os-tabs button:hover { background: var(--panel-3); color: var(--ink); }
+
+/* ---------- Status bar ---------- */
+.os-status { position: sticky; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 20px; height: var(--os-status-h); padding: 0 18px; background: rgba(11, 13, 18, 0.92); backdrop-filter: blur(14px); border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-3); }
+.os-status b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.os-status-item { display: inline-flex; align-items: center; white-space: nowrap; }
+.os-status-spacer { flex: 1; }
+.os-status-brand { color: var(--accent-hi); letter-spacing: 0.16em; font-weight: 800; }
+.os-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(102, 217, 168, 0.14); }
+.os-dot.is-warn { background: var(--watch); box-shadow: 0 0 0 3px rgba(240, 180, 85, 0.14); }
+.fab { bottom: calc(24px + var(--os-status-h)); }
+.chat-bubble { bottom: calc(22px + var(--os-status-h)); }
+
+/* ---------- Dock (desktop): large icon tiles instead of a sidebar ---------- */
+@media (min-width: 1001px) {
+  .shell, .shell.is-rail-collapsed { grid-template-columns: var(--os-dock-w) minmax(0, 1fr); }
+  .shell.atlas-shell .rail { width: var(--os-dock-w); padding: 14px 8px; gap: 4px; align-items: center; background: linear-gradient(180deg, rgba(255, 244, 220, 0.05), rgba(255, 244, 220, 0.012)), var(--bg-2); border-right: 1px solid var(--line); overflow-y: auto; scrollbar-width: none; }
+  .shell.atlas-shell .rail::-webkit-scrollbar { display: none; }
+  .shell.atlas-shell .rail-head { border: 0; justify-content: center; padding: 0 0 10px; }
+  .shell.atlas-shell .rail-brand { padding: 0; border: 0; }
+  .shell.atlas-shell .rail-logo { width: 46px; height: 46px; border-radius: 16px; border: 1px solid rgba(226, 184, 102, 0.5); background: linear-gradient(160deg, rgba(226, 184, 102, 0.28), rgba(226, 184, 102, 0.06)); color: var(--accent-hi); box-shadow: 0 12px 28px -16px var(--accent); }
+  .shell.atlas-shell .atlas-brand-text, .shell.atlas-shell .rail-collapse, .shell.atlas-shell .rail-team, .shell.atlas-shell .rail-motto, .shell.atlas-shell .atlas-rail-heading:not(button) { display: none; }
+  .shell.atlas-shell .rail nav { align-items: center; gap: 4px; width: 100%; }
+  .shell.atlas-shell .rail nav > div { display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .shell.atlas-shell .rail .rail-link { position: relative; flex-direction: column; justify-content: center; gap: 5px; width: 68px; min-height: 0; height: 60px; padding: 0; border-radius: 18px; font-size: 10px; font-weight: 650; line-height: 1.1; text-align: center; color: var(--ink-3); }
+  .shell.atlas-shell .rail .rail-link span { display: block; }
+  .shell.atlas-shell .rail .rail-link svg { width: 22px; height: 22px; color: var(--ink-3); }
+  .shell.atlas-shell .rail .rail-link:hover { background: var(--panel-2); color: var(--ink); box-shadow: none; transform: none; }
+  .shell.atlas-shell .rail .rail-link.is-current { background: var(--accent-soft); color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(226, 184, 102, 0.38), 0 14px 28px -18px var(--accent); }
+  .shell.atlas-shell .rail .rail-link.is-current svg { color: var(--accent-hi); }
+  .shell.atlas-shell .rail .rail-count { position: absolute; top: 4px; right: 8px; min-width: 18px; padding: 0 5px; font-size: 10px; background: var(--accent); color: var(--accent-ink); }
+  .shell.atlas-shell .rail .atlas-nav-group-toggle { width: 68px; justify-content: center; gap: 4px; margin: 6px 0 2px; padding: 6px 0; border: 1px dashed var(--line-2); border-radius: 14px; background: transparent; color: var(--ink-4); font-size: 10px; letter-spacing: 0.12em; }
+  .shell.atlas-shell .rail .rail-ventures { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 8px 0; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line); width: 100%; }
+  .shell.atlas-shell .rail .rail-venture { width: 46px; height: 46px; min-height: 0; padding: 0; justify-content: center; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); }
+  .shell.atlas-shell .rail .rail-venture span { display: none; }
+  .shell.atlas-shell .rail .rail-venture:hover, .shell.atlas-shell .rail .rail-venture.is-current { border-color: var(--accent); background: var(--accent-soft); }
+  .shell.atlas-shell .rail .rail-venture img { width: 30px; height: 30px; border-radius: 9px; }
+}
+@media (max-width: 1000px) { .os-status { display: none; } .fab, .chat-bubble { bottom: auto; } }
