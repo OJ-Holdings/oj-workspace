@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS mobile fixes: top bar and chat bubble at 375 px)
+**Summary:** At phone width the new company switcher pushed the avatar off screen and the chat bubble sat on top of the quick-add button. The switcher now shows only its logo under 600 px, and the chat bubble sits just left of the quick-add button above the phone tab bar.
+**Files:** src/styles/entity-switch.css, src/styles/chat-bubble.css.
+**Verified:** typecheck; build; at a 375x812 viewport on /preview the avatar is fully on screen, chat and quick-add do not overlap, and the page has no horizontal scroll.
+**Not verified:** a real phone, safe-area insets on iPhone, the signed-in app.
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 2 prep: tested ledger + invoices SQL, staged, NOT applied)
 **Summary:** Staged the money core for owner review under docs/db-change-proposals/money-core/ (not supabase/schemas, so the guarded deployer is not blocked): ledger-core.sql (chart of accounts, double-entry journal, balanced-at-commit check, append-only entries, idempotent posting, one-time reversal, period lock, trial balance, owner chart seed with a partnership-aware chart for one LLC with division tags) and invoices.sql (numbered invoices, lines, payments, void; each posts to the ledger; sales tax stays 0 until a CPA confirms the Wisconsin rule). docs/db-change-proposals/RUN-ME-money-core.sql is the one-paste combined script with an already-exists guard.
 **Files:** docs/db-change-proposals/{RUN-ME-money-core.sql,money-core/ledger-core.sql,money-core/invoices.sql}, tests/{ledger-core-sql,invoices-sql,money-core-runme}.test.ts.

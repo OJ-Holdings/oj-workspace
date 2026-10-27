@@ -36,3 +36,9 @@
 @media (min-width: 901px) {
   .is-rail-collapsed .rail-head { flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-3); }
 }
+
+/* Phones: the company switcher shows only its logo so the top bar fits (avatar, bell, timer stay on screen). */
+@media (max-width: 600px) {
+  .entity-switch-btn span { display: none; }
+  .entity-switch-btn { padding: 0 var(--s-2); gap: var(--s-1); }
+}
