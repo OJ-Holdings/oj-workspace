@@ -1,5 +1,9 @@
 # AGENT LOG
 
+## October 27, 2026 — Hyperborea expedition inspection and camera
+
+Codex: replaced the long below-mountain report with a compact timeframe chart and on-demand expedition inspector. Trail markers open monthly history, camp gates and revenue waypoints; 43 evidence-aware achievements, next-meter requirements and source limits remain accessible without clutter. Repaired rolling-year forecast accumulation; configured tabs no longer prove owned companies; unknown achievements no longer read as founder-confirmed. Smoothed camera position/aim, normalized wheel input, removed artificial camera shake and added whole-mountain framing. No schema/customer/credential changes. Local 898 tests, TypeScript and production build pass; synthetic browser inspection verified trail-marker navigation, gain selection, achievement states and native Escape/focus return. Live release evidence will be appended to the PR after exact-head CI/deployment. See [implementation and limits](docs/HYPERBOREA_EXPEDITION_DESK.md). Exterior scores unchanged.
+
 Shared changelog for everyone (and every AI agent) working on the OJ Workspace:
 Oscar and Jacob, Claude Code, Codex. Nobody can see anyone else's session, so
 this file is how work gets handed over.
