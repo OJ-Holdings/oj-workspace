@@ -423,6 +423,8 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       const d = camera.position.distanceTo(l.at);
       const x=(tmp.x+1)/2*w, y=(1-tmp.y)/2*h;
       let fade = tmp.z > -1 && tmp.z < 1 && Math.abs(tmp.x) < 0.95 && Math.abs(tmp.y) < 0.95 ? Math.max(overviewNow, Math.max(0, Math.min(1, 1 - (d - l.near) / 40))) : 0;
+      // Reserve quiet space for the title, readout and controls rather than drawing through them.
+      if (y < 130 || y > h - 100 || (x < 210 && y > h - 210) || (x > w - 280 && y < 235)) fade = 0;
       if (fade > 0.3 && occupied.some(p=>Math.abs(p.x-x)<135&&Math.abs(p.y-y)<35)) fade=0;
       if (fade>0.3) occupied.push({x,y});
       l.el.style.opacity = fade.toFixed(2);

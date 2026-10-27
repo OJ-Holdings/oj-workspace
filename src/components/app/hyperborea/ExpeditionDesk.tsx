@@ -37,7 +37,7 @@ export const ExpeditionDesk = memo(function ExpeditionDesk({ex,data,businesses,b
   const selectedCamp = selection?.startsWith('camp:') ? camps.find(c=>c.id===selection.slice(5)) : null;
   const selectedObjective = selection?.startsWith('goal:') ? next.find(o=>o.revenue===Number(selection.slice(5))) : null;
   const titles:Record<string,string> = {history:'The expedition journal',climb:'Earn the next meters',camp:'The route to 2046',goal:'The next ridgeline',achievements:'The achievement cabinet',records:'Behind the altitude'};
-  const W=800,H=160,pad=14, lo=Math.min(...progress.points.map(p=>p.altitude)), hi=Math.max(lo+60,...progress.points.map(p=>p.altitude));
+  const W=800,H=120,pad=14, lo=Math.min(...progress.points.map(p=>p.altitude))-30, hi=Math.max(...progress.points.map(p=>p.altitude))+30;
   const xy=(alt:number,i:number)=>`${pad+i/Math.max(progress.points.length-1,1)*(W-2*pad)},${H-pad-(alt-lo)/(hi-lo)*(H-pad*2)}`;
   const line=progress.points.map((p,i)=>`${i?'L':'M'}${xy(p.altitude,i)}`).join(' ');
   const coverage = data.reporting?.sources.filter(s=>s.state!=='available') ?? [];
