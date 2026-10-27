@@ -2,13 +2,15 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CalendarClock, CircleAlert, ListChecks, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarClock, CircleAlert, ListChecks, MapPin, Wallet } from 'lucide-react';
 import type { Board } from './useBoard';
 import type { DashboardStore } from './useDashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { money } from '@/lib/metrics';
 import { ventures } from '@/lib/ventures';
 import { buildAtlasSnapshot } from '@/lib/atlas-command';
+import { blockLabel } from '@/lib/exterior-ops';
+import { todayJobs } from '@/lib/today-jobs';
 import { OperatorLaunchpad } from './OperatorLaunchpad';
 import { TruckFundCard } from './TruckFundCard';
 
@@ -17,89 +19,126 @@ type Props = {
   mode: 'preview' | 'live'; readOnly: boolean; displayName: string; limited: boolean;
 };
 
-const formatDay = (day: string) => new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const formatDay = (day: string) => new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+const shortDay = (day: string) => new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 const sevLabel = { urgent: 'Overdue', attention: 'Attention', review: 'Check', informational: 'Upcoming' } as const;
 
+function Stop({ job, base, dim }: { job: JobItem; base: string; dim?: boolean }) {
+  return (
+    <li className={dim ? 'stop is-dim' : 'stop'}>
+      <time className="stop-time">{blockLabel(job.time_block)}</time>
+      <span className="stop-node" aria-hidden="true" />
+      <div className="stop-body">
+        <div className="stop-head">
+          <Link href={`${base}/b/exterior/customer?lead=${encodeURIComponent(job.lead_id)}`}><strong>{job.name}</strong></Link>
+          {job.quote !== null && <span className="stop-quote">{money(job.quote)}</span>}
+        </div>
+        <p>{job.service || 'Service not entered'}{job.status === 'pending_approval' ? ' - pending approval' : ''}</p>
+        <div className="stop-actions">
+          {job.address && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer"><MapPin size={13} aria-hidden="true" /> {job.address}</a>}
+          <Link href={`${base}/b/exterior/bookings?booking=${encodeURIComponent(job.id)}`}>Open job <ArrowRight size={13} aria-hidden="true" /></Link>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 /**
- * The Today screen: what is happening, what is next, what needs you, and the month's recorded money. It replaces the long
- * executive-command page. Every figure comes from the same loaded snapshot the old page used; nothing here is new data.
+ * The Command screen: today's jobs as a timeline, what needs you, the month's recorded money and the truck fund.
+ * Every figure comes from the records already loaded for the workspace; nothing here is new data.
  */
 export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, displayName, limited }: Props) {
   const snapshot = useMemo(
     () => (today ? buildAtlasSnapshot({ cards: board.data.cards, dashboard: store.data, jobs, today, limited }) : null),
     [board.data.cards, store.data, jobs, today, limited],
   );
+  const grouped = useMemo(() => (today ? todayJobs(jobs, today) : { today: [], tomorrow: [], later: [] }), [jobs, today]);
   const totals = snapshot?.intelligence.totals;
-  const todays = snapshot?.schedule.filter(e => e.date === today) ?? [];
-  const upcoming = snapshot?.schedule.filter(e => e.date > today) ?? [];
   const signals = snapshot?.intelligence.signals.slice(0, 5) ?? [];
   const finance = snapshot?.finance;
+  const events = (snapshot?.schedule ?? []).filter(e => e.key.startsWith('event:')).slice(0, 4);
+  const quiet = grouped.today.length + grouped.tomorrow.length + grouped.later.length === 0;
 
   return (
-    <section className="today-board" aria-label="Today">
+    <section className="today-board" aria-label="Command">
       <header className="today-head">
         <div>
           <p className="today-date">{today ? formatDay(today) : 'Loading date'}</p>
-          <h1>{mode === 'preview' ? 'Today' : displayName ? `Today, ${displayName}` : 'Today'}</h1>
+          <h1>{mode === 'preview' || !displayName ? 'Command' : `Good day, ${displayName}`}</h1>
+        </div>
+        <div className="today-pulse" aria-label="Today at a glance">
+          <span><b>{grouped.today.length}</b> job{grouped.today.length === 1 ? '' : 's'} today</span>
+          <span><b>{grouped.tomorrow.length}</b> tomorrow</span>
+          {totals && <span><b>{totals.overdueTasks}</b> overdue task{totals.overdueTasks === 1 ? '' : 's'}</span>}
         </div>
       </header>
 
-      <OperatorLaunchpad base={base as '/workspace' | '/preview'} mode={mode} readOnly={readOnly} compact onNewTask={() => board.openCard(undefined, { business: 'exterior' })} />
+      <div className="today-grid">
+        <div className="today-main">
+          <OperatorLaunchpad base={base as '/workspace' | '/preview'} mode={mode} readOnly={readOnly} compact onNewTask={() => board.openCard(undefined, { business: 'exterior' })} />
 
-      <div className="today-stats">
-        <Link href={base + '/b/exterior/bookings'} className="today-stat">
-          <span><CalendarClock size={15} aria-hidden="true" /> Jobs today</span>
-          <strong>{snapshot ? todays.filter(e => e.business === 'exterior').length : '-'}</strong>
-          <small>{totals ? `${totals.upcomingExterior} in the next 7 days` : 'Loading'}</small>
-        </Link>
-        <Link href={base + '/tasks'} className="today-stat">
-          <span><ListChecks size={15} aria-hidden="true" /> Open tasks</span>
-          <strong>{totals?.openTasks ?? '-'}</strong>
-          <small>{totals ? `${totals.overdueTasks} overdue, ${totals.dueToday} due today` : 'Loading'}</small>
-        </Link>
-        <Link href={base + '/finance'} className="today-stat">
-          <span><Wallet size={15} aria-hidden="true" /> Money in this month</span>
-          <strong>{finance?.available ? money(finance.recordedRevenue) : '-'}</strong>
-          <small>{finance?.available ? 'Recorded entries' : 'No finance entries loaded'}</small>
-        </Link>
-        <Link href={base + '/finance'} className="today-stat">
-          <span><Wallet size={15} aria-hidden="true" /> Money out this month</span>
-          <strong>{finance?.available ? money(finance.recordedCosts) : '-'}</strong>
-          <small>{finance?.available ? 'Recorded entries' : 'No finance entries loaded'}</small>
-        </Link>
+          <section className="today-card today-timeline" aria-labelledby="today-jobs-h">
+            <header><h2 id="today-jobs-h"><CalendarClock size={18} aria-hidden="true" /> Jobs</h2><Link href={base + '/b/exterior/bookings'}>All jobs <ArrowRight size={14} aria-hidden="true" /></Link></header>
+            {quiet ? (
+              <p className="today-empty">No jobs in the next 7 days. <Link href={base + '/b/exterior/bookings?new=1'}>Book one</Link></p>
+            ) : <>
+              <h3 className="stop-group">Today{grouped.today.length === 0 ? ' - nothing booked' : ''}</h3>
+              {grouped.today.length > 0 && <ol className="stops">{grouped.today.map(j => <Stop key={j.id} job={j} base={base} />)}</ol>}
+              {grouped.tomorrow.length > 0 && <>
+                <h3 className="stop-group">Tomorrow</h3>
+                <ol className="stops">{grouped.tomorrow.map(j => <Stop key={j.id} job={j} base={base} dim />)}</ol>
+              </>}
+              {grouped.later.length > 0 && <>
+                <h3 className="stop-group">Later this week</h3>
+                <ol className="stops">{grouped.later.map(j => (
+                  <li key={j.id} className="stop is-dim stop-compact"><time className="stop-time">{shortDay(j.date)}</time><span className="stop-node" aria-hidden="true" />
+                    <div className="stop-body"><div className="stop-head"><Link href={`${base}/b/exterior/bookings?booking=${encodeURIComponent(j.id)}`}><strong>{j.name}</strong></Link><span className="stop-quote">{blockLabel(j.time_block)}</span></div></div></li>
+                ))}</ol>
+              </>}
+            </>}
+            {events.length > 0 && <>
+              <h3 className="stop-group">Other calendar events</h3>
+              <ul className="today-list">{events.map(e => <li key={e.key}><time dateTime={e.date}>{shortDay(e.date)}</time><Link href={base + e.href}><strong>{e.title}</strong><small>{e.business ? ventures[e.business].short : 'Company'} - {e.detail}</small></Link></li>)}</ul>
+            </>}
+          </section>
+        </div>
+
+        <aside className="today-side">
+          <div className="today-stats">
+            <Link href={base + '/tasks'} className="today-stat">
+              <span><ListChecks size={15} aria-hidden="true" /> Open tasks</span>
+              <strong>{totals?.openTasks ?? '-'}</strong>
+              <small>{totals ? `${totals.overdueTasks} overdue, ${totals.dueToday} due today` : 'Loading'}</small>
+            </Link>
+            <Link href={base + '/finance'} className="today-stat">
+              <span><Wallet size={15} aria-hidden="true" /> In this month</span>
+              <strong>{finance?.available ? money(finance.recordedRevenue) : '-'}</strong>
+              <small>{finance?.available ? 'Recorded' : 'Nothing recorded'}</small>
+            </Link>
+            <Link href={base + '/finance'} className="today-stat">
+              <span><Wallet size={15} aria-hidden="true" /> Out this month</span>
+              <strong>{finance?.available ? money(finance.recordedCosts) : '-'}</strong>
+              <small>{finance?.available ? 'Recorded' : 'Nothing recorded'}</small>
+            </Link>
+          </div>
+
+          <section className="today-card" aria-labelledby="today-needs">
+            <header><h2 id="today-needs">Needs you</h2><Link href={base + '/tasks'}>Tasks <ArrowRight size={14} aria-hidden="true" /></Link></header>
+            {signals.length === 0
+              ? <p className="today-empty">Nothing flagged right now.</p>
+              : <ol className="today-list">
+                {signals.map(signal => (
+                  <li key={signal.id}>
+                    <span className={'today-sev today-sev-' + signal.severity}><CircleAlert size={13} aria-hidden="true" />{sevLabel[signal.severity]}</span>
+                    <Link href={base + signal.destination}><strong>{signal.title}</strong><small>{signal.business ? ventures[signal.business].short : 'Company'}</small></Link>
+                  </li>
+                ))}
+              </ol>}
+          </section>
+
+          <TruckFundCard store={store} today={today} readOnly={readOnly} />
+        </aside>
       </div>
-
-      <div className="today-columns">
-        <section className="today-card" aria-labelledby="today-next">
-          <header><h2 id="today-next">Next up</h2><Link href={base + '/calendar'}>Schedule <ArrowRight size={14} aria-hidden="true" /></Link></header>
-          {todays.length + upcoming.length === 0
-            ? <p className="today-empty">Nothing scheduled in the next 7 days. <Link href={base + '/b/exterior/bookings?new=1'}>Book a job</Link></p>
-            : <ol className="today-list">
-              {[...todays, ...upcoming].slice(0, 7).map(event => (
-                <li key={event.key}>
-                  <time dateTime={event.date}>{event.date === today ? 'Today' : formatDay(event.date)}</time>
-                  <Link href={base + event.href}><strong>{event.title}</strong><small>{event.business ? ventures[event.business].short : 'Company'} - {event.detail}</small></Link>
-                </li>
-              ))}
-            </ol>}
-        </section>
-
-        <section className="today-card" aria-labelledby="today-needs">
-          <header><h2 id="today-needs">Needs you</h2><Link href={base + '/tasks'}>Tasks <ArrowRight size={14} aria-hidden="true" /></Link></header>
-          {signals.length === 0
-            ? <p className="today-empty">Nothing flagged right now.</p>
-            : <ol className="today-list">
-              {signals.map(signal => (
-                <li key={signal.id}>
-                  <span className={'today-sev today-sev-' + signal.severity}><CircleAlert size={13} aria-hidden="true" />{sevLabel[signal.severity]}</span>
-                  <Link href={base + signal.destination}><strong>{signal.title}</strong><small>{signal.business ? ventures[signal.business].short : 'Company'}</small></Link>
-                </li>
-              ))}
-            </ol>}
-        </section>
-      </div>
-
-      <TruckFundCard store={store} today={today} readOnly={readOnly} />
     </section>
   );
 }
