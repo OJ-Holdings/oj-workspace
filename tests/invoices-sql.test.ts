@@ -123,6 +123,35 @@ test('invoices: issue, pay, void, numbering, ledger agreement, immutability and 
     await assert.rejects(() => db.exec(`delete from oj_payments`), /append-only/);
   });
 
+  await t.test('invoice ledger entries cannot be forged, borrowed or undone through the general ledger functions', async () => {
+    await as(MEMBER);
+    const inv = await invoice(second);
+    const lines = JSON.stringify([{ account_id: exteriorIncome, division: 'exterior', debit_cents: 100, credit_cents: 0, memo: '' }, { account_id: cash, division: 'exterior', debit_cents: 0, credit_cents: 100, memo: '' }]);
+    // reserved entry types and key prefixes belong to the invoice functions
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','x','invoice',null,null,$1::jsonb)`, [lines]), /posted by its own function/);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','x','payment',null,null,$1::jsonb)`, [lines]), /posted by its own function/);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','x','manual',null,'pay:p3',$1::jsonb)`, [lines]), /reserved/);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','x','manual',null,'inv-issue:job-1',$1::jsonb)`, [lines]), /reserved/);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','x','manual',null,'inv-void:k',$1::jsonb)`, [lines]), /reserved/);
+    await assert.rejects(() => db.query(`select public.oj_reverse_journal('${ORG}','${inv.issue_entry_id}','2026-11-07','x','inv-void:k')`), /reserved/);
+    // an invoice or payment entry cannot be reversed behind the invoice's back
+    await assert.rejects(() => db.query(`select public.oj_reverse_journal('${ORG}','${inv.issue_entry_id}','2026-11-07','sneaky',null)`), /through the invoice functions/);
+    const payEntry = (await db.query<{ entry_id: string }>(`select entry_id from oj_payments where invoice_id='${second}' limit 1`)).rows[0].entry_id;
+    await assert.rejects(() => db.query(`select public.oj_reverse_journal('${ORG}','${payEntry}','2026-11-07','sneaky',null)`), /through the invoice functions/);
+    // the stored amounts and status are untouched by all of that
+    assert.equal((await invoice(second)).status, 'open');
+  });
+
+  await t.test('an idempotency key already used by a different entry is refused, not silently reused', async () => {
+    await as(OWNER);
+    const l = JSON.stringify([{ account_id: exteriorIncome, division: 'exterior', debit_cents: 0, credit_cents: 500, memo: '' }, { account_id: cash, division: 'exterior', debit_cents: 500, credit_cents: 0, memo: '' }]);
+    const first = (await db.query<{ id: string }>(`select public.oj_post_journal('${ORG}','2026-11-06','a','manual',null,'dup-key',$1::jsonb) as id`, [l])).rows[0].id;
+    assert.equal((await db.query<{ id: string }>(`select public.oj_post_journal('${ORG}','2026-11-06','a','manual',null,'dup-key',$1::jsonb) as id`, [l])).rows[0].id, first);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','a','manual','00000000-0000-4000-8000-0000000000aa','dup-key',$1::jsonb)`, [l]), /already used for a different entry/);
+    await assert.rejects(() => db.query(`select public.oj_post_journal('${ORG}','2026-11-06','a','expense',null,'dup-key',$1::jsonb)`, [l]), /already used for a different entry/);
+    await assert.rejects(() => db.query(`select public.oj_reverse_journal('${ORG}','${first}','2026-11-07','r','dup-key')`), /already used for a different entry/);
+  });
+
   await t.test('another company sees none of the invoices', async () => {
     await as(OUTSIDER);
     for (const table of ['oj_invoices', 'oj_invoice_lines', 'oj_payments']) assert.equal((await db.query(`select * from ${table}`)).rows.length, 0, table);

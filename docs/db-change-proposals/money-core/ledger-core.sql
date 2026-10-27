@@ -100,16 +100,19 @@ end $$;
 revoke all on function oj_private.ledger_entry_balanced() from public;
 create constraint trigger journal_lines_balanced after insert on public.oj_journal_lines deferrable initially deferred for each row execute function oj_private.ledger_entry_balanced();
 
--- Post one balanced entry. p_lines: [{"account_id": uuid, "division": text, "debit_cents": int, "credit_cents": int, "memo": text}, ...]
-create function public.oj_post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
+-- Post one balanced entry (internal worker; the public wrapper below blocks the entry types and key prefixes that belong to the invoice functions). p_lines: [{"account_id": uuid, "division": text, "debit_cents": int, "credit_cents": int, "memo": text}, ...]
+create function oj_private.post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare entry uuid; item jsonb; deb bigint := 0; cred bigint := 0; locked date; acct record; d bigint; c bigint;
+declare entry uuid; item jsonb; deb bigint := 0; cred bigint := 0; locked date; acct record; d bigint; c bigint; hit record;
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
   if p_date is null then raise exception 'Choose an entry date'; end if;
   if p_key is not null then
-    select id into entry from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
-    if found then return entry; end if;
+    select id, source_type, source_id into hit from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
+    if found then
+      if hit.source_type is distinct from coalesce(p_source_type, 'manual') or hit.source_id is distinct from p_source_id then raise exception 'That idempotency key was already used for a different entry'; end if;
+      return hit.id;
+    end if;
   end if;
   select locked_through into locked from public.oj_ledger_locks where organization_id = p_org;
   if locked is not null and p_date <= locked then raise exception 'That period is locked through %', locked; end if;
@@ -132,18 +135,31 @@ begin
   return entry;
 end $$;
 
--- Undo an entry by posting its mirror image. An entry can be reversed once; a reversal cannot itself be reversed.
-create function public.oj_reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text)
+create function public.oj_post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare original public.oj_journal_entries; entry uuid; locked date;
+begin
+  if coalesce(p_source_type, 'manual') not in ('manual','job','expense','bank','payout','opening') then raise exception 'That entry type is posted by its own function'; end if;
+  if p_key is not null and (p_key like 'inv-issue:%' or p_key like 'pay:%' or p_key like 'inv-void:%') then raise exception 'That idempotency key prefix is reserved'; end if;
+  return oj_private.post_journal(p_org, p_date, p_memo, coalesce(p_source_type, 'manual'), p_source_id, p_key, p_lines);
+end $$;
+
+-- Undo an entry by posting its mirror image. An entry can be reversed once; a reversal cannot itself be reversed.
+-- Internal worker: p_system lets the invoice functions reverse invoice entries; the public wrapper below never does.
+create function oj_private.reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text, p_system boolean)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare original public.oj_journal_entries; entry uuid; locked date; hit record;
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
   if p_key is not null then
-    select id into entry from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
-    if found then return entry; end if;
+    select id, reversal_of into hit from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
+    if found then
+      if hit.reversal_of is distinct from p_entry then raise exception 'That idempotency key was already used for a different entry'; end if;
+      return hit.id;
+    end if;
   end if;
   select * into original from public.oj_journal_entries where organization_id = p_org and id = p_entry;
   if not found then raise exception 'Entry not found'; end if;
+  if not p_system and original.source_type in ('invoice', 'payment') then raise exception 'Invoice and payment entries are undone through the invoice functions'; end if;
   if original.reversal_of is not null then raise exception 'A reversal cannot be reversed'; end if;
   if exists (select 1 from public.oj_journal_entries where organization_id = p_org and reversal_of = p_entry) then raise exception 'That entry was already reversed'; end if;
   select locked_through into locked from public.oj_ledger_locks where organization_id = p_org;
@@ -153,6 +169,13 @@ begin
   insert into public.oj_journal_lines(organization_id, entry_id, account_id, division, debit_cents, credit_cents, memo)
     select organization_id, entry, account_id, division, credit_cents, debit_cents, memo from public.oj_journal_lines where organization_id = p_org and entry_id = original.id;
   return entry;
+end $$;
+
+create function public.oj_reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+begin
+  if p_key is not null and (p_key like 'inv-issue:%' or p_key like 'pay:%' or p_key like 'inv-void:%') then raise exception 'That idempotency key prefix is reserved'; end if;
+  return oj_private.reverse_journal(p_org, p_entry, p_date, p_memo, p_key, false);
 end $$;
 
 -- Owners only: lock the books through a date (month-end close). Dates only move forward.
@@ -206,3 +229,5 @@ revoke all on function public.oj_post_journal(uuid, date, text, text, uuid, text
   public.oj_lock_period(uuid, date), public.oj_seed_chart(uuid), public.oj_trial_balance(uuid, date) from public, anon;
 grant execute on function public.oj_post_journal(uuid, date, text, text, uuid, text, jsonb), public.oj_reverse_journal(uuid, uuid, date, text, text),
   public.oj_lock_period(uuid, date), public.oj_seed_chart(uuid), public.oj_trial_balance(uuid, date) to authenticated;
+
+revoke all on function oj_private.post_journal(uuid, date, text, text, uuid, text, jsonb), oj_private.reverse_journal(uuid, uuid, date, text, text, boolean) from public;

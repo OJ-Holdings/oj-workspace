@@ -145,7 +145,7 @@ begin
       values (p_org, inv, pos, item->>'description', qty, price, amt, acct);
     ledger := ledger || jsonb_build_array(jsonb_build_object('account_id', acct, 'division', p_division, 'debit_cents', 0, 'credit_cents', amt, 'memo', number_text));
   end loop;
-  entry := public.oj_post_journal(p_org, p_issue, 'Invoice ' || number_text || ' to ' || (p_customer->>'name'), 'invoice', inv, case when p_key is null then null else 'inv-issue:' || p_key end, ledger);
+  entry := oj_private.post_journal(p_org, p_issue, 'Invoice ' || number_text || ' to ' || (p_customer->>'name'), 'invoice', inv, case when p_key is null then null else 'inv-issue:' || p_key end, ledger);
   -- Only this function may point an invoice at its entry, and it does so once, in the same transaction.
   perform set_config('oj.allow_invoice_link', '1', true);
   update public.oj_invoices set issue_entry_id = entry where id = inv;
@@ -169,7 +169,7 @@ begin
   if p_method not in ('card','ach','check','cash','zelle','venmo','other') then raise exception 'Choose a payment method'; end if;
   ar := oj_private.account_by_code(p_org, '1100');
   deposit := oj_private.account_by_code(p_org, case when p_method in ('ach','zelle','venmo') then '1010' else '1150' end);
-  entry := public.oj_post_journal(p_org, p_received, 'Payment on ' || inv.number || ' (' || p_method || ')', 'payment', p_invoice, case when p_key is null then null else 'pay:' || p_key end,
+  entry := oj_private.post_journal(p_org, p_received, 'Payment on ' || inv.number || ' (' || p_method || ')', 'payment', p_invoice, case when p_key is null then null else 'pay:' || p_key end,
     jsonb_build_array(
       jsonb_build_object('account_id', deposit, 'division', inv.division, 'debit_cents', p_amount_cents, 'credit_cents', 0, 'memo', inv.number),
       jsonb_build_object('account_id', ar, 'division', inv.division, 'debit_cents', 0, 'credit_cents', p_amount_cents, 'memo', inv.number)));
@@ -189,7 +189,7 @@ begin
   if not found then raise exception 'Invoice not found'; end if;
   if inv.status = 'void' then return inv.void_entry_id; end if;
   if inv.paid_cents > 0 then raise exception 'An invoice with payments cannot be voided'; end if;
-  entry := public.oj_reverse_journal(p_org, inv.issue_entry_id, p_date, 'Void ' || inv.number || coalesce(': ' || nullif(p_reason, ''), ''), p_key);
+  entry := oj_private.reverse_journal(p_org, inv.issue_entry_id, p_date, 'Void ' || inv.number || coalesce(': ' || nullif(p_reason, ''), ''), case when p_key is null then null else 'inv-void:' || p_key end, true);
   perform set_config('oj.allow_invoice_link', '1', true);
   update public.oj_invoices set status = 'void', void_entry_id = entry where id = p_invoice;
   return entry;

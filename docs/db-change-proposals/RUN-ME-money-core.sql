@@ -4,7 +4,7 @@
 -- Additive only: creates new tables (accounts, journal, invoices, payments and helpers) and functions. It changes no existing table or row.
 -- It stops with an error, changing nothing, if the ledger already exists.
 -- After it succeeds, an owner starts the chart of accounts from the app (or runs: select public.oj_seed_chart('<your organization id>');).
--- Tested in tests/ledger-core-sql.test.ts and tests/invoices-sql.test.ts (24 checks on a real Postgres engine).
+-- Tested in tests/ledger-core-sql.test.ts and tests/invoices-sql.test.ts (on a real Postgres engine).
 -- To undo (only before real data is posted): drop the tables public.oj_payments, oj_invoice_lines, oj_invoices, oj_invoice_counters,
 -- oj_journal_lines, oj_journal_entries, oj_ledger_locks, oj_accounts (cascade) and the oj_* functions listed in the two source files.
 
@@ -117,16 +117,19 @@ end $$;
 revoke all on function oj_private.ledger_entry_balanced() from public;
 create constraint trigger journal_lines_balanced after insert on public.oj_journal_lines deferrable initially deferred for each row execute function oj_private.ledger_entry_balanced();
 
--- Post one balanced entry. p_lines: [{"account_id": uuid, "division": text, "debit_cents": int, "credit_cents": int, "memo": text}, ...]
-create function public.oj_post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
+-- Post one balanced entry (internal worker; the public wrapper below blocks the entry types and key prefixes that belong to the invoice functions). p_lines: [{"account_id": uuid, "division": text, "debit_cents": int, "credit_cents": int, "memo": text}, ...]
+create function oj_private.post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare entry uuid; item jsonb; deb bigint := 0; cred bigint := 0; locked date; acct record; d bigint; c bigint;
+declare entry uuid; item jsonb; deb bigint := 0; cred bigint := 0; locked date; acct record; d bigint; c bigint; hit record;
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
   if p_date is null then raise exception 'Choose an entry date'; end if;
   if p_key is not null then
-    select id into entry from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
-    if found then return entry; end if;
+    select id, source_type, source_id into hit from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
+    if found then
+      if hit.source_type is distinct from coalesce(p_source_type, 'manual') or hit.source_id is distinct from p_source_id then raise exception 'That idempotency key was already used for a different entry'; end if;
+      return hit.id;
+    end if;
   end if;
   select locked_through into locked from public.oj_ledger_locks where organization_id = p_org;
   if locked is not null and p_date <= locked then raise exception 'That period is locked through %', locked; end if;
@@ -149,18 +152,31 @@ begin
   return entry;
 end $$;
 
--- Undo an entry by posting its mirror image. An entry can be reversed once; a reversal cannot itself be reversed.
-create function public.oj_reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text)
+create function public.oj_post_journal(p_org uuid, p_date date, p_memo text, p_source_type text, p_source_id uuid, p_key text, p_lines jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare original public.oj_journal_entries; entry uuid; locked date;
+begin
+  if coalesce(p_source_type, 'manual') not in ('manual','job','expense','bank','payout','opening') then raise exception 'That entry type is posted by its own function'; end if;
+  if p_key is not null and (p_key like 'inv-issue:%' or p_key like 'pay:%' or p_key like 'inv-void:%') then raise exception 'That idempotency key prefix is reserved'; end if;
+  return oj_private.post_journal(p_org, p_date, p_memo, coalesce(p_source_type, 'manual'), p_source_id, p_key, p_lines);
+end $$;
+
+-- Undo an entry by posting its mirror image. An entry can be reversed once; a reversal cannot itself be reversed.
+-- Internal worker: p_system lets the invoice functions reverse invoice entries; the public wrapper below never does.
+create function oj_private.reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text, p_system boolean)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare original public.oj_journal_entries; entry uuid; locked date; hit record;
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
   if p_key is not null then
-    select id into entry from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
-    if found then return entry; end if;
+    select id, reversal_of into hit from public.oj_journal_entries where organization_id = p_org and idempotency_key = p_key;
+    if found then
+      if hit.reversal_of is distinct from p_entry then raise exception 'That idempotency key was already used for a different entry'; end if;
+      return hit.id;
+    end if;
   end if;
   select * into original from public.oj_journal_entries where organization_id = p_org and id = p_entry;
   if not found then raise exception 'Entry not found'; end if;
+  if not p_system and original.source_type in ('invoice', 'payment') then raise exception 'Invoice and payment entries are undone through the invoice functions'; end if;
   if original.reversal_of is not null then raise exception 'A reversal cannot be reversed'; end if;
   if exists (select 1 from public.oj_journal_entries where organization_id = p_org and reversal_of = p_entry) then raise exception 'That entry was already reversed'; end if;
   select locked_through into locked from public.oj_ledger_locks where organization_id = p_org;
@@ -170,6 +186,13 @@ begin
   insert into public.oj_journal_lines(organization_id, entry_id, account_id, division, debit_cents, credit_cents, memo)
     select organization_id, entry, account_id, division, credit_cents, debit_cents, memo from public.oj_journal_lines where organization_id = p_org and entry_id = original.id;
   return entry;
+end $$;
+
+create function public.oj_reverse_journal(p_org uuid, p_entry uuid, p_date date, p_memo text, p_key text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+begin
+  if p_key is not null and (p_key like 'inv-issue:%' or p_key like 'pay:%' or p_key like 'inv-void:%') then raise exception 'That idempotency key prefix is reserved'; end if;
+  return oj_private.reverse_journal(p_org, p_entry, p_date, p_memo, p_key, false);
 end $$;
 
 -- Owners only: lock the books through a date (month-end close). Dates only move forward.
@@ -223,6 +246,8 @@ revoke all on function public.oj_post_journal(uuid, date, text, text, uuid, text
   public.oj_lock_period(uuid, date), public.oj_seed_chart(uuid), public.oj_trial_balance(uuid, date) from public, anon;
 grant execute on function public.oj_post_journal(uuid, date, text, text, uuid, text, jsonb), public.oj_reverse_journal(uuid, uuid, date, text, text),
   public.oj_lock_period(uuid, date), public.oj_seed_chart(uuid), public.oj_trial_balance(uuid, date) to authenticated;
+
+revoke all on function oj_private.post_journal(uuid, date, text, text, uuid, text, jsonb), oj_private.reverse_journal(uuid, uuid, date, text, text, boolean) from public;
 
 -- OJ OS money core, part 2: invoices and payments, posted to the ledger. Staged here (not in supabase/schemas) so the guarded deployer is not blocked; promote to supabase/schemas when it is applied. Additive, NOT applied to the live project.
 -- Apply after ledger-core.sql (which itself comes after workspace.sql). A founder reviews and applies it only after a real backup.
@@ -371,7 +396,7 @@ begin
       values (p_org, inv, pos, item->>'description', qty, price, amt, acct);
     ledger := ledger || jsonb_build_array(jsonb_build_object('account_id', acct, 'division', p_division, 'debit_cents', 0, 'credit_cents', amt, 'memo', number_text));
   end loop;
-  entry := public.oj_post_journal(p_org, p_issue, 'Invoice ' || number_text || ' to ' || (p_customer->>'name'), 'invoice', inv, case when p_key is null then null else 'inv-issue:' || p_key end, ledger);
+  entry := oj_private.post_journal(p_org, p_issue, 'Invoice ' || number_text || ' to ' || (p_customer->>'name'), 'invoice', inv, case when p_key is null then null else 'inv-issue:' || p_key end, ledger);
   -- Only this function may point an invoice at its entry, and it does so once, in the same transaction.
   perform set_config('oj.allow_invoice_link', '1', true);
   update public.oj_invoices set issue_entry_id = entry where id = inv;
@@ -395,7 +420,7 @@ begin
   if p_method not in ('card','ach','check','cash','zelle','venmo','other') then raise exception 'Choose a payment method'; end if;
   ar := oj_private.account_by_code(p_org, '1100');
   deposit := oj_private.account_by_code(p_org, case when p_method in ('ach','zelle','venmo') then '1010' else '1150' end);
-  entry := public.oj_post_journal(p_org, p_received, 'Payment on ' || inv.number || ' (' || p_method || ')', 'payment', p_invoice, case when p_key is null then null else 'pay:' || p_key end,
+  entry := oj_private.post_journal(p_org, p_received, 'Payment on ' || inv.number || ' (' || p_method || ')', 'payment', p_invoice, case when p_key is null then null else 'pay:' || p_key end,
     jsonb_build_array(
       jsonb_build_object('account_id', deposit, 'division', inv.division, 'debit_cents', p_amount_cents, 'credit_cents', 0, 'memo', inv.number),
       jsonb_build_object('account_id', ar, 'division', inv.division, 'debit_cents', 0, 'credit_cents', p_amount_cents, 'memo', inv.number)));
@@ -415,7 +440,7 @@ begin
   if not found then raise exception 'Invoice not found'; end if;
   if inv.status = 'void' then return inv.void_entry_id; end if;
   if inv.paid_cents > 0 then raise exception 'An invoice with payments cannot be voided'; end if;
-  entry := public.oj_reverse_journal(p_org, inv.issue_entry_id, p_date, 'Void ' || inv.number || coalesce(': ' || nullif(p_reason, ''), ''), p_key);
+  entry := oj_private.reverse_journal(p_org, inv.issue_entry_id, p_date, 'Void ' || inv.number || coalesce(': ' || nullif(p_reason, ''), ''), case when p_key is null then null else 'inv-void:' || p_key end, true);
   perform set_config('oj.allow_invoice_link', '1', true);
   update public.oj_invoices set status = 'void', void_entry_id = entry where id = p_invoice;
   return entry;
