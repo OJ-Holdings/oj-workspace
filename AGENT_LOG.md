@@ -22,6 +22,15 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS Phase 2 prep: tested ledger + invoices SQL, staged, NOT applied)
+**Summary:** Staged the money core for owner review under docs/db-change-proposals/money-core/ (not supabase/schemas, so the guarded deployer is not blocked): ledger-core.sql (chart of accounts, double-entry journal, balanced-at-commit check, append-only entries, idempotent posting, one-time reversal, period lock, trial balance, owner chart seed with a partnership-aware chart for one LLC with division tags) and invoices.sql (numbered invoices, lines, payments, void; each posts to the ledger; sales tax stays 0 until a CPA confirms the Wisconsin rule). docs/db-change-proposals/RUN-ME-money-core.sql is the one-paste combined script with an already-exists guard.
+**Files:** docs/db-change-proposals/{RUN-ME-money-core.sql,money-core/ledger-core.sql,money-core/invoices.sql}, tests/{ledger-core-sql,invoices-sql,money-core-runme}.test.ts.
+**Verified:** 25 new checks on a real Postgres engine (PGlite): role gates (owner, member, viewer, outsider, anon), unbalanced/one-sided/negative/oversize entries refused, direct writes refused even for owners, append-only even for the database owner, commit-time balance check, idempotent retries, reversal once, locked periods, invoice numbering per year, payments to the right deposit account, overpay refused, void only when unpaid, receivables equal open balances, tenancy. Full suite passes.
+**Hardening after the automated security review:** the general posting and reversal functions now refuse the invoice/payment entry types and the reserved key prefixes (inv-issue:, pay:, inv-void:); an idempotency key already used by a different entry is refused instead of silently reused; invoice and payment entries can be undone only through the invoice functions (internal workers oj_private.post_journal / reverse_journal). 3 more checks cover this.
+**Not verified / not done:** nothing is applied to the live project, so no UI uses these tables yet (the Money screens are the next step after Oscar applies the SQL). Not exercised against Supabase's own PostgreSQL 17 CI job.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS quick wins: rebooking list, expense categories, no dead presence banner)
 **Summary:** (1) Customers page: collapsible Rebooking list (past customers whose latest completed job is 3, 5, 8 or 11+ months old, one row per customer, oldest first, with Copy list for a spreadsheet or mail merge). (2) Money: the expense and income Category field now suggests common categories (fuel, chemicals, equipment, repairs, Local Services Ads, insurance, software, crew commission and so on); free text still allowed. (3) The 'Team at work: Not connected' banner is hidden in the live app until the presence tables exist (see docs/db-change-proposals/RUN-ME-2026-10-27-presence.sql); it returns automatically once they do.
 **Files:** src/lib/exterior-rebook.ts, src/components/app/{RebookList,ExteriorManage,Pages,PresencePanel}.tsx, tests/exterior-rebook.test.ts.
