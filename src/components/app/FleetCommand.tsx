@@ -275,7 +275,7 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
 
   return <div className="fleet page">
     <header className="fleet-hero">
-      <div className="fleet-hero-top"><Link href={base+'/tools'}><ArrowLeft size={15}/>Corporate tools</Link><span className="fleet-eyebrow"><Activity size={14}/> FIELD OPERATIONS / EQUIPMENT COMMAND</span></div>
+      <div className="fleet-hero-top"><Link href={base||'/'}><ArrowLeft size={15}/>Today</Link><span className="fleet-eyebrow"><Activity size={14}/> FIELD OPERATIONS / EQUIPMENT COMMAND</span></div>
       <div className="fleet-hero-main">
         <div>
           <p className="tools-eyebrow">OJ EXTERIOR CARE / OPERATIONS DIVISION</p>
@@ -454,6 +454,6 @@ export function FleetCommand({base,organizationId,mode,readOnly,bookings,booking
     </div>}
     <input type="file" ref={fileRef} accept=".json,application/json" hidden aria-label="Import private fleet workbook JSON" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void importFile(file);}}/>
     <footer className="fleet-page-foot"><Settings2 size={15}/> Fleet Command beta: company synchronization requires a confirmed manual sync. No live telematics, formal safety certification or verified vehicle payload ratings. 
-      <Link href={base+'/tools'}>All corporate tools <ArrowUpRight size={14}/></Link></footer>
+</footer>
   </div>;
 }
