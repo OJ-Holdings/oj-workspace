@@ -16,7 +16,7 @@ import { searchActiveTools } from '@/lib/corporate-tools';
 import { EntitySwitcher } from './EntitySwitcher';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -28,6 +28,7 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   { key:'calendar', label:'Schedule', path:'/calendar', icon:CalendarDays, group:'DAILY' },
   { key:'tasks', label:'Tasks & Crew', path:'/tasks', icon:CheckSquare, group:'DAILY' },
   { key:'finance', label:'Money', path:'/finance', icon:Wallet, group:'DAILY' },
+  { key:'invoices', label:'Invoices', path:'/invoices', icon:ReceiptText, group:'DAILY' },
   { key:'businesses', label:'Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
   { key:'analytics', label:'Reports', path:'/analytics', icon:BarChart3, group:'MORE' },
   { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },

@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS Phase 2: Invoices screen, switches on when the money SQL is applied)
+**Summary:** New Invoices page (sidebar, under Money) built on the staged money-core functions (docs/db-change-proposals/RUN-ME-money-core.sql, PR #182). Lists invoices with owed/overdue/invoiced-this-month, creates invoices (customer, terms Net 0/15/30/45, lines with income account per line, notes and payment instructions), records payments (bank transfer, check, card, cash, Zelle, Venmo, other), voids unpaid invoices, and a print/save-as-PDF invoice page at /workspace/invoices/[id] (OJ Exterior Care letterhead, read under the signed-in user's own access so only company members can open it). Until the SQL is applied the page says 'Invoicing is not switched on yet' and changes nothing; when an owner applies the SQL the page works with no further deploy (an owner then clicks Set up chart of accounts once). In the sample /preview it only explains that invoicing is live-only. Sales tax is not added (Wisconsin treatment unconfirmed).
+**Files:** src/lib/invoices.ts, src/app/workspace/invoice-actions.ts, src/app/workspace/invoices/[id]/{page,PrintButton}.tsx, src/components/app/{InvoicesView,Shell,App}.tsx, tests/invoices-lib.test.ts.
+**Verified:** typecheck; npm test 825/825 (7 new tests for the money helpers; the SQL itself has 27 checks in PR #182); build; /preview/invoices renders; an invalid invoice id returns 404.
+**Not verified:** anything against the live database (the tables do not exist there yet), the New invoice and Record payment dialogs, the printed page in a browser, phone layout.
 ## 2026-10-27 UTC -- Claude Code (OJ OS mobile fixes: top bar and chat bubble at 375 px)
 **Summary:** At phone width the new company switcher pushed the avatar off screen and the chat bubble sat on top of the quick-add button. The switcher now shows only its logo under 600 px, and the chat bubble sits just left of the quick-add button above the phone tab bar.
 **Files:** src/styles/entity-switch.css, src/styles/chat-bubble.css.

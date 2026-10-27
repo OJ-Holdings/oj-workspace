@@ -28,6 +28,7 @@ import { useJobs } from './useJobs';
 import { useWork } from './useWork';
 import { WorkTimer } from './WorkTimer';
 import { ChatBubble } from './ChatBubble';
+import { InvoicesView } from './InvoicesView';
 import type { WorkData } from '@/lib/work';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
@@ -48,6 +49,7 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
   calendar: { title: 'Calendar', body: 'Events and task due dates for all four businesses, with a private link for your iPhone.' },
   crm: { title: 'Leads and CRM', body: 'Workspace leads across all four businesses.' },
   finance: { title: 'Finance', body: 'Money in, money out and profit, for each business and combined.' },
+  invoices: { title: 'Invoices', body: 'Bill customers and record what they pay.' },
   files: { title: 'Files', body: 'Every document across the businesses, private to workspace members.' },
   messages: { title: 'Messages', body: 'Notes between the two of you, with a thread for each business.' },
   analytics: { title: 'Analytics', body: 'Four businesses, with source-aware comparisons.' },
@@ -217,7 +219,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     venture = parts[1];
   }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
-  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
+  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
   const status = [connectionStatus && connectionStatus !== 'Live updates connected' ? connectionStatus : '', limited ? 'Showing the first 1,000 tasks and most recent 1,000 comments.' : ''].filter(Boolean).join(' ');
@@ -277,6 +279,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'calendar' && <CalendarView store={store} readOnly={readOnly} cards={board.data.cards} jobs={jobs} base={base} />}
           {current === 'crm' && <CrmView store={store} readOnly={readOnly} cards={board.data.cards} />}
           {current === 'finance' && <FinanceView store={store} readOnly={readOnly} owner={owner} />}
+          {current === 'invoices' && <InvoicesView org={organizationId} mode={mode} readOnly={readOnly} owner={owner} base={base} />}
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}
           {current === 'messages' && <MessagesView store={store} readOnly={readOnly} />}
           {current === 'analytics' && <AnalyticsView store={store} readOnly={readOnly} cards={board.data.cards} />}
