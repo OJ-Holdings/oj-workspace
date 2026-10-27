@@ -23,8 +23,8 @@ this file is how work gets handed over.
 ---
 
 ## 2026-10-27 UTC -- Claude Code (OJ OS copy diet: Exterior Care landing page)
-**Summary:** Compacted /b/exterior (the Exterior Care command page) from about 3,900 px to about 1,900 px: one-row header with shortcuts (no season switch or poster), short stat captions, removed the long 'Before crews roll out' preflight block and the 'Work that cannot fall between founders' inbox from this page (the preflight stays on the Jobs page; the inbox component is unchanged and unused here), calm headings instead of numbered eyebrows, a note that links to adding missing job costs and to tagging lead sources, and plain link chips instead of the 'specialist applications' grid with paragraphs. No data, logic or schema changes.
-**Files:** src/components/app/ExteriorCommand.tsx, src/styles/exterior-command.css.
+**Summary:** Compacted /b/exterior (the Exterior Care command page) from about 3,900 px to about 1,900 px: one-row header with shortcuts (no season switch or poster), short stat captions, removed the long 'Before crews roll out' preflight block and the 'Work that cannot fall between founders' inbox from this page (the preflight stays on the Jobs page; the inbox component is unchanged and unused here), calm headings instead of numbered eyebrows, a note that links to adding missing job costs and to tagging lead sources, and plain link chips instead of the 'specialist applications' grid with paragraphs. Also trimmed the Jobs and Customers pages: plain headings (Jobs, Customers) instead of posters, shorter stat captions and partial-history notices, removed the queue explanation line, and the 'Heads-up for upcoming jobs' preflight on Jobs is now a collapsed section. No data, logic or schema changes.
+**Files:** src/components/app/{ExteriorCommand,ExteriorManage}.tsx, src/styles/exterior-command.css.
 **Verified:** typecheck; npm test 804/804; build; /preview/b/exterior renders (page height about 1,930 px).
 **Not verified:** signed-in live page; phone width.
 

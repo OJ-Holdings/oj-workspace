@@ -87,11 +87,9 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
       <div><span>Open pipeline</span><strong><NumberFlow value={pipeline} format={usd} /></strong><small className="quiet">Quotes on open leads, not money in</small></div>
     </div>
     {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
-      <p className="banner-inline" role="status">Partial customer history: {data.coverage.leads.loaded} of {data.coverage.leads.total} accessible records loaded. Queue counts describe this loaded window only.</p>}
+      <p className="banner-inline" role="status">Showing {data.coverage.leads.loaded} of {data.coverage.leads.total} customers. Counts cover those only.</p>}
     <section className="atlas-lead-priority" aria-label="Customer work queues">
-      <header><div><span>EXTERIOR CARE / CUSTOMER OPERATIONS</span><h2>Move customers toward booked work.</h2></div>
-        <small>Queues reflect recorded status and fields only. No inferred response deadlines or client acceptance.</small>
-      </header>
+      <header><div><h2>Customers</h2></div></header>
       <div className="atlas-lead-focuses">
         {leadWorkFocuses.filter(focus=>focus!=='all').map(focus=><button key={focus} type="button"
           aria-pressed={workFocus===focus} onClick={()=>{setWorkFocus(focus);setFilter('all');setSearch('');setShown(50);}}>
@@ -120,7 +118,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         </div>
       </div>
       <div className="atlas-lead-view-toggle" role="group" aria-label="Customer display">
-        <span>Showing {rows.length} matching record{rows.length===1?'':'s'} · latest source creation date first</span>
+        <span>{rows.length} shown, newest first</span>
         <button type="button" aria-pressed={view==='cards'} onClick={()=>setView('cards')}>Customer cards</button>
         <button type="button" aria-pressed={view==='table'} onClick={()=>setView('table')}>Compact table</button>
       </div>
@@ -511,27 +509,28 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   return <>
     <section className="atlas-booking-command" aria-label="Booking operation queues">
       <header className="atlas-booking-command-head">
-        <div><span>EXTERIOR CARE / JOB OPERATIONS</span><h2>Run the schedule. Get jobs done.</h2>
-          <p>Actual booking dates and recorded statuses, not inferred dispatch, completed work, or collected payments.</p></div>
+        <div><h2>Jobs</h2></div>
         {!readOnly && <button type="button" className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={17} aria-hidden="true"/>Book a job</button>}
       </header>
       <div className="atlas-booking-command-stats">
-        <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today, excluding denied</span></div>
-        <div><small>Confirmed upcoming</small><strong><NumberFlow value={upcoming.filter(b => b.status === 'confirmed').length} /></strong><span>Explicitly confirmed in source</span></div>
-        <div><small>Source-qualified confirmed quotes</small><strong>{quoted.total===null?'Withheld':<NumberFlow value={quoted.total} format={usd}/>}</strong><span>{quoted.eligible} of {quoted.confirmed} confirmed visits uniquely priced; not cash</span></div>
-        <div><small>Bookings this month</small><strong><NumberFlow value={data.bookings.filter(b => b.status !== 'denied' && b.date.startsWith(month)).length} /></strong><span>Scheduled records, not completed jobs</span></div>
+        <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today on</span></div>
+        <div><small>Confirmed upcoming</small><strong><NumberFlow value={upcoming.filter(b => b.status === 'confirmed').length} /></strong><span>Marked confirmed</span></div>
+        <div><small>Quoted value, confirmed jobs</small><strong>{quoted.total===null?'Withheld':<NumberFlow value={quoted.total} format={usd}/>}</strong><span>{quoted.eligible} of {quoted.confirmed} confirmed jobs have one clear quote</span></div>
+        <div><small>Bookings this month</small><strong><NumberFlow value={data.bookings.filter(b => b.status !== 'denied' && b.date.startsWith(month)).length} /></strong><span>Scheduled, not necessarily done</span></div>
       </div>
       {data.coverage?.bookings && data.coverage.bookings.total !== null && data.coverage.bookings.total > data.coverage.bookings.loaded &&
-        <p className="banner-inline" role="status">Partial booking history: {data.coverage.bookings.loaded} of {data.coverage.bookings.total} source records loaded. Counts and queues describe this window only.</p>}
+        <p className="banner-inline" role="status">Showing {data.coverage.bookings.loaded} of {data.coverage.bookings.total} bookings. Counts cover those only.</p>}
       <div className="atlas-booking-queues" role="group" aria-label="Choose booking queue">
         {bookingWorkFocuses.map(key => <button key={key} type="button" aria-pressed={focus === key}
           onClick={() => setQueue(key)}>
           <strong>{counts[key]}</strong><span>{bookingWorkLabels[key]}</span>
         </button>)}
       </div>
-      <p className="atlas-booking-queue-note" role="status"><b>{bookingWorkLabels[focus]}:</b> {bookingWorkDescriptions[focus]}</p>
     </section>
-    <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'} org={org} readOnly={readOnly}/>
+    <details className="jobs-headsup">
+      <summary>Heads-up for upcoming jobs</summary>
+      <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'} org={org} readOnly={readOnly}/>
+    </details>
     {selectedJobId&&!selectedBooking&&<p className="ecjourney-alert" role="alert">
       The requested exact booking is not in this authorized source window. No customer, job or field data was substituted.
       <button type="button" onClick={closeJob}>Clear selection</button>

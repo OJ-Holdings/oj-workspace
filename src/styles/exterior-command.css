@@ -533,3 +533,7 @@
 .excmd .excmd-hero.is-compact .excmd-hero-actions{margin-top:0}
 .excmd .excmd-hero.is-compact .excmd-hero-side{align-self:start;padding:10px 12px;min-width:0}
 @media(max-width:980px){.excmd .excmd-hero.is-compact{grid-template-columns:minmax(0,1fr)}}
+
+.jobs-headsup { margin: 0 0 var(--s-4); border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.jobs-headsup > summary { cursor: pointer; padding: var(--s-3) var(--s-4); font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); }
+.jobs-headsup[open] > summary { border-bottom: 1px solid var(--line); }
