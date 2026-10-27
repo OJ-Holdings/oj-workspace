@@ -1,149 +1,158 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Flag, Lock, Wind, X } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Crosshair, Flag, Lock, Volume2, VolumeX, Wind, X } from 'lucide-react';
 import type { Dashboard } from '@/lib/dashboard';
-import { camps, expedition, SUMMIT_ALTITUDE, SUMMIT_COMPANIES, type Camp, type Expedition, type Weather } from '@/lib/hyperborea';
+import { campFor, camps, expedition, SUMMIT_ALTITUDE, SUMMIT_COMPANIES, type Expedition, type Weather } from '@/lib/hyperborea';
 import { codex, type Chapter } from '@/lib/hyperborea-codex';
+import type { SceneHandle, SceneInput } from './hyperborea/scene';
 
 type Props = { data: Dashboard | null; now: Date | null; companies: number; coreVentures: readonly string[]; base: string; mode: 'preview' | 'live' };
 
 const money = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: n >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: n >= 100_000 ? 1 : 0 }).format(n);
 const metres = (n: number) => `${Math.round(n).toLocaleString('en-US')} m`;
 const chicagoToday = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(d);
-
-// ---- scene geometry (SVG units, viewBox 1000 x 640) ----
-const FOOT = 590, PEAK = 70;
-const yFor = (alt: number) => FOOT - (alt / SUMMIT_ALTITUDE) * (FOOT - PEAK);
-const campX: Record<Camp['id'], number> = { base: 300, camp1: 470, camp2: 360, camp3: 560, camp4: 470, deathzone: 540, summit: 560 };
-const routePoints = camps.map(c => ({ id: c.id, x: campX[c.id], y: yFor(c.altitude), alt: c.altitude }));
-function pointAt(alt: number) {
-  const a = Math.max(0, Math.min(alt, SUMMIT_ALTITUDE));
-  for (let i = 1; i < routePoints.length; i++) {
-    const p0 = routePoints[i - 1], p1 = routePoints[i];
-    if (a <= p1.alt) { const t = (a - p0.alt) / (p1.alt - p0.alt || 1); return { x: p0.x + t * (p1.x - p0.x), y: p0.y + t * (p1.y - p0.y) }; }
-  }
-  return routePoints[routePoints.length - 1];
-}
-const MASSIF = 'M0,640 L90,560 L150,520 L210,455 L250,430 L300,370 L340,330 L380,270 L420,230 L470,160 L510,120 L560,70 L600,115 L640,150 L690,230 L730,270 L790,360 L850,430 L920,520 L1000,580 L1000,640 Z';
-const SNOW = 'M412,238 L470,160 L510,120 L560,70 L600,115 L640,150 L690,230 L664,214 L632,232 L604,200 L574,226 L544,194 L506,230 L466,212 Z';
-const RANGE_FAR = 'M0,640 L0,420 L80,380 L160,300 L230,340 L300,250 L360,300 L420,260 L520,330 L620,240 L700,290 L780,210 L860,280 L940,250 L1000,300 L1000,640 Z';
-const RANGE_NEAR = 'M0,640 L0,540 L120,470 L200,500 L280,450 L360,520 L640,520 L720,470 L820,500 L900,450 L1000,490 L1000,640 Z';
-
-const weatherWord: Record<Weather, string> = { clear: 'Clear skies', wind: 'High wind', storm: 'Storm', unknown: 'Fog: no momentum on record' };
-const flakeCount: Record<Weather, number> = { clear: 14, wind: 46, storm: 110, unknown: 30 };
-const rand = (i: number, salt: number) => (((i + 1) * 9301 + salt * 49297) % 233280) / 233280;
+const weatherWord: Record<Weather, string> = { clear: 'Clear night', wind: 'High wind', storm: 'Storm on the mountain', unknown: 'Whiteout. No momentum on record' };
+const pct = (m: number) => `${(Math.min(Math.max(m / SUMMIT_ALTITUDE, 0), 1) * 100).toFixed(2)}%`;
 
 function chapterOpen(ch: Chapter, ex: Expedition) {
   if (ch.unlock === 'beyond') return ex.summitReached;
   return ex.altitude >= (camps.find(c => c.id === ch.unlock)?.altitude ?? Infinity);
 }
 
+/** Where the camera is looking, said plainly relative to the expedition. */
+function viewWords(view: number, ex: Expedition) {
+  const gap = Math.round(view - ex.altitude);
+  const zone = view >= 8000 && view < SUMMIT_ALTITUDE - 40 ? 'The Death Zone' : campFor(view).current.name;
+  if (Math.abs(gap) < 40) return { zone, where: 'The expedition stands here' };
+  return { zone, where: `${metres(Math.abs(gap))} ${gap > 0 ? 'above' : 'below'} the expedition` };
+}
+
 export function HyperboreaView({ data, now, companies, coreVentures, base, mode }: Props) {
-  const ex = useMemo(() => data && now ? expedition({ finance: data.finance, mercury: data.mercury, today: chicagoToday(now), companies, coreVentures }) : null, [data, now, companies, coreVentures]);
+  const ventureKey = coreVentures.join(',');
+  const ex = useMemo(() => data && now ? expedition({ finance: data.finance, mercury: data.mercury, today: chicagoToday(now), companies, coreVentures: ventureKey.split(',').filter(Boolean) }) : null, [data, now, companies, ventureKey]);
   const dialog = useRef<HTMLDialogElement>(null);
+  const stage = useRef<HTMLElement>(null);
+  const host = useRef<HTMLDivElement>(null);
+  const labelLayer = useRef<HTMLDivElement>(null);
+  const handle = useRef<SceneHandle | null>(null);
   const [chapter, setChapter] = useState('prologue');
+  const [view, setView] = useState<number | null>(null);
+  const [sceneState, setSceneState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [sound, setSound] = useState(false);
+
+  const sceneInput = useMemo<SceneInput | null>(() => ex && {
+    altitude: ex.altitude, ghost: ex.ghost.altitude, weather: ex.weather.weather, summitReached: ex.summitReached, summitMetres: SUMMIT_ALTITUDE,
+    camps: camps.map(c => ({ id: c.id, name: c.name, altitude: c.altitude, reached: ex.altitude >= c.altitude })),
+  }, [ex]);
+  const inputKey = sceneInput ? JSON.stringify(sceneInput) : '';
+  const latest = useRef(sceneInput); latest.current = sceneInput;
+
+  // Mount the 3D scene once the figures are known; tear it down on leave.
+  const ready = Boolean(sceneInput);
+  useEffect(() => {
+    if (!ready || !host.current || !labelLayer.current) return;
+    let cancelled = false;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    import('./hyperborea/scene').then(({ mountScene }) => {
+      if (cancelled || !host.current || !labelLayer.current || !latest.current) return;
+      // Let the loading line paint before the terrain is generated.
+      requestAnimationFrame(() => {
+        if (cancelled || !host.current || !labelLayer.current || !latest.current) return;
+        try {
+          handle.current = mountScene(host.current, labelLayer.current, latest.current, { reducedMotion, onView: setView });
+          setSceneState('ready');
+        } catch { setSceneState('failed'); }
+      });
+    }).catch(() => { if (!cancelled) setSceneState('failed'); });
+    return () => { cancelled = true; handle.current?.dispose(); handle.current = null; };
+  }, [ready]);
+  useEffect(() => { if (handle.current && latest.current) handle.current.set(latest.current); }, [inputKey]);
 
   if (!ex) return <div className="hb" data-weather="unknown"><p className="hb-loading">Reading the mountain…</p></div>;
 
-  const me = pointAt(ex.altitude), ghost = pointAt(ex.ghost.altitude);
-  const flakes = Array.from({ length: flakeCount[ex.weather.weather] }, (_, i) => i);
+  const o = ex.oxygen;
   const active = codex.find(c => c.id === chapter) ?? codex[0];
   const activeOpen = chapterOpen(active, ex);
-  const nextCampForChapter = (ch: Chapter) => ch.unlock === 'beyond' ? 'the summit' : camps.find(c => c.id === ch.unlock)?.name ?? '';
-  const o = ex.oxygen;
+  const unlockName = (ch: Chapter) => ch.unlock === 'beyond' ? 'the summit' : camps.find(c => c.id === ch.unlock)?.name ?? '';
+  const viewing = view ?? ex.altitude;
+  const words = viewWords(viewing, ex);
+  const deathZone = Math.min(Math.max((viewing - 7800) / 500, 0), 1);
+  const toggleSound = async () => { const on = await handle.current?.setSound(!sound); setSound(Boolean(on)); };
 
   return (
     <div className="hb" data-weather={ex.weather.weather} data-summit={ex.summitReached ? 'reached' : 'shrouded'}>
-      <header className="hb-head">
-        <div>
-          <p className="hb-kicker">OJ Holdings · Founders only</p>
+      <section ref={stage} className="hb3" data-state={sceneState} aria-label={`Hyperborea. The expedition is at ${metres(ex.altitude)}, ${ex.camp.current.name}. ${weatherWord[ex.weather.weather]}.`}>
+        <div ref={host} className="hb3-canvas" />
+        <div ref={labelLayer} className="hb3-labels" aria-hidden="true" />
+        <div className="hb3-vignette" aria-hidden="true" />
+        <div className="hb3-deathzone" aria-hidden="true" style={{ opacity: deathZone }} />
+        {sceneState === 'loading' && <p className="hb3-status">Reading the mountain…</p>}
+        {sceneState === 'failed' && <p className="hb3-status">This browser can’t draw the mountain in 3D. The instruments below still read live.</p>}
+
+        <header className="hb3-title">
           <h1>Hyperborea</h1>
-          <p className="hb-sub">Beyond the North Wind. $100M a year and ten companies by October 27, 2046.</p>
+          <p>Day {ex.clock.day.toLocaleString('en-US')} of {ex.clock.totalDays.toLocaleString('en-US')}. {ex.clock.daysLeft.toLocaleString('en-US')} days until the summit window closes.</p>
+        </header>
+        <div className="hb3-tools">
+          <button type="button" className="hb3-btn" onClick={toggleSound} aria-pressed={sound} disabled={sceneState !== 'ready'}>
+            {sound ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}<span>{sound ? 'Wind on' : 'Wind off'}</span>
+          </button>
+          <button type="button" className="hb3-btn hb3-codex" onClick={() => dialog.current?.showModal()}><BookOpen size={16} aria-hidden="true" /><span>Codex</span></button>
         </div>
-        <div className="hb-head-side">
-          <div className="hb-clock" aria-label="Expedition clock">
-            <span>Expedition day</span>
-            <strong>{ex.clock.day.toLocaleString('en-US')} <small>of {ex.clock.totalDays.toLocaleString('en-US')}</small></strong>
-            <span>{ex.clock.daysLeft.toLocaleString('en-US')} days to the summit window</span>
+
+        <nav className="hb3-gauge" aria-label="Altitude gauge: jump the view to a camp">
+          <div className="hb3-gauge-rail" aria-hidden="true">
+            <i className="hb3-gauge-done" style={{ height: pct(ex.altitude) }} />
+            <i className="hb3-gauge-death" style={{ bottom: pct(8000) }} />
           </div>
-          <button type="button" className="hb-codex-btn" onClick={() => dialog.current?.showModal()}><BookOpen size={17} aria-hidden="true" /> Codex</button>
+          {camps.map(c => (
+            <button key={c.id} type="button" className={ex.altitude >= c.altitude ? 'hb3-tick is-reached' : 'hb3-tick'} style={{ bottom: pct(c.altitude) }} onClick={() => handle.current?.look(c.altitude)}>
+              <span>{c.id === 'base' ? 'Base Camp' : c.id === 'summit' ? 'Summit' : c.name.replace(/^Camp [IV]+: /, '')}</span>
+            </button>
+          ))}
+          <i className="hb3-mark is-ghost" style={{ bottom: pct(ex.ghost.altitude) }} aria-hidden="true" title="Pace for 2046" />
+          <i className="hb3-mark is-me" style={{ bottom: pct(ex.altitude) }} aria-hidden="true" />
+          <i className="hb3-mark is-view" style={{ bottom: pct(viewing) }} aria-hidden="true" />
+        </nav>
+
+        <div className="hb3-readout" aria-live="polite">
+          <strong>{metres(viewing)}</strong>
+          <span>{words.zone}</span>
+          <small>{words.where}</small>
         </div>
-      </header>
+        <div className="hb3-controls">
+          <button type="button" className="hb3-btn" onClick={() => handle.current?.nudge(400)} disabled={sceneState !== 'ready'}><ChevronUp size={16} aria-hidden="true" /><span>Look higher</span></button>
+          <button type="button" className="hb3-btn" onClick={() => handle.current?.nudge(-400)} disabled={sceneState !== 'ready'}><ChevronDown size={16} aria-hidden="true" /><span>Look lower</span></button>
+          <button type="button" className="hb3-btn" onClick={() => handle.current?.recenter()} disabled={sceneState !== 'ready'}><Crosshair size={16} aria-hidden="true" /><span>Back to the expedition</span></button>
+        </div>
+        <p className="hb3-weather"><Wind size={14} aria-hidden="true" /> {weatherWord[ex.weather.weather]}{ex.weather.change !== null && `, ${ex.weather.change >= 0 ? '+' : ''}${Math.round(ex.weather.change * 100)}% revenue over the last 90 days`}</p>
+        <p className="hb3-hint" aria-hidden="true">Scroll to climb. Drag to look around.</p>
+      </section>
 
       {mode === 'live' && !ex.hasRecords && <p className="hb-notice">No revenue recorded yet, so the expedition stands at base camp. <Link href={`${base}/finance`}>Record income in Money</Link> and the climb starts.</p>}
-
-      <section className="hb-scene" aria-label={`Mountain: the expedition is at ${metres(ex.altitude)}, ${ex.camp.current.name}. Weather: ${weatherWord[ex.weather.weather]}.`}>
-        <svg viewBox="0 0 1000 640" role="img" aria-hidden="true" preserveAspectRatio="xMidYMax slice">
-          <defs>
-            <linearGradient id="hb-sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" className="hb-sky-top" /><stop offset="0.55" className="hb-sky-mid" /><stop offset="1" className="hb-sky-low" />
-            </linearGradient>
-            <linearGradient id="hb-rock" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" className="hb-rock-lit" /><stop offset="1" className="hb-rock-dark" />
-            </linearGradient>
-            <radialGradient id="hb-sun-glow"><stop offset="0" className="hb-sun-core" /><stop offset="1" className="hb-sun-edge" /></radialGradient>
-            <filter id="hb-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" /></filter>
-          </defs>
-          <rect width="1000" height="640" fill="url(#hb-sky)" />
-          <circle className="hb-sun" cx="790" cy="90" r="120" fill="url(#hb-sun-glow)" />
-          <path d={RANGE_FAR} className="hb-range-far" />
-          <path d={MASSIF} fill="url(#hb-rock)" className="hb-massif" />
-          <path d="M560,70 L600,115 L640,150 L690,230 L730,270 L790,360 L850,430 L920,520 L1000,580 L1000,640 L640,640 Z" className="hb-shade" />
-          <path d={SNOW} className="hb-snowcap" />
-          <path d={RANGE_NEAR} className="hb-range-near" />
-          <line x1="0" x2="1000" y1={yFor(8000)} y2={yFor(8000)} className="hb-deathline" />
-          <text x="18" y={yFor(8000) - 8} className="hb-deathline-label">8,000 m · Death Zone</text>
-          <polyline points={routePoints.map(p => `${p.x},${p.y}`).join(' ')} className="hb-route" />
-          <polyline points={[...routePoints.filter(p => p.alt <= ex.altitude).map(p => `${p.x},${p.y}`), `${me.x},${me.y}`].join(' ')} className="hb-route-done" />
-          {routePoints.map((p, i) => {
-            const c = camps[i]; const reached = ex.altitude >= c.altitude; const left = i % 2 === 1;
-            return <g key={p.id} className={reached ? 'hb-camp is-reached' : 'hb-camp'}>
-              {c.id !== 'summit' && <><circle cx={p.x} cy={p.y} r="6" />
-              <text x={left ? p.x - 14 : p.x + 14} y={p.y + 4} textAnchor={left ? 'end' : 'start'}>{c.name}</text></>}
-              {reached && c.id !== 'summit' && c.id !== 'base' && <path d={`M${p.x},${p.y - 6} L${p.x},${p.y - 26} L${p.x + 14},${p.y - 21} L${p.x},${p.y - 16}`} className="hb-flag" />}
-            </g>;
-          })}
-          <g className="hb-shroud" filter="url(#hb-blur)">
-            <ellipse cx="560" cy="80" rx="150" ry="46" /><ellipse cx="500" cy="110" rx="110" ry="34" /><ellipse cx="630" cy="104" rx="120" ry="38" />
-          </g>
-          <text x="560" y="40" textAnchor="middle" className="hb-summit-label">{ex.summitReached ? 'SUMMIT' : 'SUMMIT · 8,849 m'}</text>
-          <g className="hb-ghost" transform={`translate(${ghost.x} ${ghost.y})`}>
-            <circle r="9" /><text x="14" y="26">Pace for 2046</text>
-          </g>
-          <g className="hb-me" transform={`translate(${me.x} ${me.y})`}>
-            <circle r="18" className="hb-me-pulse" /><circle r="8" className="hb-me-dot" />
-            <text x="0" y="-30" textAnchor="middle">OJ · {metres(ex.altitude)}</text>
-          </g>
-        </svg>
-        <div className="hb-fog" aria-hidden="true" />
-        <div className="hb-snow" aria-hidden="true">
-          {flakes.map(i => <span key={i} style={{ ['--x' as string]: `${(rand(i, 1) * 110 - 5).toFixed(2)}%`, ['--s' as string]: `${(1.5 + rand(i, 2) * 3).toFixed(1)}px`, ['--d' as string]: `${(ex.weather.weather === 'storm' ? 2.2 : 5) + rand(i, 3) * 5}s`, ['--delay' as string]: `${-rand(i, 4) * 10}s`, ['--o' as string]: (0.35 + rand(i, 5) * 0.6).toFixed(2) }} />)}
-        </div>
-        <p className="hb-weather"><Wind size={15} aria-hidden="true" /> {weatherWord[ex.weather.weather]}{ex.weather.change !== null && ` · ${ex.weather.change >= 0 ? '+' : ''}${Math.round(ex.weather.change * 100)}% recorded revenue, last 90 days vs the 90 before`}</p>
-      </section>
 
       <section className="hb-stats" aria-label="Expedition instruments">
         <div className="hb-stat">
           <span>Altitude</span><strong>{metres(ex.altitude)}</strong>
-          <small>{ex.hasRecords ? `${money(ex.revenue)} recorded revenue, last 12 months` : 'No revenue recorded yet'}</small>
+          <small>{ex.hasRecords ? `${money(ex.revenue)} recorded revenue in the last 12 months` : 'No revenue recorded yet'}</small>
         </div>
         <div className="hb-stat">
-          <span>Camp</span><strong>{ex.camp.current.name}</strong>
-          <small>{ex.camp.next ? `${money(ex.toNext ?? 0)} a year to ${ex.camp.next.name}` : 'Every camp reached'}</small>
+          <span>Next camp</span><strong>{ex.camp.next ? ex.camp.next.name : 'None left'}</strong>
+          <small>{ex.camp.next ? `${money(ex.toNext ?? 0)} more a year to get there` : 'Every camp reached'}</small>
         </div>
         <div className="hb-stat">
           <span>Pace</span>
-          <strong>{ex.ghost.ahead === null ? 'Not started' : ex.ghost.gap === 0 ? 'On the line' : `${ex.ghost.ahead ? 'Ahead' : 'Behind'} ${metres(Math.abs(ex.ghost.gap))}`}</strong>
-          <small>Summit by 2046 needs {Math.round(ex.ghost.requiredGrowth * 100)}% growth a year, every year, from {money(ex.ghost.start)}</small>
+          <strong>{ex.ghost.ahead === null ? 'Not started' : ex.ghost.gap === 0 ? 'On the line' : `${ex.ghost.ahead ? 'Ahead' : 'Behind'} by ${metres(Math.abs(ex.ghost.gap))}`}</strong>
+          <small>The 2046 summit needs {Math.round(ex.ghost.requiredGrowth * 100)}% growth a year, every year, from {money(ex.ghost.start)}</small>
         </div>
         <div className="hb-stat">
           <span>Oxygen</span>
           {o.state === 'known' ? <>
             <strong>{o.months === null ? money(o.cash) : `${o.months.toFixed(1)} months`}</strong>
             {o.level !== null && <div className={o.level < 0.25 ? 'hb-o2 is-low' : 'hb-o2'} role="meter" aria-valuemin={0} aria-valuemax={12} aria-valuenow={Math.min(o.months ?? 0, 12)} aria-label="Months of runway"><i style={{ width: `${o.level * 100}%` }} /></div>}
-            <small>{o.months === null ? o.detail : `${money(o.cash)} cash · ${money(o.burn ?? 0)} recorded costs a month`}</small>
+            <small>{o.months === null ? o.detail : `${money(o.cash)} in the bank against ${money(o.burn ?? 0)} of recorded costs a month`}</small>
           </> : <><strong>Unread</strong><small>{o.detail}</small></>}
         </div>
         <div className="hb-stat">
@@ -160,7 +169,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
             {[...camps].reverse().map(c => {
               const state = ex.camp.current.id === c.id ? 'is-current' : ex.altitude >= c.altitude ? 'is-reached' : '';
               return <li key={c.id} className={state}>
-                <div className="hb-camp-row"><b>{c.name}</b><span>{metres(c.altitude)}{c.revenue ? ` · ${money(c.revenue)}/yr` : ''}</span></div>
+                <div className="hb-camp-row"><b>{c.name}</b><span>{metres(c.altitude)}{c.revenue ? `, ${money(c.revenue)} a year` : ''}</span></div>
                 <p>{c.era}</p>
                 <ul>{c.gates.map(g => <li key={g}>{g}</li>)}</ul>
               </li>;
@@ -174,7 +183,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
           <ul className="hb-badges">
             {ex.achievements.map(a => <li key={a.id} className={a.earned ? 'is-earned' : a.earned === null ? 'is-pending' : ''}>
               <b>{a.name}</b><span>{a.detail}</span>
-              <small>{a.earned ? `Earned${a.on ? ` · ${a.on}` : ''}` : a.earned === null ? 'Founder-confirmed' : 'Not yet'}</small>
+              <small>{a.earned ? `Earned${a.on ? ` in ${a.on}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
             </li>)}
           </ul>
         </section>
@@ -208,7 +217,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
                 {active.paragraphs.map(p => <p key={p}>{p}</p>)}
               </> : <>
                 <h3 className="hb-redacted">▇▇▇▇▇▇ ▇▇▇▇</h3>
-                <p>This page is sealed. Reach {nextCampForChapter(active)} to read it.</p>
+                <p>This page is sealed. Reach {unlockName(active)} to read it.</p>
               </>}
             </article>
           </div>
