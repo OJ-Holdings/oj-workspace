@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Command screen, jobs timeline)
+**Summary:** The Today screen is now the Command screen: a day header with a glance strip (jobs today, tomorrow, overdue tasks), the quick actions, and a wide timeline of booked jobs (today, tomorrow, rest of the next 7 days; time on the left, customer, service, quote, address with a Directions link and Open job) beside a narrow column with open tasks, money in and out this month, Needs you and the truck fund. Other calendar events (non-booking) sit under the timeline. Grouping and ordering are a pure function with tests (src/lib/today-jobs.ts).
+**Files:** src/components/app/TodayBoard.tsx, src/lib/today-jobs.ts, src/styles/today-board.css, tests/today-jobs.test.ts.
+**Verified:** typecheck; npm test 858/858 (3 new); build; /preview renders the layout. The sample workspace has no booked jobs, so the timeline cards themselves were not seen in /preview.
+**Not verified:** the timeline with real jobs (check signed in), phone width.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: old bookmarks land somewhere useful)
 **Summary:** /workspace/crm (the empty workspace CRM) now redirects to Exterior customers, and the retired /workspace/tools pages (hub, operations, intelligence, weekly-review, scenarios and any unknown tools path) redirect to Today. Fleet, System status and the content preview under /tools are unchanged. The rule is a small pure function with tests (src/lib/retired-routes.ts).
 **Files:** src/lib/retired-routes.ts, src/app/workspace/[[...slug]]/page.tsx, tests/retired-routes.test.ts.
