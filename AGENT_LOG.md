@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: old bookmarks land somewhere useful)
+**Summary:** /workspace/crm (the empty workspace CRM) now redirects to Exterior customers, and the retired /workspace/tools pages (hub, operations, intelligence, weekly-review, scenarios and any unknown tools path) redirect to Today. Fleet, System status and the content preview under /tools are unchanged. The rule is a small pure function with tests (src/lib/retired-routes.ts).
+**Files:** src/lib/retired-routes.ts, src/app/workspace/[[...slug]]/page.tsx, tests/retired-routes.test.ts.
+**Verified:** typecheck; npm test 848/848.
+**Not verified:** the redirects in a signed-in browser (they run on the server before any data loads). /preview keeps showing Today at those paths (no redirect there).
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 2 prep: tested ledger + invoices SQL, staged, NOT applied)
 **Summary:** Staged the money core for owner review under docs/db-change-proposals/money-core/ (not supabase/schemas, so the guarded deployer is not blocked): ledger-core.sql (chart of accounts, double-entry journal, balanced-at-commit check, append-only entries, idempotent posting, one-time reversal, period lock, trial balance, owner chart seed with a partnership-aware chart for one LLC with division tags) and invoices.sql (numbered invoices, lines, payments, void; each posts to the ledger; sales tax stays 0 until a CPA confirms the Wisconsin rule). docs/db-change-proposals/RUN-ME-money-core.sql is the one-paste combined script with an already-exists guard.
 **Files:** docs/db-change-proposals/{RUN-ME-money-core.sql,money-core/ledger-core.sql,money-core/invoices.sql}, tests/{ledger-core-sql,invoices-sql,money-core-runme}.test.ts.
