@@ -7,8 +7,10 @@ import type { Dashboard } from '@/lib/dashboard';
 import { campFor, camps, expedition, SUMMIT_ALTITUDE, SUMMIT_COMPANIES, type Expedition, type Weather } from '@/lib/hyperborea';
 import { codex, type Chapter } from '@/lib/hyperborea-codex';
 import type { SceneHandle, SceneInput } from './hyperborea/scene';
+import { Journal } from './hyperborea/Journal';
+import { objectives } from '@/lib/hyperborea-journal';
 
-type Props = { data: Dashboard | null; now: Date | null; companies: number; coreVentures: readonly string[]; base: string; mode: 'preview' | 'live' };
+type Props = { data: Dashboard | null; now: Date | null; companies: number; coreVentures: readonly string[]; businesses: { id: string; name: string }[]; base: string; mode: 'preview' | 'live' };
 
 const money = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: n >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: n >= 100_000 ? 1 : 0 }).format(n);
 const metres = (n: number) => `${Math.round(n).toLocaleString('en-US')} m`;
@@ -29,7 +31,7 @@ function viewWords(view: number, ex: Expedition) {
   return { zone, where: `${metres(Math.abs(gap))} ${gap > 0 ? 'above' : 'below'} the expedition` };
 }
 
-export function HyperboreaView({ data, now, companies, coreVentures, base, mode }: Props) {
+export function HyperboreaView({ data, now, companies, coreVentures, businesses, base, mode }: Props) {
   const ventureKey = coreVentures.join(',');
   const ex = useMemo(() => data && now ? expedition({ finance: data.finance, mercury: data.mercury, today: chicagoToday(now), companies, coreVentures: ventureKey.split(',').filter(Boolean) }) : null, [data, now, companies, ventureKey]);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -45,7 +47,9 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
   const sceneInput = useMemo<SceneInput | null>(() => ex && {
     altitude: ex.altitude, ghost: ex.ghost.altitude, weather: ex.weather.weather, summitReached: ex.summitReached, summitMetres: SUMMIT_ALTITUDE,
     camps: camps.map(c => ({ id: c.id, name: c.name, altitude: c.altitude, reached: ex.altitude >= c.altitude })),
-  }, [ex]);
+    waypoints: data ? objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ altitude: o.altitude, label: o.name })) : [],
+  }, [ex, data]);
+  const nextRidge = useMemo(() => ex && data ? objectives(data.finance, ex.today, ex.ghost.start)[0] ?? null : null, [ex, data]);
   const inputKey = sceneInput ? JSON.stringify(sceneInput) : '';
   const latest = useRef(sceneInput); latest.current = sceneInput;
 
@@ -102,6 +106,12 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
           <button type="button" className="hb3-btn hb3-codex" onClick={() => dialog.current?.showModal()}><BookOpen size={16} aria-hidden="true" /><span>Codex</span></button>
         </div>
 
+        {nextRidge && <aside className="hb3-next" aria-label="Next objective">
+          <span>Next ridgeline</span>
+          <b>{nextRidge.name}</b>
+          <div className="hb-o2" aria-hidden="true"><i style={{ width: `${Math.min(ex.revenue / nextRidge.revenue, 1) * 100}%` }} /></div>
+          <small>{money(nextRidge.gap)} more a year, about {money(nextRidge.monthly)} a month to hold it</small>
+        </aside>}
         <nav className="hb3-gauge" aria-label="Altitude gauge: jump the view to a camp">
           <div className="hb3-gauge-rail" aria-hidden="true">
             <i className="hb3-gauge-done" style={{ height: pct(ex.altitude) }} />
@@ -162,6 +172,9 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
         </div>
       </section>
 
+      {data && <Journal ex={ex} finance={data.finance} businesses={businesses} />}
+
+
       <div className="hb-columns">
         <section className="hb-panel" aria-labelledby="hb-route-title">
           <h2 id="hb-route-title">The route</h2>
@@ -183,7 +196,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, base, mode 
           <ul className="hb-badges">
             {ex.achievements.map(a => <li key={a.id} className={a.earned ? 'is-earned' : a.earned === null ? 'is-pending' : ''}>
               <b>{a.name}</b><span>{a.detail}</span>
-              <small>{a.earned ? `Earned${a.on ? ` in ${a.on}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
+              <small>{a.earned ? `Earned${a.on ? ` in ${new Date(a.on + '-15T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
             </li>)}
           </ul>
         </section>

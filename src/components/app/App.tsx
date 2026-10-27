@@ -239,7 +239,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       ) : current === 'summit' ? (
         mode === 'live' && !owner
           ? <div className="page"><header className="page-head"><h1>Founders only</h1><p>This page is reserved for the workspace owners.</p></header></div>
-          : <HyperboreaView data={store.data} now={store.now} companies={ventureList.filter(v => v.id !== 'content').length} coreVentures={ventureList.filter(v => v.id !== 'content').map(v => v.id)} base={base} mode={mode} />
+          : <HyperboreaView data={store.data} now={store.now} companies={ventureList.length} coreVentures={ventureList.map(v => v.id)} businesses={ventureList.map(v => ({ id: v.id, name: v.short }))} base={base} mode={mode} />
       ) : current === 'fleet' ? (
         <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} bookings={jobs} bookingsState={jobsState} cards={board.data.cards} />
       ) : current === 'tools' ? (

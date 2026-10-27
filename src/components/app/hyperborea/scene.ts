@@ -9,7 +9,8 @@ import type { Weather } from '@/lib/hyperborea';
  */
 
 export type SceneCamp = { id: string; name: string; altitude: number; reached: boolean };
-export type SceneInput = { altitude: number; ghost: number; camps: SceneCamp[]; weather: Weather; summitReached: boolean; summitMetres: number };
+export type SceneWaypoint = { altitude: number; label: string };
+export type SceneInput = { altitude: number; ghost: number; camps: SceneCamp[]; waypoints: SceneWaypoint[]; weather: Weather; summitReached: boolean; summitMetres: number };
 export type SceneHandle = {
   set: (input: SceneInput) => void;
   /** Point the camera at an altitude in metres (smoothly). */
@@ -242,6 +243,13 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
     const me = routeAt(route, yFor(input.altitude));
     climber.position.set(me.x, me.y + 1.1, me.z);
     headlamp.position.set(me.x, me.y + 1.8, me.z);
+    // The next objectives: small cold cairns on the route ahead.
+    input.waypoints.forEach((w, i) => {
+      const wp = routeAt(route, yFor(w.altitude));
+      const cairn = new THREE.Sprite(campGlowCold); cairn.position.set(wp.x, terrain.height(wp.x, wp.z) + 0.5, wp.z); cairn.scale.setScalar(1.3);
+      campGroup.add(cairn);
+      makeLabel(i === 0 ? `Next: ${w.label}` : w.label, 'is-waypoint', cairn.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 60);
+    });
     makeLabel('OJ', 'is-me', climber.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 200);
     const gh = routeAt(route, yFor(input.ghost));
     ghost.position.set(gh.x, gh.y + 1.1, gh.z);
