@@ -1,5 +1,9 @@
 # AGENT LOG
 
+## 2026-10-27 -- Codex (Hyperborea mobile trail and dark snow)
+
+Removed large mobile scene captions and replaced them with accessible touch markers and existing on-demand details. Added bounded close zoom, 25 m travel and 1,770 calculated 5 m revenue steps with a camera-independent Trail browser. Darkened lighting/background peaks and increased snow. Repaired focus-induced internal scene scrolling. Source records and financial calculations unchanged. 905 tests and TypeScript passed; mobile Chromium viewports 320/390/430 checked. Build, exact-head CI and authenticated served-SHA release evidence follow in the PR. No schema or commercial actions; Exterior estimates unchanged. See docs/HYPERBOREA_MOBILE_TRAIL.md.
+
 ## October 27, 2026 — Hyperborea realistic alpine expedition
 
 Codex: added asymmetric alpine geology, locally served CC0 photographic rock/height materials, slope-aware snow and glacier crevasses, physical lighting/cached desktop shadows, distant ridgelines, grounded camp equipment, instanced moraine and two roped founder figures. Wider route framing preserves smooth navigation and inspection. Compact assets/budgets, one bounded slow-frame downgrade, texture-failure fallback and disposal fencing protect rendering reliability. Source/revenue math and customer state unchanged; scenery remains an explicit business metaphor. TypeScript and 901 tests pass; synthetic browser confirms photographic maps, no WebGL errors and a bounded ~16.8 ms desktop frame observation. Exact CI/live acceptance follows in the PR. [Implementation, provenance and limitations](docs/HYPERBOREA_ALPINE_RENDERING.md). No SQL or external commercial actions; Exterior scores unchanged.

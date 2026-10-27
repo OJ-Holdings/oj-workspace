@@ -5,7 +5,7 @@
 .hb-notice a { color: var(--hb-sun); }
 
 /* The 3D stage: full-bleed, close on the expedition. */
-.hb3 { position: relative; margin: calc(-1 * var(--s-6)) calc(-1 * var(--s-6)) 0; height: clamp(500px, calc(100dvh - 200px), 940px); overflow: hidden; background: var(--hb3-abyss); isolation: isolate; }
+.hb3 { position: relative; margin: calc(-1 * var(--s-6)) calc(-1 * var(--s-6)) 0; height: clamp(500px, calc(100dvh - 200px), 940px); overflow: clip; background: var(--hb3-abyss); isolation: isolate; }
 .hb3-canvas, .hb3-labels, .hb3-vignette, .hb3-deathzone { position: absolute; inset: 0; }
 .hb3-canvas canvas { display: block; width: 100%; height: 100%; cursor: grab; }
 .hb3-canvas canvas:active { cursor: grabbing; }
@@ -295,4 +295,39 @@ button.hb3-label:hover, button.hb3-label:focus-visible { border-color: var(--hb-
  .hb3-controls .hb3-btn { padding:7px 9px; font-size:11px; }
  .hb3-readout { bottom:112px; }
  .hb3-title { right:16px; }
+}
+
+/* Touch-first trail: the scenery owns the viewport, text belongs in the inspector. */
+.hb3-label.is-me { padding:8px; min-width:24px; min-height:24px; background:none; border:0; }
+.hb3-label.is-me span { display:none; }
+.hb3-label.is-me::before { content:''; display:block; width:7px; height:7px; border-radius:50%; background:var(--hb-sun); box-shadow:0 0 10px var(--hb-sun); }
+.hb3-label.is-step { width:24px; height:24px; min-width:24px; padding:9px; border:0; background:none; }
+.hb3-label.is-step::before { content:''; display:block; width:5px; height:5px; background:var(--hb-ice); border-radius:50%; box-shadow:0 0 5px var(--hb-ice); }
+.hb3-label.is-step span { display:none; }
+.hb3-label.is-step:hover span,.hb3-label.is-step:focus-visible span { display:block; position:absolute; bottom:24px; left:50%; transform:translateX(-50%); padding:4px 7px; background:var(--hb-veil); border-radius:5px; font:11px var(--font-ui); }
+.hb3-label:not(.is-me):not(.is-step) { font-size:12px; }
+.hb-trail-range { display:grid; gap:12px; font-size:14px; margin:20px 0; }
+.hb-trail-range input { width:100%; accent-color:var(--hb-sun); }
+@media(max-width:700px) {
+ .hb3 { height:calc(100dvh - 300px);min-height:390px;max-height:700px; }
+ .hb3-title { top:18px;left:16px;right:95px; }
+ .hb3-title h1 { font-size:18px;letter-spacing:.13em; }
+ .hb3-title p { display:none; }
+ .hb3-tools { top:10px;right:12px;gap:5px; }
+ .hb3-tools .hb3-btn { padding:7px;min-width:32px;min-height:32px; }
+ .hb3-tools span { display:none; }
+ .hb3-readout { left:16px;bottom:75px;gap:2px;max-width:calc(100% - 32px); }
+ .hb3-readout strong { font-size:22px; }
+ .hb3-readout span { font-size:12px; }
+ .hb3-readout small { display:none; }
+ .hb3[data-overview=true] .hb3-readout span { display:none; }
+ .hb3-controls { display:grid;grid-template-columns:repeat(7,minmax(0,1fr));left:12px;right:12px;bottom:14px;max-width:none;gap:4px; }
+ .hb3-controls .hb3-btn { padding:8px 4px;min-width:0;min-height:42px;justify-content:center; }
+ .hb3-controls .hb3-travel span,.hb3-controls .hb3-home span,.hb3-controls .hb3-trail span { display:none; }
+ .hb3-controls .hb3-overview span { font-size:9px; }
+ .hb3-label:not(.is-me):not(.is-step) { width:28px;height:28px;padding:10px;min-width:28px;background:none;border:0; }
+ .hb3-label:not(.is-me):not(.is-step)::before { content:'';display:block;width:6px;height:6px;border:1px solid var(--hb-ice);border-radius:50%;background:var(--hb-veil); }
+ .hb3-label:not(.is-me):not(.is-step) span { display:none; }
+ .hb3-label.is-history::before { border-color:var(--hb-sun); }
+ .hb3-gauge,.hb3-next,.hb3-hint,.hb3 > .hb3-weather { display:none; }
 }
