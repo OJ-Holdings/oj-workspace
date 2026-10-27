@@ -456,6 +456,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(30);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
+  const [completing, setCompleting] = useState<ExtLead | null>(null);
   const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const bookingParams = useSearchParams();
   const launchNewBooking = bookingParams.get('new');
@@ -500,6 +501,12 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     b.status === 'pending_approval' ? 'Pending approval' :
     b.status === 'denied' ? 'Denied' : statusLabel(b.status);
   const actionable = (b: ExtBooking) => !readOnly && b.date >= today && b.status !== 'denied';
+  // A finished job: mark the customer's job completed, then open the money form so revenue and costs go in right away.
+  const markDone = async (l: ExtLead) => {
+    const ok = await act(() => setLeadStatus(org, l.id, 'completed'), () => `${l.name ?? 'Job'} marked completed. Add the money next.`);
+    if (ok) setCompleting({ ...l, status: 'completed' });
+  };
+  const canComplete = (b: ExtBooking, l: ExtLead | undefined) => !readOnly && !!l && l.status === 'booked' && b.status === 'confirmed' && b.date <= today;
   const cancelBooking = (b: ExtBooking, name: string | null) => {
     if (window.confirm(`Cancel ${name || 'this'} booking on ${day(b.date)}? The lead goes back to following up.`))
       void act(() => removeBooking(org, b.id), () => 'Booking cancelled.');
@@ -583,11 +590,12 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
                   {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call {shownPhone(l.phone)}</a>}
                   {l?.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`}>Directions</a>}
                 </div>
-                {canEdit && <div className="atlas-booking-management-actions">
-                  {l && <button type="button" className="primary small" disabled={busy} onClick={() => setEditing(b)}><Pencil size={14} aria-hidden="true" />Edit job</button>}
-                  {l && <button type="button" className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Reschedule</button>}
-                  {l && crew && <button type="button" className="secondary small" disabled={busy} onClick={() => setAssigning(b)}>{assigned?.employee_name ?? 'Assign crew'}</button>}
-                  <button type="button" className="secondary small" disabled={busy} onClick={() => cancelBooking(b, l?.name ?? null)}><Trash2 size={13} aria-hidden="true"/>Cancel</button>
+                {(canEdit || canComplete(b, l)) && <div className="atlas-booking-management-actions">
+                  {canComplete(b, l) && <button type="button" className="primary small" disabled={busy} onClick={() => void markDone(l!)}>Mark complete</button>}
+                  {canEdit && l && <button type="button" className="primary small" disabled={busy} onClick={() => setEditing(b)}><Pencil size={14} aria-hidden="true" />Edit job</button>}
+                  {canEdit && l && <button type="button" className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Reschedule</button>}
+                  {canEdit && l && crew && <button type="button" className="secondary small" disabled={busy} onClick={() => setAssigning(b)}>{assigned?.employee_name ?? 'Assign crew'}</button>}
+                  {canEdit && <button type="button" className="secondary small" disabled={busy} onClick={() => cancelBooking(b, l?.name ?? null)}><Trash2 size={13} aria-hidden="true"/>Cancel</button>}
                 </div>}
               </footer>
             </article>;
@@ -606,6 +614,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
                 <button type="button" className="primary small" onClick={()=>openJob(b.id)}>Open job workflow</button>
                 {l && <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(l.id)}`}>Customer</Link>}
                 {l&&<Link className="secondary small" href={`${base}/b/exterior/field?booking=${encodeURIComponent(b.id)}`}>Field log</Link>}
+                {canComplete(b, l) && <button className="primary small" disabled={busy} onClick={() => void markDone(l!)}>Mark complete</button>}
                 {actionable(b) && <>
                   {l && <button className="secondary small" disabled={busy} onClick={() => setEditing(b)}>Edit</button>}
                   {l && <button className="secondary small" disabled={busy} onClick={() => setMoving(b)}>Move</button>}
@@ -621,6 +630,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
         </button>}
       </>}
     </section>
+    <MoneyDialog lead={completing} close={() => setCompleting(null)} act={act} busy={busy} org={org} />
     <BookFlow startDate={flow} close={() => setFlow(null)} data={data} act={act} busy={busy} org={org} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <JobDialog booking={editing} lead={editing ? lead.get(editing.lead_id ?? '') : undefined} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
