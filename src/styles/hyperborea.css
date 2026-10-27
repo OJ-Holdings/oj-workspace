@@ -34,6 +34,12 @@
 .hb3-btn[aria-pressed='true'] { color: var(--hb-sun); border-color: var(--hb-sun-soft); }
 .hb3-codex { font-family: var(--font-serif); font-size: var(--t-lg); color: var(--hb-sun); border-color: var(--hb-sun-soft); padding: 7px 16px; }
 
+/* Next ridgeline, under the tools */
+.hb3-next { position: absolute; top: 120px; right: var(--s-6); width: 260px; display: grid; gap: 6px; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); border: 1px solid var(--hb-line); background: var(--hb-veil-soft); backdrop-filter: blur(8px); }
+.hb3-next span { font-size: var(--t-xs); color: var(--hb-ice); }
+.hb3-next b { font-family: var(--font-serif); font-weight: 500; font-size: var(--t-xl); color: var(--hb-snow); line-height: 1.1; }
+.hb3-next small { color: var(--ink-3); font-size: var(--t-xs); line-height: 1.4; }
+
 /* Altitude gauge on the left edge */
 .hb3-gauge { position: absolute; left: var(--s-6); top: 130px; bottom: 150px; width: 110px; }
 .hb3-gauge-rail { position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--hb-line); }
@@ -123,6 +129,7 @@
   .hb3-title h1 { font-size: 2.3rem; letter-spacing: .14em; }
   .hb3-tools { top: var(--s-4); right: var(--s-4); }
   .hb3-gauge { display: none; }
+  .hb3-next { display: none; }
   .hb3-readout { left: var(--s-4); bottom: 76px; }
   .hb3-controls { left: var(--s-4); right: var(--s-4); bottom: var(--s-4); max-width: none; justify-content: flex-start; }
   .hb3-btn span { font-size: var(--t-xs); }
@@ -150,8 +157,8 @@
 .hb-chart-now { fill: var(--hb-sun); stroke: var(--hb-snow); stroke-width: 2; }
 .hb-chart-bar { fill: var(--hb-snow-2); opacity: .16; }
 .hb-chart-camp line { stroke: var(--hb-snow-2); stroke-dasharray: 3 6; opacity: .35; }
-.hb-chart-camp text { fill: var(--hb-snow-2); font-family: var(--font-serif); font-size: 13px; opacity: .8; }
-.hb-chart-axis { fill: var(--ink-4); font-size: 11px; font-family: var(--font-ui); }
+.hb-chart-camp text { fill: var(--hb-snow-2); font-family: var(--font-serif); font-size: 11px; opacity: .8; }
+.hb-chart-axis { fill: var(--ink-4); font-size: 8.5px; font-family: var(--font-ui); }
 .hb-chart figcaption { color: var(--ink-4); font-size: var(--t-xs); margin-top: var(--s-2); }
 
 .hb-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-height: 520px; overflow-y: auto; border-top: 1px solid var(--hb-line); }

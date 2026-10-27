@@ -75,7 +75,10 @@ test('waypoints end at the next camp and objectives carry ETAs', () => {
   for (let i = 1; i < w.length; i++) assert.ok(w[i] > w[i - 1]);
   assert.deepEqual(waypointTargets(38_000, null), []);
   const o = objectives(book, today, 10_000);
-  assert.equal(o[o.length - 1].isCamp, true);
+  // The ridgelines end at the next camp, then the camp after it closes the list.
+  const camps = o.filter(x => x.isCamp);
+  assert.equal(camps.length, 2); assert.equal(o[o.length - 1].isCamp, true); assert.equal(o[o.length - 2].isCamp, true);
+  for (let i = 1; i < o.length; i++) assert.ok(o[i].revenue > o[i - 1].revenue);
   assert.ok(o.every(x => x.gap > 0 && x.dueOn >= '2026-10-27'));
 });
 

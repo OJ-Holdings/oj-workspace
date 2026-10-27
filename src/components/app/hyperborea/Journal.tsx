@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { FinanceEntry } from '@/lib/dashboard';
 import { camps, type Expedition } from '@/lib/hyperborea';
@@ -16,15 +17,24 @@ const span = (days: number) => days < 45 ? `${days} days` : days < 730 ? `${Math
 const kindWord: Record<Milestone['kind'], string> = { first: 'First', lifetime: 'Total', month: 'Month', record: 'Record', camp: 'Camp' };
 
 /** The climb so far, why OJ stands where it does, and what to take next. */
-export function Journal({ ex, finance, businesses }: Props) {
-  const names = Object.fromEntries(businesses.map(b => [b.id, b.name]));
-  const history = altitudeHistory(finance, ex.today);
-  const log = milestones(finance, ex.today, names).reverse();
-  const t = totals(finance, ex.today);
-  const why = breakdown(finance, ex.today, businesses.map(b => b.id), names);
-  const next = objectives(finance, ex.today, ex.ghost.start);
-  const schedule = campSchedule(ex.ghost.start);
-  const badges = badgeProgress(finance, ex.today).filter(b => b.progress < 1);
+// Memoised: the 3D view re-renders its parent while the camera moves, and the ledger maths need not follow it.
+export const Journal = memo(function Journal({ ex, finance, businesses }: Props) {
+  const businessKey = businesses.map(b => b.id + ':' + b.name).join('|');
+  const { names, history, log, t, why, next, schedule, badges } = useMemo(() => {
+    const list = businessKey.split('|').filter(Boolean).map(x => { const [id, ...rest] = x.split(':'); return { id, name: rest.join(':') }; });
+    const names = Object.fromEntries(list.map(b => [b.id, b.name]));
+    return {
+      names,
+      history: altitudeHistory(finance, ex.today),
+      log: milestones(finance, ex.today, names).reverse(),
+      t: totals(finance, ex.today),
+      why: breakdown(finance, ex.today, list.map(b => b.id), names),
+      next: objectives(finance, ex.today, ex.ghost.start),
+      schedule: campSchedule(ex.ghost.start),
+      badges: badgeProgress(finance, ex.today).filter(b => b.progress < 1),
+    };
+  }, [finance, ex.today, ex.ghost.start, businessKey]);
+  void names;
   const nextCamp = ex.camp.next;
 
   if (!ex.hasRecords) return (
@@ -97,7 +107,7 @@ export function Journal({ ex, finance, businesses }: Props) {
           <p>Altitude comes from one number: <b>{money(ex.revenue)}</b> recorded across the businesses in the last twelve months. That puts the expedition {nextCamp ? <>at {ex.camp.current.name}, {money(ex.toNext ?? 0)} a year short of {nextCamp.name}</> : <>above every camp</>}.</p>
           {lead.length > 0 && <p>{lead[0].name} carries {pct(lead[0].share)} of the climb{lead.length > 1 ? <>, {lead.slice(1).map(v => `${v.name} ${pct(v.share)}`).join(', ')}</> : null}.{why.silent.length > 0 && <> {why.silent.join(' and ')} {why.silent.length > 1 ? 'have' : 'has'} nothing on record in that time, so {why.silent.length > 1 ? 'they add' : 'it adds'} no altitude yet.</>}</p>}
           <p>The last 90 days ran at <b>{money(why.runRate)}</b> a year. Held for a year, that pace stands at {metres(why.runRateAltitude)}, {Math.abs(momentum) < 40 ? 'about where you are now: the climb is holding' : momentum > 0 ? <>{metres(momentum)} higher than now: the climb is <b>accelerating</b></> : <>{metres(-momentum)} lower than now: the climb is <b>losing height</b> and older, bigger months are carrying the number</>}.</p>
-          <p>{ex.ghost.ahead === null ? 'The 2046 pace line starts from the founding day.' : ex.ghost.ahead ? `You are ${metres(Math.abs(ex.ghost.gap))} above the 2046 pace line.` : `You are ${metres(Math.abs(ex.ghost.gap))} below the 2046 pace line.`} Reaching the summit on time takes {pct(ex.ghost.requiredGrowth)} growth a year, every year, for twenty years.{unknownMargins.length > 0 && <> Profit is unknown for {unknownMargins.join(' and ')}: no costs are recorded there, so the margin is not counted as 100%.</>}</p>
+          <p>{ex.ghost.ahead === null ? 'The 2046 pace line starts from the founding day.' : Math.abs(ex.ghost.gap) < 10 ? 'You are on the 2046 pace line today.' : ex.ghost.ahead ? `You are ${metres(Math.abs(ex.ghost.gap))} above the 2046 pace line.` : `You are ${metres(Math.abs(ex.ghost.gap))} below the 2046 pace line.`} Reaching the summit on time takes {pct(ex.ghost.requiredGrowth)} growth a year, every year, for twenty years.{unknownMargins.length > 0 && <> Profit is unknown for {unknownMargins.join(' and ')}: no costs are recorded there, so the margin is not counted as 100%.</>}</p>
         </div>
 
         <ul className="hb-shares">
@@ -121,7 +131,7 @@ export function Journal({ ex, finance, businesses }: Props) {
 
       <section className="hb-panel hb-next" aria-labelledby="hb-next-title">
         <h2 id="hb-next-title">Next objectives</h2>
-        <p className="hb-next-lead">The next ridgelines between {ex.camp.current.name} and {nextCamp?.name ?? 'the summit'}, in order. Each is a twelve-month revenue figure. The forecast assumes the last 90 days’ pace holds while older months fall out of the window.</p>
+        <p className="hb-next-lead">The next ridgelines up to {nextCamp?.name ?? 'the summit'}, then the camp beyond it, in order. Each is a twelve-month revenue figure. The forecast assumes the last 90 days’ pace holds while older months fall out of the window.</p>
         <ol className="hb-objectives">
           {next.map(o => <li key={o.revenue} className={o.isCamp ? 'is-camp' : ''}>
             <div className="hb-obj-head"><b>{o.name}</b><span>{metres(o.altitude)}</span></div>
@@ -158,4 +168,4 @@ export function Journal({ ex, finance, businesses }: Props) {
       </section>
     </>
   );
-}
+});

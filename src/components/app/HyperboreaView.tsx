@@ -49,6 +49,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
     camps: camps.map(c => ({ id: c.id, name: c.name, altitude: c.altitude, reached: ex.altitude >= c.altitude })),
     waypoints: data ? objectives(data.finance, ex.today, ex.ghost.start).filter(o => !o.isCamp).map(o => ({ altitude: o.altitude, label: o.name })) : [],
   }, [ex, data]);
+  const nextRidge = useMemo(() => ex && data ? objectives(data.finance, ex.today, ex.ghost.start)[0] ?? null : null, [ex, data]);
   const inputKey = sceneInput ? JSON.stringify(sceneInput) : '';
   const latest = useRef(sceneInput); latest.current = sceneInput;
 
@@ -105,6 +106,12 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
           <button type="button" className="hb3-btn hb3-codex" onClick={() => dialog.current?.showModal()}><BookOpen size={16} aria-hidden="true" /><span>Codex</span></button>
         </div>
 
+        {nextRidge && <aside className="hb3-next" aria-label="Next objective">
+          <span>Next ridgeline</span>
+          <b>{nextRidge.name}</b>
+          <div className="hb-o2" aria-hidden="true"><i style={{ width: `${Math.min(ex.revenue / nextRidge.revenue, 1) * 100}%` }} /></div>
+          <small>{money(nextRidge.gap)} more a year, about {money(nextRidge.monthly)} a month to hold it</small>
+        </aside>}
         <nav className="hb3-gauge" aria-label="Altitude gauge: jump the view to a camp">
           <div className="hb3-gauge-rail" aria-hidden="true">
             <i className="hb3-gauge-done" style={{ height: pct(ex.altitude) }} />
@@ -189,7 +196,7 @@ export function HyperboreaView({ data, now, companies, coreVentures, businesses,
           <ul className="hb-badges">
             {ex.achievements.map(a => <li key={a.id} className={a.earned ? 'is-earned' : a.earned === null ? 'is-pending' : ''}>
               <b>{a.name}</b><span>{a.detail}</span>
-              <small>{a.earned ? `Earned${a.on ? ` in ${a.on}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
+              <small>{a.earned ? `Earned${a.on ? ` in ${new Date(a.on + '-15T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}` : ''}` : a.earned === null ? 'Confirmed by the founders' : 'Not yet'}</small>
             </li>)}
           </ul>
         </section>

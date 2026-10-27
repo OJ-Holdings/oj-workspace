@@ -177,8 +177,12 @@ export type Objective = {
 };
 export function objectives(finance: readonly FinanceEntry[], today: string, ghostStart: number): Objective[] {
   const revenue = trailingRevenue(revenueOf(finance), today);
-  const next = camps.find(c => c.revenue > revenue) ?? null;
-  return waypointTargets(revenue, next?.revenue ?? null).map(target => {
+  const nextIndex = camps.findIndex(c => c.revenue > revenue);
+  const next = nextIndex === -1 ? null : camps[nextIndex];
+  // The ridgelines up to the next camp, then the camp after it: the next big milestone beyond.
+  const beyond = nextIndex === -1 ? undefined : camps[nextIndex + 1];
+  const targets = [...waypointTargets(revenue, next?.revenue ?? null), ...(beyond ? [beyond.revenue] : [])];
+  return targets.map(target => {
     const camp = camps.find(c => c.revenue === target);
     const etaDays = daysToReach(finance, today, target);
     const dueOn = ghostDueDate(ghostStart, target);
