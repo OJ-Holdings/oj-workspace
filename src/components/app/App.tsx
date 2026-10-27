@@ -29,6 +29,7 @@ import { useWork } from './useWork';
 import { WorkTimer } from './WorkTimer';
 import { ChatBubble } from './ChatBubble';
 import { InvoicesView } from './InvoicesView';
+import { HyperboreaView } from './HyperboreaView';
 import type { WorkData } from '@/lib/work';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
@@ -219,7 +220,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     venture = parts[1];
   }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
-  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools'].includes(parts[0])) current = parts[0] as NavKey;
+  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
   const status = [connectionStatus && connectionStatus !== 'Live updates connected' ? connectionStatus : '', limited ? 'Showing the first 1,000 tasks and most recent 1,000 comments.' : ''].filter(Boolean).join(' ');
@@ -235,6 +236,10 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
+      ) : current === 'summit' ? (
+        mode === 'live' && !owner
+          ? <div className="page"><header className="page-head"><h1>Founders only</h1><p>This page is reserved for the workspace owners.</p></header></div>
+          : <HyperboreaView data={store.data} now={store.now} companies={ventureList.filter(v => v.id !== 'content').length} coreVentures={ventureList.filter(v => v.id !== 'content').map(v => v.id)} base={base} mode={mode} />
       ) : current === 'fleet' ? (
         <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} bookings={jobs} bookingsState={jobsState} cards={board.data.cards} />
       ) : current === 'tools' ? (

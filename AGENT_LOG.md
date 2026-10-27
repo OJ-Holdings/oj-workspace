@@ -22,6 +22,12 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (Hyperborea: the founders' expedition map)
+**Summary:** New founders-only page at /workspace/summit ("Hyperborea" in the rail, under Businesses). OJ Holdings' 20-year climb (Oct 27 2026 to Oct 27 2046) to $100M a year and ten companies, drawn as a mountain. Altitude = trailing-12-month recorded revenue on a log scale (camps: Treeline $250K, Seven Figures $1M, Icewall $5M, South Col $10M, Death Zone $25M, Summit $100M at 8,849 m). Weather = 90-day revenue momentum (clear / wind / storm / fog), drawn as snow and fog. Oxygen = Mercury cash against average recorded costs over 90 days (runway unknown when no costs are recorded; never infinite). Ghost climber = steady compounding pace from the founding-day revenue to the summit, with the required yearly growth. Banners = operating companies (3 of 10). Revenue achievements are computed; the rest show as founder-confirmed. Codex button: lore chapters that unlock by camp; Chapter VI (the founders' own letter) is sealed and never written by the app. Owner role only: hidden from the rail and search for non-owners, and the route shows "Founders only" to them. No SQL, no server actions, read-only.
+**Files:** src/lib/{hyperborea,hyperborea-codex}.ts, src/components/app/HyperboreaView.tsx, src/components/app/{App,Shell}.tsx, src/styles/hyperborea.css, src/styles/tokens.css (new .hb tokens), src/app/globals.css, tests/hyperborea.test.ts.
+**Verified:** typecheck; npm test 872/872 (10 new); /preview/summit at 1440 px and 390 px in headless Chromium, Codex open with locked and sealed chapters.
+**Not verified:** npm run build (this sandbox cannot reach Google Fonts; CI builds it); signed-in live page with real revenue and Mercury; that Jacob's membership role is owner (if he is a member he will not see the page).
+**Next:** staged DB step for gate check-offs, founder-confirmed badges and the sealed Summit chapter (two-person unseal).
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Tasks header, sticky job actions)
 **Summary:** The Tasks page opened with 'ATLAS / EXECUTION WORKBENCH', 'Mission Board' and a paragraph of caveats. It now says Tasks with one line on dragging or Move to. The Job sheet's action buttons stay pinned to the bottom of the dialog so Mark complete and save is always on screen on a phone. No logic changes.
 **Files:** src/components/app/BoardView.tsx, src/styles/os-skin.css.

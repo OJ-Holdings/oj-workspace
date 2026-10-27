@@ -91,3 +91,16 @@
   --c-essentials: #8a7a66; --c-solutions: #b06f50; --c-exterior: #d96a0b;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 16px 34px -26px rgba(31, 26, 23, 0.5);
 }
+
+/* Hyperborea: the founders' expedition map. Night ice, storm grey, and the gold of the sun above the north wind. */
+.hb {
+  --hb-sky-top: #02040b; --hb-sky-mid: #0a1730; --hb-sky-low: #1b2d4b;
+  --hb-rock-lit: #34425f; --hb-rock-dark: #0f1625; --hb-shade: rgba(2, 4, 11, 0.38);
+  --hb-range-far: #0d182c; --hb-range-near: #060a14;
+  --hb-snow: #eef3fb; --hb-snow-2: #b9c7dd; --hb-ice: #8fd3ff;
+  --hb-sun: #ffd98a; --hb-sun-soft: rgba(255, 217, 138, 0.22); --hb-sun-none: rgba(255, 217, 138, 0);
+  --hb-ghost: rgba(238, 243, 251, 0.5); --hb-fog: rgba(170, 188, 214, 0.2); --hb-storm: rgba(120, 138, 168, 0.42);
+  --hb-blood: #ff6f6f; --hb-seal-dark: #7a1f1f;
+  --hb-veil: rgba(2, 4, 11, 0.72); --hb-veil-soft: rgba(2, 4, 11, 0.55); --hb-deep-shadow: rgba(0, 0, 0, 0.85);
+  --hb-track: rgba(255, 255, 255, 0.07); --hb-sun-faint: rgba(255, 217, 138, 0.05); --hb-panel: rgba(12, 20, 38, 0.78); --hb-line: rgba(185, 199, 221, 0.16);
+}

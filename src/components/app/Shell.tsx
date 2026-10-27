@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, MountainSnow, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X } from 'lucide-react';
 import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
@@ -18,7 +18,7 @@ import { WindowTabs } from './WindowTabs';
 import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -32,6 +32,8 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   { key:'finance', label:'Money', path:'/finance', icon:Wallet, group:'DAILY' },
   { key:'invoices', label:'Invoices', path:'/invoices', icon:ReceiptText, group:'DAILY' },
   { key:'businesses', label:'Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
+  // Founders only: hidden from every non-owner in the live workspace (see founderNav below).
+  { key:'summit', label:'Hyperborea', path:'/summit', icon:MountainSnow, group:'BUSINESSES' },
   { key:'analytics', label:'Reports', path:'/analytics', icon:BarChart3, group:'MORE' },
   { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
   { key:'files', label:'Files', path:'/files', icon:FileText, group:'MORE' },
@@ -57,6 +59,8 @@ const actionWord = { card_created: 'created', card_updated: 'updated', comment_a
 
 export function Shell({ base, current, venture, mode, members, displayName, owner, readOnly, openTasks, cards, activity, status, timer, onOpenCard, onNewCard, children, dashboard, presence, toolConnections, jobs = [] }: Props) {
   const router = useRouter();
+  // Hyperborea is the founders' private expedition map: only owners (and the sample workspace) see it.
+  const founderNav = useMemo(() => nav.filter(n => n.key !== 'summit' || mode === 'preview' || owner), [mode, owner]);
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
@@ -72,7 +76,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const previousFocus = useRef<HTMLElement | null>(null);
   const restoreFocus = useRef(true);
   const currentName=current==='nexus'?'Project 360':current==='exterior-bookings'?'Jobs & Bookings':current==='exterior-leads'?'Customers & Leads':venture?discoverableVentures.find(v=>v.id===venture)?.short??'Business Division':
-    nav.find(item=>item.key===current)?.label??'Corporate Workspace';
+    founderNav.find(item=>item.key===current)?.label??'Corporate Workspace';
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
   const openSearch = useCallback(() => {
@@ -119,11 +123,11 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return { pages: nav.slice(0, 5) };
+    if (!q) return { pages: founderNav.slice(0, 5) };
     return {
-      pages: [...nav, ...discoverableVentures.map(v => ({ key: 'businesses' as NavKey, label: v.name+(v.id==='content'&&!contentPersistenceEnabled?' · Preview':''), path: v.id==='content'&&!contentPersistenceEnabled?'/tools/content-preview':`/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
+      pages: [...founderNav, ...discoverableVentures.map(v => ({ key: 'businesses' as NavKey, label: v.name+(v.id==='content'&&!contentPersistenceEnabled?' · Preview':''), path: v.id==='content'&&!contentPersistenceEnabled?'/tools/content-preview':`/b/${v.id}`, icon: Building2 }))].filter(n => n.label.toLowerCase().includes(q)),
     };
-  }, [query]);
+  }, [query, founderNav]);
 
   const canAct = mode === 'live' && !readOnly;
   const quickActions = useMemo(() => {
@@ -157,11 +161,11 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         </button>
         </div>
         <nav>
-          {nav.map((item,i) => {
+          {founderNav.map((item,i) => {
             const expandable=item.group==='MORE';
-            const groupOpen=!expandable||(expandedGroups[item.group as 'MORE']??nav.some(n=>n.group===item.group&&n.key===current));
+            const groupOpen=!expandable||(expandedGroups[item.group as 'MORE']??founderNav.some(n=>n.group===item.group&&n.key===current));
             return <div key={item.key}>
-              {(i===0||nav[i-1].group!==item.group)&&(expandable
+              {(i===0||founderNav[i-1].group!==item.group)&&(expandable
                 ? <button type="button" className="atlas-rail-heading atlas-nav-group-toggle"
                   aria-expanded={groupOpen}
                   onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!groupOpen}))}>
