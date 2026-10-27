@@ -126,3 +126,12 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .fieldtoday-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 640px) { .jobsheet { min-width: 0; } .jobsheet-facts { grid-template-columns: 1fr; } }
 .jobsheet .form-grid { align-items: start; }
+
+/* ---------- Older Exterior screens: drop their hard-coded navy and teal for the same warm glass ---------- */
+.excmd-nav, .excmd-hero, .ecdispatch-metric, .ecinbox, .ecinbox-stat, .ecinbox-item, .ecdispatch-delegate, .ecjourney, .ecjob-compose, .ecjob-progress,
+.ecfield-hero, .ecfield-metric, .ecfield-shared, .atlas-hq-hero, .atlas-hq-orbit-core, .ecjob-card, .ecjourney-step {
+  background: var(--os-glass), var(--panel);
+  border-color: var(--line-2);
+  box-shadow: var(--shadow);
+}
+.ecinbox, .ecjourney, .ecfield-shared { --inbox-line: var(--line-2); --ej-edge: var(--line-2); --shared-line: var(--line-2); --inbox-mint: var(--accent-2); --shared-green: var(--accent-2); --inbox-coral: var(--accent-hi); }

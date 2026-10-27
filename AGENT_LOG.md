@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: older Exterior screens lose their navy)
+**Summary:** Styling only. The Exterior command header, dispatch tiles, inbox, job journey, field hero and shared follow-up panels still carried hard-coded navy and teal gradients from the earlier design. A block at the end of src/styles/os-skin.css now gives those classes the same warm glass surface, line colour and champagne/mint accents as the rest of the OJ OS skin. No markup, data or logic changes.
+**Files:** src/styles/os-skin.css.
+**Verified:** build; /preview Exterior Care home and Jobs at 800 px.
+**Not verified:** every nested card inside the Job continuity panel and Field log; phone width.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: simple Job screen and Field today)
 **Summary:** Oscar could not use the job screens to enter revenue: Open job workflow opened a wall of evidence and caveat panels, and the Field page was thirteen device-local checklists. New JobSheet (ExteriorManage.tsx): one dialog per job with customer, service, quote, address, call and directions, Customer paid and Job costs inputs with live profit, notes, Mark complete and save (sets the lead completed, then saves figures through the existing setLeadStatus and saveFinancials), and Save figures. Jobs cards and table now say Open job and open the sheet (the ?booking= deep link too). Crew, field and closeout details stays reachable from a link inside the sheet (the old ExteriorJobContinuity panel, unchanged). The Field page is now ExteriorFieldToday: today, past jobs missing their figures (last 45 days), and the next 7 days, each with Call, Directions and Open job; the old field log is folded under one details control. No SQL, no new server actions.
 **Files:** src/components/app/{ExteriorManage,ExteriorFieldToday,ExteriorView}.tsx, src/styles/os-skin.css.
