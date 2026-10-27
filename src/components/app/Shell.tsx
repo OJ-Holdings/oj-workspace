@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Network, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, X } from 'lucide-react';
 import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
@@ -16,24 +16,22 @@ import { searchActiveTools } from '@/lib/corporate-tools';
 
 export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'operations' | 'nexus';
 
-type NavGroup='DAILY'|'BUSINESSES'|'MANAGEMENT'|'MORE';
+type NavGroup='DAILY'|'BUSINESSES'|'MORE';
+// Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
+// for now but are no longer promoted; their keys remain in NavKey so existing pages keep working until they are deleted.
 const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group: NavGroup }[] = [
   { key:'home', label:'Today', path:'', icon:Home, group:'DAILY' },
-  { key:'exterior-bookings', label:'Jobs & Bookings', path:'/b/exterior/bookings', icon:CalendarDays, group:'DAILY' },
-  { key:'exterior-leads', label:'Customers & Leads', path:'/b/exterior/leads', icon:UsersRound, group:'DAILY' },
-  { key:'tasks', label:'My Tasks & Team Work', path:'/tasks', icon:CheckSquare, group:'DAILY' },
-  { key:'finance', label:'Money & Expenses', path:'/finance', icon:Wallet, group:'DAILY' },
-  { key:'businesses', label:'Our Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
-  { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'BUSINESSES' },
-  { key:'calendar', label:'Company Calendar', path:'/calendar', icon:CalendarDays, group:'BUSINESSES' },
-  { key:'crm', label:'Company CRM', path:'/crm', icon:UsersRound, group:'BUSINESSES' },
-  { key:'operations', label:'NEXUS / Company View', path:'/tools/operations', icon:Network, group:'MANAGEMENT' },
-  { key:'nexus', label:'Project 360', path:'/b/exterior/projects', icon:Network, group:'MANAGEMENT' },
-  { key:'analytics', label:'Reports & Analytics', path:'/analytics', icon:BarChart3, group:'MANAGEMENT' },
-  { key:'files', label:'Files & Documents', path:'/files', icon:FileText, group:'MORE' },
+  { key:'exterior-bookings', label:'Jobs', path:'/b/exterior/bookings', icon:Wrench, group:'DAILY' },
+  { key:'exterior-leads', label:'Customers', path:'/b/exterior/leads', icon:UsersRound, group:'DAILY' },
+  { key:'calendar', label:'Schedule', path:'/calendar', icon:CalendarDays, group:'DAILY' },
+  { key:'tasks', label:'Tasks & Crew', path:'/tasks', icon:CheckSquare, group:'DAILY' },
+  { key:'finance', label:'Money', path:'/finance', icon:Wallet, group:'DAILY' },
+  { key:'businesses', label:'Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
+  { key:'analytics', label:'Reports', path:'/analytics', icon:BarChart3, group:'MORE' },
+  { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
+  { key:'files', label:'Files', path:'/files', icon:FileText, group:'MORE' },
   { key:'messages', label:'Messages', path:'/messages', icon:MessageSquare, group:'MORE' },
   { key:'team', label:'Team', path:'/team', icon:Users, group:'MORE' },
-  { key:'tools', label:'More Tools', path:'/tools', icon:Wrench, group:'MORE' },
   { key:'settings', label:'Settings', path:'/settings', icon:Settings, group:'MORE' },
 ];
 
@@ -57,7 +55,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
-  const [expandedGroups,setExpandedGroups]=useState<Record<'MANAGEMENT'|'MORE',boolean|null>>({MANAGEMENT:null,MORE:null});
+  const [expandedGroups,setExpandedGroups]=useState<Record<'MORE',boolean|null>>({MORE:null});
   const searchInput = useRef<HTMLInputElement>(null);
   const palette = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -131,17 +129,17 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
         </Link>
         <nav>
           {nav.map((item,i) => {
-            const expandable=item.group==='MANAGEMENT'||item.group==='MORE';
-            const groupOpen=!expandable||(expandedGroups[item.group as 'MANAGEMENT'|'MORE']??nav.some(n=>n.group===item.group&&n.key===current));
+            const expandable=item.group==='MORE';
+            const groupOpen=!expandable||(expandedGroups[item.group as 'MORE']??nav.some(n=>n.group===item.group&&n.key===current));
             return <div key={item.key}>
               {(i===0||nav[i-1].group!==item.group)&&(expandable
                 ? <button type="button" className="atlas-rail-heading atlas-nav-group-toggle"
                   aria-expanded={groupOpen}
                   onClick={()=>setExpandedGroups(prev=>({...prev,[item.group]:!groupOpen}))}>
-                    {item.group==='MANAGEMENT'?'MANAGEMENT / ANALYTICS':'MORE / SETTINGS'}
+                    MORE
                     <span aria-hidden="true">{groupOpen?'−':'+'}</span>
                   </button>
-                : <p className="atlas-rail-heading">{item.group==='DAILY'?'DO THE WORK':item.group==='BUSINESSES'?'YOUR BUSINESSES':item.group}</p>)}
+                : <p className="atlas-rail-heading">{item.group==='DAILY'?'DO THE WORK':'YOUR BUSINESSES'}</p>)}
               {groupOpen&&<Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
                 <item.icon size={18} aria-hidden="true" /><span>{item.label}</span>
                 {item.key === 'tasks' && openTasks > 0 && <b className="rail-count">{openTasks}</b>}
