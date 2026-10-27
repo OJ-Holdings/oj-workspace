@@ -10,6 +10,7 @@ import { money } from '@/lib/metrics';
 import { ventures } from '@/lib/ventures';
 import { buildAtlasSnapshot } from '@/lib/atlas-command';
 import { OperatorLaunchpad } from './OperatorLaunchpad';
+import { TruckFundCard } from './TruckFundCard';
 
 type Props = {
   base: string; board: Board; store: DashboardStore; jobs: JobItem[]; today: string;
@@ -97,6 +98,8 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
             </ol>}
         </section>
       </div>
+
+      <TruckFundCard store={store} today={today} readOnly={readOnly} />
     </section>
   );
 }
