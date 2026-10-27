@@ -31,3 +31,26 @@ test('customers without a real phone are matched by exact name, not merged with 
   assert.equal(rows.length, 2);
   assert.ok(rows.some(r => r.id === 'x3') && rows.some(r => r.id === 'x2'));
 });
+
+import { rebookTsv, tsvCell } from '../src/lib/exterior-rebook';
+
+test('spreadsheet formulas, tabs and line breaks from customer fields cannot run or shift columns', () => {
+  assert.equal(tsvCell('=HYPERLINK("http://x","click")'), `'=HYPERLINK("http://x","click")`);
+  assert.equal(tsvCell('  @SUM(A1)'), `'@SUM(A1)`);
+  assert.equal(tsvCell('-2+3'), `'-2+3`);
+  assert.equal(tsvCell('+cmd|calc'), `'+cmd|calc`);
+  assert.equal(tsvCell('a\tb\r\nc'), 'a b c');
+  assert.equal(tsvCell('+12625550100'), '+12625550100');
+  assert.equal(tsvCell(300), '300');
+  assert.equal(tsvCell(null), '');
+});
+
+test('the copied list is sanitized cell by cell', () => {
+  const out = rebookTsv([lead('evil', { name: '=1+1', address: 'Line1\nLine2', phone: '+12625550100', service_requested: '@x', completed_at: '2026-04-01T12:00:00Z' })]);
+  const row = out.split('\n')[1].split('\t');
+  assert.equal(row.length, 6);
+  assert.equal(row[0], `'=1+1`);
+  assert.equal(row[2], 'Line1 Line2');
+  assert.equal(row[1], '+12625550100');
+  assert.equal(row[3], `'@x`);
+});

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { jobDate, type ExtLead } from '@/lib/exterior';
-import { rebookCandidates } from '@/lib/exterior-rebook';
+import { rebookCandidates, rebookTsv } from '@/lib/exterior-rebook';
 import { isRealPhone } from '@/lib/exterior-ops';
 import { dollars } from '@/lib/metrics';
 
@@ -20,8 +20,7 @@ export function RebookList({ leads, now }: Props) {
   const rows = useMemo(() => rebookCandidates(leads, now, months), [leads, months, now]);
 
   const copy = async () => {
-    const lines = ['Name\tPhone\tAddress\tLast service\tLast job date\tLast job revenue', ...rows.map(l => [l.name ?? '', isRealPhone(l.phone) ? l.phone : '', l.address ?? '', l.service_requested ?? '', jobDate(l).slice(0, 10), l.job_revenue ?? ''].join('\t'))];
-    try { await navigator.clipboard.writeText(lines.join('\n')); setCopied(`Copied ${rows.length} customers.`); }
+    try { await navigator.clipboard.writeText(rebookTsv(rows)); setCopied(`Copied ${rows.length} customers.`); }
     catch { setCopied('Copy was blocked by the browser. Select the table and copy it instead.'); }
   };
 

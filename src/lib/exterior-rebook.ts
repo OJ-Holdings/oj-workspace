@@ -18,3 +18,20 @@ export function rebookCandidates(leads: ExtLead[], now: Date, months: number): E
   const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - months);
   return [...best.values()].filter(l => new Date(jobDate(l)) <= cutoff).sort((a, b) => jobDate(a).localeCompare(jobDate(b)));
 }
+
+/**
+ * One spreadsheet-safe cell. Customer names and addresses can come from the public website form, so a value like =HYPERLINK(...) must
+ * never run as a formula when the list is pasted into Excel or Sheets, and tabs or line breaks must not shift columns.
+ */
+export const tsvCell = (raw: string | number | null | undefined): string => {
+  let text = String(raw ?? '').replace(/[\u0000\t\r\n]+/g, ' ').trim();
+  const plainPhone = /^\+?\d[\d\s().-]*$/.test(text); // a phone number or a plain amount cannot run as a formula
+  if (!plainPhone && /^[\s﻿]*[=+\-@]/.test(text)) text = `'${text}`;
+  return text;
+};
+
+export function rebookTsv(rows: ExtLead[]): string {
+  const header = ['Name', 'Phone', 'Address', 'Last service', 'Last job date', 'Last job revenue'];
+  const body = rows.map(l => [l.name, isRealPhone(l.phone) ? l.phone : '', l.address, l.service_requested, jobDate(l).slice(0, 10), l.job_revenue].map(tsvCell).join('\t'));
+  return [header.join('\t'), ...body].join('\n');
+}
