@@ -30,7 +30,7 @@ Facts, not opinions:
 - 402 commits in about 10 days, ~80 of them fixes/guards/evidence gates. Docs are ~4.8 MB, about twice the source (2.3 MB).
 - 17 sidebar items, 41 entries in a "Tools" hub of which 13 are placeholders ("Planned", "Not available yet").
 - Exterior Care has real data: 181 customers, 72 completed jobs, $18,670 recorded job revenue, 6 upcoming jobs.
-- Finance/Analytics show $2,995 in / $30 out. The two money stores are not connected.
+- Finance and Analytics default to the current month and already roll Exterior job revenue and cost in (that is why they showed $2,995 in / $30 out for October while Exterior showed $18,670 for the whole season). CORRECTION (2026-10-27): an earlier draft of this plan said the two were unconnected; that was wrong, it was a date-range difference. The real gap is that costs are almost never recorded and `oj_finance_entries` is empty, so there is no expense side.
 - 60 of 72 completed jobs have no cost recorded; 17 have no revenue.
 - "Team at work" says "Not connected" everywhere (presence tables never applied).
 - Company CRM shows 0 leads (a second, empty CRM). Project 360 holds one synthetic test record.
