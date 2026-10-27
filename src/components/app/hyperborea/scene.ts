@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { makeRoute, makeTerrain, MOUNTAIN_R, routeAt, routeTop, worldYFor, type RoutePoint } from '@/lib/hyperborea-terrain';
 import type { Weather } from '@/lib/hyperborea';
+import { cameraReadout } from '@/lib/hyperborea-camera';
 import { alpineMaterial } from './alpine-material';
 import { expeditionProps, moraine } from './expedition-props';
 
@@ -470,8 +471,8 @@ export function mountScene(container: HTMLElement, labelLayer: HTMLElement, firs
       l.el.style.transform = `translate(${((tmp.x + 1) / 2 * w).toFixed(1)}px, ${((1 - tmp.y) / 2 * h).toFixed(1)}px) translate(-50%, -100%)`;
     }
 
-    const rounded = Math.round(viewNow / 10) * 10;
-    if (rounded !== lastEmitted) { lastEmitted = rounded; opts.onView(viewNow); }
+    const rounded = cameraReadout(viewNow,viewTarget);
+    if (rounded !== lastEmitted) { lastEmitted = rounded; opts.onView(rounded); }
   }
   frame();
 

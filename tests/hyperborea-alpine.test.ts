@@ -5,6 +5,16 @@ import test from 'node:test';
 import * as THREE from 'three';
 import {alpineMaterial} from '../src/components/app/hyperborea/alpine-material';
 import {makeTerrain,makeRoute,routeAt,worldYFor} from '../src/lib/hyperborea-terrain';
+import {cameraReadout} from '../src/lib/hyperborea-camera';
+
+test('camera displays exact camp thresholds and exact recorded expedition altitude',()=>{
+  for(const target of [1330,2338,2500,4000,5500,6500,8000,8849]) {
+    assert.equal(cameraReadout(target-0.01,target),target);
+    assert.equal(cameraReadout(target,target),target);
+  }
+  assert.equal(cameraReadout(7995.1,8000),8000);
+  assert.equal(cameraReadout(7901,8000),7900);
+});
 
 test('locally served alpine assets match their checksum manifest and compact download budget',()=>{
   const root=new URL('../public/hyperborea/',import.meta.url);
