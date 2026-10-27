@@ -83,10 +83,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const rows = sortLeadsForWork(data.leads.filter(l => (filter === 'all' || l.status === filter) && matchesLeadWorkFocus(l,workFocus) && (!q || [l.name, l.phone, l.address, l.service_requested].some(v => (v ?? '').toLowerCase().includes(q)))));
 
   return <>
-    <div className="kpis many">
-      {(['new', 'contacted', 'following_up', 'booked', 'completed'] as const).map(s => <div key={s}><span>{statusLabel(s)}</span><strong><NumberFlow value={counts[s]} /></strong></div>)}
-      <div><span>Open pipeline</span><strong><NumberFlow value={pipeline} format={usd} /></strong><small className="quiet">Quotes on open leads, not money in</small></div>
-    </div>
+    <p className="lead-pipeline-note">Open pipeline <strong><NumberFlow value={pipeline} format={usd} /></strong> <span className="quiet">quoted on open leads, not money in</span></p>
     {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
       <p className="banner-inline" role="status">Showing {data.coverage.leads.loaded} of {data.coverage.leads.total} customers. Counts cover those only.</p>}
     <section className="atlas-lead-priority" aria-label="Customer work queues">
