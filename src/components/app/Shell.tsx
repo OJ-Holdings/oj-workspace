@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Activity as ActivityIcon, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X } from 'lucide-react';
 import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
@@ -13,6 +13,8 @@ import type { Dashboard } from '@/lib/dashboard';
 import { searchWorkspace } from '@/lib/workspace-search';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { searchActiveTools } from '@/lib/corporate-tools';
+import { EntitySwitcher } from './EntitySwitcher';
+import { operatorActionHref } from '@/lib/operator-shortcuts';
 
 export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus';
 
@@ -57,6 +59,10 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const [query, setQuery] = useState('');
   const [bell, setBell] = useState(false);
   const [expandedGroups,setExpandedGroups]=useState<Record<'MORE',boolean|null>>({MORE:null});
+  // Desktop rail can fold to an icon dock; the choice is remembered on this device.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => { try { setCollapsed(window.localStorage.getItem('oj-rail-collapsed') === '1'); } catch { /* storage unavailable */ } }, []);
+  const toggleRail = () => setCollapsed(v => { const next = !v; try { window.localStorage.setItem('oj-rail-collapsed', next ? '1' : '0'); } catch { /* storage unavailable */ } return next; });
   const searchInput = useRef<HTMLInputElement>(null);
   const palette = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -116,18 +122,37 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
     };
   }, [query]);
 
+  const canAct = mode === 'live' && !readOnly;
+  const quickActions = useMemo(() => {
+    if (!canAct) return [];
+    const root = base as '/workspace' | '/preview';
+    const all = [
+      { label: 'New lead', icon: UserRoundPlus, words: 'lead customer add capture', run: () => router.push(operatorActionHref(root, 'new-lead')) },
+      { label: 'Book a job', icon: CalendarPlus, words: 'job booking schedule appointment', run: () => router.push(operatorActionHref(root, 'book-job')) },
+      { label: 'Record expense', icon: ReceiptText, words: 'expense cost money receipt spend', run: () => router.push(operatorActionHref(root, 'record-expense', venture ?? undefined)) },
+      { label: 'New task', icon: ClipboardList, words: 'task todo assign', run: () => onNewCard() },
+    ];
+    const q = query.trim().toLowerCase();
+    return q ? all.filter(a => (a.label + ' ' + a.words).toLowerCase().includes(q)) : all;
+  }, [canAct, base, venture, query, router, onNewCard]);
+
   const go = (path: string) => { restoreFocus.current = false; setSearch(false); setDrawer(false); router.push(base + path); };
 
   return (
-    <div className="shell atlas-shell" data-venture={venture ?? undefined}>
+    <div className={collapsed ? 'shell atlas-shell is-rail-collapsed' : 'shell atlas-shell'} data-venture={venture ?? undefined}>
       <a className="skip-link" href="#main">Skip to content</a>
       {drawer && <button className="rail-scrim" aria-label="Close menu" onClick={() => setDrawer(false)} />}
 
       <aside className={drawer ? 'rail is-open' : 'rail'} aria-label="Main navigation" inert={search}>
+        <div className="rail-head">
         <Link className="rail-brand" href={base || '/'} onClick={() => setDrawer(false)}>
           <span className="rail-logo" aria-hidden="true">OJ</span>
-          <span className="atlas-brand-text"><strong>ATLAS</strong><small>OJ HOLDINGS</small></span>
+          <span className="atlas-brand-text"><strong>OJ OS</strong><small>OJ HOLDINGS</small></span>
         </Link>
+        <button type="button" className="rail-collapse" onClick={toggleRail} aria-pressed={collapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar to icons'} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          {collapsed ? <PanelLeftOpen size={17} aria-hidden="true" /> : <PanelLeftClose size={17} aria-hidden="true" />}
+        </button>
+        </div>
         <nav>
           {nav.map((item,i) => {
             const expandable=item.group==='MORE';
@@ -141,7 +166,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
                     <span aria-hidden="true">{groupOpen?'−':'+'}</span>
                   </button>
                 : <p className="atlas-rail-heading">{item.group==='DAILY'?'DO THE WORK':'YOUR BUSINESSES'}</p>)}
-              {groupOpen&&<Link className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
+              {groupOpen&&<Link title={item.label} className={current === item.key ? 'rail-link is-current' : 'rail-link'} aria-current={current === item.key ? 'page' : undefined} href={base + item.path} onClick={() => setDrawer(false)}>
                 <item.icon size={18} aria-hidden="true" /><span>{item.label}</span>
                 {item.key === 'tasks' && openTasks > 0 && <b className="rail-count">{openTasks}</b>}
               </Link>}
@@ -174,7 +199,8 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
       <div className="stage" inert={search}>
         <header className="topbar">
           <button className="icon-button topbar-menu" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}><Menu size={20} /></button>
-          <div className="atlas-crumb"><small>OJ HOLDINGS / ATLAS</small><strong>{currentName}</strong></div>
+          <EntitySwitcher base={base as '/workspace' | '/preview'} venture={venture} />
+          <div className="atlas-crumb"><small>OJ HOLDINGS / OJ OS</small><strong>{currentName}</strong></div>
           <button ref={trigger} className="search-trigger" aria-haspopup="dialog" aria-expanded={search} onClick={openSearch}>
             <Search size={16} aria-hidden="true" /><span>Search anything</span><kbd>Ctrl K</kbd>
           </button>
@@ -225,17 +251,19 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
           <div ref={palette} className="palette" role="dialog" aria-modal="true" aria-label="Search" onClick={e => e.stopPropagation()}>
             <div className="palette-input">
               <Search size={18} aria-hidden="true" />
-              <input ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Tasks, leads, files, messages, events…" aria-label="Search workspace" />
+              <input ref={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Go to a page, add something, or search records..." aria-label="Search workspace" />
               <button className="icon-button" aria-label="Close search" onClick={() => setSearch(false)}><X size={18} /></button>
             </div>
             <div className="palette-results">
+              {quickActions.length > 0 && <p>Quick actions</p>}
+              {quickActions.map(a => <button key={a.label} onClick={() => { setSearch(false); a.run(); }}><a.icon size={16} aria-hidden="true" />{a.label}</button>)}
               {results.pages.length > 0 && <p>Pages</p>}
               {results.pages.map(p => <button key={p.path + p.label} onClick={() => go(p.path)}><p.icon size={16} aria-hidden="true" />{p.label}</button>)}
               {toolMatches.length > 0 && <p>Corporate tools</p>}
               {toolMatches.map(tool => <button key={tool.id} onClick={() => go(tool.href === '/' ? '' : tool.href!)}><Wrench size={16} aria-hidden="true" />{tool.title}</button>)}
               {records.length > 0 && <p>Workspace records</p>}
               {records.map(record => <button key={`${record.kind}-${record.id}`} className="search-record" onClick={() => go(record.path)}><span className="search-kind">{record.kind}</span><span><b>{record.title}</b><small>{record.detail}</small></span></button>)}
-              {query.trim() && results.pages.length + toolMatches.length + records.length === 0 && <p className="quiet" role="status">No loaded records match “{query}”. Try a name, task, or document. Connected business records also have search inside their business section.</p>}
+              {query.trim() && quickActions.length + results.pages.length + toolMatches.length + records.length === 0 && <p className="quiet" role="status">No loaded records match “{query}”. Try a name, task, or document. Connected business records also have search inside their business section.</p>}
             </div>
           </div>
         </div>

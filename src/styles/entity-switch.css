@@ -1,0 +1,38 @@
+/* OJ OS shell: company switcher in the top bar and the collapsible icon rail. Tokens only. */
+.entity-switch { position: relative; flex-shrink: 0; }
+.entity-switch-btn { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 40px; padding: 0 var(--s-3); border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--panel-2); color: var(--ink); font-size: var(--t-sm); font-weight: 700; cursor: pointer; }
+.entity-switch-btn:hover { border-color: var(--accent-hi); }
+.entity-switch-btn img { border-radius: 6px; object-fit: cover; }
+.entity-switch-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 220px; margin: 0; padding: var(--s-2); list-style: none; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--panel); box-shadow: var(--shadow); }
+.entity-switch-menu button { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 40px; padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink-2); font-size: var(--t-sm); font-weight: 650; text-align: left; cursor: pointer; }
+.entity-switch-menu button:hover, .entity-switch-menu button:focus-visible { background: var(--panel-3); color: var(--ink); }
+.entity-switch-menu button img { border-radius: 6px; object-fit: cover; }
+.entity-switch-menu button span { flex: 1; }
+.entity-switch-menu button svg:last-child { color: var(--good); }
+
+.rail-collapse { display: none; }
+@media (min-width: 901px) {
+  .rail-collapse { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-left: auto; border: 1px solid var(--line); border-radius: var(--r-sm); background: transparent; color: var(--ink-3); cursor: pointer; }
+  .rail-collapse:hover { color: var(--ink); border-color: var(--line-2); }
+  .atlas-shell .rail { flex-wrap: nowrap; }
+  .atlas-shell .rail-brand { flex: 1 1 auto; }
+  .shell.is-rail-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
+  .is-rail-collapsed .rail { padding-left: 10px; padding-right: 10px; overflow-x: hidden; }
+  .is-rail-collapsed .atlas-brand-text,
+  .is-rail-collapsed .atlas-rail-heading,
+  .is-rail-collapsed .rail-link span,
+  .is-rail-collapsed .rail-venture span,
+  .is-rail-collapsed .rail-team,
+  .is-rail-collapsed .rail-motto { display: none; }
+  .is-rail-collapsed .rail-brand { justify-content: center; padding: 6px 0 10px; }
+  .is-rail-collapsed .rail-collapse { margin: 0 auto; }
+  .is-rail-collapsed .rail-link { justify-content: center; padding: 0; }
+  .is-rail-collapsed .rail-count { position: absolute; top: 2px; right: 6px; min-width: 18px; padding: 0 5px; font-size: 10px; }
+  .is-rail-collapsed .rail-ventures { margin: 2px 0 6px; padding-left: 0; border-left: 0; align-items: center; }
+  .is-rail-collapsed .rail-venture { justify-content: center; padding: 0; }
+}
+.rail-head { display: flex; align-items: center; gap: var(--s-2); border-bottom: 1px solid var(--line); }
+.rail-head .rail-brand { border-bottom: 0; }
+@media (min-width: 901px) {
+  .is-rail-collapsed .rail-head { flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-3); }
+}
