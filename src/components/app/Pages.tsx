@@ -283,7 +283,8 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
             <label>Business<VentureSelect value={form.venture} disabled={!!venture} onChange={v => v && setForm({ ...form, venture: v })} /></label>
             <label>Amount in dollars<input required autoFocus type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
             <label>Date<input required type="date" value={form.occurred_on} onChange={e => setForm({ ...form, occurred_on: e.target.value })} /></label>
-            <label>Category<input maxLength={80} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Job, subscription, stock, fuel" /></label>
+            <label>Category<input maxLength={80} list="finance-categories" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Fuel, chemicals, equipment, ads..." />
+              <datalist id="finance-categories">{(form.kind === 'cost' ? ['Fuel', 'Chemicals and supplies', 'Equipment purchase', 'Equipment repair', 'Truck and vehicle', 'Local Services Ads', 'Other advertising', 'Insurance', 'Software', 'Crew commission', 'Rental', 'Phone and internet', 'Fees and taxes'] : ['Job payment', 'Commercial contract', 'Product sale', 'Subscription (Solutions)', 'Other income']).map(c => <option key={c} value={c} />)}</datalist></label>
             <label>Note<input maxLength={500} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
           </div>
           <div className="formactions"><button type="button" className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" disabled={store.pending}>Save entry</button></div>

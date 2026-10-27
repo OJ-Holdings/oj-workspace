@@ -18,6 +18,7 @@ import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { saveEmployeeAssignment } from '@/app/workspace/employees/actions';
 import { LeadSourceTagger } from './LeadSourceTagger';
+import { RebookList } from './RebookList';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -102,6 +103,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
         <button type="button" className="secondary small" onClick={()=>{setWorkFocus('all');setFilter('all');setShown(50);}}>Show all customers</button>
       </div>}
     </section>
+    <RebookList leads={data.leads} now={now} />
     <section className="panel">
       <header className="panel-head">
         <h2>Customer workbench <small className="quiet">{rows.length} visible of {data.leads.length} loaded</small></h2>
