@@ -14,6 +14,8 @@ import { searchWorkspace } from '@/lib/workspace-search';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { searchActiveTools } from '@/lib/corporate-tools';
 import { EntitySwitcher } from './EntitySwitcher';
+import { WindowTabs } from './WindowTabs';
+import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 
 export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices';
@@ -234,10 +236,12 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
             {mode === 'live' && <form action={signOut}><button className="icon-button" aria-label="Sign out"><LogOut size={18} /></button></form>}
           </div>
         </header>
+        <WindowTabs base={base} title={venture && current === 'businesses' ? (discoverableVentures.find(v => v.id === venture)?.short ?? currentName) : currentName} />
         {mode === 'preview' && <p className="banner">Sample workspace. Every figure and task here is made up, and changes stay in this browser. <Link href="/login">Sign in to your workspace</Link></p>}
         {mode === 'live' && status && <p className="banner banner-quiet" role="status">{status}</p>}
         {presence}
         <main id="main">{children}</main>
+        <StatusBar jobs={jobs} openTasks={openTasks} status={status} mode={mode} />
       </div>
 
       <nav className="atlas-mobile-nav" aria-label="Mobile navigation" inert={search}>

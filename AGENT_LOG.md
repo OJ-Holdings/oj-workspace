@@ -22,6 +22,14 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS redesign: new shell and skin)
+**Summary:** First real redesign step, in response to Oscar's feedback that earlier passes kept the same template. New skin (src/styles/os-skin.css, loaded last): obsidian canvas with a soft gold and teal vignette, warm glass panels, rounder corners, champagne shared accent (each business room still re-tints to its own colours), gradient primary buttons. New structure: the left sidebar becomes a Dock of large icon tiles with labels (desktop 1001px and up; phones keep the drawer and bottom tabs), the top bar becomes a glass menu bar with a centred search pill, every screen you visit becomes an open window in a tab strip under the menu bar (kept for the browser session, closable), and a live status bar runs along the bottom (connection, jobs today and tomorrow, open tasks, Chicago time). No data or logic changes.
+**Files:** src/styles/os-skin.css, src/components/app/{WindowTabs,StatusBar,Shell}.tsx, src/app/globals.css.
+**Verified:** typecheck; tests; build; /preview at desktop and 375 px (Command, Exterior Care, Money, Customers).
+**Not verified:** signed-in live screens (some older components still carry hard-coded navy backgrounds and will look slightly off until restyled); keyboard-only use of the window tabs.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS visual pass 1: Money header, Customers, shared polish)
 **Summary:** Money page: the poster header ('Know the money. Control the future.' plus disclaimers) is now a compact 'This month' header with the two Record buttons and shorter tile captions. Customers page: removed the row of status tiles that repeated the filter chips (open pipeline kept as one line). New shared stylesheet src/styles/polish.css (loaded last): one keyboard focus ring everywhere, tabular numbers in tables and tiles, quiet table row hover, reduced-motion support. No data or logic changes. Also: Command no longer lists the founders' own 'at work' timer entries under calendar events; Jobs cards (and the compact table) get a Mark complete button for confirmed jobs dated today or earlier whose customer is still Booked: it marks the customer's job completed and opens the recorded-figures form so revenue and costs go in right away (same save paths as before; only offered when you can edit).
 **Files:** src/components/app/{AtlasTreasuryCommand,ExteriorManage,TodayBoard}.tsx, src/styles/polish.css, src/app/globals.css.
