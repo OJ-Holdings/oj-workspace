@@ -1,0 +1,23 @@
+/* OJ OS visual polish. Loaded last. Tokens only; nothing here changes meaning or data. */
+
+/* One clear keyboard focus ring everywhere. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* Numbers line up in every table and tile. */
+.table .num, .kpis strong, .today-stat strong, .atlas-treasury-value strong { font-variant-numeric: tabular-nums; }
+
+/* Tables: quiet row hover so a long list is easier to follow. */
+.table tbody tr { transition: background 120ms ease; }
+.table tbody tr:hover { background: rgba(151, 174, 226, 0.06); }
+
+/* Money page header is a title and two buttons, not a poster. */
+.atlas-treasury .atlas-treasury-top { padding: var(--s-4) var(--s-5); background: var(--panel); }
+.atlas-treasury .atlas-treasury-top h2 { font-size: var(--t-xl); margin: 0 0 var(--s-1); font-family: var(--display); }
+.atlas-treasury .atlas-treasury-top p { margin: 0; font-size: var(--t-sm); }
+
+/* Customers: one quiet line for the open pipeline instead of a second row of tiles. */
+.lead-pipeline-note { margin: 0 0 var(--s-3); color: var(--ink-2); font-size: var(--t-sm); }
+.lead-pipeline-note strong { color: var(--ink); font-size: var(--t-lg); margin: 0 var(--s-1); font-variant-numeric: tabular-nums; }
+
+/* Calm motion for people who ask for it. */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }

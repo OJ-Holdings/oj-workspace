@@ -56,7 +56,8 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
   const totals = snapshot?.intelligence.totals;
   const signals = snapshot?.intelligence.signals.slice(0, 5) ?? [];
   const finance = snapshot?.finance;
-  const events = (snapshot?.schedule ?? []).filter(e => e.key.startsWith('event:')).slice(0, 4);
+  // Founders' own work-timer entries ('Oscar at work') are not calendar events worth listing here.
+  const events = (snapshot?.schedule ?? []).filter(e => e.key.startsWith('event:') && !/ at work$/i.test(e.title)).slice(0, 4);
   const quiet = grouped.today.length + grouped.tomorrow.length + grouped.later.length === 0;
 
   return (

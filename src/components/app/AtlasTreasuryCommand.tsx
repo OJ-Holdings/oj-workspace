@@ -35,9 +35,8 @@ export function AtlasTreasuryCommand({data, month, scope, owner, readOnly, base,
   return <section className="atlas-treasury" aria-label="ATLAS Treasury Command">
     <header className="atlas-treasury-top">
       <div>
-        <span className="atlas-treasury-kicker">OJ HOLDINGS / FINANCIAL COMMAND</span>
-        <h1>Know the money. <em>Control the future.</em></h1>
-        <p>Actual financial records and decisions for {label}. No invented profit, cash settlement, tax filing or accounts receivable.</p>
+        <h2>This month: {label}</h2>
+        <p>Recorded entries only.</p>
       </div>
       {!readOnly && <div className="atlas-treasury-actions">
         <button type="button" className="primary" onClick={onExpense}><Plus size={15} aria-hidden="true"/> Record expense</button>
@@ -48,7 +47,7 @@ export function AtlasTreasuryCommand({data, month, scope, owner, readOnly, base,
       <div className="atlas-treasury-value">
         <span><ArrowDownRight size={16} aria-hidden="true"/> Recorded money in</span>
         <strong>{view.inflow === null ? 'Not recorded' : cash(view.inflow)}</strong>
-        <small>{inflowChange === null ? 'Prior-period comparison unavailable' : `${inflowChange >= 0 ? '+' : ''}${cash(inflowChange)} vs prior month`}</small>
+        <small>{inflowChange === null ? 'No prior month to compare' : `${inflowChange >= 0 ? '+' : ''}${cash(inflowChange)} vs prior month`}</small>
       </div>
       <div className="atlas-treasury-value">
         <span><ArrowUpRight size={16} aria-hidden="true"/> Recorded money out</span>
@@ -58,7 +57,7 @@ export function AtlasTreasuryCommand({data, month, scope, owner, readOnly, base,
       <div className="atlas-treasury-value">
         <span><TrendingUp size={16} aria-hidden="true"/> Recorded difference</span>
         <strong>{view.difference === null ? 'Incomplete' : cash(view.difference)}</strong>
-        <small>Not audited, reconciled or verified business profit</small>
+        <small>Recorded in minus recorded out</small>
       </div>
       <div className="atlas-treasury-value" data-bank-state={view.bank.state}>
         <span><Banknote size={16} aria-hidden="true"/> Linked Mercury cash</span>
@@ -83,8 +82,7 @@ export function AtlasTreasuryCommand({data, month, scope, owner, readOnly, base,
                 <span style={{width: `${item.share*100}%`}} />
               </div>
             </div>)}
-          </div> : <div className="atlas-treasury-empty"><p><b>No recorded expense breakdown.</b></p><p>Cost categories will appear when expenses exist for this period. This does not indicate zero business costs.</p></div>}
-          {expenses.length > 0 && <p className="atlas-treasury-caption">Categorized entries only. Equipment purchases and owner draws require separate accounting treatment before calculating profit.</p>}
+          </div> : <div className="atlas-treasury-empty"><p><b>No expenses recorded for this month.</b> Record one to see where the money goes.</p></div>}
           {!!income.length && <details className="atlas-treasury-details"><summary>See sources of recorded inflows</summary><ul>{income.map(item=><li key={item.label}><span>{item.label}</span><strong>{cash(item.amount)}</strong></li>)}</ul></details>}
         </> : <div className="atlas-treasury-ventures">
           {view.ventures.map(venture=><div key={venture.id}>

@@ -22,6 +22,11 @@ this file is how work gets handed over.
 
 ---
 
+## 2026-10-27 UTC -- Claude Code (OJ OS visual pass 1: Money header, Customers, shared polish)
+**Summary:** Money page: the poster header ('Know the money. Control the future.' plus disclaimers) is now a compact 'This month' header with the two Record buttons and shorter tile captions. Customers page: removed the row of status tiles that repeated the filter chips (open pipeline kept as one line). New shared stylesheet src/styles/polish.css (loaded last): one keyboard focus ring everywhere, tabular numbers in tables and tiles, quiet table row hover, reduced-motion support. No data or logic changes. Also: Command no longer lists the founders' own 'at work' timer entries under calendar events; Jobs cards (and the compact table) get a Mark complete button for confirmed jobs dated today or earlier whose customer is still Booked: it marks the customer's job completed and opens the recorded-figures form so revenue and costs go in right away (same save paths as before; only offered when you can edit).
+**Files:** src/components/app/{AtlasTreasuryCommand,ExteriorManage,TodayBoard}.tsx, src/styles/polish.css, src/app/globals.css.
+**Verified:** typecheck; npm test 858/858; build; /preview Money and Customers screenshots.
+**Not verified:** signed-in pages; phone width.
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Local Services Ads card on the Exterior page)
 **Summary:** New card on /b/exterior for Google Local Services Ads, the main lead source: a founder adds the week's spend and lead count (stored as hand-logged metrics 'LSA spend' and 'LSA leads', Exterior, so both founders see the same numbers), and the card shows the month's spend, leads, cost per lead, completed jobs tagged LSA, spend per job, revenue on those jobs and return on spend. Jobs count only when their lead source is Local Services Ads (use Tag lead sources on Customers). Nothing is guessed: cost per lead needs both spend and leads, return needs spend and recorded job revenue.
 **Files:** src/lib/lsa-stats.ts, src/components/app/{LsaCard,ExteriorCommand,VentureView}.tsx, tests/lsa-stats.test.ts.
