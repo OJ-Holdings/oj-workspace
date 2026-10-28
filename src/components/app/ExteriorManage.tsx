@@ -19,6 +19,7 @@ import { dollars } from '@/lib/metrics';
 import { saveEmployeeAssignment } from '@/app/workspace/employees/actions';
 import { LeadSourceTagger } from './LeadSourceTagger';
 import { RebookList } from './RebookList';
+import { JobCosts } from './JobCosts';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -272,8 +273,10 @@ export function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | n
  */
 export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base, onAdvanced }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; readOnly: boolean; base: string; onAdvanced?: () => void }) {
   const [f, setF] = useState({ job_revenue: '', job_cost: '', notes: '' });
+  // The itemised cost total when the job has itemised costs; it replaces the single cost box.
+  const [itemised, setItemised] = useState<number | null>(null);
   useEffect(() => { if (lead) setF({ job_revenue: lead.job_revenue?.toString() ?? '', job_cost: lead.job_cost?.toString() ?? '', notes: lead.notes ?? '' }); }, [lead?.id, booking?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const revenue = f.job_revenue.trim() === '' ? null : Number(f.job_revenue), cost = f.job_cost.trim() === '' ? null : Number(f.job_cost);
+  const revenue = f.job_revenue.trim() === '' ? null : Number(f.job_revenue), cost = itemised !== null ? itemised : f.job_cost.trim() === '' ? null : Number(f.job_cost);
   const profit = revenue === null || cost === null ? null : revenue - cost;
   const done = lead?.status === 'completed' || lead?.status === 'closed';
   const set = (k: 'job_revenue' | 'job_cost' | 'notes') => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
@@ -281,7 +284,7 @@ export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base,
     if (!lead) return;
     void act(async () => {
       if (complete) { const r = await setLeadStatus(org, lead.id, 'completed'); if (!r.ok) return r; }
-      return saveFinancials(org, lead.id, f);
+      return saveFinancials(org, lead.id, itemised !== null ? { ...f, job_cost: String(itemised) } : f);
     }, () => complete ? `${lead.name ?? 'Job'} completed and saved.` : 'Saved.').then(ok => ok && close());
   };
   return (
@@ -305,8 +308,8 @@ export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base,
             <div className="form-grid">
               <label>Customer paid (revenue)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_revenue} onChange={set('job_revenue')} placeholder="0.00" />
                 {lead.quote_amount !== null && f.job_revenue.trim() === '' && <button type="button" className="linkish" onClick={() => setF({ ...f, job_revenue: String(lead.quote_amount) })}>Use the {cash(lead.quote_amount)} quote</button>}</label>
-              <label>Job costs (supplies, gas, help)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={set('job_cost')} placeholder="0.00" /></label>
             </div>
+            <JobCosts org={org} leadId={lead.id} live={!base.startsWith('/preview')} readOnly={readOnly} act={act} busy={busy} onTotal={setItemised} fallback={<label>Job costs (supplies, gas, help)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.job_cost} onChange={set('job_cost')} placeholder="0.00" /></label>} />
             <p className="jobsheet-profit">Profit <b className={profit !== null && profit < 0 ? 'neg' : ''}>{profit === null ? 'enter both amounts' : dollars(profit)}</b>{profit !== null && revenue ? <small> {Math.round((profit / revenue) * 100)}% margin</small> : null}</p>
             <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
           </fieldset>

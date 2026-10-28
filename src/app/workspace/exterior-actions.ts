@@ -468,3 +468,62 @@ export async function saveUpgrades(org: string, completed: Record<string, true>)
   const { error } = await client.rpc('oj_set_exterior_upgrades', { completed });
   if (error) throw new Error('Could not save upgrades.');
 }
+
+/* ------------------------------ Itemised job expenses ------------------------------ */
+// Needs docs/db-change-proposals/RUN-ME-2026-10-28-job-expenses.sql. Until an owner has run it, loading reports setUp: false and nothing changes.
+
+const expenseKinds = ['materials', 'fuel', 'labor', 'equipment', 'other'] as const;
+export type JobExpense = { id: string; kind: string; amount: number; note: string; spent_on: string };
+export type JobExpensesLoad = { ok: true; setUp: boolean; expenses: JobExpense[] } | { ok: false; message: string };
+
+const missingTable = (e: { code?: string; message?: string } | null) => !!e && (e.code === '42P01' || e.code === 'PGRST205' || /does not exist|schema cache|could not find the table/i.test(e.message ?? ''));
+
+export async function loadJobExpenses(org: string, leadId: string): Promise<JobExpensesLoad> {
+  let client: Client;
+  try { ({ client } = await requireMember(org, true)); } catch { return { ok: false, message: 'Only workspace members can see job costs.' }; }
+  if (typeof leadId !== 'string' || !/^[0-9a-f-]{36}$/i.test(leadId)) return { ok: false, message: 'That job no longer exists.' };
+  const { data, error } = await client.from('oj_job_expenses').select('id,kind,amount,note,spent_on').eq('organization_id', org).eq('lead_id', leadId).order('spent_on', { ascending: false }).order('created_at', { ascending: false });
+  if (error) return missingTable(error) ? { ok: true, setUp: false, expenses: [] } : { ok: false, message: 'Job costs did not load.' };
+  return { ok: true, setUp: true, expenses: (data ?? []).map(r => ({ id: r.id as string, kind: r.kind as string, amount: Number(r.amount), note: (r.note as string) ?? '', spent_on: r.spent_on as string })) };
+}
+
+/** Writes the job's cost total (what the Money page and reports read) from its itemised expenses. Leaves the old single figure alone when none are left. */
+async function syncJobCost(client: Client, org: string, leadId: string) {
+  const { data, error } = await client.from('oj_job_expenses').select('amount').eq('organization_id', org).eq('lead_id', leadId);
+  if (error) throw new Error(error.message);
+  if (!data?.length) return;
+  const total = Math.round(data.reduce((t, r) => t + Number(r.amount), 0) * 100) / 100;
+  const { data: current } = await client.from('leads').select('status,quote_amount,job_revenue,completed_at,manually_updated_fields,name').eq('id', leadId).maybeSingle();
+  if (!current) return;
+  await changed(client.from('leads').update(planLeadUpdate(current, { job_cost: total }, new Date().toISOString())).eq('id', leadId).select('id'));
+}
+
+export async function addJobExpense(org: string, leadId: string, input: { kind: string; amount: string | number; note: string; spent_on: string }): Promise<Done> {
+  return guarded(org, async (client, who) => {
+    const id = uuid(leadId);
+    if (!(expenseKinds as readonly string[]).includes(input.kind)) say('Choose what the money was for.');
+    const amount = money(input.amount, 'Amount');
+    if (amount === null || amount <= 0) say('Enter an amount above zero.');
+    const note = text(input.note, 300, 'Note') ?? '';
+    const spent_on = day(input.spent_on);
+    const { data: lead } = await client.from('leads').select('id,name').eq('id', id).maybeSingle();
+    if (!lead) say('That job no longer exists.');
+    const { error } = await client.from('oj_job_expenses').insert({ organization_id: org, lead_id: id, kind: input.kind, amount, note, spent_on });
+    if (error) throw new Error(missingTable(error) ? '!Itemised costs are not switched on yet. A founder needs to run the job-expenses SQL.' : error.message);
+    await syncJobCost(client, org, id);
+    await log(client, who, 'lead_updated', `Added a ${input.kind} cost of $${amount} to ${lead!.name}`, lead, { fields: ['job_cost'] });
+    return { ok: true };
+  });
+}
+
+export async function removeJobExpense(org: string, expenseId: string): Promise<Done> {
+  return guarded(org, async (client, who) => {
+    const id = uuid(expenseId);
+    const { data: row } = await client.from('oj_job_expenses').select('lead_id').eq('organization_id', org).eq('id', id).maybeSingle();
+    if (!row) say('That cost no longer exists.');
+    await changed(client.from('oj_job_expenses').delete().eq('id', id).select('id'));
+    await syncJobCost(client, org, row!.lead_id as string);
+    await log(client, who, 'lead_updated', 'Removed a job cost', { id: row!.lead_id as string, name: null }, { fields: ['job_cost'] });
+    return { ok: true };
+  });
+}
