@@ -11,6 +11,8 @@ import { dollars } from '@/lib/metrics';
 import { dayKey } from '@/lib/dashboard';
 import type { DashboardStore } from './useDashboard';
 import { LsaCard } from './LsaCard';
+import { LsaImport } from './LsaImport';
+import type { Act } from './ExteriorManage';
 import { RebookList } from './RebookList';
 import { MessageDrafts } from './MessageDrafts';
 import { messageDrafts, type Draft } from '@/lib/message-drafts';
@@ -24,6 +26,7 @@ export function GrowthView({ org, mode, store, readOnly, base, displayName = '' 
   const [now, setNow] = useState<Date | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const refresh = useCallback(async () => {
     if (mode === 'preview') { const t = new Date(); setData(sampleExterior(t)); setNow(t); return; }
@@ -35,6 +38,14 @@ export function GrowthView({ org, mode, store, readOnly, base, displayName = '' 
     if (mode === 'preview') { setNotice('Sample workspace: nothing was saved.'); return; }
     setBusy(true); setNotice('');
     try { const r = await work(); setNotice(r.ok ? done : r.message); if (r.ok) await refresh(); } catch { setNotice('That did not go through. Try again.'); } finally { setBusy(false); }
+  };
+
+  /** The same change loop the Exterior pages use: say what happened, then reload. */
+  const actLive: Act = async (work, success) => {
+    if (mode === 'preview') { setNotice('Sample workspace: nothing was saved.'); return false; }
+    setBusy(true); setNotice('');
+    try { const r = await work(); if (!r.ok) { setNotice(r.message); return false; } setNotice(success(r)); await refresh(); return true; }
+    catch { setNotice('That did not go through. Try again.'); return false; } finally { setBusy(false); }
   };
 
   if (failed) return <div className="planned" role="alert"><h2>Growth did not load</h2><button className="primary" onClick={() => { setFailed(false); void refresh(); }}>Try again</button></div>;
@@ -81,7 +92,8 @@ export function GrowthView({ org, mode, store, readOnly, base, displayName = '' 
 
     <MessageDrafts drafts={drafts} readOnly={readOnly || mode === 'preview'} onDone={doneDraft} />
 
-    <LsaCard store={store} leads={data.leads} today={dayKey(now)} readOnly={readOnly || mode === 'preview'} parent={exterior} />
+    <LsaCard store={store} leads={data.leads} today={dayKey(now)} readOnly={readOnly || mode === 'preview'} parent={exterior} onImport={() => setImporting(true)} />
+    <LsaImport open={importing} close={() => setImporting(false)} leads={data.leads} today={dayKey(now)} act={actLive} busy={busy} org={org} />
 
     <section className="panel">
       <header className="panel-head"><h2>Where leads come from</h2><Link className="secondary small" href={`${exterior}/leads`}>Tag sources</Link></header>

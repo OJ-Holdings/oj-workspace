@@ -6,6 +6,7 @@ import { upgradeGroups } from '@/lib/upgrades';
 import { isSheetUrl, isValidBlock, leadSources, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, type LeadPatch } from '@/lib/exterior-ops';
 import { planClashes, planVisits, MAX_DAYS_PER_VISIT, MAX_VISITS, type Frequency } from '@/lib/commercial-booking';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
+import { lsaNote, MAX_LSA_ROWS, parseLsaExport, planLsaImport } from '@/lib/lsa-import';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
 const num = (v: unknown) => v === null || v === undefined ? null : Number(v);
@@ -117,6 +118,41 @@ export async function saveLead(org: string, input: LeadInput): Promise<Done<{ id
     await changed(client.from('leads').update(planLeadUpdate(current!, fields, now)).eq('id', id).select('id'));
     await log(client, who, 'lead_updated', `Updated ${fields.name}: ${Object.keys(fields).join(', ')}`, { id, name: fields.name }, { fields: Object.keys(fields) });
     return { ok: true, id };
+  });
+}
+
+/**
+ * Imports the Google Local Services Ads lead export. Each row either tags an existing customer as an LSA lead (matched by phone, or by one exact name),
+ * or becomes a new lead dated when Google received it. Every touched lead gets "LSA lead #<id>" in its notes, so pasting the same export twice does nothing.
+ * The text is read here, not trusted from the browser.
+ */
+export async function importLsaLeads(org: string, exportText: string): Promise<Done<{ created: number; tagged: number; same: number; already: number; skipped: number }>> {
+  return guarded(org, async (client, who) => {
+    if (typeof exportText !== 'string' || exportText.length > 200_000) say('Paste the lead export from Google (up to a few hundred leads at a time).');
+    const { rows, skipped } = parseLsaExport(exportText);
+    if (rows.length === 0) say('No leads could be read. Copy the whole table from the Local Services Ads Leads page, including the header row.');
+    if (rows.length > MAX_LSA_ROWS) say(`Import up to ${MAX_LSA_ROWS} leads at a time. This paste has ${rows.length}.`);
+    const { data: leads, error: readError } = await client.from('leads').select('id,name,phone,source,notes,status,quote_amount,job_revenue,completed_at,manually_updated_fields').limit(5000);
+    if (readError || !leads) throw new Error(readError?.message ?? 'Leads could not be read.');
+    const steps = planLsaImport(rows, leads);
+    const now = new Date().toISOString();
+    const out = { created: 0, tagged: 0, same: 0, already: 0, skipped };
+    for (const step of steps) {
+      const { row } = step;
+      if (step.action === 'already') { out.already += 1; continue; }
+      if (step.action === 'create') {
+        const name = row.name ?? `Local Services Ads ${row.leadType.toLowerCase() || 'lead'}${row.location ? ` (${row.location})` : ''}`;
+        const { error } = await client.from('leads').insert({ name, phone: row.phone ?? `NP_LSA_${row.leadId}`, address: row.location || null, service_requested: row.jobType || null, source: 'lsa', status: 'new', notes: lsaNote(row), manually_updated_fields: [], created_at: row.receivedAt, updated_at: now });
+        if (error) throw new Error(error.message);
+        out.created += 1; continue;
+      }
+      const current = leads.find(l => l.id === step.leadId)!;
+      const notes = [current.notes, lsaNote(row)].filter(Boolean).join('\n').slice(0, 4000);
+      await changed(client.from('leads').update(planLeadUpdate(current, step.action === 'tag' ? { source: 'lsa', notes } : { notes }, now)).eq('id', current.id).select('id'));
+      out[step.action === 'tag' ? 'tagged' : 'same'] += 1;
+    }
+    await log(client, who, 'lead_updated', `Imported Local Services Ads leads: ${out.created} new, ${out.tagged} tagged, ${out.same} already tagged`, null, { source: 'lsa', ...out });
+    return { ok: true, ...out };
   });
 }
 

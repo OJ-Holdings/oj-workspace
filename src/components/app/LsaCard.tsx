@@ -8,7 +8,7 @@ import type { ExtLead } from '@/lib/exterior';
 import { LSA_LEADS, LSA_SPEND, lsaMonth } from '@/lib/lsa-stats';
 import { dollars } from '@/lib/metrics';
 
-type Props = { store: DashboardStore; leads: ExtLead[]; today: string; readOnly: boolean; parent: string };
+type Props = { store: DashboardStore; leads: ExtLead[]; today: string; readOnly: boolean; parent: string; onImport?: () => void };
 
 const monthName = (m: string) => new Date(m + '-15T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -16,7 +16,7 @@ const monthName = (m: string) => new Date(m + '-15T12:00:00').toLocaleDateString
  * Google Local Services Ads, the main lead source: what it cost this month, what a lead and a job cost, and what the tagged jobs earned.
  * Spend and lead counts are typed in from the LSA page (weekly is enough); revenue comes from completed jobs tagged as LSA, so tagging leads matters.
  */
-export function LsaCard({ store, leads, today, readOnly, parent }: Props) {
+export function LsaCard({ store, leads, today, readOnly, parent, onImport }: Props) {
   const [spend, setSpend] = useState('');
   const [count, setCount] = useState('');
   const month = today.slice(0, 7);
@@ -48,7 +48,7 @@ export function LsaCard({ store, leads, today, readOnly, parent }: Props) {
           <button className="secondary small" disabled={store.pending || (!spendOk && !countOk)}>Add</button>
         </form>
       )}
-      <p className="quiet">Jobs only count here once their lead source is set to Local Services Ads. <Link href={`${parent}/leads`}>Tag lead sources</Link></p>
+      <p className="quiet">Jobs only count here once their lead source is set to Local Services Ads. <Link href={`${parent}/leads`}>Tag lead sources</Link>{onImport && !readOnly && <> <button type="button" className="secondary small" onClick={onImport}>Import LSA leads</button></>}</p>
     </section>
   );
 }
