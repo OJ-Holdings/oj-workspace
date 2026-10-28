@@ -53,7 +53,7 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
   invoices: { title: 'Invoices', body: 'Bill customers and record what they pay.' },
   files: { title: 'Files', body: 'Every document across the businesses, private to workspace members.' },
   messages: { title: 'Messages', body: 'Notes between the two of you, with a thread for each business.' },
-  analytics: { title: 'Analytics', body: 'Four businesses, with source-aware comparisons.' },
+  analytics: { title: 'Reports', body: 'Revenue, costs and leads across the businesses.' },
   team: { title: 'Team', body: 'Members, roles and invitations. In your live workspace this opens the team page.' },
   settings: { title: 'Settings', body: 'Your account and what is connected.' },
 };

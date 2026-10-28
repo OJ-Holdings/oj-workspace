@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Reports page trimmed)
+**Summary:** The Analytics page (now titled Reports) had a caveat paragraph under nearly every block. Removed those, renamed the headings (Reports, Revenue, Costs, Left over, New leads, By business), and folded Source coverage under one Where the numbers come from control. Figures, filters and drill-downs are unchanged.
+**Files:** src/components/app/Pages.tsx, src/components/app/App.tsx.
+**Verified:** typecheck; 910 tests; build.
+**Not verified:** looked at in the browser after the change.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Booked ahead on Money)
 **Summary:** Money now shows what is already on the calendar. New Booked ahead panel (BookedAhead.tsx, src/lib/booked-ahead.ts): the next four weeks in weekly rows with job counts and what they were quoted at, a total, and a count of jobs with no quote (never valued at zero). It reuses the booked jobs the app already loads for the calendar (useJobs), so no new queries or SQL. Shown to the owner on the live all-business Money page only; quotes are labelled as quotes, not money in.
 **Files:** src/lib/booked-ahead.ts, src/components/app/BookedAhead.tsx, src/components/app/{Pages,App}.tsx, src/styles/os-skin.css, tests/booked-ahead.test.ts.
