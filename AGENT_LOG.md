@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: installable on the phone)
+**Summary:** Master plan 4.1 ('installable PWA: home-screen icon, push, camera, offline queue') and 6.4 (crews on phones). First step: OJ OS is now installable. A web app manifest (src/app/manifest.ts: name OJ OS, opens /workspace full screen, dark theme, the OJ mark as the icon, shortcuts to Jobs, Growth and Money) and the iPhone tags (apple-touch-icon, apple-mobile-web-app-capable, dark translucent status bar) in layout.tsx. On an iPhone: open the site in Safari, Share, Add to Home Screen. The proxy only guards workspace and login paths, so the manifest is public as it must be. Not built: a service worker (offline queue, caching), web push notifications, camera capture for job photos, background GPS.
+**Files:** src/app/manifest.ts, src/app/layout.tsx.
+**Verified:** typecheck; build; /manifest.webmanifest served with the right fields; the manifest link and Apple tags present in the page head.
+**Not verified:** actually installing it on an iPhone and opening it signed in over the Tailscale address (needs a real device).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: audited status against the whole master plan)
 **Summary:** Docs only. Oscar asked for the comparison against the entire master plan. Added section 17b to docs/OJ_OS_MASTER_PLAN.md: each phase and each cross-cutting section (architecture, shell, omniscience, premium customer experience, truck fund, finance, connections, data migration, quality, success metrics) marked LIVE, STAGED, PARTIAL or NONE against what is actually in main 5e4f114, with an estimate per phase (overall about 22% of Phases 0 to 6). Checked against the repo, not memory: the cut-list files that still exist (Project 360, email-engine-api, outreach-import), docs still 5.2 MB, no PWA or service worker, no AI gateway, no Stripe, fleet still browser-local, Mercury read code present but needing a token.
 **Files:** docs/OJ_OS_MASTER_PLAN.md.
