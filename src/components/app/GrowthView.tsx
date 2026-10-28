@@ -12,11 +12,13 @@ import { dayKey } from '@/lib/dashboard';
 import type { DashboardStore } from './useDashboard';
 import { LsaCard } from './LsaCard';
 import { RebookList } from './RebookList';
+import { MessageDrafts } from './MessageDrafts';
+import { messageDrafts, type Draft } from '@/lib/message-drafts';
 
 const ago = (minutes: number) => minutes < 60 ? `${minutes} min` : minutes < 1440 ? `${Math.round(minutes / 60)} h` : `${Math.floor(minutes / 1440)} d`;
 
 /** Growth: answer new leads fast, chase quotes going cold, see which sources pay, and line up the repeat customers. */
-export function GrowthView({ org, mode, store, readOnly, base }: { org: string; mode: 'preview' | 'live'; store: DashboardStore; readOnly: boolean; base: string }) {
+export function GrowthView({ org, mode, store, readOnly, base, displayName = '' }: { org: string; mode: 'preview' | 'live'; store: DashboardStore; readOnly: boolean; base: string; displayName?: string }) {
   const [data, setData] = useState<ExteriorData | null>(null);
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
@@ -42,6 +44,9 @@ export function GrowthView({ org, mode, store, readOnly, base }: { org: string; 
   const waiting = waitingLeads(data.leads, now.getTime());
   const cold = coldQuotes(data.leads, now.getTime());
   const pipe = pipeline(data.leads);
+  const drafts = messageDrafts(data, dayKey(now), now.getTime(), displayName.trim().split(/\s+/)[0] ?? '');
+  // Marking a new-lead or quote message done also moves the lead along, so it leaves the queue everywhere.
+  const doneDraft = (d: Draft) => { if (d.kind === 'new-lead') void act(() => setLeadStatus(org, d.lead.id, 'contacted'), `${d.lead.name ?? 'Lead'} marked contacted.`); else if (d.kind === 'quote') void act(() => setLeadStatus(org, d.lead.id, 'following_up'), `${d.lead.name ?? 'Lead'} marked followed up.`); };
   const sources = summariseJobs(data.leads, iso => iso.slice(0, 7)).bySource.slice(0, 8);
   const contact = (l: ExtLead) => <>
     {l.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call</a>}
@@ -73,6 +78,8 @@ export function GrowthView({ org, mode, store, readOnly, base }: { org: string; 
         <div className="growth-actions">{contact(l)}{!readOnly && <button type="button" className="secondary small" disabled={busy} onClick={() => void act(() => setLeadStatus(org, l.id, 'following_up'), `${l.name ?? 'Lead'} marked followed up.`)}>Followed up</button>}</div>
       </li>)}</ul> : <div className="empty"><p><b>No quote has gone quiet.</b></p></div>}
     </section>
+
+    <MessageDrafts drafts={drafts} readOnly={readOnly || mode === 'preview'} onDone={doneDraft} />
 
     <LsaCard store={store} leads={data.leads} today={dayKey(now)} readOnly={readOnly || mode === 'preview'} parent={exterior} />
 
