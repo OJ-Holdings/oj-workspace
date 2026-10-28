@@ -85,6 +85,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const rows = sortLeadsForWork(data.leads.filter(l => (filter === 'all' || l.status === filter) && matchesLeadWorkFocus(l,workFocus) && (!q || [l.name, l.phone, l.address, l.service_requested].some(v => (v ?? '').toLowerCase().includes(q)))));
 
   return <>
+    <nav className="subtabs" aria-label="Customers views"><Link href={`${base}/b/exterior/leads`} aria-current="page">Pipeline</Link><Link href={`${base}/customers`}>Directory</Link></nav>
     <p className="lead-pipeline-note">Open pipeline <strong><NumberFlow value={pipeline} format={usd} /></strong> <span className="quiet">quoted on open leads, not money in</span></p>
     {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
       <p className="banner-inline" role="status">Showing {data.coverage.leads.loaded} of {data.coverage.leads.total} customers. Counts cover those only.</p>}
