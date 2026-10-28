@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: crew commission defaults and statement)
+**Summary:** Oscar decided crew commission is a flat 20% of revenue. Both assignment forms (Assign crew on a job, and the Employee work page) now start at 20 instead of blank, still editable per job; the old line saying there is no default rate is gone. The Approved earnings section opens with a per-person statement: approved and unpaid, and paid so far. The approve, adjust and mark-paid paths and their database functions are unchanged.
+**Files:** src/components/EmployeesPanel.tsx, src/components/app/ExteriorManage.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; 908 tests.
+**Not verified:** on the live Employee work page with a real assignment; the stored rate for existing assignments is unchanged.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Season profit and loss on Money)
 **Summary:** The Money page only showed the current month. New Season profit and loss panel (SeasonPnl.tsx, src/lib/season-pnl.ts): pick a year and see money in, money out and left over, month by month with bars, plus the biggest cost categories. It reads the same recorded finance entries the page already loads (Exterior job revenue and costs, expenses, Shopify, hand-entered income), follows the business filter, and says plainly that costs are only what has been entered. No SQL, no new server calls.
 **Files:** src/lib/season-pnl.ts, src/components/app/SeasonPnl.tsx, src/components/app/Pages.tsx, src/styles/os-skin.css, tests/season-pnl.test.ts.

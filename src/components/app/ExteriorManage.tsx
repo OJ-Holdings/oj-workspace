@@ -474,11 +474,11 @@ function JobAssignmentDialog({ booking, lead, close, act, busy, org, employees, 
       }}>
         <div className="form-grid">
           <label>Assign to<select name="employee" required defaultValue={assignment?.employee_id ?? ''} disabled={busy}><option value="" disabled>Select employee</option>{active.map(employee => <option key={employee.user_id} value={employee.user_id}>{employee.display_name}</option>)}</select></label>
-          <label>Commission for this job (%)<input name="commission_percent" type="number" min="0" max="100" step="0.01" required defaultValue={assignment?.commission_percent ?? ''} disabled={busy} placeholder="Enter rate" /></label>
+          <label>Commission for this job (%)<input name="commission_percent" type="number" min="0" max="100" step="0.01" required defaultValue={assignment?.commission_percent ?? 20} disabled={busy} placeholder="20" /></label>
         </div>
         <label>Instructions<textarea name="instructions" maxLength={2000} rows={2} defaultValue={assignment?.instructions ?? ''} disabled={busy} placeholder="Optional instructions only the assigned employee can see" /></label>
         <label>Checklist<textarea name="checklist" maxLength={4000} rows={3} defaultValue={Array.isArray(assignment?.checklist) ? assignment.checklist.map((item: { text?: string }) => item.text ?? '').join('\n') : ''} disabled={busy} placeholder="Optional; one step per line" /></label>
-        <div className="dialog-actions"><span>Rate is required for each job. Earnings use payment collected, not the quote.</span><button className="primary" disabled={busy}>{busy ? 'Saving…' : assignment ? 'Save assignment' : 'Assign job'}</button></div>
+        <div className="dialog-actions"><span>Starts at the usual flat 20%. Earnings use payment collected, not the quote.</span><button className="primary" disabled={busy}>{busy ? 'Saving…' : assignment ? 'Save assignment' : 'Assign job'}</button></div>
       </form> : <div className="empty"><p><b>No active employee account is available.</b> {employees.length ? 'Restore an employee in Employee work, then return here.' : 'Invite Edy first, then return here to assign this job.'}</p><Link className="primary" href="/workspace/employees">{employees.length ? 'Manage employee access' : 'Invite Edy'}</Link></div>}
     </>}
   </Modal>;
