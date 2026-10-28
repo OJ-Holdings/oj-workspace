@@ -247,8 +247,8 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 
 /* ---------- Customer directory ---------- */
 .subtabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); }
-.subtabs a { padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--ink-3); text-decoration: none; }
-.subtabs a[aria-current='page'] { background: var(--accent-soft); color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(226, 184, 102, 0.38); }
+.subtabs a, .subtabs button { border: 0; background: transparent; cursor: pointer; font-family: inherit; padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--ink-3); text-decoration: none; }
+.subtabs a[aria-current='page'], .subtabs button[aria-current='page'] { background: var(--accent-soft); color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(226, 184, 102, 0.38); }
 .customer-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 .customer-list button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 70px 90px 120px; gap: 12px; align-items: center; padding: 12px 14px; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); color: var(--ink); cursor: pointer; }
 .customer-list button:hover { border-color: var(--accent); }
