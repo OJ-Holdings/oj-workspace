@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Data quality center v1)
+**Summary:** Master plan section 9 (Phase 1): a data quality center, 'counts of customers missing phone/address, jobs missing price/cost... each with a fix button'. New page /workspace/quality (More menu, Data quality). Pure logic in src/lib/data-quality.ts; it reads the leads and bookings the app already loads and changes nothing. Checks: finished jobs with no revenue, finished jobs with no costs, upcoming jobs with no price, upcoming jobs with no address, open customers with no usable phone (placeholder NP_ numbers count as missing), leads with no source (blank or Other), and customers entered more than once (the existing planDedupe rules: a completed job for a returning client is never counted as a duplicate). Shows a percent of checked fields in order, worst problem first, each with a few example names and a link to where it gets fixed. No SQL.
+**Files:** src/lib/data-quality.ts, src/components/app/{DataQualityView,Shell,App}.tsx, src/styles/os-skin.css, tests/data-quality.test.ts.
+**Verified:** typecheck; 924 tests; build; /preview/quality at 800 px.
+**Not verified:** live numbers; phone width. Not yet covered from plan section 9: unmatched bank transactions (no bank feed yet), customer-to-property links, suspect dates such as a booking in the wrong year.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Invoice this job)
 **Summary:** Plan 6.1 wants a finished job to lead straight to its invoice. The Job sheet has an Invoice this job link that opens Invoices with the New invoice form already filled from the job: bill-to name and address, the service as the line, and the amount (what was recorded as paid, else the quote). Only the job's id travels in the URL (?lead=<id>); a new leadForInvoice server action looks the details up as the signed-in member. Nothing is created until the user presses Create invoice, and the invoice carries the lead id. Deliberately NOT automatic: an invoice posts to the new ledger while the job's recorded revenue already feeds the old Money totals, so turning one into the other needs a deliberate step until the two are unified.
 **Files:** src/app/workspace/invoice-actions.ts, src/components/app/{InvoicesView,ExteriorManage}.tsx.

@@ -32,6 +32,7 @@ import { InvoicesView } from './InvoicesView';
 import { HyperboreaView } from './HyperboreaView';
 import type { WorkData } from '@/lib/work';
 import { GrowthView } from './GrowthView';
+import { DataQualityView } from './DataQualityView';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
 export type AppProps = {
@@ -54,6 +55,7 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
   invoices: { title: 'Invoices', body: 'Bill customers and record what they pay.' },
   files: { title: 'Files', body: 'Every document across the businesses, private to workspace members.' },
   messages: { title: 'Messages', body: 'Notes between the two of you, with a thread for each business.' },
+  quality: { title: 'Data quality', body: 'What is missing or doubtful in the records, and where to fix it.' },
   growth: { title: 'Growth', body: 'Answer new leads, chase quotes, and see which sources pay.' },
   analytics: { title: 'Insight', body: 'Revenue, costs and leads across the businesses.' },
   team: { title: 'Team', body: 'Members, roles and invitations. In your live workspace this opens the team page.' },
@@ -222,7 +224,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     venture = parts[1];
   }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
-  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit', 'growth'].includes(parts[0])) current = parts[0] as NavKey;
+  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit', 'growth', 'quality'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
   const status = [connectionStatus && connectionStatus !== 'Live updates connected' ? connectionStatus : '', limited ? 'Showing the first 1,000 tasks and most recent 1,000 comments.' : ''].filter(Boolean).join(' ');
@@ -289,6 +291,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'invoices' && <InvoicesView org={organizationId} mode={mode} readOnly={readOnly} owner={owner} base={base} />}
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}
           {current === 'messages' && <MessagesView store={store} readOnly={readOnly} />}
+          {current === 'quality' && <DataQualityView org={organizationId} mode={mode} base={base} />}
           {current === 'growth' && <GrowthView org={organizationId} mode={mode} store={store} readOnly={readOnly} base={base} />}
           {current === 'analytics' && <AnalyticsView store={store} readOnly={readOnly} cards={board.data.cards} />}
           {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} workMissing={work.missing} />}
