@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: command bar Do it lines)
+**Summary:** Master plan 5.1 makes the command bar the main way around, with 'complete job', 'invoice Debbie', 'log $84 chemicals on Patrick'; 6.1 asks for quick entry from anywhere. The Ctrl K palette now understands a leading verb plus a customer name from the booked jobs (src/lib/command-intents.ts, plain parsing, no AI): complete or done opens that job's sheet; invoice or bill opens Invoices with the form filled from that job; log, expense, spent or cost reads an amount and a kind (chemicals, soap and supplies are materials; gas and fuel are fuel; labor and help are labor; equipment, repair and parts are equipment) and opens the job with that cost ready to add; directions opens Google Maps to the address. Several matches show the job closest to today first, cancelled jobs are never offered. Each line only opens the screen where the person confirms; nothing saves from the palette. Shown on the live workspace to members who can change records.
+**Files:** src/lib/command-intents.ts, src/components/app/{Shell,JobCosts,ExteriorManage}.tsx, tests/command-intents.test.ts.
+**Verified:** typecheck; tests; build; the parsing and matching in unit tests.
+**Not verified:** the palette in a signed-in browser (it only appears live); the cost prefill needs the job-expenses SQL to have been run. Not built from 5.1: natural-language job creation ('Fay house wash $200 Tue 2pm'), 'what is my cash', voice.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Invoice this job)
 **Summary:** Plan 6.1 wants a finished job to lead straight to its invoice. The Job sheet has an Invoice this job link that opens Invoices with the New invoice form already filled from the job: bill-to name and address, the service as the line, and the amount (what was recorded as paid, else the quote). Only the job's id travels in the URL (?lead=<id>); a new leadForInvoice server action looks the details up as the signed-in member. Nothing is created until the user presses Create invoice, and the invoice carries the lead id. Deliberately NOT automatic: an invoice posts to the new ledger while the job's recorded revenue already feeds the old Money totals, so turning one into the other needs a deliberate step until the two are unified.
 **Files:** src/app/workspace/invoice-actions.ts, src/components/app/{InvoicesView,ExteriorManage}.tsx.
