@@ -4,6 +4,9 @@ import {useEffect,useRef,useState} from 'react';
 import {Building2,Download,MapPin,Plus,RefreshCw,Save,UserRound} from 'lucide-react';
 import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/commercial-account-actions';
 import {CommercialAccountProjects} from './CommercialAccountProjects';
+import {CommercialBooking,type CommercialPrefill} from './CommercialBooking';
+import type {Act} from './ExteriorManage';
+import type {ExtBooking} from '@/lib/exterior';
 import {
  commercialAccountMaxContacts,commercialAccountMaxProperties,
  prepareCommercialPropertyEstimate,validateCommercialAccountDraft,type CommercialAccount,type CommercialAccountDraft,
@@ -14,9 +17,11 @@ const empty=():CommercialAccountDraft=>({
 });
 type Attempt={id:string;revision:number;commandId:string;draft:CommercialAccountDraft};
 type Props={org:string;base:string;mode:'live'|'preview';readOnly:boolean;
+ booking?:{act:Act;busy:boolean;bookings:ExtBooking[];today:string};
  onStartEstimate:(accountId:string,accountName:string,propertyId:string,propertyName:string)=>void;
 };
-export function CommercialAccounts({org,base,mode,readOnly,onStartEstimate}:Props){
+export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstimate}:Props){
+ const [bookFor,setBookFor]=useState<CommercialPrefill|null>(null);
  const canEdit=mode==='live'&&!readOnly;
  const [accounts,setAccounts]=useState<CommercialAccount[]>([]);
  const [more,setMore]=useState(false);
@@ -169,7 +174,8 @@ export function CommercialAccounts({org,base,mode,readOnly,onStartEstimate}:Prop
     <div className="com-account-editor-head">
      <span className="com-account-monogram" aria-hidden="true">{draft.name.trim().slice(0,2).toUpperCase()||'OJ'}</span>
      <div><strong>{draft.name||'New company'}</strong><small>{selected.revision===0?'Unsaved company':`Company revision ${selected.revision}`}{dirty?' · Unsaved edits':''}</small></div>
-     <button type="button" className="primary" disabled={!canEdit||state==='saving'||state==='conflict'||!!pending.current} onClick={save}><Save size={15}/> Save company</button>
+     {booking&&selected.revision>0&&!dirty&&<button type="button" className="primary" disabled={!canEdit} onClick={()=>setBookFor({company:draft.name,contact:draft.contacts[0]?.fullName,phone:draft.contacts[0]?.phone,email:draft.contacts[0]?.email,address:draft.properties[0]?.address})}>Book visit</button>}
+     <button type="button" className={booking&&selected.revision>0&&!dirty?'secondary':'primary'} disabled={!canEdit||state==='saving'||state==='conflict'||!!pending.current} onClick={save}><Save size={15}/> Save company</button>
     </div>
     {!!pending.current&&<button className="secondary" type="button" disabled={state==='saving'} onClick={()=>{if(pending.current)void perform(pending.current);}}>Retry original save</button>}
     {(dirty||state==='conflict')&&<button type="button" className="secondary" onClick={download}><Download size={15}/> Export unsaved copy</button>}
@@ -225,5 +231,6 @@ export function CommercialAccounts({org,base,mode,readOnly,onStartEstimate}:Prop
     <p className="com-account-foot"><Building2 size={14}/> Company initials are used until protected logo uploads are enabled. Contacts and properties do not send messages, schedule work or issue invoices.</p>
    </div>
   </div>}
+ {booking&&<CommercialBooking open={bookFor!==null} close={()=>setBookFor(null)} act={booking.act} busy={booking.busy} org={org} bookings={booking.bookings} today={booking.today} prefill={bookFor}/>}
  </section>;
 }

@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { bookCommercialVisits } from '@/app/workspace/exterior-actions';
+import { loadCommercialAccounts } from '@/app/workspace/commercial-account-actions';
+import type { CommercialAccount } from '@/lib/commercial-accounts';
 import { frequencyLabel, MAX_DAYS_PER_VISIT, MAX_VISITS, planClashes, planVisits, type Frequency } from '@/lib/commercial-booking';
 import { blockLabel, isValidBlock, leadSources, makeBlock, services } from '@/lib/exterior-ops';
 import type { ExtBooking } from '@/lib/exterior';
 import { dollars } from '@/lib/metrics';
 import { Modal, type Act } from './ExteriorManage';
 
-export type CommercialPrefill = { company?: string; address?: string; service?: string; price?: number | null; proposalNumber?: string };
+export type CommercialPrefill = { company?: string; contact?: string; phone?: string; email?: string; address?: string; service?: string; price?: number | null; proposalNumber?: string };
 
 const starts = Array.from({ length: 21 }, (_, i) => 8 * 60 + i * 30).filter(m => m <= 18 * 60);
 const clock = (m: number) => `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m >= 720 ? 'PM' : 'AM'}`;
@@ -20,10 +22,25 @@ const pretty = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString('
  * in a row a big building takes. Every day of the plan is listed, with any clash marked, and nothing is booked until the whole plan fits.
  */
 export function CommercialBooking({ open, close, act, busy, org, bookings, today, prefill }: { open: boolean; close: () => void; act: Act; busy: boolean; org: string; bookings: ExtBooking[]; today: string; prefill: CommercialPrefill | null }) {
-  const blank = () => ({ company: prefill?.company ?? '', contact: '', phone: '', email: '', address: prefill?.address ?? '', service: prefill?.service ?? 'Window Cleaning', price: prefill?.price != null ? String(prefill.price) : '', source: 'lsa', notes: '',
+  const blank = () => ({ company: prefill?.company ?? '', contact: prefill?.contact ?? '', phone: prefill?.phone ?? '', email: prefill?.email ?? '', address: prefill?.address ?? '', service: prefill?.service ?? 'Window Cleaning', price: prefill?.price != null ? String(prefill.price) : '', source: 'lsa', notes: '',
     firstDate: today, start: 9 * 60, hours: 4, frequency: 'once' as Frequency, visits: 4, days: 1 });
   const [f, setF] = useState(blank);
   useEffect(() => { if (open) setF(blank()); }, [open, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The saved company profiles, so a client is picked rather than retyped.
+  const [accounts, setAccounts] = useState<CommercialAccount[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    loadCommercialAccounts(org).then(page => { if (live) setAccounts(page.accounts); }, () => { if (live) setAccounts([]); });
+    return () => { live = false; };
+  }, [open, org]);
+  const account = accounts.find(a => a.name === f.company);
+  const pickCompany = (id: string) => {
+    const a = accounts.find(x => x.id === id);
+    if (!a) return;
+    const c = a.contacts[0], p = a.properties[0];
+    setF({ ...f, company: a.name, contact: c?.fullName ?? '', phone: c?.phone ?? '', email: c?.email ?? '', address: p?.address ?? '' });
+  };
 
   const block = makeBlock(f.start, f.hours * 60);
   const plan = useMemo(() => planVisits(f.firstDate, f.frequency, f.visits, f.days), [f.firstDate, f.frequency, f.visits, f.days]);
@@ -42,6 +59,11 @@ export function CommercialBooking({ open, close, act, busy, org, bookings, today
           firstDate: f.firstDate, timeBlock: block, frequency: f.frequency, visits: f.visits, daysPerVisit: f.days, proposalNumber: prefill?.proposalNumber }),
           r => `Booked ${r.days} day${r.days === 1 ? '' : 's'} for ${f.company}${r.visits > 1 ? ` across ${r.visits} visits` : ''}.`).then(ok => ok && close());
       }}>
+        {accounts.length > 0 && <label>Saved company<select value={account?.id ?? ''} onChange={e => pickCompany(e.target.value)}><option value="">Choose a saved company, or type a new one below</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}
+        {account && (account.properties.length > 1 || account.contacts.length > 1) && <div className="form-grid">
+          {account.properties.length > 1 && <label>Property<select value={account.properties.find(p => p.address === f.address)?.id ?? ''} onChange={e => setF({ ...f, address: account.properties.find(p => p.id === e.target.value)?.address ?? f.address })}>{account.properties.map(p => <option key={p.id} value={p.id}>{p.name || p.address}</option>)}</select></label>}
+          {account.contacts.length > 1 && <label>Contact<select value={account.contacts.find(c => c.fullName === f.contact)?.id ?? ''} onChange={e => { const c = account.contacts.find(x => x.id === e.target.value); if (c) setF({ ...f, contact: c.fullName, phone: c.phone, email: c.email }); }}>{account.contacts.map(c => <option key={c.id} value={c.id}>{c.fullName}{c.role ? ` (${c.role})` : ''}</option>)}</select></label>}
+        </div>}
         <div className="form-grid">
           <label>Company<input required maxLength={255} value={f.company} onChange={set('company')} placeholder="American Roller Company" /></label>
           <label>Contact name<input maxLength={200} value={f.contact} onChange={set('contact')} /></label>

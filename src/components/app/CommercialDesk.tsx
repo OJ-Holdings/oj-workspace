@@ -28,7 +28,7 @@ const field=(label:string,value:number,onChange:(n:number)=>void,max=1000000,ste
   <label className="com-field"><span>{label}</span><input type="number" inputMode="decimal" min={0} max={max} step={step}
     value={Number.isFinite(value)?value:0} onChange={e=>onChange(e.target.value===''?0:Number(e.target.value))}/></label>;
 
-export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean;cards:import('@/lib/board').Card[]}) {
+export function CommercialDesk({data,org,mode,readOnly,cards,act,busy,today}:{data:ExteriorData;org:string;mode:'live'|'preview';readOnly:boolean;cards:import('@/lib/board').Card[];act?:import('./ExteriorManage').Act;busy?:boolean;today?:string}) {
   const router=useRouter();
   const preview=mode==='preview';
   const [tab,setTab]=useState<Tab>('accounts');
@@ -210,13 +210,13 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <div>
         <p className="exec-kicker"><Building2 size={16}/> OJ EXTERIOR CARE / COMMERCIAL OPERATIONS</p>
         <h2>Commercial clients.<br/><em>Every property.</em></h2>
-        <p>Manage buildings, estimate labor and access costs, and save projects for the whole team.</p>
-        <div className="com-actions" role="group" aria-label="Commercial project actions">
-          <button className="primary" disabled={preview||readOnly||!ready||tab==='accounts'} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save estimate</button>
+        <p>{tab==='accounts'?'Pick a company, then book a visit.':'Manage buildings, estimate labor and access costs, and save projects for the whole team.'}</p>
+        {tab!=='accounts'&&<div className="com-actions" role="group" aria-label="Commercial project actions">
+          <button className="primary" disabled={preview||readOnly||!ready} onClick={()=>void sharedSaveHandle.current?.save()}><Save size={16}/> Save estimate</button>
           <button className="secondary" type="button" onClick={()=>setTab('accounts')}><Building2 size={16}/> Companies &amp; properties</button>
           <button className="secondary" type="button" onClick={()=>setTab('costs')}><BarChart3 size={16}/> Estimate</button>
           <Link className="secondary" href={base+'/b/exterior/bookings'}><HardHat size={16}/> Jobs</Link>
-        </div>
+        </div>}
         {tab!=='accounts'&&<details className="com-recovery">
           <summary>Files, recovery &amp; team handoff</summary>
           <div className="com-actions" role="group" aria-label="Optional local file and recovery tools">
@@ -244,7 +244,7 @@ export function CommercialDesk({data,org,mode,readOnly,cards}:{data:ExteriorData
       <button type="button" aria-pressed={tab==='accounts'} onClick={()=>setTab('accounts')}>Companies &amp; properties</button>
       <button type="button" aria-pressed={tab!=='accounts'} onClick={()=>setTab('scope')}>Estimates &amp; project work</button>
     </nav>
-    {tab==='accounts'&&<CommercialAccounts org={org} base={base} mode={mode} readOnly={readOnly}
+    {tab==='accounts'&&<CommercialAccounts org={org} base={base} mode={mode} readOnly={readOnly} booking={act&&today&&!preview&&!readOnly?{act,busy:!!busy,bookings:data.bookings,today}:undefined}
       onStartEstimate={beginSavedPropertyEstimate}/>}
     {tab!=='accounts'&&<>
     <div className="com-warning" role="note"><ShieldAlert size={18}/><p>{preview?'Fictional preview · no company changes.':'Saved company projects sync to authorized members. Local recovery copies do not.'} Estimates are internal until separately reviewed and approved; saving does not send a proposal or book a job.</p></div>
