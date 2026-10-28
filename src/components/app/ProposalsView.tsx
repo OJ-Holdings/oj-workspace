@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Printer, Trash2 } from 'lucide-react';
 import { createProposal, deleteDraftProposal, loadProposals, setProposalStatus, sharePortalLink, stopSharingProposal, type ProposalsLoad } from '@/app/workspace/proposal-actions';
@@ -118,6 +119,7 @@ function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove, sha
       <div className="proposal-actions">
         <a className="secondary small" href={`${base}/proposals/${p.id}`} target="_blank" rel="noopener"><Printer size={14} aria-hidden="true" /> View</a>
         {canWrite && status === 'draft' && <button className="primary small" disabled={busy} onClick={send}>Mark sent</button>}
+        {canWrite && status === 'accepted' && <Link className="primary small" href={`${base}/b/exterior/bookings?commercial=${encodeURIComponent(p.id)}`}>Schedule visits</Link>}
         {canWrite && status === 'sent' && <button className="primary small" disabled={busy} onClick={share}>Share link</button>}
         {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={stop}>Stop sharing</button>}
         {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={() => decide('accepted', '')}>Accepted</button>}
