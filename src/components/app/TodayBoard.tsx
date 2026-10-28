@@ -12,6 +12,7 @@ import { buildAtlasSnapshot } from '@/lib/atlas-command';
 import { blockLabel } from '@/lib/exterior-ops';
 import { todayJobs } from '@/lib/today-jobs';
 import { OperatorLaunchpad } from './OperatorLaunchpad';
+import { OutOfStateFlag } from './OutOfStateFlag';
 import { TruckFundCard } from './TruckFundCard';
 import { CommandPulse } from './CommandPulse';
 import { WeatherAhead } from './WeatherAhead';
@@ -35,7 +36,7 @@ function Stop({ job, base, dim }: { job: JobItem; base: string; dim?: boolean })
           <Link href={`${base}/b/exterior/customer?lead=${encodeURIComponent(job.lead_id)}`}><strong>{job.name}</strong></Link>
           {job.quote !== null && <span className="stop-quote">{money(job.quote)}</span>}
         </div>
-        <p>{job.service || 'Service not entered'}{job.status === 'pending_approval' ? ' - pending approval' : ''}</p>
+        <p>{job.service || 'Service not entered'}{job.status === 'pending_approval' ? ' - pending approval' : ''} <OutOfStateFlag address={job.address} /></p>
         <div className="stop-actions">
           {job.address && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer"><MapPin size={13} aria-hidden="true" /> {job.address}</a>}
           <Link href={`${base}/b/exterior/bookings?booking=${encodeURIComponent(job.id)}`}>Open job <ArrowRight size={13} aria-hidden="true" /></Link>

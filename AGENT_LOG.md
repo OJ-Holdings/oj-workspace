@@ -1,5 +1,19 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: out-of-state flag)
+**Summary:** Master plan 1e and section 13: any job outside Wisconsin needs an insurance, registration and tax check until cleared, and the Waukegan job is in Illinois. A small address reader (src/lib/out-of-state.ts) now shows an 'Out of state (IL) - needs a check' badge beside the address in the commercial booking dialog, on the Command today list and on the Field today list. It needs a comma before the state, or a ZIP after it, so a street ending in CT or LN is not read as a state. No database change. It only flags; it does not block booking.
+**Files:** src/lib/out-of-state.ts, src/components/app/{OutOfStateFlag,CommercialBooking,TodayBoard,ExteriorFieldToday}.tsx, src/styles/os-skin.css, tests/out-of-state.test.ts.
+**Verified:** typecheck; 1007 tests; build. **Not verified:** the badge on screen (needs a signed-in session with an Illinois address).
+
+---
+
+## 2026-10-28 UTC -- Claude Code (OJ OS: master plan re-audit, section 17c)
+**Summary:** Oscar asked where we are against the master plan and what to do next. Re-read the whole plan, listed the 18 PRs since the 17b audit, and counted live Supabase rows. Result: about 35% of Phases 0 to 6 (weighted by phase size); every staged SQL file is applied; capability is ahead of use (1 invoice, 0 payments, 0 job expenses, 0 proposals, 0 portal links). Gaps found: no out-of-state flag, LSA still hand-logged, no rig planner, no receipt photos. Ranked next steps are in section 17c. Docs only.
+**Files:** docs/OJ_OS_MASTER_PLAN.md.
+**Verified:** live row counts and constraint via read-only SQL; CI state of main. **Not verified:** the percentages are an estimate, not a measurement.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (email engine: no warm-up, no low limit)
 **Summary:** Oscar: get rid of the warm-up and the limits, send as much as possible. The warm-up ramp is removed (warmupCap replaced by dailyCap: the day's limit is the ceiling set on the page), the ceiling options are 50, 100, 250, 500, 1000 and 1500 a day (1500 is Google's own Workspace limit), the Warm-up panel is gone from the Email engine page, the default ceiling is 1500, and each run now hands out up to 40 emails (was 3). The Apps Script sender's pause between emails went from 20 to 60 seconds down to 2 to 5 seconds so a run of 40 finishes well inside Apps Script's 6 minute limit; Oscar must paste the updated script (scripts/google-apps-script/outreach-email-engine.gs) into the Apps Script project. The hourly spacing rule stays (a day's limit over 6 hours) and the bounce brake stays. The live database still refuses above 50: docs/db-change-proposals/RUN-ME-2026-10-28-email-cap-1500.sql (NOT APPLIED; replaces the 50 script, which is deleted) raises the limit and sets the settings row to 1500; 3 PGlite tests cover it. Risk told to Oscar: a new domain sending at this volume is likely to be spam-foldered and can get the Google account throttled or suspended; his call.
 **Files:** src/lib/email-engine.ts, src/components/app/solutions/EmailEngine.tsx, scripts/google-apps-script/outreach-email-engine.gs, docs/SOLUTIONS_GROWTH_ENGINE.md, docs/db-change-proposals/RUN-ME-2026-10-28-email-cap-1500.sql, tests/{email-engine,email-engine-api,email-cap-sql}.test.ts.
