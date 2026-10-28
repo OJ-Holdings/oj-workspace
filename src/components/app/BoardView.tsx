@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
 import { usePathname } from 'next/navigation';
-import { CheckSquare, MessageSquare, Plus, Search } from 'lucide-react';
+import { CheckSquare, MessageSquare, Plus, Search, Trash2 } from 'lucide-react';
 import { matchesCard, stages, type Business } from '@/lib/board';
 import { ventureList, ventures, type VentureId } from '@/lib/ventures';
 import type { Board } from './useBoard';
@@ -15,6 +15,9 @@ import { useViewParams } from './useViewParams';
 function dateLabel(value: string) {
   return value ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) : '';
 }
+
+/** How many finished tasks the Done column lists before it folds the rest behind a button. */
+const DONE_SHOWN = 5;
 
 type Props = { board: Board; members: string[]; readOnly: boolean; displayName: string; lockVenture?: VentureId };
 
@@ -32,6 +35,8 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
   const setFocus = (value: TaskFocus) => update({ focus: value === 'all' ? '' : value });
   const [today, setToday] = useState('');
   const [dragging, setDragging] = useState<string | null>(null);
+  const [allDone, setAllDone] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
   useEffect(() => { const refresh = () => setToday(workDay(new Date())); refresh(); const timer = window.setInterval(refresh, 60_000); return () => window.clearInterval(timer); }, []);
   const { data, pending } = board;
   const scope = lockVenture ?? business;
@@ -82,6 +87,10 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
       <div className="board" aria-label="Task board">
         {stages.map(stage => {
           const column = filtered.filter(c => c.stage === stage);
+          // Finished work is bunched into one-line rows, most recently added first, so the open columns stay on screen.
+          const compact = stage === 'Done';
+          const doneRows = compact ? [...column].reverse() : column;
+          const rows = compact && !allDone ? doneRows.slice(0, DONE_SHOWN) : doneRows;
           return (
             <section key={stage} className={`column${dragging ? ' accepts-drop' : ''}`} data-stage={stage}
               onDragOver={e => { if (!readOnly && !pending && dragging) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('is-over'); } }}
@@ -92,7 +101,17 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
                 {!readOnly && <button aria-label={`Add a task to ${stage}`} className="icon-button" onClick={() => newCard(stage)}><Plus size={15} /></button>}
               </header>
               <div className="column-cards">
-                {column.map(card => (
+                {rows.map(card => compact ? (
+                  <article className="taskcard taskcard-done" key={card.id} data-venture-tag={card.business}
+                    draggable={!readOnly && !pending} data-dragging={dragging === card.id || undefined} onDragStart={e => { const event = e as unknown as React.DragEvent; event.dataTransfer.setData('text/plain', card.id); event.dataTransfer.effectAllowed = 'move'; setDragging(card.id); }} onDragEnd={() => setDragging(null)}>
+                    <i className="done-dot" style={{ background: `var(--c-${card.business})` }} title={ventures[card.business].short} aria-hidden="true" />
+                    <button className="taskcard-open" onClick={() => board.openCard(card)} title={card.title}><h3>{card.title}</h3></button>
+                    {card.assignee && <span className="avatar" title={card.assignee}>{card.assignee.charAt(0).toUpperCase()}</span>}
+                    {!readOnly && (confirming === card.id
+                      ? <span className="delete-confirm" role="group" aria-label={`Confirm delete ${card.title}`}><button type="button" className="secondary danger small" disabled={pending} onClick={() => { board.remove(card); setConfirming(null); }}>Delete</button><button type="button" className="secondary small" onClick={() => setConfirming(null)}>Keep</button></span>
+                      : <button type="button" className="icon-button" aria-label={`Delete ${card.title}`} disabled={pending} onClick={() => setConfirming(card.id)}><Trash2 size={14} aria-hidden="true" /></button>)}
+                  </article>
+                ) : (
                   <motion.article layout layoutId={`card-${card.id}`} transition={{ type: 'spring', stiffness: 420, damping: 36 }} className="taskcard" key={card.id} data-venture-tag={card.business}
                     draggable={!readOnly && !pending} data-dragging={dragging === card.id || undefined} onDragStart={e => { const event = e as unknown as React.DragEvent; event.dataTransfer.setData('text/plain', card.id); event.dataTransfer.effectAllowed = 'move'; setDragging(card.id); }} onDragEnd={() => { setDragging(null); document.querySelectorAll('.column.is-over').forEach(el => el.classList.remove('is-over')); }}>
                     <button className="taskcard-open" onClick={() => board.openCard(card)}>
@@ -116,6 +135,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
                     )}
                   </motion.article>
                 ))}
+                {compact && doneRows.length > DONE_SHOWN && <button type="button" className="text-button done-more" onClick={() => setAllDone(v => !v)}>{allDone ? 'Show fewer' : `Show ${doneRows.length - DONE_SHOWN} more done`}</button>}
                 {column.length === 0 && <p className="column-empty">{query || assignee || focus !== 'all' ? 'No matching tasks' : 'Nothing here yet'}</p>}
               </div>
             </section>

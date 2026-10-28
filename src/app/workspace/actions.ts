@@ -28,6 +28,16 @@ export async function addComment(cardId: string, organizationId: string, body: s
   if (error || !data) throw new Error('Could not add the comment. Check your access and try again.');
   return { ...data, author: member.display_name } as Comment;
 }
+/** Deletes a task with its comments and activity, through oj_delete_card (docs/db-change-proposals/RUN-ME-2026-10-28-delete-task.sql). */
+export async function deleteCard(cardId: string, organizationId: string): Promise<void> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cardId)) throw new Error('That task no longer exists.');
+  const { client } = await requireMember(organizationId, true);
+  const { error } = await client.rpc('oj_delete_card', { p_org: organizationId, p_card: cardId });
+  if (!error) return;
+  if (error.code === 'PGRST202' || /could not find the function/i.test(error.message)) throw new Error('Deleting tasks is not switched on yet. A workspace owner needs to run the delete-task SQL once.');
+  if (/no longer exists/i.test(error.message)) throw new Error('That task was already deleted. Reload the board.');
+  throw new Error('Could not delete this task. Check your access and try again.');
+}
 export async function signOut() {
   const client = await supabaseServer();
   await client.auth.signOut();

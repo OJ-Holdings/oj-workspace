@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { updateCard, validateCard, type BoardData, type Business, type Card, type Stage } from '@/lib/board';
 import { undoTaskMove } from '@/lib/task-workflows';
-import { addComment, saveCard } from '@/app/workspace/actions';
+import { addComment, deleteCard, saveCard } from '@/app/workspace/actions';
 
 const PREVIEW_KEY = 'oj-workspace-preview-v2';
 
@@ -117,6 +117,22 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not undo this move.'); setUndo(null); }
   }
 
+  /** Deletes a task for good, with its comments and activity. The caller asks for confirmation first. */
+  function remove(card: Card) {
+    if (readOnly || mutation.current) return;
+    mutation.current = true;
+    startTransition(async () => {
+      try {
+        if (mode === 'live') await deleteCard(card.id, organizationId);
+        setData(d => ({ ...d, cards: d.cards.filter(c => c.id !== card.id), comments: d.comments.filter(c => c.card_id !== card.id), activity: (d.activity ?? []).filter(a => a.card_id !== card.id) }));
+        setUndo(u => (u?.id === card.id ? null : u));
+        setEditing(e => (e?.id === card.id ? null : e));
+        setNotice(`Deleted "${card.title}".`);
+      } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not delete this task.'); }
+      finally { mutation.current = false; }
+    });
+  }
+
   function postComment(target: Card, body: string, done: () => void) {
     if (readOnly || mutation.current || !body.trim()) return;
     mutation.current = true;
@@ -135,7 +151,7 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
     });
   }
 
-  return { data, editing, setEditing, notice, pending, openCard, closeCard, dirty, ready, undo, undoMove, persist, move, postComment };
+  return { data, editing, setEditing, notice, pending, openCard, closeCard, dirty, ready, undo, undoMove, persist, move, remove, postComment };
 }
 
 export type Board = ReturnType<typeof useBoard>;
