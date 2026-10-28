@@ -19,12 +19,13 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
   const previousFocus = useRef<HTMLElement | null>(null);
   const [comment, setComment] = useState('');
   const [checkText, setCheckText] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isOpen = !!editing;
 
   useEffect(() => {
     if (isOpen) {
       previousFocus.current = document.activeElement as HTMLElement;
-      setComment(''); setCheckText('');
+      setComment(''); setCheckText(''); setConfirmDelete(false);
       dialog.current?.showModal();
     } else if (dialog.current?.open) {
       dialog.current.close();
@@ -80,6 +81,11 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
             </div>
           )}
           <div className="dialog-actions">
+            {!readOnly && current && (confirmDelete
+              ? <span className="delete-confirm" role="group" aria-label="Confirm delete">Delete this task and its comments?
+                  <button type="button" className="secondary danger small" disabled={pending} onClick={() => board.remove(current)}>Delete</button>
+                  <button type="button" className="secondary small" disabled={pending} onClick={() => setConfirmDelete(false)}>Keep</button></span>
+              : <button type="button" className="secondary danger small" disabled={pending} onClick={() => setConfirmDelete(true)}><Trash2 size={14} aria-hidden="true" /> Delete task</button>)}
             <span>{mode === 'preview' ? 'Saved in this browser only' : 'Shared with your OJ team'}</span>
             {!readOnly && <button type="submit" className="primary" disabled={pending || stale || Boolean(comment.trim() || checkText.trim())}>{pending ? 'Saving' : 'Save task'}</button>}
           </div>
