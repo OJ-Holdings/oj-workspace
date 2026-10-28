@@ -10,10 +10,12 @@ import { sampleExterior } from '@/lib/exterior-sample';
 import type { ExteriorData } from '@/lib/exterior';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { commandPulse } from '@/lib/command-pulse';
+import type { MetricEntry } from '@/lib/dashboard';
+import { WinterPlan } from './WinterPlan';
 import { dollars } from '@/lib/metrics';
 
 /** Two cards for the Command screen: what needs a person right now (each with a one-tap way there), and this month's pace with the open pipeline. */
-export function CommandPulse({ org, mode, jobs, today, base }: { org: string; mode: 'preview' | 'live'; jobs: JobItem[]; today: string; base: string }) {
+export function CommandPulse({ org, mode, jobs, today, base, metrics = [] }: { org: string; mode: 'preview' | 'live'; jobs: JobItem[]; today: string; base: string; metrics?: MetricEntry[] }) {
   const [data, setData] = useState<ExteriorData | null>(null);
   const [at, setAt] = useState(0);
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
@@ -30,6 +32,7 @@ export function CommandPulse({ org, mode, jobs, today, base }: { org: string; mo
   const p = commandPulse(data, jobs, today, at, invoices ? summariseInvoices(invoices, today) : undefined);
   const stage = (label: string, s: { count: number; quoted: number }) => <li key={label}><span>{label}</span><b>{s.count}</b><small>{s.quoted ? dollars(s.quoted) : ''}</small></li>;
   return <>
+    <WinterPlan data={data} today={today} nowMs={at} metrics={metrics} base={base} />
     <section className="today-card" aria-labelledby="today-act">
       <header><h2 id="today-act"><Siren size={16} aria-hidden="true" /> Act now</h2></header>
       {p.exceptions.length === 0 ? <p className="today-empty">Nothing is waiting on you.</p> : <ol className="today-list today-act">
