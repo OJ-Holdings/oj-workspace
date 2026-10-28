@@ -282,6 +282,7 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .winter-rows span { color: var(--ink-2); font-size: 14px; line-height: 1.45; }
 .winter-rows a { justify-self: start; color: var(--accent-hi); font-size: 13px; font-weight: 650; text-decoration: none; }
 
+.proposal-row > div:first-child .proposal-signed { color: var(--good); }
 /* ---------- Job photos ---------- */
 .jobphotos { display: grid; gap: 8px; }
 .jobphotos-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--ink-3); }
