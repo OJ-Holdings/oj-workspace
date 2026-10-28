@@ -194,9 +194,10 @@ function FinanceBody({ store, readOnly, venture, owner = false, jobs, form, setF
   const launchMoney=query.get('new');
   useEffect(()=>{
     if(readOnly||!isFinanceLaunch(launchMoney))return;
-    setForm({...blank(),kind:launchMoney});
+    const amount=query.get('amount')??'',category=query.get('category')??'';
+    setForm({...blank(),kind:launchMoney,amount:/^\d+(\.\d{1,2})?$/.test(amount)?amount:'',category:category.slice(0,80)});
     const url=new URL(window.location.href);
-    url.searchParams.delete('new');
+    url.searchParams.delete('new');url.searchParams.delete('amount');url.searchParams.delete('category');
     window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
   },[readOnly,launchMoney,setForm]);
   const filterBusiness = venture ?? (isVenture(query.get('business') ?? '') ? query.get('business') as VentureId : null);
