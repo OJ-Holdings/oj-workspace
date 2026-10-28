@@ -39,7 +39,7 @@ export async function loadPulse(org: string, base: string): Promise<PulseLoad> {
     try { const r = await work; if (r.error || !Array.isArray(r.data)) { incomplete = true; return []; } if (r.data.length >= LIMIT) incomplete = true; return r.data as Row[]; } catch { incomplete = true; return []; }
   };
 
-  const [members, cards, activity, log, sessions, invoices, payments, journal, expenses, photos, proposals, customers, metrics, docs, events, dms, prospects, emails, finance, leads] = await Promise.all([
+  const [members, cards, activity, log, sessions, invoices, payments, journal, expenses, photos, proposals, customers, metrics, docs, events, dms, prospects, emails, finance, leads, sharedLeads, consultations] = await Promise.all([
     read(client.from('oj_memberships').select('user_id,display_name').eq('organization_id', org)),
     read(client.from('oj_cards').select('id,title,business,created_by,created_at,completed_by,completed_at').eq('organization_id', org).or(`created_at.gte.${since},completed_at.gte.${since}`).order('created_at', { ascending: false }).limit(LIMIT)),
     read(client.from('oj_activity').select('id,card_id,actor_id,action,created_at').eq('organization_id', org).in('action', ['comment_added', 'card_updated']).gte('created_at', since).order('created_at', { ascending: false }).limit(LIMIT)),
@@ -60,6 +60,8 @@ export async function loadPulse(org: string, base: string): Promise<PulseLoad> {
     read(client.from('oj_email_events').select('id,kind,event_at,created_at').eq('organization_id', org).in('kind', ['sent', 'reply', 'bounce', 'stop']).gte('created_at', since).limit(LIMIT)),
     read(client.from('oj_finance_entries').select('id,venture,kind,amount,category,created_by,created_at').eq('organization_id', org).gte('created_at', since).limit(LIMIT)),
     Promise.resolve([] as Row[]),
+    read(client.from('oj_leads').select('id,venture,name,source,created_by,created_at').eq('organization_id', org).gte('created_at', since).order('created_at', { ascending: false }).limit(LIMIT)),
+    read(client.from('oj_solutions_consultations').select('id,name,status,created_at').eq('organization_id', org).gte('created_at', since).order('created_at', { ascending: false }).limit(LIMIT)),
   ]);
 
   const names = new Map(members.map(m => [s(m.user_id), s(m.display_name)]));
@@ -121,6 +123,8 @@ export async function loadPulse(org: string, base: string): Promise<PulseLoad> {
     }
   }
   for (const c of customers) add({ id: `cust-${s(c.id)}`, at: s(c.created_at), who: c.created_by ? who(c.created_by) : 'Setup', kind: 'customer', text: `added ${s(c.name)} to the customer directory`, venture: null, href: `${base}/customers`, group: 'customer', many: 'added {n} customers to the directory' });
+  for (const l of sharedLeads) add({ id: `shared-lead-${s(l.id)}`, at: s(l.created_at), who: who(l.created_by), kind: 'lead', text: `added ${s(l.name) || 'a lead'}${s(l.source) ? ` (source: ${s(l.source)})` : ''}`, venture: ven(l.venture) });
+  for (const c of consultations) add({ id: `consultation-${s(c.id)}`, at: s(c.created_at), who: 'Website', kind: 'lead', text: `received a consultation request from ${s(c.name) || 'a customer'} (current status: ${s(c.status) || 'unknown'})`, venture: 'solutions', href: `${base}/b/solutions/consultations` });
   for (const m of metrics) {
     const label = s(m.label), value = n(m.value);
     let text = `logged ${label}: ${value.toLocaleString('en-US')}${s(m.unit) && s(m.unit) !== 'USD' ? ` ${s(m.unit)}` : ''}`;

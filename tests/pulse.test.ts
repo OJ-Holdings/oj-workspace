@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ago, dayLabel, level, mergeBursts, plainLog, scoreboard, streak, workXp, type PulseEvent } from '../src/lib/pulse';
+import { ago, dayLabel, level, mergeBursts, notificationEvents, plainLog, scoreboard, streak, workXp, type PulseEvent } from '../src/lib/pulse';
 
 const ev = (o: Partial<PulseEvent>): PulseEvent => ({ id: Math.random().toString(36), at: '2026-10-28T15:00:00Z', who: 'Oscar', kind: 'bank', text: 'posted a bank transaction', xp: 3, venture: null, ...o });
+
+test('compact notifications show customer events and remain bounded', () => {
+  const events = [ev({ kind: 'task-edit' }), ev({ kind: 'lead' }), ev({ kind: 'reply' }), ev({ kind: 'customer' })];
+  assert.deepEqual(notificationEvents(events, 2).map(e => e.kind), ['lead', 'reply']);
+  assert.equal(notificationEvents(events, 0).length, 0);
+  assert.equal(notificationEvents([], 8).length, 0);
+});
 
 test('a run of small things by one person becomes one line with a count, even with someone else in between', () => {
   const rows = mergeBursts([

@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { loadPulse, type PulseLoad } from '@/app/workspace/pulse-actions';
-import { ago, dayLabel, scoreboard } from '@/lib/pulse';
+import { ago, dayLabel, notificationEvents, scoreboard } from '@/lib/pulse';
 
 type State = { data: PulseLoad | null; fresh: number; notice: string; refresh: () => void; dismiss: () => void };
 const Context = createContext<State>({ data: null, fresh: 0, notice: '', refresh: () => {}, dismiss: () => {} });
@@ -46,8 +46,29 @@ export function PulseProvider({ org, base, enabled, children }: { org: string; b
 }
 
 export function PulseBell({ base }: { base: string }) {
-  const { data, fresh, dismiss } = useContext(Context);
-  return <Link className="pulse-bell" href={`${base}/pulse`} onClick={dismiss} aria-label={data?.ok ? `Pulse, ${fresh} new updates since opening` : 'Open Pulse'}><Bell size={18} aria-hidden="true" />{fresh > 0 && <b>{fresh > 99 ? '99+' : fresh}</b>}</Link>;
+  const { data, fresh, dismiss, refresh } = useContext(Context);
+  const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const outside = (e: MouseEvent) => { if (!panel.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('keydown', key); document.addEventListener('mousedown', outside);
+    return () => { document.removeEventListener('keydown', key); document.removeEventListener('mousedown', outside); };
+  }, [open]);
+  const important = data?.ok ? notificationEvents(data.events) : [];
+  return <div className="pulse-bell-wrap" ref={panel}>
+    <button type="button" className="pulse-bell" onClick={() => { setOpen(v => !v); dismiss(); }} aria-label={fresh ? `Notifications, ${fresh} new updates this session` : 'Notifications'} aria-expanded={open} aria-controls="pulse-notifications"><Bell size={18} aria-hidden="true" />{fresh > 0 && <b>{fresh > 99 ? '99+' : fresh}</b>}</button>
+    {open && <div className="pulse-notifications" id="pulse-notifications" role="region" aria-label="Notifications">
+      <header><div><strong>Notifications</strong><small>Recent customer and business activity</small></div><button type="button" onClick={() => setOpen(false)} aria-label="Close notifications"><X size={17} /></button></header>
+      {!data && <p className="pulse-notice-state">Loading updates…</p>}
+      {data && !data.ok && <p className="pulse-notice-state">Could not load updates. <button type="button" onClick={refresh}>Try again</button></p>}
+      {data?.ok && <>{data.incomplete && <p className="pulse-notice-warning">Some sources aren’t connected; this list may be incomplete.</p>}{important.length === 0 && <p className="pulse-notice-state">No recent customer updates in available sources.</p>}
+        <div className="pulse-notice-list">{important.map(e => <div className="pulse-notice-item" key={e.id}><span className="pulse-notice-dot" aria-hidden="true" /><div><p><b>{e.who}</b> {e.text}</p><small>{ago(e.at, data.now)}</small>{e.href && <Link href={e.href} onClick={() => setOpen(false)}>View record</Link>}</div></div>)}</div>
+      </>}
+      <div className="pulse-notice-links"><Link href={`${base}/b/exterior/intake`} onClick={() => setOpen(false)}>Exterior website inbox</Link><Link className="pulse-notice-all" href={`${base}/pulse`} onClick={() => setOpen(false)}>Open full Pulse <span aria-hidden="true">→</span></Link></div>
+    </div>}
+  </div>;
 }
 
 export function PulseCard({ base }: { base: string }) {
