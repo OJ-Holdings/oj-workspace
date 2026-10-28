@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: quote follow-up cadence and big-quote flag)
+**Summary:** Oscar's round-3 answer (master plan 1e) asked for proposal follow-up reminders on a cadence, for example day 3, 7 and 14, with ND Cleaning MKE ($39,400) as the example. The Growth room's Quotes going cold list now says which step each quote is at (Day 3 first nudge, Day 7 second nudge, Day 14 last check-in, measured from the last touch) and marks any quote of $1,000 or more as a Big quote. The Command Act now line now reads, for example, '3 quotes going cold, $40,200 at stake'. Pure additions to growth-queues.ts (cadenceStep, BIG_QUOTE) and command-pulse.ts. No reminders are sent: nothing is emailed or texted, the list is what to act on. Not built: a per-proposal status (sent, viewed, accepted) or snoozing a quote, which need storage.
+**Files:** src/lib/{growth-queues,command-pulse}.ts, src/components/app/GrowthView.tsx, src/styles/os-skin.css, tests/growth-queues.test.ts.
+**Verified:** typecheck; 933 tests; build.
+**Not verified:** on the live site; whether ND Cleaning is stored as a lead with that quote (it only appears here if it is).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: portfolio figures on Businesses)
 **Summary:** Master plan 11b: a portfolio view that always shows every division side by side with the same figures, so where to put time is answered with numbers. Each business tile on the Businesses page now carries This month (money in and out), This year (money in, and the margin once both revenue and costs have been entered) and its Share of all revenue. Pure logic in src/lib/portfolio.ts over the finance entries the page already has. Margin is blank, not 100%, until costs are entered, and share is blank until anything has come in. Cash per business is not shown (needs the Mercury feed).
 **Files:** src/lib/portfolio.ts, src/components/app/App.tsx, src/styles/os-skin.css, tests/portfolio.test.ts.

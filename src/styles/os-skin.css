@@ -228,3 +228,4 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .wx-days li small { color: var(--ink-3); }
 .wx-days li em { font-style: normal; font-weight: 700; color: var(--watch); }
 .wx-days li.is-flagged { border-color: var(--watch); }
+.growth-big { margin-left: 8px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent-hi); font-style: normal; font-size: 11px; font-weight: 700; }
