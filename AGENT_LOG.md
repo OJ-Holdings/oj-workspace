@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: plain captions on Customers and customer history)
+**Summary:** Copy only. The Customers queue tiles carried caveats like 'Contact history is not independently verified' and 'Zero is a known number; blank is unknown'; they now say things like 'Not contacted yet.' and 'Done jobs missing revenue or costs.' The customer History entries lost their 'not proof of...' sentences (Lead added, Record updated, Job completed). An estimated completion date is still flagged as estimated (basis stays estimated-date and the text says the exact date was not recorded); the one test that matched the old wording was updated.
+**Files:** src/lib/exterior-lead-workflow.ts, src/lib/exterior-customer-360.ts, tests/exterior-customer-360.test.ts.
+**Verified:** typecheck; 908 tests.
+**Not verified:** looked at on the live site after deploy.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: crew commission defaults and statement)
 **Summary:** Oscar decided crew commission is a flat 20% of revenue. Both assignment forms (Assign crew on a job, and the Employee work page) now start at 20 instead of blank, still editable per job; the old line saying there is no default rate is gone. The Approved earnings section opens with a per-person statement: approved and unpaid, and paid so far. The approve, adjust and mark-paid paths and their database functions are unchanged.
 **Files:** src/components/EmployeesPanel.tsx, src/components/app/ExteriorManage.tsx, src/styles/os-skin.css.
