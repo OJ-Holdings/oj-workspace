@@ -121,3 +121,14 @@ export async function sharePortalLink(org: string, proposalId: string): Promise<
     return { ok: true, path: `/p/${token}` };
   } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not create the link.' }; }
 }
+
+/** Stop sharing: every link to this proposal stops working at once. Sharing again makes a new one. */
+export async function stopSharingProposal(org: string, proposalId: string): Promise<ActionResult<{ closed: number }>> {
+  try {
+    const { client } = await requireMember(org, true);
+    if (!UUID.test(proposalId)) return { ok: false, message: 'Choose a valid proposal.' };
+    const { data, error } = await client.rpc('oj_revoke_proposal_links', { p_org: org, p_proposal: proposalId });
+    if (error) return { ok: false, message: friendly(error.message) };
+    return { ok: true, closed: Number(data ?? 0) };
+  } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not stop sharing.' }; }
+}

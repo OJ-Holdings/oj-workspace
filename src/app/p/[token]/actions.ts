@@ -17,11 +17,15 @@ export async function decideProposal(token: string, input: { decision: 'accepted
   const name = String(input.name ?? '').trim();
   if (name.length < 2) return { ok: false, message: 'Type your full name to sign.' };
   const h = await headers();
-  const ip = (h.get('x-forwarded-for')?.split(',')[0] ?? h.get('x-real-ip') ?? '').trim().slice(0, 64) || null;
+  // The leftmost X-Forwarded-For entry is whatever the caller chose to send. The rightmost is the one our own proxy added, so that is the address recorded as the
+  // customer's; the whole header is stored beside it exactly as received, so the audit record shows both what was reported and what was claimed.
+  const chain = (h.get('x-forwarded-for') ?? '').trim();
+  const ip = (chain.split(',').pop() ?? h.get('x-real-ip') ?? '').trim().slice(0, 64) || null;
+  const forwarded = chain.slice(0, 300) || null;
   const agent = (h.get('user-agent') ?? '').slice(0, 300) || null;
   const optional = (Array.isArray(input.optionalIds) ? input.optionalIds : []).filter(id => typeof id === 'string' && UUID.test(id)).slice(0, 60);
   try {
-    const { data, error } = await supabasePublic().rpc('oj_portal_decide', { p_token: token, p_decision: input.decision, p_name: name.slice(0, 200), p_note: String(input.note ?? '').slice(0, 500), p_optional: optional, p_ip: ip, p_agent: agent });
+    const { data, error } = await supabasePublic().rpc('oj_portal_decide', { p_token: token, p_decision: input.decision, p_name: name.slice(0, 200), p_note: String(input.note ?? '').slice(0, 500), p_optional: optional, p_ip: ip, p_forwarded: forwarded, p_agent: agent });
     if (error) return { ok: false, message: (error.message.replace(/^.*?(ERROR:\s*)/i, '') || 'That did not go through.').slice(0, 200) };
     const r = data as { decision: 'accepted' | 'declined'; agreed_total_cents: number; document_hash: string };
     return { ok: true, decision: r.decision, agreedCents: Number(r.agreed_total_cents), hash: String(r.document_hash) };

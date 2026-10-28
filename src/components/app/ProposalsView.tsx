@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Printer, Trash2 } from 'lucide-react';
-import { createProposal, deleteDraftProposal, loadProposals, setProposalStatus, sharePortalLink, type ProposalsLoad } from '@/app/workspace/proposal-actions';
+import { createProposal, deleteDraftProposal, loadProposals, setProposalStatus, sharePortalLink, stopSharingProposal, type ProposalsLoad } from '@/app/workspace/proposal-actions';
 import { leadForInvoice, type JobForInvoice } from '@/app/workspace/invoice-actions';
 import { DEFAULT_EXCLUSIONS, DEFAULT_TERMS, draftTotals, effectiveStatus, followUp, paymentTermOptions, statusLabel, summariseProposals, type DraftLine, type Proposal } from '@/lib/proposals';
 import { businessDay } from '@/lib/reporting';
@@ -81,6 +81,7 @@ export function ProposalsView({ org, mode, readOnly, base }: Props) {
         {proposals.map(p => <ProposalRow key={p.id} p={p} today={today} base={base} busy={busy} canWrite={canWrite}
           send={() => void run(() => setProposalStatus(org, p.id, 'sent', today, ''), `${p.number} marked sent.`)}
           decide={(status, note) => void run(() => setProposalStatus(org, p.id, status, today, note), `${p.number} marked ${status}.`)}
+          stop={() => void run(async () => { const r = await stopSharingProposal(org, p.id); return r.ok ? { ok: true } : r; }, 'Sharing stopped. Any link already sent no longer works.')}
           share={async () => {
             setBusy(true); setNotice('');
             try {
@@ -100,7 +101,7 @@ export function ProposalsView({ org, mode, readOnly, base }: Props) {
   </>;
 }
 
-function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove, share }: { p: Proposal; today: string; base: string; busy: boolean; canWrite: boolean; send: () => void; decide: (s: 'accepted' | 'declined', note: string) => void; remove: () => void; share: () => void }) {
+function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove, share, stop }: { p: Proposal; today: string; base: string; busy: boolean; canWrite: boolean; send: () => void; decide: (s: 'accepted' | 'declined', note: string) => void; remove: () => void; share: () => void; stop: () => void }) {
   const status = effectiveStatus(p, today);
   const nudge = followUp(p, today);
   return (
@@ -118,6 +119,7 @@ function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove, sha
         <a className="secondary small" href={`${base}/proposals/${p.id}`} target="_blank" rel="noopener"><Printer size={14} aria-hidden="true" /> View</a>
         {canWrite && status === 'draft' && <button className="primary small" disabled={busy} onClick={send}>Mark sent</button>}
         {canWrite && status === 'sent' && <button className="primary small" disabled={busy} onClick={share}>Share link</button>}
+        {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={stop}>Stop sharing</button>}
         {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={() => decide('accepted', '')}>Accepted</button>}
         {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={() => decide('declined', window.prompt('Why was it declined? (optional)') ?? '')}>Declined</button>}
         {canWrite && status === 'draft' && <button className="icon-button" aria-label={`Delete draft ${p.number}`} disabled={busy} onClick={remove}><Trash2 size={14} aria-hidden="true" /></button>}

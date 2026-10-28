@@ -85,25 +85,26 @@ test('accepting records the signature, the chosen add-on, the agreed total and a
   const db = await setup();
   const s = await shared(db);
   await as(db, 'anon');
-  const r = (await db.query<{ r: { decision: string; agreed_total_cents: number; document_hash: string } }>(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', 'Thanks', array['${s.optional}']::uuid[], '203.0.113.9', 'Mozilla/5.0') as r`)).rows[0].r;
+  const r = (await db.query<{ r: { decision: string; agreed_total_cents: number; document_hash: string } }>(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', 'Thanks', array['${s.optional}']::uuid[], '10.0.0.1', '203.0.113.9, 10.0.0.1', 'Mozilla/5.0') as r`)).rows[0].r;
   assert.deepEqual([r.decision, r.agreed_total_cents], ['accepted', 275000 + 235000]);
   assert.match(r.document_hash, /^[a-f0-9]{64}$/);
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', '', null, '203.0.113.9', 'x')`), /already been decided/);
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', '', null, '10.0.0.1', '203.0.113.9, 10.0.0.1', 'x')`), /already been decided/);
   await as(db, owner);
   const p = (await db.query<{ status: string; decision_note: string }>(`select status, decision_note from oj_proposals where id = '${s.id}'`)).rows[0];
   assert.deepEqual([p.status, p.decision_note], ['accepted', 'Accepted online by Jane Q. Customer: Thanks']);
-  const a = (await db.query<{ signer_name: string; ip_address: string; selected_optional_ids: string[]; document_hash: string }>('select signer_name, ip_address, selected_optional_ids, document_hash from oj_proposal_acceptances')).rows[0];
-  assert.deepEqual([a.signer_name, a.ip_address, a.selected_optional_ids, a.document_hash], ['Jane Q. Customer', '203.0.113.9', [s.optional], r.document_hash]);
+  const a = (await db.query<{ signer_name: string; ip_address: string; forwarded_for: string; selected_optional_ids: string[]; document_hash: string }>('select signer_name, ip_address, forwarded_for, selected_optional_ids, document_hash from oj_proposal_acceptances')).rows[0];
+  // The address the trusted proxy reported is kept apart from the raw header chain, which is recorded exactly as received.
+  assert.deepEqual([a.signer_name, a.ip_address, a.forwarded_for, a.selected_optional_ids, a.document_hash], ['Jane Q. Customer', '10.0.0.1', '203.0.113.9, 10.0.0.1', [s.optional], r.document_hash]);
 });
 
 test('declining is recorded without an agreed total; a bad name, an unknown choice or a stranger token changes nothing', async () => {
   const db = await setup();
   const s = await shared(db);
   await as(db, 'anon');
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'J', '', null, null, null)`), /full name/);
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'maybe', 'Jane Doe', '', null, null, null)`), /accept or decline/);
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${token()}', 'accepted', 'Jane Doe', '', null, null, null)`), /no longer valid/);
-  const r = (await db.query<{ r: { agreed_total_cents: number } }>(`select public.oj_portal_decide('${s.t}', 'declined', 'Jane Doe', 'Went elsewhere', array['${s.optional}']::uuid[], null, null) as r`)).rows[0].r;
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'J', '', null, null, null, null)`), /full name/);
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'maybe', 'Jane Doe', '', null, null, null, null)`), /accept or decline/);
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${token()}', 'accepted', 'Jane Doe', '', null, null, null, null)`), /no longer valid/);
+  const r = (await db.query<{ r: { agreed_total_cents: number } }>(`select public.oj_portal_decide('${s.t}', 'declined', 'Jane Doe', 'Went elsewhere', array['${s.optional}']::uuid[], null, null, null) as r`)).rows[0].r;
   assert.equal(r.agreed_total_cents, 0);
   await as(db, owner);
   assert.equal((await db.query<{ s: string }>(`select status as s from oj_proposals where id = '${s.id}'`)).rows[0].s, 'declined');
@@ -115,7 +116,7 @@ test('a revoked link and an expired link stop working; an expired proposal canno
   await db.query(`select public.oj_revoke_portal_link('${org}', '${a.link}')`);
   await as(db, 'anon');
   assert.equal((await db.query<{ p: unknown }>(`select public.oj_portal_proposal('${a.t}') as p`)).rows[0].p, null);
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${a.t}', 'accepted', 'Jane Doe', '', null, null, null)`), /no longer valid/);
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${a.t}', 'accepted', 'Jane Doe', '', null, null, null, null)`), /no longer valid/);
 
   const b = await shared(db);
   await db.exec('reset role');
@@ -127,14 +128,14 @@ test('a revoked link and an expired link stop working; an expired proposal canno
   await db.exec('reset role');
   await db.exec(`set oj.allow_proposal_change = '1'; update oj_proposals set valid_until = current_date - 1 where id = '${c.id}'; update oj_portal_links set expires_at = now() + interval '1 day' where id = '${c.link}';`);
   await as(db, 'anon');
-  await assert.rejects(() => db.query(`select public.oj_portal_decide('${c.t}', 'accepted', 'Jane Doe', '', null, null, null)`), /expired/);
+  await assert.rejects(() => db.query(`select public.oj_portal_decide('${c.t}', 'accepted', 'Jane Doe', '', null, null, null, null)`), /expired/);
 });
 
 test('the audit record cannot be changed by anyone, and members can read it but viewers and other workspaces cannot', async () => {
   const db = await setup();
   const s = await shared(db);
   await as(db, 'anon');
-  await db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Doe', '', null, null, null)`);
+  await db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Doe', '', null, null, null, null)`);
   await as(db, owner);
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_proposal_acceptances')).rows[0].n, 1);
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_portal_links')).rows[0].n, 1);
@@ -148,6 +149,42 @@ test('the audit record cannot be changed by anyone, and members can read it but 
   await as(db, stranger);
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_proposal_acceptances')).rows[0].n, 0);
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_portal_links')).rows[0].n, 0);
+});
+
+test('sharing again retires the earlier link; stopping sharing and marking the proposal decided by hand close every link', async () => {
+  const db = await setup();
+  const a = await shared(db);
+  const t2 = token();
+  await db.query(`select public.oj_create_portal_link('${org}', '${a.id}', '${digest(t2)}', 30)`);
+  await as(db, 'anon');
+  assert.equal((await db.query<{ p: unknown }>(`select public.oj_portal_proposal('${a.t}') as p`)).rows[0].p, null, 'the earlier link must stop working');
+  assert.notEqual((await db.query<{ p: unknown }>(`select public.oj_portal_proposal('${t2}') as p`)).rows[0].p, null);
+  await as(db, viewer);
+  await assert.rejects(() => db.query(`select public.oj_revoke_proposal_links('${org}', '${a.id}')`), /member access/);
+  await as(db, stranger);
+  await assert.rejects(() => db.query(`select public.oj_revoke_proposal_links('${org}', '${a.id}')`), /member access/);
+  await as(db, owner);
+  assert.equal((await db.query<{ n: number }>(`select public.oj_revoke_proposal_links('${org}', '${a.id}') as n`)).rows[0].n, 1);
+  await as(db, 'anon');
+  assert.equal((await db.query<{ p: unknown }>(`select public.oj_portal_proposal('${t2}') as p`)).rows[0].p, null);
+
+  const b = await shared(db);
+  await as(db, owner);
+  await db.query(`select public.oj_set_proposal_status('${org}', '${b.id}', 'accepted', current_date, 'By phone')`);
+  await as(db, 'anon');
+  assert.equal((await db.query<{ p: unknown }>(`select public.oj_portal_proposal('${b.t}') as p`)).rows[0].p, null);
+});
+
+test('after the customer signs, their link keeps working only long enough to print, at most a week', async () => {
+  const db = await setup();
+  const s = await shared(db);
+  await as(db, 'anon');
+  await db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Doe', '', null, null, null, null)`);
+  const p = (await db.query<{ p: { decision: { signer_name: string } } }>(`select public.oj_portal_proposal('${s.t}') as p`)).rows[0].p;
+  assert.equal(p.decision.signer_name, 'Jane Doe');
+  await as(db, owner);
+  const days = (await db.query<{ d: number }>(`select extract(epoch from (expires_at - now())) / 86400 as d from oj_portal_links`)).rows[0].d;
+  assert.ok(Number(days) <= 7.01, `expected at most 7 days, got ${days}`);
 });
 
 test('the script is one transaction and refuses a second run', async () => {

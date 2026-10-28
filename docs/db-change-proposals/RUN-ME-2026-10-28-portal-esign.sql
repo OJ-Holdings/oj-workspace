@@ -39,7 +39,9 @@ create table public.oj_proposal_acceptances (
   selected_optional_ids uuid[] not null default '{}',
   agreed_total_cents bigint not null check (agreed_total_cents >= 0),
   document_hash text not null check (document_hash ~ '^[a-f0-9]{64}$'),
+  -- ip_address is the address the nearest trusted proxy reported; forwarded_for is the raw header chain exactly as received, kept so the record shows what was claimed.
   ip_address text check (ip_address is null or length(ip_address) <= 64),
+  forwarded_for text check (forwarded_for is null or length(forwarded_for) <= 300),
   user_agent text check (user_agent is null or length(user_agent) <= 300),
   created_at timestamptz not null default now(),
   foreign key (organization_id, proposal_id) references public.oj_proposals(organization_id, id),
@@ -71,6 +73,8 @@ begin
   select * into prop from public.oj_proposals where organization_id = p_org and id = p_proposal;
   if not found then raise exception 'Proposal not found'; end if;
   if prop.status <> 'sent' then raise exception 'Only a sent proposal can be shared. Mark it sent first.'; end if;
+  -- One live link per proposal: sharing again retires every earlier link, so an old copy cannot linger.
+  update public.oj_portal_links set revoked_at = now() where organization_id = p_org and proposal_id = p_proposal and revoked_at is null;
   insert into public.oj_portal_links(organization_id, proposal_id, token_hash, expires_at)
     values (p_org, p_proposal, p_digest, least(now() + make_interval(days => days), (prop.valid_until + 1)::timestamptz)) returning id into link;
   return link;
@@ -80,6 +84,37 @@ create function public.oj_revoke_portal_link(p_org uuid, p_link uuid) returns vo
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
   update public.oj_portal_links set revoked_at = now() where organization_id = p_org and id = p_link and revoked_at is null;
+end $$;
+
+-- Stop sharing: every live link for a proposal stops working at once.
+create function public.oj_revoke_proposal_links(p_org uuid, p_proposal uuid) returns integer language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+  if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
+  update public.oj_portal_links set revoked_at = now() where organization_id = p_org and proposal_id = p_proposal and revoked_at is null;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+-- Marking a proposal accepted, declined or expired by hand also closes its links (replaces the function from the proposals script, otherwise unchanged).
+create or replace function public.oj_set_proposal_status(p_org uuid, p_proposal uuid, p_status text, p_date date, p_note text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare cur public.oj_proposals;
+begin
+  if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
+  select * into cur from public.oj_proposals where organization_id = p_org and id = p_proposal for update;
+  if not found then raise exception 'Proposal not found'; end if;
+  if p_date is null then raise exception 'Choose a date'; end if;
+  if p_status = 'sent' and cur.status = 'draft' then
+    perform set_config('oj.allow_proposal_change', '1', true);
+    update public.oj_proposals set status = 'sent', sent_on = p_date where id = p_proposal;
+  elsif p_status in ('accepted', 'declined', 'expired') and cur.status = 'sent' then
+    perform set_config('oj.allow_proposal_change', '1', true);
+    update public.oj_proposals set status = p_status, decided_on = p_date, decision_note = left(coalesce(p_note, ''), 500) where id = p_proposal;
+    update public.oj_portal_links set revoked_at = now() where organization_id = p_org and proposal_id = p_proposal and revoked_at is null;
+  else
+    raise exception 'A % proposal cannot be marked %', cur.status, p_status;
+  end if;
 end $$;
 
 -- The one place a token is turned into a link record. Anything wrong with the token gives the same answer, so a guesser learns nothing.
@@ -111,7 +146,7 @@ begin
 end $$;
 
 -- The customer accepts (with a typed signature and any optional add-ons) or declines. Only a sent, unexpired, undecided proposal can be decided.
-create function public.oj_portal_decide(p_token text, p_decision text, p_name text, p_note text, p_optional uuid[], p_ip text, p_agent text) returns jsonb language plpgsql security definer set search_path = '' as $$
+create function public.oj_portal_decide(p_token text, p_decision text, p_name text, p_note text, p_optional uuid[], p_ip text, p_forwarded text, p_agent text) returns jsonb language plpgsql security definer set search_path = '' as $$
 declare l public.oj_portal_links; p public.oj_proposals; chosen uuid[] := '{}'; extra bigint := 0; total bigint; doc text; hash text; who text := btrim(coalesce(p_name, ''));
 begin
   l := oj_private.live_portal_link(p_token);
@@ -131,8 +166,10 @@ begin
                 from public.oj_proposal_lines x where x.organization_id = l.organization_id and x.proposal_id = l.proposal_id), ''))
     into doc;
   hash := encode(sha256(convert_to(doc, 'UTF8')), 'hex');
-  insert into public.oj_proposal_acceptances(organization_id, proposal_id, link_id, decision, signer_name, note, selected_optional_ids, agreed_total_cents, document_hash, ip_address, user_agent)
-    values (l.organization_id, l.proposal_id, l.id, p_decision, left(who, 200), left(coalesce(p_note, ''), 500), chosen, case when p_decision = 'accepted' then total else 0 end, hash, left(p_ip, 64), left(p_agent, 300));
+  insert into public.oj_proposal_acceptances(organization_id, proposal_id, link_id, decision, signer_name, note, selected_optional_ids, agreed_total_cents, document_hash, ip_address, forwarded_for, user_agent)
+    values (l.organization_id, l.proposal_id, l.id, p_decision, left(who, 200), left(coalesce(p_note, ''), 500), chosen, case when p_decision = 'accepted' then total else 0 end, hash, left(p_ip, 64), left(p_forwarded, 300), left(p_agent, 300));
+  -- Once decided, the customer's link only needs to last long enough to print their copy.
+  update public.oj_portal_links set expires_at = least(expires_at, now() + interval '7 days') where organization_id = l.organization_id and proposal_id = l.proposal_id;
   perform set_config('oj.allow_proposal_change', '1', true);
   update public.oj_proposals set status = p_decision, decided_on = current_date,
     decision_note = left(case when p_decision = 'accepted' then 'Accepted online by ' else 'Declined online by ' end || left(who, 100) || case when coalesce(p_note, '') = '' then '' else ': ' || p_note end, 500)
@@ -140,10 +177,12 @@ begin
   return jsonb_build_object('decision', p_decision, 'agreed_total_cents', case when p_decision = 'accepted' then total else 0 end, 'document_hash', hash);
 end $$;
 
-revoke all on function public.oj_create_portal_link(uuid, uuid, text, integer), public.oj_revoke_portal_link(uuid, uuid), public.oj_portal_proposal(text),
-  public.oj_portal_decide(text, text, text, text, uuid[], text, text) from public, anon, authenticated;
-grant execute on function public.oj_create_portal_link(uuid, uuid, text, integer), public.oj_revoke_portal_link(uuid, uuid) to authenticated;
+revoke all on function public.oj_create_portal_link(uuid, uuid, text, integer), public.oj_revoke_portal_link(uuid, uuid), public.oj_revoke_proposal_links(uuid, uuid), public.oj_portal_proposal(text),
+  public.oj_portal_decide(text, text, text, text, uuid[], text, text, text) from public, anon, authenticated;
+grant execute on function public.oj_create_portal_link(uuid, uuid, text, integer), public.oj_revoke_portal_link(uuid, uuid), public.oj_revoke_proposal_links(uuid, uuid) to authenticated;
 -- The two public functions are the whole public surface, and they are guarded by the token.
-grant execute on function public.oj_portal_proposal(text), public.oj_portal_decide(text, text, text, text, uuid[], text, text) to anon, authenticated;
+grant execute on function public.oj_portal_proposal(text), public.oj_portal_decide(text, text, text, text, uuid[], text, text, text) to anon, authenticated;
+-- Re-grant the replaced status function (create or replace keeps its grants, this just states them).
+grant execute on function public.oj_set_proposal_status(uuid, uuid, text, date, text) to authenticated;
 
 commit;
