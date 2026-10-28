@@ -1,5 +1,12 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Local Services Ads lead import)
+**Summary:** Master plan 6.5 and 1d: LSA is the number one lead source and Aug and Sep were never logged. Growth > Local Services Ads card has an Import LSA leads button. Paste the Leads table from Google (the page copy with one cell per line, or spreadsheet rows). The preview shows leads by month with charged, credited and not charged counts, how many are new, how many existing customers will be tagged as LSA (matched by phone, or by one exact name; two people with one name is never matched), and how many charged leads are still inside the roughly 30-day dispute window with the soonest deadline. Apply adds the missing leads dated when Google received them (message leads without a number get an NP_LSA_<id> placeholder like other number-less leads) and tags the matched ones. Every touched lead gets 'LSA lead #<id>' in its notes, so pasting the same export again does nothing. The server re-reads the pasted text, it does not trust the browser's parse. Rows that cannot be read are counted and skipped, never guessed. No database change. Not built yet: spend (the export has no price), speed-to-lead alerts, dispute filing.
+**Files:** src/lib/lsa-import.ts, src/app/workspace/exterior-actions.ts (importLsaLeads), src/components/app/{LsaImport,LsaCard,GrowthView}.tsx, tests/lsa-import.test.ts.
+**Verified:** typecheck; full tests; build; parser tested on the real export layout (header and 9-field rows from Oscar's earlier paste). **Not verified:** the import against the live database, the dialog on screen (the button is hidden in the sample workspace).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: out-of-state flag)
 **Summary:** Master plan 1e and section 13: any job outside Wisconsin needs an insurance, registration and tax check until cleared, and the Waukegan job is in Illinois. A small address reader (src/lib/out-of-state.ts) now shows an 'Out of state (IL) - needs a check' badge beside the address in the commercial booking dialog, on the Command today list and on the Field today list. It needs a comma before the state, or a ZIP after it, so a street ending in CT or LN is not read as a state. No database change. It only flags; it does not block booking.
 **Files:** src/lib/out-of-state.ts, src/components/app/{OutOfStateFlag,CommercialBooking,TodayBoard,ExteriorFieldToday}.tsx, src/styles/os-skin.css, tests/out-of-state.test.ts.
