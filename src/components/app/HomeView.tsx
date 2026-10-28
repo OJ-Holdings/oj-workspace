@@ -7,6 +7,7 @@ import type { DashboardStore } from './useDashboard';
 import type { WorkStore } from './useWork';
 import { Leaderboard } from './Leaderboard';
 import { TodayBoard } from './TodayBoard';
+import { PulseCard } from './Pulse';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { workDay } from '@/lib/task-workflows';
 
@@ -24,6 +25,7 @@ export function HomeView({ base, board, store, work, jobs, mode, displayName, re
   return (
     <div className="home">
       <TodayBoard base={base} board={board} store={store} jobs={jobs} today={todayKey} mode={mode} readOnly={readOnly} displayName={displayName} limited={limited} org={org} />
+      <PulseCard base={base} />
       <Leaderboard work={work} cards={board.data.cards} />
     </div>
   );

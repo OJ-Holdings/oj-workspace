@@ -18,8 +18,9 @@ import { WindowTabs } from './WindowTabs';
 import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 import { commandIntents } from '@/lib/command-intents';
+import { PulseBell } from './Pulse';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality' | 'proposals' | 'customers' | 'books' | 'rig';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality' | 'proposals' | 'customers' | 'books' | 'rig' | 'pulse';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -82,7 +83,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
   const trigger = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const restoreFocus = useRef(true);
-  const currentName=current==='nexus'?'Project 360':current==='exterior-bookings'?'Jobs & Bookings':current==='exterior-leads'?'Customers & Leads':venture?discoverableVentures.find(v=>v.id===venture)?.short??'Business Division':
+  const currentName=current==='pulse'?'Pulse':current==='nexus'?'Project 360':current==='exterior-bookings'?'Jobs & Bookings':current==='exterior-leads'?'Customers & Leads':venture?discoverableVentures.find(v=>v.id===venture)?.short??'Business Division':
     founderNav.find(item=>item.key===current)?.label??'Corporate Workspace';
   const role = mode === 'preview' ? 'Sample workspace' : owner ? 'Workspace owner' : readOnly ? 'View access' : 'Member';
 
@@ -223,7 +224,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
           </button>
           <div className="topbar-right">
             {timer}
-            <div className="bell-wrap">
+            {mode === 'live' && owner ? <PulseBell base={base} /> : <div className="bell-wrap">
               <button className="icon-button" aria-label={`Recent activity, ${activity.length} updates`} aria-expanded={bell} onClick={() => setBell(v => !v)}>
                 <Bell size={18} />{activity.length > 0 && <i className="bell-dot" aria-hidden="true" />}
               </button>
@@ -242,7 +243,7 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
                   })}
                 </div>
               )}
-            </div>
+            </div>}
             <div className="who">
               <span className="avatar avatar-lg">{(displayName || members[0] || 'O').charAt(0).toUpperCase()}</span>
               <span><b>{mode === 'preview' ? 'Oscar and Jacob' : displayName}</b><small>{role}</small></span>

@@ -30,3 +30,14 @@
 @import '../styles/polish.css';
 @import '../styles/os-skin.css';
 @import '../styles/hyperborea.css';
+/* Pulse shares the existing workspace surface and remains readable on phones. */
+.pulse-bell{display:inline-flex;align-items:center;gap:4px;color:inherit;text-decoration:none;padding:8px;font-size:19px}
+.pulse-bell b{font-size:11px;background:#cc852f;color:#101010;border-radius:20px;padding:2px 6px}
+.pulse-card{display:flex;flex-direction:column;gap:8px;margin:16px 0;padding:18px 20px;border:1px solid #494232;border-radius:16px;background:#171b23;color:inherit;text-decoration:none}
+.pulse-card span,.pulse-card small{color:#bca77d}.pulse-card strong{font-size:15px}
+.pulse-page{max-width:1050px}.pulse-warning{border-left:3px solid #d19b51;padding:10px 14px;color:#e2c797;background:#2d261b}
+.pulse-scoreboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:22px 0 32px}.pulse-scoreboard>div{padding:18px;background:#151c29;border:1px solid #334052;border-radius:14px}
+.pulse-scoreboard span,.pulse-scoreboard strong{display:block}.pulse-scoreboard strong{font-size:30px;margin-top:10px}.pulse-scoreboard strong small{font-size:13px;font-weight:normal}.pulse-scoreboard p,.pulse-scoreboard small{color:#abb6c4;font-size:13px}
+.pulse-entry{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid #303949}.pulse-entry>div{flex:1;min-width:0}.pulse-entry p{margin:0 0 5px;overflow-wrap:anywhere}.pulse-entry small{color:#a4b0c0}.pulse-entry>a{color:#e8bd75}.pulse-avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#40382b;color:#f5d39a;flex:none}
+.pulse-toast{position:fixed;right:20px;bottom:24px;z-index:80;background:#242b35;color:#fff;border:1px solid #b28c54;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px #0008}.pulse-toast button{background:none;color:inherit;border:0;margin-left:12px;cursor:pointer}
+@media(max-width:600px){.pulse-scoreboard{grid-template-columns:1fr 1fr}.pulse-scoreboard>div{padding:12px}.pulse-toast{right:12px;bottom:78px;max-width:calc(100vw - 24px)}}
