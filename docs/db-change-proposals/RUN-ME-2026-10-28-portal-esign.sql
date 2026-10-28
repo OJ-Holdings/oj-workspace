@@ -140,7 +140,7 @@ begin
   select jsonb_build_object('decision', a.decision, 'signer_name', a.signer_name, 'at', a.created_at, 'agreed_total_cents', a.agreed_total_cents, 'selected_optional_ids', a.selected_optional_ids)
     into signed from public.oj_proposal_acceptances a where a.organization_id = l.organization_id and a.proposal_id = l.proposal_id order by a.created_at desc limit 1;
   update public.oj_portal_links set last_seen_at = now() where id = l.id;
-  return jsonb_build_object('number', p.number, 'customer_name', p.customer_name, 'site_address', p.site_address, 'status', p.status, 'valid_until', p.valid_until,
+  return jsonb_build_object('number', p.number, 'division', p.division, 'customer_name', p.customer_name, 'site_address', p.site_address, 'status', p.status, 'valid_until', p.valid_until,
     'payment_terms', p.payment_terms, 'terms', p.terms, 'exclusions', p.exclusions, 'notes', p.notes, 'subtotal_cents', p.subtotal_cents, 'discount_cents', p.discount_cents,
     'total_cents', p.total_cents, 'lines', items, 'decision', signed, 'expired', p.valid_until < current_date);
 end $$;

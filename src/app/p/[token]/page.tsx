@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Proposal', robots: { index: false, f
 
 type Line = { id: string; description: string; detail: string; quantity: number; unit_price_cents: number; amount_cents: number; optional: boolean };
 type Proposal = {
-  number: string; customer_name: string; site_address: string; status: string; valid_until: string; payment_terms: string; terms: string; exclusions: string; notes: string;
+  number: string; division: string; customer_name: string; site_address: string; status: string; valid_until: string; payment_terms: string; terms: string; exclusions: string; notes: string;
   subtotal_cents: number; discount_cents: number; total_cents: number; lines: Line[]; expired: boolean;
   decision: { decision: 'accepted' | 'declined'; signer_name: string; at: string; agreed_total_cents: number; selected_optional_ids: string[] } | null;
 };
@@ -56,7 +56,7 @@ export default async function PublicProposal({ params }: { params: Promise<{ tok
       <article className="pp-sheet">
         <div className="row">
           <div><h1>Proposal {p.number}</h1><p className="muted">Valid through {when(p.valid_until)}</p></div>
-          <div className="num"><strong>OJ Exterior Care</strong><br />Operated by OJ Holdings LLC<br /><span className="muted">262-515-3083 · ojexteriorcare.com</span></div>
+          <div className="num"><strong>{p.division === 'exterior' ? 'OJ Exterior Care' : p.division === 'solutions' ? 'OJ Solutions' : 'OJ Holdings'}</strong><br />OJ Holdings LLC{p.division === 'exterior' && <><br /><span className="muted">262-515-3083 · ojexteriorcare.com</span></>}</div>
         </div>
         <div style={{ marginTop: 22 }}><span className="muted">Prepared for</span><br /><strong>{p.customer_name}</strong>{p.site_address ? <><br />{p.site_address}</> : null}</div>
         <h2>Scope and pricing</h2>
