@@ -8,6 +8,7 @@ import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { JobSheet, type Act } from './ExteriorManage';
 import { ExteriorFieldCommand } from './ExteriorFieldCommand';
+import { OutOfStateFlag } from './OutOfStateFlag';
 
 const addDays = (key: string, n: number) => { const d = new Date(`${key}T12:00:00`); d.setDate(d.getDate() + n); return dayKey(d); };
 const label = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -35,6 +36,7 @@ export function ExteriorFieldToday({ data, act, busy, readOnly, org, now, base, 
         <b>{l?.name || 'Customer'}</b>
         <span>{showDay ? `${label(b.date)}, ` : ''}{blockLabel(b.time_block)}{l?.service_requested ? `, ${l.service_requested}` : ''}{l?.quote_amount != null ? `, quoted ${dollars(l.quote_amount)}` : ''}</span>
         {l?.address && <span>{l.address}</span>}
+        <OutOfStateFlag address={l?.address} />
       </div>
       <div className="fieldtoday-actions">
         {l?.phone && isRealPhone(l.phone) && <a className="secondary small" href={`tel:${l.phone}`}>Call</a>}

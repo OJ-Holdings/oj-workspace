@@ -7,6 +7,7 @@ import type { CommercialAccount } from '@/lib/commercial-accounts';
 import { frequencyLabel, MAX_DAYS_PER_VISIT, MAX_VISITS, planClashes, planVisits, type Frequency } from '@/lib/commercial-booking';
 import { blockLabel, isValidBlock, leadSources, makeBlock, services } from '@/lib/exterior-ops';
 import type { ExtBooking } from '@/lib/exterior';
+import { OutOfStateFlag } from './OutOfStateFlag';
 import { dollars } from '@/lib/metrics';
 import { Modal, type Act } from './ExteriorManage';
 
@@ -70,7 +71,7 @@ export function CommercialBooking({ open, close, act, busy, org, bookings, today
           <label>Contact phone<input required type="tel" maxLength={40} value={f.phone} onChange={set('phone')} placeholder="(262) 555-0123" /></label>
           <label>Email<input type="email" maxLength={200} value={f.email} onChange={set('email')} /></label>
         </div>
-        <label>Site address<input maxLength={500} value={f.address} onChange={set('address')} placeholder="Street, city, state" /></label>
+        <label>Site address<input maxLength={500} value={f.address} onChange={set('address')} placeholder="Street, city, state" /><OutOfStateFlag address={f.address} /></label>
         <div className="form-grid">
           <label>Service<input list="oj-services" maxLength={255} value={f.service} onChange={set('service')} /></label>
           <label>Price per visit ($)<input type="number" min="0" step="0.01" inputMode="decimal" value={f.price} onChange={set('price')} placeholder="950.00" /></label>
