@@ -14,6 +14,12 @@ Darkened the alpine material progressively with distance from the existing switc
 **Verified:** typecheck; 984 tests; build; the SQL and every guard in PGlite; the public route locally with an unknown token (neutral message, noindex, no-referrer).
 **Not verified:** the accept and decline flow against the real database (needs both SQL files run); how the form looks on a real phone; the page over the public Funnel address from outside the network.
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: job photos, STAGED SQL)
+**Summary:** Oscar approved job photos (master plan 6.1 before and after photos, 6.4 phone flow). Staged SQL docs/db-change-proposals/RUN-ME-2026-10-28-job-photos.sql (NOT APPLIED, additive): a private storage bucket oj-job-photos (10 MB, jpeg, png, webp, heic) and oj_job_photos (which job each photo is for, before, after or other, a caption). Files live at <workspace id>/<job id>/<random>.<ext>, enforced by a check so a row can never point at another company's file; the storage policies use a narrow helper that checks the caller is an owner or member of the workspace in the first folder; viewers and other workspaces see nothing; no public links. Same pattern as the existing employee job photos. 5 PGlite tests that exercise the real storage policies through a minimal stand-in for Supabase Storage. App: a Photos section on the Job sheet (JobPhotos.tsx): pick Before, After or Other, tap Take or add photo (on a phone this opens the camera), the picture is shrunk on the phone to 1600 px on its long side as a JPEG before upload, thumbnails are shown through 15-minute signed links, tap to open full size, and each photo can be deleted. The section does not appear until the SQL has been run. Not built: photos in the customer link, before and after pairs shown together, required photos per service template, the crew portal using this bucket.
+**Files:** docs/db-change-proposals/RUN-ME-2026-10-28-job-photos.sql, src/components/app/{JobPhotos,ExteriorManage}.tsx, src/styles/os-skin.css, tests/job-photos-sql.test.ts.
+**Verified:** typecheck; 984 tests; build; the SQL and storage policies in PGlite.
+**Not verified:** uploading from a real iPhone (camera, HEIC handling, speed); the section against the real database and bucket (needs the SQL run).
+
 ---
 
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Mercury connected, truck fund and bank balance read from the bank)

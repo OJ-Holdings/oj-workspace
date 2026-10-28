@@ -283,3 +283,16 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .winter-rows a { justify-self: start; color: var(--accent-hi); font-size: 13px; font-weight: 650; text-decoration: none; }
 
 .proposal-row > div:first-child .proposal-signed { color: var(--good); }
+/* ---------- Job photos ---------- */
+.jobphotos { display: grid; gap: 8px; }
+.jobphotos-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--ink-3); }
+.jobphotos-head b { color: var(--ink); }
+.jobphotos-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.jobphotos-take { position: relative; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.jobphotos-take input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.jobphotos-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.jobphotos-grid li { position: relative; aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); }
+.jobphotos-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jobphotos-kind { position: absolute; left: 6px; bottom: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(7, 8, 11, 0.78); color: var(--ink); }
+.jobphotos-kind.is-before { color: var(--watch); } .jobphotos-kind.is-after { color: var(--good); }
+.jobphotos-grid .icon-button { position: absolute; right: 4px; top: 4px; background: rgba(7, 8, 11, 0.78); border-radius: 8px; }
