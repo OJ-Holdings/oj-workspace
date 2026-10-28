@@ -151,3 +151,11 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 @media (max-width: 640px) { .seasonpnl-rows li { grid-template-columns: 40px 1fr 84px; } .seasonpnl-fig { display: none; } }
 .employee-statement { display: grid; gap: 4px; margin-bottom: 12px; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--panel-2); }
 .employee-statement p { margin: 0; }
+
+/* ---------- Money page ---------- */
+.moneytop { display: grid; gap: 14px; margin-bottom: 18px; }
+.moneytop-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.moneytop-head h2 { margin: 0; }
+.moneytop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.moneytop .kpis .neg { color: var(--bad); }
+.money-advanced > :not(summary) { margin-top: 16px; }

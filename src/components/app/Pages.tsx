@@ -235,16 +235,92 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
     }
   };
   return <>
-    <AtlasTreasuryCommand data={data} month={month} scope={scope.map(v=>v.id)} owner={owner} readOnly={readOnly}
-      base={pathname.startsWith('/preview') ? '/preview' : '/workspace'}
-      onExpense={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'cost'})}
-      onIncome={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'revenue'})} />
+    <section className="moneytop" aria-label="This month">
+      <div className="moneytop-head">
+        <h2>{new Date(`${month}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+        {!readOnly && <div className="moneytop-actions">
+          <button type="button" className="secondary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'cost' })}><Plus size={15} aria-hidden="true" />Record expense</button>
+          <button type="button" className="primary" onClick={() => setForm({ ...blank(), venture: filterBusiness ?? blank().venture, kind: 'revenue' })}><Plus size={15} aria-hidden="true" />Record income</button>
+        </div>}
+      </div>
+      <div className="kpis">
+        <div><span>Money in</span><strong><NumberFlow value={revenue} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
+        <div><span>Money out</span><strong><NumberFlow value={costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong></div>
+        <div><span>Left over</span><strong className={revenue - costs < 0 ? 'neg' : ''}><NumberFlow value={revenue - costs} format={{ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }} /></strong>{!netKnown && <small className="quiet">{costs === 0 ? 'No costs entered yet' : 'No income entered yet'}</small>}</div>
+        {owner && data.mercury?.state === 'available' && <div><span>In the bank</span><strong>{dollars(data.mercury.accounts.reduce((t, a) => t + (a.currentBalance ?? 0), 0))}</strong></div>}
+      </div>
+    </section>
     <SeasonPnl entries={data.finance} venture={filterBusiness} thisYear={dayKey(now).slice(0, 4)} />
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
       <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>
       {filterMonth && <button className="secondary" onClick={() => pick('month', '')}>All dates</button>}
     </div>
+    <section className="panel">
+      <header className="panel-head"><h2>Money in, last 12 months</h2></header>
+      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
+        : <div className="empty"><p><b>Nothing yet.</b> Jobs with revenue entered show up here on their own.</p></div>}
+    </section>
+    <section className="panel" id="treasury-records">
+      <header className="panel-head">
+        <h2>Transactions</h2>
+        <div className="atlas-accounting-export-actions">
+          <button type="button" className="secondary small" disabled={moneyEntries.length===0} onClick={exportAccountingReview}><Download size={14} aria-hidden="true"/> Export CSV</button>
+          {!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}
+        </div>
+      </header>
+      {form && (
+        <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
+          <div className="fields">
+            <label>Type<select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })}><option value="revenue">Money in</option><option value="cost">Money out</option></select></label>
+            <label>Business<VentureSelect value={form.venture} disabled={!!venture} onChange={v => v && setForm({ ...form, venture: v })} /></label>
+            <label>Amount in dollars<input required autoFocus type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
+            <label>Date<input required type="date" value={form.occurred_on} onChange={e => setForm({ ...form, occurred_on: e.target.value })} /></label>
+            <label>Category<input maxLength={80} list="finance-categories" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Fuel, chemicals, equipment, ads..." />
+              <datalist id="finance-categories">{(form.kind === 'cost' ? ['Fuel', 'Chemicals and supplies', 'Equipment purchase', 'Equipment repair', 'Truck and vehicle', 'Local Services Ads', 'Other advertising', 'Insurance', 'Software', 'Crew commission', 'Rental', 'Phone and internet', 'Fees and taxes'] : ['Job payment', 'Commercial contract', 'Product sale', 'Subscription (Solutions)', 'Other income']).map(c => <option key={c} value={c} />)}</datalist></label>
+            <label>Note<input maxLength={500} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
+          </div>
+          <div className="formactions"><button type="button" className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" disabled={store.pending}>Save entry</button></div>
+        </form>
+      )}
+      <Notice store={store} />
+      <div className="atlas-money-ledger-filters" role="group" aria-label="Transaction filters">
+        {moneyWorkFocuses.map(focus=><button key={focus} type="button" aria-pressed={moneyFocus===focus}
+          onClick={()=>{setMoneyFocus(focus);setMoneySearch('');setShown(12);}}>{moneyWorkLabels[focus]}</button>)}
+      </div>
+      <div className="atlas-money-tools">
+        <input type="search" aria-label="Search financial entries" value={moneySearch} placeholder="Category, date, note, or source"
+          onChange={e => { setMoneySearch(e.target.value); setShown(12); }}/>
+        <div role="group" aria-label="Money ledger display">
+          <button type="button" aria-pressed={moneyView === 'cards'} onClick={() => setMoneyView('cards')}>Entry cards</button>
+          <button type="button" aria-pressed={moneyView === 'table'} onClick={() => setMoneyView('table')}>Compact table</button>
+        </div>
+      </div>
+      {moneyEntries.length ? (moneyView === 'cards' ? <div className="atlas-money-card-grid">
+        {moneyEntries.slice(0, shown).map(f => <article id={`finance-${f.id}`} key={f.id} className={`atlas-money-card${selectedEntry === f.id ? ' record-highlight' : ''}`}>
+          <header><div><small>{f.occurred_on} · {short(f.venture)}</small><h3>{f.category || 'Uncategorized'}</h3></div>
+            <strong className={f.kind === 'cost' ? 'neg' : 'pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</strong></header>
+          {f.note ? <p>{f.note}</p> : null}
+          <footer><span>{f.auto ? f.auto : 'Entered by hand'}</span>
+            {!readOnly && !f.auto && <button type="button" className="secondary small" aria-label={`Remove financial entry ${f.id}`} onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} aria-hidden="true"/>Remove</button>}</footer>
+        </article>)}
+        {moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(n => n + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more</button>}
+      </div> : <div className="tablewrap"><table className="table">
+          <thead><tr><th>Date</th><th>Business</th><th>Category</th><th>Note</th><th className="num">Amount</th><th /></tr></thead>
+          <tbody>{moneyEntries.slice(0, shown).map(f => (
+            <tr key={f.id} id={`finance-${f.id}`} className={selectedEntry === f.id ? 'record-highlight' : undefined}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
+              <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
+              <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
+          ))}</tbody>
+        </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>
+      ) : <div className="empty"><p><b>Nothing matches.</b> Try another filter or search.</p></div>}
+    </section>
+    {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
+    <details className="jobs-headsup money-advanced"><summary>Accounting tools</summary>
+    <AtlasTreasuryCommand data={data} month={month} scope={scope.map(v=>v.id)} owner={owner} readOnly={readOnly}
+      base={pathname.startsWith('/preview') ? '/preview' : '/workspace'}
+      onExpense={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'cost'})}
+      onIncome={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'revenue'})} />
     {owner && <AtlasBankReview bank={data.mercury} entries={entries} month={filterMonth||null}
       entryHref={(id) => {
         const params=new URLSearchParams(query.toString());
@@ -263,69 +339,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         params.set('entry',id);
         return `${pathname}?${params.toString()}`;
       }} />
-    <section className="panel">
-      <header className="panel-head"><h2>Recorded inflows over the past 12 months</h2></header>
-      {withRevenue.length ? <LineChart labels={lastMonths(now).map(m => m.label)} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: monthlyTotals(data.finance, v.id, 'revenue', now) }))} />
-        : <div className="empty"><p><b>No money logged yet.</b> Paid Exterior Care jobs and Shopify orders appear here on their own. Add anything else that has been paid in or out below.</p></div>}
-      <p className="quiet">This chart shows dated recorded inflows, not reconciled bank deposits. Source work dates and imported order dates can differ from collection dates.</p>
-    </section>
-    <section className="panel" id="treasury-records">
-      <header className="panel-head">
-        <h2>Transaction workbench</h2>
-        <div className="atlas-accounting-export-actions">
-          <button type="button" className="secondary small" disabled={moneyEntries.length===0} onClick={exportAccountingReview}><Download size={14} aria-hidden="true"/> Export review CSV</button>
-          {!readOnly && !form && <button className="secondary" onClick={() => setForm(blank())}><Plus size={15} aria-hidden="true" />Log money</button>}
-        </div>
-      </header>
-      <p className="atlas-accounting-export-note">Exports only records matching the active business, date, search and manual/source filters. Source dates, classifications and costs may be incomplete; this is an accountant review file, not a posted general ledger, bank reconciliation or tax return.</p>
-      {form && (
-        <form className="formpanel inline" onSubmit={e => { e.preventDefault(); store.addFinance({ ...form, amount: Number(form.amount) }, () => setForm(null)); }}>
-          <div className="fields">
-            <label>Type<select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })}><option value="revenue">Money in</option><option value="cost">Money out</option></select></label>
-            <label>Business<VentureSelect value={form.venture} disabled={!!venture} onChange={v => v && setForm({ ...form, venture: v })} /></label>
-            <label>Amount in dollars<input required autoFocus type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
-            <label>Date<input required type="date" value={form.occurred_on} onChange={e => setForm({ ...form, occurred_on: e.target.value })} /></label>
-            <label>Category<input maxLength={80} list="finance-categories" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Fuel, chemicals, equipment, ads..." />
-              <datalist id="finance-categories">{(form.kind === 'cost' ? ['Fuel', 'Chemicals and supplies', 'Equipment purchase', 'Equipment repair', 'Truck and vehicle', 'Local Services Ads', 'Other advertising', 'Insurance', 'Software', 'Crew commission', 'Rental', 'Phone and internet', 'Fees and taxes'] : ['Job payment', 'Commercial contract', 'Product sale', 'Subscription (Solutions)', 'Other income']).map(c => <option key={c} value={c} />)}</datalist></label>
-            <label>Note<input maxLength={500} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
-          </div>
-          <div className="formactions"><button type="button" className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" disabled={store.pending}>Save entry</button></div>
-        </form>
-      )}
-      <Notice store={store} />
-      {entries.some(f => f.auto) && <p className="quiet">Some rows come from Exterior job/payment fields or Shopify order records. Their accounting and settlement dates may differ; do not duplicate these as manual entries without reconciliation.</p>}
-      <div className="atlas-money-ledger-filters" role="group" aria-label="Transaction filters">
-        {moneyWorkFocuses.map(focus=><button key={focus} type="button" aria-pressed={moneyFocus===focus}
-          onClick={()=>{setMoneyFocus(focus);setMoneySearch('');setShown(12);}}>{moneyWorkLabels[focus]}</button>)}
-      </div>
-      <div className="atlas-money-tools">
-        <input type="search" aria-label="Search financial entries" value={moneySearch} placeholder="Category, date, note, or source"
-          onChange={e => { setMoneySearch(e.target.value); setShown(12); }}/>
-        <div role="group" aria-label="Money ledger display">
-          <button type="button" aria-pressed={moneyView === 'cards'} onClick={() => setMoneyView('cards')}>Entry cards</button>
-          <button type="button" aria-pressed={moneyView === 'table'} onClick={() => setMoneyView('table')}>Compact table</button>
-        </div>
-      </div>
-      {moneyEntries.length ? (moneyView === 'cards' ? <div className="atlas-money-card-grid">
-        {moneyEntries.slice(0, shown).map(f => <article id={`finance-${f.id}`} key={f.id} className={`atlas-money-card${selectedEntry === f.id ? ' record-highlight' : ''}`}>
-          <header><div><small>{f.occurred_on} · {short(f.venture)}</small><h3>{f.category || 'Uncategorized'}</h3></div>
-            <strong className={f.kind === 'cost' ? 'neg' : 'pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</strong></header>
-          <p>{f.note || 'No additional note entered'}</p>
-          <footer><span>{f.auto ? `From source: ${f.auto}` : 'Manual ledger entry'}{f.dateBasis ? ` · Dated by ${f.dateBasis.replaceAll('-', ' ')}` : ''}</span>
-            {!readOnly && !f.auto && <button type="button" className="secondary small" aria-label={`Remove financial entry ${f.id}`} onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} aria-hidden="true"/>Remove</button>}</footer>
-        </article>)}
-        {moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(n => n + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more</button>}
-      </div> : <div className="tablewrap"><table className="table">
-          <thead><tr><th>Date</th><th>Business</th><th>Category</th><th>Note</th><th className="num">Amount</th><th /></tr></thead>
-          <tbody>{moneyEntries.slice(0, shown).map(f => (
-            <tr key={f.id} id={`finance-${f.id}`} className={selectedEntry === f.id ? 'record-highlight' : undefined}><td>{f.occurred_on}</td><td><span className="tag" style={{ '--tag': color(f.venture) } as React.CSSProperties}>{short(f.venture)}</span></td><td>{f.category || '-'}</td><td>{f.note || '-'}{f.auto && <small className="quiet"> From {f.auto}</small>}</td>
-              <td className={f.kind === 'cost' ? 'num neg' : 'num pos'}>{f.kind === 'cost' ? '-' : '+'}{dollars(f.amount)}</td>
-              <td>{!readOnly && !f.auto && <button className="icon-button" aria-label="Remove entry" onClick={() => { if (window.confirm('Remove this entry?')) store.remove('finance', f.id); }}><Trash2 size={14} /></button>}</td></tr>
-          ))}</tbody>
-        </table>{moneyEntries.length > shown && <button className="secondary showmore" onClick={() => setShown(shown + 50)}>Show {Math.min(50, moneyEntries.length - shown)} more of {moneyEntries.length}</button>}</div>
-      ) : <div className="empty"><p><b>No matching entries.</b> Try another queue or search. A quote is not paid revenue.</p></div>}
-    </section>
-    {!venture && owner && <MercuryBankPanel snapshot={data.mercury} />}
+    </details>
   </>;
 }
 
@@ -334,7 +348,7 @@ function MercuryBankPanel({ snapshot }: { snapshot: Dashboard['mercury'] }) {
   const stamp = snapshot?.checkedAt ? new Date(snapshot.checkedAt).toLocaleString() : null;
   return <section className="panel" aria-labelledby="mercury-heading">
     <header className="panel-head"><div><h2 id="mercury-heading">Mercury accounts</h2><p className="quiet">Private to the workspace owner · Read only</p></div>{snapshot?.state === 'available' && <span className="tag">Connected</span>}</header>
-    {!snapshot || snapshot.state === 'not-connected' ? <div className="empty"><p><b>Connect Mercury when you’re ready.</b> Create a read-only API token in Mercury and add it to the OJ Workspace’s Netlify server variables as <code>OJ_MERCURY_API_TOKEN</code>. Never paste the token into this page or chat.</p><p className="quiet">This panel will show cash balances and recent bank activity. Bank activity stays separate from recorded revenue and costs.</p></div>
+    {!snapshot || snapshot.state === 'not-connected' ? <p className="quiet">Not connected. Add a read-only Mercury token to the server settings as OJ_MERCURY_API_TOKEN to see balances here.</p>
       : snapshot.state === 'unavailable' ? <div className="empty"><p><b>Mercury is temporarily unavailable.</b> {snapshot.detail}</p></div>
       : <>
         <p className="quiet">{snapshot.detail} Bank transfers and deposits are not counted as sales. Checked {stamp}.</p>
