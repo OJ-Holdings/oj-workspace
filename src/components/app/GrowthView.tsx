@@ -67,8 +67,8 @@ export function GrowthView({ org, mode, store, readOnly, base }: { org: string; 
 
     <section className="panel">
       <header className="panel-head"><h2>Quotes going cold</h2><span className="quiet">no contact in 3+ days</span></header>
-      {cold.length ? <ul className="growth-list">{cold.slice(0, 12).map(({ lead: l, days }) => <li key={l.id}>
-        <div><b>{l.name || 'Customer'}</b><span>{[l.service_requested, dollars(l.quote_amount ?? 0)].filter(Boolean).join(', ')}</span></div>
+      {cold.length ? <ul className="growth-list">{cold.slice(0, 12).map(({ lead: l, days, step, big }) => <li key={l.id}>
+        <div><b>{l.name || 'Customer'}{big && <em className="growth-big">Big quote</em>}</b><span>{[l.service_requested, dollars(l.quote_amount ?? 0), step].filter(Boolean).join(', ')}</span></div>
         <span className={`growth-age${days >= 7 ? ' is-late' : ''}`}>{days} d</span>
         <div className="growth-actions">{contact(l)}{!readOnly && <button type="button" className="secondary small" disabled={busy} onClick={() => void act(() => setLeadStatus(org, l.id, 'following_up'), `${l.name ?? 'Lead'} marked followed up.`)}>Followed up</button>}</div>
       </li>)}</ul> : <div className="empty"><p><b>No quote has gone quiet.</b></p></div>}

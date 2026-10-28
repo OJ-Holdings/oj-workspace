@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: quote follow-up cadence and big-quote flag)
+**Summary:** Oscar's round-3 answer (master plan 1e) asked for proposal follow-up reminders on a cadence, for example day 3, 7 and 14, with ND Cleaning MKE ($39,400) as the example. The Growth room's Quotes going cold list now says which step each quote is at (Day 3 first nudge, Day 7 second nudge, Day 14 last check-in, measured from the last touch) and marks any quote of $1,000 or more as a Big quote. The Command Act now line now reads, for example, '3 quotes going cold, $40,200 at stake'. Pure additions to growth-queues.ts (cadenceStep, BIG_QUOTE) and command-pulse.ts. No reminders are sent: nothing is emailed or texted, the list is what to act on. Not built: a per-proposal status (sent, viewed, accepted) or snoozing a quote, which need storage.
+**Files:** src/lib/{growth-queues,command-pulse}.ts, src/components/app/GrowthView.tsx, src/styles/os-skin.css, tests/growth-queues.test.ts.
+**Verified:** typecheck; 933 tests; build.
+**Not verified:** on the live site; whether ND Cleaning is stored as a lead with that quote (it only appears here if it is).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Weather ahead on Command)
 **Summary:** Master plan 6.3 and 6.15 ask for weather-aware scheduling ('NWS forecast per job day; flags rain/wind/freezing'), naming NWS or Open-Meteo as the free source. New Weather ahead card on the Command screen: the next seven days for Kenosha (high and low, a plain-word summary, and flags for rain, wind or freezing) and, under it, the booked jobs that fall on a flagged day with the reason, each linking to the job. Source is Open-Meteo (free, no key, public data, so no sign-in needed), fetched on the server by loadWeather and cached 30 minutes. Flag thresholds: rain at 60% chance or 0.1 in, wind at 20 mph, freezing at a low of 32 F or less. A missing reading drops that day instead of reading as zero (a unit test caught null being read as a calm day). If the forecast cannot be fetched the card says so. Nothing is rescheduled automatically and no customer is messaged; the plan's one-tap propose-reschedule is not built.
 **Files:** src/lib/weather.ts, src/app/workspace/weather-actions.ts, src/components/app/{WeatherAhead,TodayBoard}.tsx, src/styles/os-skin.css, tests/weather.test.ts.

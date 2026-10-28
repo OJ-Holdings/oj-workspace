@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { coldQuotes, pipeline, waitingLeads } from '../src/lib/growth-queues';
+import { cadenceStep, coldQuotes, pipeline, waitingLeads } from '../src/lib/growth-queues';
 import type { ExtLead } from '../src/lib/exterior';
 
 const NOW = Date.parse('2026-10-27T18:00:00Z');
@@ -25,4 +25,13 @@ test('cold quotes: open, quoted, untouched for 3+ days, biggest first', () => {
 test('pipeline counts and quoted value per stage', () => {
   const p = pipeline([lead('a', { quote_amount: 100 }), lead('b', { status: 'booked', quote_amount: 300 }), lead('c', { status: 'booked' })]);
   assert.deepEqual([p.new, p.booked], [{ count: 1, quoted: 100 }, { count: 2, quoted: 300 }]);
+});
+
+test('the follow-up cadence steps at day 3, 7 and 14, and quotes of $1,000 or more are marked big', () => {
+  assert.deepEqual([3, 6, 7, 13, 14, 40].map(cadenceStep), ['Day 3: first nudge', 'Day 3: first nudge', 'Day 7: second nudge', 'Day 7: second nudge', 'Day 14: last check-in', 'Day 14: last check-in']);
+  const q = coldQuotes([
+    lead('nd', { status: 'contacted', quote_amount: 39400, updated_at: '2026-10-13T12:00:00Z' }),
+    lead('small', { status: 'contacted', quote_amount: 200, updated_at: '2026-10-23T12:00:00Z' }),
+  ], NOW);
+  assert.deepEqual(q.map(x => [x.lead.id, x.step, x.big]), [['nd', 'Day 14: last check-in', true], ['small', 'Day 3: first nudge', false]]);
 });

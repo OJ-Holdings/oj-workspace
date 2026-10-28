@@ -26,12 +26,14 @@ export function commandPulse(data: ExteriorData, jobs: JobItem[], today: string,
   };
 
   const lateLeads = waitingLeads(data.leads, nowMs).filter(w => w.late).length;
-  const cold = coldQuotes(data.leads, nowMs).length;
+  const coldList = coldQuotes(data.leads, nowMs);
+  const cold = coldList.length;
+  const coldValue = coldList.reduce((t, q) => t + (q.lead.quote_amount ?? 0), 0);
   const needFigures = data.leads.filter(l => l.status === 'completed' && l.job_revenue === null).length;
   const soon = jobs.filter(j => j.status !== 'cancelled' && j.status !== 'denied' && j.date >= today && j.date <= addDays(today, 1) && j.quote === null).length;
   const exceptions: Exception[] = [
     lateLeads ? { id: 'late-leads', text: `${lateLeads} new lead${lateLeads === 1 ? '' : 's'} waiting 30+ min for a reply`, href: '/growth' } : null,
-    cold ? { id: 'cold', text: `${cold} quote${cold === 1 ? '' : 's'} going cold`, href: '/growth' } : null,
+    cold ? { id: 'cold', text: `${cold} quote${cold === 1 ? '' : 's'} going cold, ${coldValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} at stake`, href: '/growth' } : null,
     soon ? { id: 'no-quote', text: `${soon} job${soon === 1 ? '' : 's'} today or tomorrow with no price`, href: '/b/exterior/bookings' } : null,
     needFigures ? { id: 'figures', text: `${needFigures} finished job${needFigures === 1 ? '' : 's'} with no revenue entered`, href: '/b/exterior/field' } : null,
   ].filter((e): e is Exception => e !== null);
