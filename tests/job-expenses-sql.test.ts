@@ -32,12 +32,12 @@ test('an owner adds and removes a job expense; amounts and kinds are validated',
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_job_expenses')).rows[0].n, 0);
 });
 
-test('a viewer can read but not add, a stranger sees nothing, and nobody can add as someone else', async () => {
+test('a viewer can neither read nor add, a stranger sees nothing, and nobody can add as someone else', async () => {
   const db = await setup();
   await as(db, owner);
   await db.exec(`insert into oj_job_expenses(organization_id,lead_id,kind,amount,spent_on) values ('${org}','${lead}','fuel',20,'2026-10-27')`);
   await as(db, viewer);
-  assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_job_expenses')).rows[0].n, 1);
+  assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_job_expenses')).rows[0].n, 0);
   await assert.rejects(() => db.exec(`insert into oj_job_expenses(organization_id,lead_id,kind,amount,spent_on) values ('${org}','${lead}','fuel',5,'2026-10-27')`));
   await as(db, stranger);
   assert.equal((await db.query<{ n: number }>('select count(*)::int as n from oj_job_expenses')).rows[0].n, 0);

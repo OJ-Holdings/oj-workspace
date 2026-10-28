@@ -21,9 +21,10 @@ alter table public.oj_job_expenses enable row level security;
 revoke all on public.oj_job_expenses from anon, authenticated;
 grant select, insert, delete on public.oj_job_expenses to authenticated;
 
--- Same rules as the other workspace tables: members read; owners and members add rows as themselves and remove them.
+-- Job costs are business financials, so like the customer records they stay hidden from view-only members:
+-- owners and members read, add rows as themselves, and remove them.
 create policy member_read on public.oj_job_expenses for select to authenticated
-  using (oj_private.member_role(organization_id) is not null);
+  using (oj_private.member_role(organization_id) in ('owner','member'));
 create policy member_add on public.oj_job_expenses for insert to authenticated
   with check (oj_private.member_role(organization_id) in ('owner','member') and created_by = (select auth.uid()));
 create policy member_remove on public.oj_job_expenses for delete to authenticated
