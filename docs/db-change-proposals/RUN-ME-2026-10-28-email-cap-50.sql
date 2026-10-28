@@ -1,0 +1,38 @@
+-- OJ Solutions email engine: allow a daily ceiling of up to 50 and set the engine to 50 a day.
+-- The live database currently rejects anything above 40 (a check on the settings table and the limit inside oj_set_email_engine).
+-- Run once in the Supabase SQL editor. Safe to run again. Changes only the cap limit and the one settings row; no emails, prospects or history are touched.
+--
+-- The app's warm-up ramp still applies: a new sender starts at 5 a day and reaches 50 on day 28 (5, 10, 20, 30, 40, 50).
+begin;
+
+do $$
+declare c text;
+begin
+  select conname into c from pg_constraint
+    where conrelid = 'public.oj_email_engine_settings'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%daily_cap_max%';
+  if c is not null then execute format('alter table public.oj_email_engine_settings drop constraint %I', c); end if;
+end $$;
+alter table public.oj_email_engine_settings add constraint oj_email_engine_settings_daily_cap_max_check check (daily_cap_max between 1 and 50);
+
+create or replace function public.oj_set_email_engine(p_organization_id uuid, p_enabled boolean, p_daily_cap_max integer, p_niche_filter text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare niche text := nullif(btrim(coalesce(p_niche_filter, '')), '');
+begin
+  if auth.uid() is null or not coalesce(oj_private.member_role(p_organization_id) in ('owner','member'), false) then
+    raise exception 'Workspace member access required';
+  end if;
+  if p_enabled is null then raise exception 'Choose on or off'; end if;
+  if p_daily_cap_max is null or p_daily_cap_max < 1 or p_daily_cap_max > 50 then raise exception 'Daily cap must be between 1 and 50'; end if;
+  if niche is not null and length(niche) > 80 then raise exception 'Niche is too long'; end if;
+  insert into public.oj_email_engine_settings(organization_id, enabled, daily_cap_max, niche_filter, updated_by)
+    values (p_organization_id, p_enabled, p_daily_cap_max, niche, auth.uid())
+    on conflict (organization_id) do update
+      set enabled = excluded.enabled, daily_cap_max = excluded.daily_cap_max,
+          niche_filter = excluded.niche_filter, updated_by = excluded.updated_by, updated_at = now();
+  return jsonb_build_object('enabled', p_enabled, 'daily_cap_max', p_daily_cap_max, 'niche_filter', niche);
+end $$;
+
+-- The one existing settings row (this workspace) goes to 50.
+update public.oj_email_engine_settings set daily_cap_max = 50, updated_at = now();
+
+commit;

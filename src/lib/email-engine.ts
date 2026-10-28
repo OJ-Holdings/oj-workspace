@@ -42,12 +42,18 @@ const daysBetween = (from: string, to: string) => {
   return Math.round((t(to) - t(from)) / 86_400_000);
 };
 
-/** New sending domains earn trust slowly: 5 a day, doubling over the first weeks, then up to the ceiling. */
+/** The most the engine will ever send in a day, whatever the ceiling is set to. The database enforces the same limit. */
+export const MAX_DAILY_CAP = 50;
+
+/**
+ * New sending accounts earn trust slowly, so the ceiling is reached in steps rather than on day one: 5 a day for the first 3 days, 10 until day 7,
+ * 20 until day 14, 30 until day 21, 40 until day 28, then 50. The day's limit is never more than the ceiling set on the page.
+ */
 export function warmupCap(startedOn: string | null, today: string, max: number) {
-  const ceiling = Math.min(Math.max(Math.floor(max), 1), 40);
+  const ceiling = Math.min(Math.max(Math.floor(max), 1), MAX_DAILY_CAP);
   if (!startedOn) return Math.min(5, ceiling);
   const days = Math.max(daysBetween(startedOn, today), 0);
-  const cap = days < 3 ? 5 : days < 7 ? 10 : days < 14 ? 15 : days < 21 ? 20 : 25 + 5 * Math.floor((days - 21) / 7);
+  const cap = days < 3 ? 5 : days < 7 ? 10 : days < 14 ? 20 : days < 21 ? 30 : days < 28 ? 40 : 50;
   return Math.min(cap, ceiling);
 }
 

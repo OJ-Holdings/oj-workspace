@@ -25,16 +25,18 @@ test('send window: Monday to Saturday, 9:00 to 16:30 Central', () => {
   assert.equal(sendWindow(new Date('2026-10-31T17:00:00Z')).open, true);
 });
 
-test('warm-up: 5, 10, 15, 20, then 25 growing 5 a week to the ceiling', () => {
-  assert.equal(warmupCap(null, '2026-10-27', 25), 5);
-  assert.equal(warmupCap('2026-10-27', '2026-10-27', 25), 5);
-  assert.equal(warmupCap('2026-10-27', '2026-10-30', 25), 10);
-  assert.equal(warmupCap('2026-10-27', '2026-11-03', 25), 15);
-  assert.equal(warmupCap('2026-10-27', '2026-11-10', 25), 20);
-  assert.equal(warmupCap('2026-10-27', '2026-11-17', 25), 25);
-  assert.equal(warmupCap('2026-10-27', '2026-12-01', 40), 35);
-  assert.equal(warmupCap('2026-10-27', '2026-12-15', 40), 40);
+test('warm-up: 5, 10, 20, 30, 40, then 50 by day 28, never above the ceiling', () => {
+  assert.equal(warmupCap(null, '2026-10-27', 50), 5);
+  assert.equal(warmupCap('2026-10-27', '2026-10-27', 50), 5);
+  assert.equal(warmupCap('2026-10-27', '2026-10-30', 50), 10);
+  assert.equal(warmupCap('2026-10-27', '2026-11-03', 50), 20);
+  assert.equal(warmupCap('2026-10-27', '2026-11-10', 50), 30);
+  assert.equal(warmupCap('2026-10-27', '2026-11-17', 50), 40);
+  assert.equal(warmupCap('2026-10-27', '2026-11-24', 50), 50);
+  assert.equal(warmupCap('2026-10-27', '2027-03-01', 50), 50);
+  assert.equal(warmupCap('2026-10-27', '2026-12-15', 25), 25, 'the ceiling still wins');
   assert.equal(warmupCap('2026-10-27', '2026-12-01', 12), 12);
+  assert.equal(warmupCap('2026-10-27', '2026-12-15', 500), 50, 'nothing above the hard maximum of 50');
   assert.equal(warmupCap(null, '2026-10-27', 3), 3);
 });
 
@@ -148,7 +150,7 @@ test('plan: every reason not to send is reported honestly', () => {
   // Yesterday's sends do not count against today.
   assert.equal(run({ events: fiveToday.map(e => ({ ...e, event_at: '2026-10-26T20:00:00Z' })), state: { warmup_started_on: '2026-10-26' } }).state, 'sending');
   // Two sent in the last hour on a day with room: wait so mail is not sent in a burst.
-  const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], state: { warmup_started_on: '2026-10-20' } });
+  const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], state: { warmup_started_on: '2026-10-22' } }); // day 5: a cap of 10, so two an hour
   assert.equal(paced.state, 'idle');
   const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-20T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-21T15:00:00Z'))] });
   assert.equal(bounced.state, 'braked');
