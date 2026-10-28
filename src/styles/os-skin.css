@@ -296,3 +296,16 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .jobphotos-kind { position: absolute; left: 6px; bottom: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(7, 8, 11, 0.78); color: var(--ink); }
 .jobphotos-kind.is-before { color: var(--watch); } .jobphotos-kind.is-after { color: var(--good); }
 .jobphotos-grid .icon-button { position: absolute; right: 4px; top: 4px; background: rgba(7, 8, 11, 0.78); border-radius: 8px; }
+
+/* ---------- Commercial booking ---------- */
+.atlas-booking-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.commercial-book { display: grid; gap: 12px; min-width: 0; }
+.commercial-book label { display: grid; gap: 6px; font-size: 13px; color: var(--ink-3); }
+.commercial-book input, .commercial-book select, .commercial-book textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.commercial-when { border: 1px solid var(--line-2); border-radius: var(--r); padding: 10px 14px; display: grid; gap: 8px; min-width: 0; margin: 0; }
+.commercial-when legend { padding: 0 6px; color: var(--ink-3); font-size: 12px; }
+.commercial-plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
+.commercial-plan li { display: grid; grid-template-columns: 120px 80px 1fr; gap: 10px; align-items: center; padding: 6px 10px; border-radius: var(--r-sm); background: var(--panel-2); font-size: 13px; }
+.commercial-plan li b { text-align: right; color: var(--good); font-weight: 650; }
+.commercial-plan li.is-clash { background: rgba(255, 123, 114, 0.12); }
+.commercial-plan li.is-clash b { color: var(--bad); }
