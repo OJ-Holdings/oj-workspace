@@ -520,7 +520,8 @@ export function MetricsTab({ store, readOnly, venture }: Common & { venture: Ven
   return (
     <Gate store={store} what="Metrics">
       {() => {
-        const rows = store.data!.metricEntries.filter(m => m.venture === venture);
+        // The truck plan keeps its lines here too; they have their own page.
+        const rows = store.data!.metricEntries.filter(m => m.venture === venture && !/^(Rig: |Truck deal: |Washer )/.test(m.label));
         const labels = [...new Set(rows.map(r => r.label))];
         return <>
           {labels.length > 0 && <div className="kpis">{labels.slice(0, 8).map(label => { const latest = rows.find(r => r.label === label)!; return <div key={label}><span>{label}</span><strong>{latest.value.toLocaleString('en-US')}{latest.unit && <small className="unit"> {latest.unit}</small>}</strong><small className="quiet">Logged by hand, {latest.measured_on}</small></div>; })}</div>}
