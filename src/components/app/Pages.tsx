@@ -7,6 +7,8 @@ import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import { SeasonPnl } from './SeasonPnl';
+import { BookedAhead } from './BookedAhead';
+import type { JobItem as AheadJob } from '@/app/workspace/exterior-actions';
 import { AtlasBankReview } from './AtlasBankReview';
 import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
 import { AtlasStatementInspector } from './AtlasStatementInspector';
@@ -170,16 +172,16 @@ export function CrmView({ store, readOnly, venture, cards = [] }: Common & { car
 }
 
 /* ------------------------------ Finance ------------------------------ */
-export function FinanceView({ store, readOnly, venture, owner = false }: Common & { owner?: boolean }) {
+export function FinanceView({ store, readOnly, venture, owner = false, jobs }: Common & { owner?: boolean; jobs?: AheadJob[] }) {
   const blank = () => ({ venture: venture ?? 'exterior' as VentureId, kind: 'revenue' as const, amount: '', occurred_on: store.now ? dayKey(store.now) : '', category: '', note: '' });
   const [form, setForm] = useState<{ venture: VentureId; kind: 'revenue' | 'cost'; amount: string; occurred_on: string; category: string; note: string } | null>(null);
   return (
     <Gate store={store} what="Finance">
-      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} owner={owner} form={form} setForm={setForm} blank={blank} />}
+      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} owner={owner} jobs={jobs} form={form} setForm={setForm} blank={blank} />}
     </Gate>
   );
 }
-function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, blank }: Common & { owner?: boolean; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
+function FinanceBody({ store, readOnly, venture, owner = false, jobs, form, setForm, blank }: Common & { owner?: boolean; jobs?: AheadJob[]; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
   const now = store.now!, data = store.data!;
   const [shown, setShown] = useState(12);
   const [moneyFocus, setMoneyFocus] = useState<MoneyWorkFocus>('all');
@@ -250,6 +252,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         {owner && data.mercury?.state === 'available' && <div><span>In the bank</span><strong>{dollars(data.mercury.accounts.reduce((t, a) => t + (a.currentBalance ?? 0), 0))}</strong></div>}
       </div>
     </section>
+    {!venture && jobs && <BookedAhead jobs={jobs} today={dayKey(now)} base={pathname.startsWith('/preview') ? '/preview' : '/workspace'} />}
     <SeasonPnl entries={data.finance} venture={filterBusiness} thisYear={dayKey(now).slice(0, 4)} />
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
@@ -573,7 +576,7 @@ export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
         const sourceState = { available: 'Available', partial: 'Partial coverage', unavailable: 'Unavailable', 'not-connected': 'Not connected' };
         return <>
           <section className="panel">
-            <header className="panel-head"><h2>Understand the work behind the numbers</h2><span className="quiet">USD / business dates</span></header>
+            <header className="panel-head"><h2>Reports</h2></header>
             <div className="fields">
               <label>Business<select value={filters.venture} onChange={event => pick({ business: event.target.value })}><option value="all">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
               <label>From<input type="date" value={filters.from} max={filters.to || undefined} onChange={event => pick({ from: event.target.value })} /></label>
@@ -581,44 +584,40 @@ export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
             </div>
             <div className="formactions"><button className="secondary small" onClick={() => pick({ from: `${month}-01`, to: today })}>This month</button><button className="secondary small" onClick={() => pick({ from: businessDay(new Date(now.getTime() - 29 * 86400000).toISOString())!, to: today })}>Last 30 days</button><button className="secondary small" onClick={() => pick({ from: '', to: '' })}>All loaded history</button></div>
             {filters.from && filters.to && filters.from > filters.to && <p role="alert" className="notice">Choose an end date on or after the start date.</p>}
-            <p className="quiet">Revenue and costs use each entry&apos;s recorded date. Exterior Care uses job completion dates (or labeled estimates); Shopify uses order dates. These are not verified collection or bank-deposit dates.</p>
           </section>
 
           <div className="kpis">
-            <div><span>Recorded revenue</span><strong>{cash(report.revenue)}</strong><button className="secondary small" onClick={() => drill({ entries: 'revenue' })}>Inspect {report.revenueEntries} entries</button></div>
-            <div><span>Recorded costs</span><strong>{cash(report.cost)}</strong><button className="secondary small" onClick={() => drill({ entries: 'cost' })}>Inspect {report.costEntries} entries</button></div>
-            <div><span>Recorded net</span><strong>{cash(report.net)}</strong><small className="quiet">Entered revenue minus entered costs; not business profit</small></div>
-            <div><span>Workspace leads added</span><strong>{report.leads.length}</strong><small className="quiet">Created in this range; connected-system leads are separate</small></div>
+            <div><span>Revenue</span><strong>{cash(report.revenue)}</strong><button className="secondary small" onClick={() => drill({ entries: 'revenue' })}>See {report.revenueEntries} entries</button></div>
+            <div><span>Costs</span><strong>{cash(report.cost)}</strong><button className="secondary small" onClick={() => drill({ entries: 'cost' })}>See {report.costEntries} entries</button></div>
+            <div><span>Left over</span><strong>{cash(report.net)}</strong></div>
+            <div><span>New leads</span><strong>{report.leads.length}</strong></div>
           </div>
-          <p className="banner-inline">Missing costs remain unknown. Recorded net appears only when both revenue and cost entries exist, and can still overstate the result when expenses or owner labor are incomplete.</p>
 
-          {data.reporting && <section className="panel">
+          {data.reporting && <details className="jobs-headsup"><summary>Where the numbers come from</summary><section className="panel">
             <header className="panel-head"><h2>Source coverage</h2><Link className="panel-link" href={`${base}/settings`}>Connections</Link></header>
             <ul className="connections">{data.reporting.sources.map(source => <li key={source.id}><i className={source.state === 'available' ? 'is-on' : ''} aria-hidden="true" /><div><b>{source.label}</b><span>{source.detail}</span></div><strong>{sourceState[source.state]}</strong></li>)}</ul>
             <p className="quiet">Across all loaded Exterior Care history: {data.reporting.exterior.revenueJobs}/{data.reporting.exterior.jobs} completed jobs have payment figures, {data.reporting.exterior.costJobs}/{data.reporting.exterior.jobs} have costs, and {data.reporting.exterior.matchedJobs} have both. <Link href={`${base}/b/exterior/jobs`}>Inspect job coverage</Link>.</p>
-          </section>}
+          </section></details>}
 
-          <section className="panel"><header className="panel-head"><h2>Recorded revenue by month</h2><span className="quiet">Current business and date filters</span></header>
+          <section className="panel"><header className="panel-head"><h2>Revenue by month</h2></header>
             {withRevenue.length ? <LineChart labels={report.months.map(row => labelMonth(row.key))} series={withRevenue.map(v => ({ id: v.id, label: v.short, color: color(v.id), values: report.months.map(row => row.byBusiness.find(business => business.venture === v.id)?.revenue ?? 0) }))} /> : <div className="empty"><p><b>No revenue entries in this range.</b> Choose another date range or log a received payment.</p></div>}
-            <p className="quiet">Only months containing entries are plotted. A zero means no revenue entry in the loaded records for that month, not proof of a fully reconciled period.</p>
             {report.months.length > 0 && <div className="tablewrap"><table className="table">
               <caption className="sr-only">Monthly data alternative and entry drilldown</caption><thead><tr><th scope="col">Month</th><th scope="col" className="num">Recorded revenue</th><th scope="col" className="num">Recorded costs</th><th scope="col" className="num">Entries</th></tr></thead>
               <tbody>{report.months.map(row => <tr key={row.key}><th scope="row"><button className="secondary small" onClick={() => { const last = new Date(Date.UTC(Number(row.key.slice(0, 4)), Number(row.key.slice(5, 7)), 0)).getUTCDate(); drill({ from: filters.from && filters.from > `${row.key}-01` ? filters.from : `${row.key}-01`, to: filters.to && filters.to < `${row.key}-${last}` ? filters.to : `${row.key}-${last}`, entries: 'all' }); }}>{labelMonth(row.key)}</button></th><td className="num">{cash(row.revenue)}</td><td className="num">{cash(row.cost)}</td><td className="num">{row.revenueEntries + row.costEntries}</td></tr>)}</tbody>
             </table></div>}
           </section>
 
-          <section className="panel"><header className="panel-head"><h2>Business comparison</h2><span className="quiet">Choose a business to inspect it</span></header>
+          <section className="panel"><header className="panel-head"><h2>By business</h2></header>
             <div className="tablewrap"><table className="table"><caption className="sr-only">Operational figures using the selected dates and businesses</caption><thead><tr><th scope="col">Business</th><th scope="col" className="num">Revenue entered</th><th scope="col" className="num">Costs entered</th><th scope="col" className="num">Recorded net</th><th scope="col" className="num">Leads added</th><th scope="col" className="num">Won</th><th scope="col" className="num">Win rate</th></tr></thead>
               <tbody>{report.businesses.map(row => <tr key={row.venture}><th scope="row"><button className="secondary small" onClick={() => drill({ business: row.venture, entries: 'all' })}>{short(row.venture)}</button></th><td className="num">{cash(row.revenue)}</td><td className="num">{cash(row.cost)}</td><td className="num">{cash(row.net)}</td><td className="num">{row.leads}</td><td className="num">{row.won}</td><td className="num">{row.winRate === null ? '-' : `${Math.round(row.winRate * 100)}%`}</td></tr>)}</tbody>
-            </table></div><p className="quiet">Lead figures describe the current status of workspace leads created in the selected range. Win rate = won / (won + lost), excluding undecided leads. Exterior Care and GoHighLevel pipelines remain in their business screens.</p>
+            </table></div>
           </section>
 
-          <section className="panel"><header className="panel-head"><h2>Current team workload</h2><Link className="panel-link" href={`${base}/tasks`}>Task board</Link></header>
-            <p className="quiet">Business filter applies; date filter does not. The board records current state, so these are not historical completion rates.</p>
+          <section className="panel"><header className="panel-head"><h2>Team workload</h2><Link className="panel-link" href={`${base}/tasks`}>Task board</Link></header>
             {report.owners.length ? report.owners.map(owner => <details className="thread" key={owner.owner}><summary><b>{owner.owner}</b><span>{owner.open} open / {owner.overdue} overdue</span></summary><ul>{owner.tasks.map(task => <li key={task.id}><Link href={`${base}/tasks?task=${encodeURIComponent(task.id)}`}>{task.title}</Link> <span className="quiet">{short(task.business)} / {task.stage}{task.due_date ? ` / due ${task.due_date}` : ' / no due date'}</span></li>)}</ul></details>) : <div className="empty"><p><b>No open tasks for this selection.</b></p></div>}
           </section>
 
-          <section className="panel"><header className="panel-head"><h2 ref={records} tabIndex={-1}>Entries behind the figures</h2><span className="quiet" role="status">{entries.length} matching entries</span></header>
+          <section className="panel"><header className="panel-head"><h2 ref={records} tabIndex={-1}>Entries</h2><span className="quiet" role="status">{entries.length} matching entries</span></header>
             <div className="filter-chips" role="group" aria-label="Entry type">{(['all', 'revenue', 'cost'] as const).map(value => <button key={value} aria-pressed={kind === value} onClick={() => pick({ entries: value })}>{value === 'all' ? 'All entries' : value === 'revenue' ? 'Revenue' : 'Costs'}</button>)}</div>
             {entries.length ? <div className="tablewrap"><table className="table"><caption className="sr-only">The loaded records used in the analytics calculations</caption><thead><tr><th scope="col">Date / basis</th><th scope="col">Business</th><th scope="col">Record</th><th scope="col">Source</th><th scope="col" className="num">Amount</th></tr></thead><tbody>{entries.slice(0, shown).map(row => {
               const jobId = row.auto === 'Exterior Care job' ? row.id.replace(/^jobcost-|^job-/, '') : null;
