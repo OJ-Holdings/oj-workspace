@@ -17,6 +17,7 @@ import { EntitySwitcher } from './EntitySwitcher';
 import { WindowTabs } from './WindowTabs';
 import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
+import { commandIntents } from '@/lib/command-intents';
 
 export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality';
 
@@ -145,6 +146,9 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
     return q ? all.filter(a => (a.label + ' ' + a.words).toLowerCase().includes(q)) : all;
   }, [canAct, base, venture, query, router, onNewCard]);
 
+  // "complete fay", "invoice debbie", "log $84 chemicals on patrick": one-tap lines that open the right screen, never save by themselves.
+  const intents = useMemo(() => canAct ? commandIntents(query, jobs, new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }), base) : [], [canAct, query, jobs, base]);
+
   const go = (path: string) => { restoreFocus.current = false; setSearch(false); setDrawer(false); router.push(base + path); };
 
   return (
@@ -266,6 +270,8 @@ export function Shell({ base, current, venture, mode, members, displayName, owne
               <button className="icon-button" aria-label="Close search" onClick={() => setSearch(false)}><X size={18} /></button>
             </div>
             <div className="palette-results">
+              {intents.length > 0 && <p>Do it</p>}
+              {intents.map(i => <button key={i.id} onClick={() => { restoreFocus.current = false; setSearch(false); if (i.external) window.open(i.href, '_blank', 'noopener,noreferrer'); else router.push(i.href); }}><Wrench size={16} aria-hidden="true" />{i.label}</button>)}
               {quickActions.length > 0 && <p>Quick actions</p>}
               {quickActions.map(a => <button key={a.label} onClick={() => { setSearch(false); a.run(); }}><a.icon size={16} aria-hidden="true" />{a.label}</button>)}
               {results.pages.length > 0 && <p>Pages</p>}

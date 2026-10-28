@@ -532,7 +532,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   };
   const closeJob=()=>{
     const url=new URL(window.location.href);
-    url.searchParams.delete('booking');
+    url.searchParams.delete('booking');url.searchParams.delete('cost');url.searchParams.delete('kind');
     window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
     setSelectedJob(null);
     setAdvanced(false);

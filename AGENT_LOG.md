@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: command bar Do it lines)
+**Summary:** Master plan 5.1 makes the command bar the main way around, with 'complete job', 'invoice Debbie', 'log $84 chemicals on Patrick'; 6.1 asks for quick entry from anywhere. The Ctrl K palette now understands a leading verb plus a customer name from the booked jobs (src/lib/command-intents.ts, plain parsing, no AI): complete or done opens that job's sheet; invoice or bill opens Invoices with the form filled from that job; log, expense, spent or cost reads an amount and a kind (chemicals, soap and supplies are materials; gas and fuel are fuel; labor and help are labor; equipment, repair and parts are equipment) and opens the job with that cost ready to add; directions opens Google Maps to the address. Several matches show the job closest to today first, cancelled jobs are never offered. Each line only opens the screen where the person confirms; nothing saves from the palette. Shown on the live workspace to members who can change records.
+**Files:** src/lib/command-intents.ts, src/components/app/{Shell,JobCosts,ExteriorManage}.tsx, tests/command-intents.test.ts.
+**Verified:** typecheck; tests; build; the parsing and matching in unit tests.
+**Not verified:** the palette in a signed-in browser (it only appears live); the cost prefill needs the job-expenses SQL to have been run. Not built from 5.1: natural-language job creation ('Fay house wash $200 Tue 2pm'), 'what is my cash', voice.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: job History on the Job sheet)
 **Summary:** Master plan 6.1 asks for a job timeline: every event, who and when. The workspace already records each change to a customer in activity_log, so the Job sheet now has a History section (JobTimeline.tsx, loadJobTimeline in exterior-actions.ts): the last 25 events for that customer, newest first, with the time in Chicago time and who did it. It loads the first time it is opened and only on the live workspace. Read-only; no SQL.
 **Files:** src/app/workspace/exterior-actions.ts, src/components/app/{JobTimeline,ExteriorManage}.tsx, src/styles/os-skin.css.
