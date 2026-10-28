@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Gauge, Siren } from 'lucide-react';
 import { loadExterior } from '@/app/workspace/exterior-actions';
+import { loadInvoices } from '@/app/workspace/invoice-actions';
+import { summariseInvoices, type Invoice } from '@/lib/invoices';
 import { sampleExterior } from '@/lib/exterior-sample';
 import type { ExteriorData } from '@/lib/exterior';
 import type { JobItem } from '@/app/workspace/exterior-actions';
@@ -14,15 +16,18 @@ import { dollars } from '@/lib/metrics';
 export function CommandPulse({ org, mode, jobs, today, base }: { org: string; mode: 'preview' | 'live'; jobs: JobItem[]; today: string; base: string }) {
   const [data, setData] = useState<ExteriorData | null>(null);
   const [at, setAt] = useState(0);
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   useEffect(() => {
     let live = true;
     if (mode === 'preview') { const t = new Date(); setData(sampleExterior(t)); setAt(t.getTime()); return; }
     loadExterior(org).then(r => { if (live && r.ok) { setData(r.data); setAt(Date.now()); } }, () => undefined);
+    loadInvoices(org).then(r => { if (live && r.ok) setInvoices(r.invoices); }, () => undefined);
     return () => { live = false; };
   }, [org, mode]);
 
   if (!data || !today) return null;
-  const p = commandPulse(data, jobs, today, at);
+  // Summarised here, not when loaded: the business date is set after the page mounts.
+  const p = commandPulse(data, jobs, today, at, invoices ? summariseInvoices(invoices, today) : undefined);
   const stage = (label: string, s: { count: number; quoted: number }) => <li key={label}><span>{label}</span><b>{s.count}</b><small>{s.quoted ? dollars(s.quoted) : ''}</small></li>;
   return <>
     <section className="today-card" aria-labelledby="today-act">
@@ -37,6 +42,7 @@ export function CommandPulse({ org, mode, jobs, today, base }: { org: string; mo
         <div><span>Revenue</span><strong>{dollars(p.ticker.revenue)}</strong></div>
         <div><span>Jobs done</span><strong>{p.ticker.jobsDone}</strong></div>
         <div><span>Average job</span><strong>{p.ticker.avgJob === null ? '-' : dollars(Math.round(p.ticker.avgJob))}</strong></div>
+        {p.owedCents !== null && <div><span>Owed to you</span><strong>{dollars(p.owedCents / 100)}</strong></div>}
         <div><span>Close rate</span><strong>{p.ticker.closeRate === null ? '-' : `${Math.round(p.ticker.closeRate * 100)}%`}</strong></div>
       </div>
       <ul className="pulse-pipeline" aria-label="Open pipeline">

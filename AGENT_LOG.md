@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Owed to you and overdue invoices on Command)
+**Summary:** Master plan 5.2: the Command screen's money pulse should show unpaid invoices and its exceptions should include an overdue invoice. The This month card now has Owed to you (the open balance on invoices) and Act now gains a line such as '2 invoices overdue, $1,200 owed' linking to Invoices. Both come from the invoices already in the books (loadInvoices and summariseInvoices) and appear only on the live workspace, and only once invoicing is switched on and there is something to show. The summary is computed at render because the business date is set after the page mounts.
+**Files:** src/lib/command-pulse.ts, src/components/app/CommandPulse.tsx, tests/command-pulse.test.ts.
+**Verified:** typecheck; 929 tests; build; the overdue and owed logic in unit tests.
+**Not verified:** on the live site (no invoices exist yet; preview does not load invoices). Cash in the bank is still missing from the pulse until the Mercury feed exists.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: command bar Do it lines)
 **Summary:** Master plan 5.1 makes the command bar the main way around, with 'complete job', 'invoice Debbie', 'log $84 chemicals on Patrick'; 6.1 asks for quick entry from anywhere. The Ctrl K palette now understands a leading verb plus a customer name from the booked jobs (src/lib/command-intents.ts, plain parsing, no AI): complete or done opens that job's sheet; invoice or bill opens Invoices with the form filled from that job; log, expense, spent or cost reads an amount and a kind (chemicals, soap and supplies are materials; gas and fuel are fuel; labor and help are labor; equipment, repair and parts are equipment) and opens the job with that cost ready to add; directions opens Google Maps to the address. Several matches show the job closest to today first, cancelled jobs are never offered. Each line only opens the screen where the person confirms; nothing saves from the palette. Shown on the live workspace to members who can change records.
 **Files:** src/lib/command-intents.ts, src/components/app/{Shell,JobCosts,ExteriorManage}.tsx, tests/command-intents.test.ts.
