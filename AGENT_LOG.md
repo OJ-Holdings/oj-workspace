@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Invoice this job)
+**Summary:** Plan 6.1 wants a finished job to lead straight to its invoice. The Job sheet has an Invoice this job link that opens Invoices with the New invoice form already filled from the job: bill-to name and address, the service as the line, and the amount (what was recorded as paid, else the quote). Only the job's id travels in the URL (?lead=<id>); a new leadForInvoice server action looks the details up as the signed-in member. Nothing is created until the user presses Create invoice, and the invoice carries the lead id. Deliberately NOT automatic: an invoice posts to the new ledger while the job's recorded revenue already feeds the old Money totals, so turning one into the other needs a deliberate step until the two are unified.
+**Files:** src/app/workspace/invoice-actions.ts, src/components/app/{InvoicesView,ExteriorManage}.tsx.
+**Verified:** typecheck; 919 tests; build.
+**Not verified:** the live flow end to end (invoices do not render in /preview).
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: itemised job costs on the Job sheet, STAGED SQL)
 **Summary:** Phase 1 job drawer, cost side. Master plan 6.1 wants materials, labor and other expenses on the job with a live margin; today a job holds one cost number and only 12 jobs have it. New staged SQL docs/db-change-proposals/RUN-ME-2026-10-28-job-expenses.sql adds ONE table, oj_job_expenses (lead_id, kind materials/fuel/labor/equipment/other, amount, note, date) with RLS like the other workspace tables (members read; owners and members add as themselves and remove). NOT APPLIED. Three server actions in exterior-actions.ts (loadJobExpenses, addJobExpense, removeJobExpense) and a JobCosts component inside the Job sheet: list, Add cost, remove. The itemised total replaces the single cost box, feeds the live profit, and is written to the lead's job_cost (the same field the Money page and reports already read) on every add or remove. If the table is missing, or in /preview, the Job sheet keeps the single cost box exactly as before. If every itemised cost is removed, the old single figure is left alone (missing is not zero).
 **Files:** docs/db-change-proposals/RUN-ME-2026-10-28-job-expenses.sql, src/app/workspace/exterior-actions.ts, src/components/app/{JobCosts,ExteriorManage}.tsx, src/styles/os-skin.css, tests/job-expenses-sql.test.ts (3 PGlite permission checks).

@@ -302,6 +302,7 @@ export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base,
             {lead.phone && isRealPhone(lead.phone) && <a className="secondary small" href={`tel:${lead.phone}`}>Call</a>}
             {lead.address && <a className="secondary small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`}>Directions</a>}
             <Link className="secondary small" href={`${base}/b/exterior/customer?lead=${encodeURIComponent(lead.id)}`}>Customer record</Link>
+            {!readOnly && <Link className="secondary small" href={`${base}/invoices?lead=${encodeURIComponent(lead.id)}`}>Invoice this job</Link>}
           </div>
           <fieldset className="jobsheet-money" disabled={readOnly || busy}>
             <legend>Money</legend>
