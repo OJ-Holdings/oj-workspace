@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: job History on the Job sheet)
+**Summary:** Master plan 6.1 asks for a job timeline: every event, who and when. The workspace already records each change to a customer in activity_log, so the Job sheet now has a History section (JobTimeline.tsx, loadJobTimeline in exterior-actions.ts): the last 25 events for that customer, newest first, with the time in Chicago time and who did it. It loads the first time it is opened and only on the live workspace. Read-only; no SQL.
+**Files:** src/app/workspace/exterior-actions.ts, src/components/app/{JobTimeline,ExteriorManage}.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; tests; build.
+**Not verified:** how it looks (live-only, /preview cannot render it); that older activity rows carry a lead id for every event.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Data quality center v1)
 **Summary:** Master plan section 9 (Phase 1): a data quality center, 'counts of customers missing phone/address, jobs missing price/cost... each with a fix button'. New page /workspace/quality (More menu, Data quality). Pure logic in src/lib/data-quality.ts; it reads the leads and bookings the app already loads and changes nothing. Checks: finished jobs with no revenue, finished jobs with no costs, upcoming jobs with no price, upcoming jobs with no address, open customers with no usable phone (placeholder NP_ numbers count as missing), leads with no source (blank or Other), and customers entered more than once (the existing planDedupe rules: a completed job for a returning client is never counted as a duplicate). Shows a percent of checked fields in order, worst problem first, each with a few example names and a link to where it gets fixed. No SQL.
 **Files:** src/lib/data-quality.ts, src/components/app/{DataQualityView,Shell,App}.tsx, src/styles/os-skin.css, tests/data-quality.test.ts.
