@@ -8,6 +8,7 @@ import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWork
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import { SeasonPnl } from './SeasonPnl';
 import { BookedAhead } from './BookedAhead';
+import { InsightHeadsUp } from './InsightHeadsUp';
 import type { JobItem as AheadJob } from '@/app/workspace/exterior-actions';
 import { AtlasBankReview } from './AtlasBankReview';
 import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
@@ -549,7 +550,7 @@ export function MetricsTab({ store, readOnly, venture }: Common & { venture: Ven
 }
 
 /* ------------------------------ Analytics ------------------------------ */
-export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
+export function AnalyticsView({ store, cards, org, mode, base: appBase }: Common & { cards: Card[]; org?: string; mode?: 'preview' | 'live'; base?: string }) {
   const pathname = usePathname(), query = useSearchParams(), router = useRouter();
   const records = useRef<HTMLHeadingElement>(null);
   const [shown, setShown] = useState(50);
@@ -576,6 +577,7 @@ export function AnalyticsView({ store, cards }: Common & { cards: Card[] }) {
         const drill = (patch: Record<string, string>) => { pick(patch); records.current?.focus(); };
         const sourceState = { available: 'Available', partial: 'Partial coverage', unavailable: 'Unavailable', 'not-connected': 'Not connected' };
         return <>
+          {org && mode && <InsightHeadsUp org={org} mode={mode} base={appBase ?? base} />}
           <section className="panel">
             <header className="panel-head"><h2>Reports</h2></header>
             <div className="fields">
