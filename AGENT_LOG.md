@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: command bar Do it lines)
+**Summary:** Master plan 5.1 makes the command bar the main way around, with 'complete job', 'invoice Debbie', 'log $84 chemicals on Patrick'; 6.1 asks for quick entry from anywhere. The Ctrl K palette now understands a leading verb plus a customer name from the booked jobs (src/lib/command-intents.ts, plain parsing, no AI): complete or done opens that job's sheet; invoice or bill opens Invoices with the form filled from that job; log, expense, spent or cost reads an amount and a kind (chemicals, soap and supplies are materials; gas and fuel are fuel; labor and help are labor; equipment, repair and parts are equipment) and opens the job with that cost ready to add; directions opens Google Maps to the address. Several matches show the job closest to today first, cancelled jobs are never offered. Each line only opens the screen where the person confirms; nothing saves from the palette. Shown on the live workspace to members who can change records.
+**Files:** src/lib/command-intents.ts, src/components/app/{Shell,JobCosts,ExteriorManage}.tsx, tests/command-intents.test.ts.
+**Verified:** typecheck; tests; build; the parsing and matching in unit tests.
+**Not verified:** the palette in a signed-in browser (it only appears live); the cost prefill needs the job-expenses SQL to have been run. Not built from 5.1: natural-language job creation ('Fay house wash $200 Tue 2pm'), 'what is my cash', voice.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: job History on the Job sheet)
 **Summary:** Master plan 6.1 asks for a job timeline: every event, who and when. The workspace already records each change to a customer in activity_log, so the Job sheet now has a History section (JobTimeline.tsx, loadJobTimeline in exterior-actions.ts): the last 25 events for that customer, newest first, with the time in Chicago time and who did it. It loads the first time it is opened and only on the live workspace. Read-only; no SQL.
 **Files:** src/app/workspace/exterior-actions.ts, src/components/app/{JobTimeline,ExteriorManage}.tsx, src/styles/os-skin.css.
@@ -197,6 +205,9 @@ this file is how work gets handed over.
 **Files:** src/components/app/{AtlasTreasuryCommand,ExteriorManage,TodayBoard}.tsx, src/styles/polish.css, src/app/globals.css.
 **Verified:** typecheck; npm test 858/858; build; /preview Money and Customers screenshots.
 **Not verified:** signed-in pages; phone width.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Local Services Ads card on the Exterior page)
 **Summary:** New card on /b/exterior for Google Local Services Ads, the main lead source: a founder adds the week's spend and lead count (stored as hand-logged metrics 'LSA spend' and 'LSA leads', Exterior, so both founders see the same numbers), and the card shows the month's spend, leads, cost per lead, completed jobs tagged LSA, spend per job, revenue on those jobs and return on spend. Jobs count only when their lead source is Local Services Ads (use Tag lead sources on Customers). Nothing is guessed: cost per lead needs both spend and leads, return needs spend and recorded job revenue.
 **Files:** src/lib/lsa-stats.ts, src/components/app/{LsaCard,ExteriorCommand,VentureView}.tsx, tests/lsa-stats.test.ts.
@@ -232,11 +243,17 @@ this file is how work gets handed over.
 **Files:** src/lib/invoices.ts, src/app/workspace/invoice-actions.ts, src/app/workspace/invoices/[id]/{page,PrintButton}.tsx, src/components/app/{InvoicesView,Shell,App}.tsx, tests/invoices-lib.test.ts.
 **Verified:** typecheck; npm test 825/825 (7 new tests for the money helpers; the SQL itself has 27 checks in PR #182); build; /preview/invoices renders; an invalid invoice id returns 404.
 **Not verified:** anything against the live database (the tables do not exist there yet), the New invoice and Record payment dialogs, the printed page in a browser, phone layout.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS mobile fixes: top bar and chat bubble at 375 px)
 **Summary:** At phone width the new company switcher pushed the avatar off screen and the chat bubble sat on top of the quick-add button. The switcher now shows only its logo under 600 px, and the chat bubble sits just left of the quick-add button above the phone tab bar.
 **Files:** src/styles/entity-switch.css, src/styles/chat-bubble.css.
 **Verified:** typecheck; build; at a 375x812 viewport on /preview the avatar is fully on screen, chat and quick-add do not overlap, and the page has no horizontal scroll.
 **Not verified:** a real phone, safe-area insets on iPhone, the signed-in app.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS Phase 2 prep: tested ledger + invoices SQL, staged, NOT applied)
 **Summary:** Staged the money core for owner review under docs/db-change-proposals/money-core/ (not supabase/schemas, so the guarded deployer is not blocked): ledger-core.sql (chart of accounts, double-entry journal, balanced-at-commit check, append-only entries, idempotent posting, one-time reversal, period lock, trial balance, owner chart seed with a partnership-aware chart for one LLC with division tags) and invoices.sql (numbered invoices, lines, payments, void; each posts to the ledger; sales tax stays 0 until a CPA confirms the Wisconsin rule). docs/db-change-proposals/RUN-ME-money-core.sql is the one-paste combined script with an already-exists guard.
 **Files:** docs/db-change-proposals/{RUN-ME-money-core.sql,money-core/ledger-core.sql,money-core/invoices.sql}, tests/{ledger-core-sql,invoices-sql,money-core-runme}.test.ts.
@@ -251,6 +268,9 @@ this file is how work gets handed over.
 **Files:** src/lib/exterior-rebook.ts, src/components/app/{RebookList,ExteriorManage,Pages,PresencePanel}.tsx, tests/exterior-rebook.test.ts.
 **Verified:** typecheck; npm test 816/816 (3 new tests for the rebooking selection); build.
 **Not verified:** signed-in live pages; Copy list in the live browser.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS copy diet: Exterior Care landing page)
 **Summary:** Compacted /b/exterior (the Exterior Care command page) from about 3,900 px to about 1,900 px: one-row header with shortcuts (no season switch or poster), short stat captions, removed the long 'Before crews roll out' preflight block and the 'Work that cannot fall between founders' inbox from this page (the preflight stays on the Jobs page; the inbox component is unchanged and unused here), calm headings instead of numbered eyebrows, a note that links to adding missing job costs and to tagging lead sources, and plain link chips instead of the 'specialist applications' grid with paragraphs. Also trimmed the Jobs and Customers pages: plain headings (Jobs, Customers) instead of posters, shorter stat captions and partial-history notices, removed the queue explanation line, and the 'Heads-up for upcoming jobs' preflight on Jobs is now a collapsed section. No data, logic or schema changes.
 **Files:** src/components/app/{ExteriorCommand,ExteriorManage}.tsx, src/styles/exterior-command.css.

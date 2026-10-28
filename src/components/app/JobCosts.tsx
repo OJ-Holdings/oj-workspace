@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import { addJobExpense, loadJobExpenses, removeJobExpense, type JobExpense } from '@/app/workspace/exterior-actions';
 import { dollars } from '@/lib/metrics';
@@ -16,8 +17,11 @@ const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/
  */
 export function JobCosts({ org, leadId, live, readOnly, act, busy, onTotal, fallback }: { org: string; leadId: string; live: boolean; readOnly: boolean; act: Act; busy: boolean; onTotal: (total: number | null) => void; fallback: ReactNode }) {
   const [rows, setRows] = useState<JobExpense[] | null>(null);
-  const [kind, setKind] = useState('materials');
-  const [amount, setAmount] = useState('');
+  // The command bar can open a job with a cost ready to add: ?cost=84&kind=materials.
+  const params = useSearchParams();
+  const asked = params.get('kind') ?? '';
+  const [kind, setKind] = useState(kinds.some(([id]) => id === asked) ? asked : 'materials');
+  const [amount, setAmount] = useState(/^\d+(\.\d{1,2})?$/.test(params.get('cost') ?? '') ? params.get('cost')! : '');
   const [note, setNote] = useState('');
 
   const reload = useCallback(async () => {
