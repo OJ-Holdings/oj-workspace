@@ -19,12 +19,12 @@ export const leadWorkLabels:Record<LeadWorkFocus,string>={
   'needs-accounting':'Missing job figures',
 };
 export const leadWorkDescriptions:Record<LeadWorkFocus,string>={
-  all:'Current accessible lead records; source coverage may be incomplete.',
-  new:'Status is New. Contact history is not independently verified.',
-  'follow-up':'Status is Contacted or Following up. No response deadline is inferred.',
-  quoted:'An amount was entered on an open, unbooked lead. Not a signed quote.',
-  booked:'Lead status is Booked. Check the calendar for the actual booking record.',
-  'needs-accounting':'Completed leads with payment or job cost not entered. Zero is a known number; blank is unknown.',
+  all:'Everyone in your lead list.',
+  new:'Not contacted yet.',
+  'follow-up':'Contacted or being followed up.',
+  quoted:'Quoted but not booked yet.',
+  booked:'Booked on the calendar.',
+  'needs-accounting':'Done jobs missing revenue or costs.',
 };
 export function matchesLeadWorkFocus(lead:ExtLead,focus:LeadWorkFocus):boolean{
   const s=lead.status??'';

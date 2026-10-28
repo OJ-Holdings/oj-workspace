@@ -41,21 +41,21 @@ export function buildCustomerDossier(data:ExteriorData,leadId:string):CustomerDo
   .sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
  const events:CustomerEvent[]=[];
  const created=latest(lead.created_at);
- if(created)events.push({id:'intake:'+lead.id,day:created,title:'Inquiry recorded',
-  detail:'Lead source and initial record date. This is not proof of a customer reply.',kind:'intake',basis:'source-date'});
+ if(created)events.push({id:'intake:'+lead.id,day:created,title:'Lead added',
+  detail:'Lead added.',kind:'intake',basis:'source-date'});
  const updated=latest(lead.updated_at);
- if(updated&&updated!==created)events.push({id:'update:'+lead.id,day:updated,title:'Source record updated',
-  detail:'Status and individual changes cannot be reconstructed from this date alone.',kind:'update',basis:'source-date'});
+ if(updated&&updated!==created)events.push({id:'update:'+lead.id,day:updated,title:'Record updated',
+  detail:'Record last changed.',kind:'update',basis:'source-date'});
  for(const booking of bookings){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(booking.date)||!Number.isFinite(new Date(booking.date+'T12:00:00Z').getTime()))continue;
   events.push({id:'booking:'+booking.id,day:booking.date,title:'Booking '+(booking.status??'status not recorded').replaceAll('_',' '),
-   detail:'Scheduled service date and current source booking status. Not proof the work occurred on this date.',kind:'booking',basis:'source-date'});
+   detail:'Scheduled date and current status.',kind:'booking',basis:'source-date'});
  }
  if(lead.status==='completed'){
   const completion=latest(jobDate(lead));
   if(completion)events.push({id:'completion:'+lead.id,day:completion,
-   title:lead.completed_at?'Completion timestamp recorded':'Completed status; date estimated',
-   detail:lead.completed_at?'Source completion timestamp exists; independent closeout evidence not supplied.':'The historical record uses updated/created date as fallback, not a confirmed job completion timestamp.',
+   title:lead.completed_at?'Job completed':'Job completed (date approximate)',
+   detail:lead.completed_at?'Marked completed.':'Marked completed; the exact date was not recorded.',
    kind:'completion',basis:jobDateBasis(lead)==='completion'?'source-date':'estimated-date'});
  }
  events.sort((a,b)=>b.day.localeCompare(a.day)||a.id.localeCompare(b.id));

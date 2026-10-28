@@ -74,7 +74,7 @@ test('historical completion date is explicitly estimated rather than silently co
  assert.ok(d);
  const e=d.events.find(e=>e.kind==='completion');
  assert.equal(e?.basis,'estimated-date');
- assert.match(e?.detail??'',/fallback/);
+ assert.match(e?.detail??'',/not recorded/);
 });
 test('source coverage remains disclosed when extras unavailable and records capped',()=>{
  const partial={...data,extras:null,coverage:{...data.coverage!,leads:{loaded:4,total:18},bookings:{loaded:4,total:14}}};
