@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, MountainSnow, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, MountainSnow, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X, TrendingUp } from 'lucide-react';
 import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
@@ -18,7 +18,7 @@ import { WindowTabs } from './WindowTabs';
 import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -28,13 +28,14 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   { key:'exterior-bookings', label:'Jobs', path:'/b/exterior/bookings', icon:Wrench, group:'DAILY' },
   { key:'exterior-leads', label:'Customers', path:'/b/exterior/leads', icon:UsersRound, group:'DAILY' },
   { key:'calendar', label:'Schedule', path:'/calendar', icon:CalendarDays, group:'DAILY' },
-  { key:'tasks', label:'Tasks & Crew', path:'/tasks', icon:CheckSquare, group:'DAILY' },
+  { key:'tasks', label:'Crew', path:'/tasks', icon:CheckSquare, group:'DAILY' },
+  { key:'growth', label:'Growth', path:'/growth', icon:TrendingUp, group:'DAILY' },
   { key:'finance', label:'Money', path:'/finance', icon:Wallet, group:'DAILY' },
   { key:'invoices', label:'Invoices', path:'/invoices', icon:ReceiptText, group:'DAILY' },
+  { key:'analytics', label:'Insight', path:'/analytics', icon:BarChart3, group:'DAILY' },
   { key:'businesses', label:'Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
   // Founders only: hidden from every non-owner in the live workspace (see founderNav below).
   { key:'summit', label:'Hyperborea', path:'/summit', icon:MountainSnow, group:'BUSINESSES' },
-  { key:'analytics', label:'Reports', path:'/analytics', icon:BarChart3, group:'MORE' },
   { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
   { key:'files', label:'Files', path:'/files', icon:FileText, group:'MORE' },
   { key:'messages', label:'Messages', path:'/messages', icon:MessageSquare, group:'MORE' },

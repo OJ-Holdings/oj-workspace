@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Growth room, Crew and Insight in the dock)
+**Summary:** First step toward the plan's eight rooms (Command, Jobs, Customers, Schedule, Crew, Money, Growth, Insight). New Growth room at /workspace/growth (GrowthView.tsx, src/lib/growth-queues.ts): Answer these now (new leads nobody has replied to, oldest first, late after 30 minutes, Call and Mark contacted), Quotes going cold (open quoted leads untouched 3+ days, biggest first, Call and Followed up), the LSA spend card, Where leads come from (leads, won, win rate, revenue by source) and the rebooking list. All of it reads the leads the app already loads and uses the existing setLeadStatus action; no SQL. The dock now reads Today, Jobs, Customers, Schedule, Crew (was Tasks & Crew), Growth, Money, Invoices, Insight (was Reports under More).
+**Files:** src/lib/growth-queues.ts, src/components/app/{GrowthView,Shell,App}.tsx, src/styles/os-skin.css, tests/growth-queues.test.ts.
+**Verified:** typecheck; 913 tests; build; /preview/growth at 800 px (sample data).
+**Not verified:** live leads; phone width; late threshold (30 min) is a guess Oscar may want changed.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Reports page trimmed)
 **Summary:** The Analytics page (now titled Reports) had a caveat paragraph under nearly every block. Removed those, renamed the headings (Reports, Revenue, Costs, Left over, New leads, By business), and folded Source coverage under one Where the numbers come from control. Figures, filters and drill-downs are unchanged.
 **Files:** src/components/app/Pages.tsx, src/components/app/App.tsx.

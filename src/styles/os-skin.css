@@ -165,3 +165,13 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .bookedahead-weeks i { display: block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .bookedahead-weeks i b { display: block; height: 100%; border-radius: 3px; background: var(--accent); min-width: 2px; }
 @media (max-width: 640px) { .bookedahead-weeks li { grid-template-columns: 80px 1fr; } .bookedahead-weeks li > span:last-child { grid-column: 1 / -1; } }
+
+/* ---------- Growth room ---------- */
+.growth-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.growth-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); }
+.growth-list li > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.growth-list li span { color: var(--ink-3); font-size: 13px; }
+.growth-age { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-2); }
+.growth-age.is-late { color: var(--bad); }
+.growth-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (max-width: 640px) { .growth-list li { grid-template-columns: 1fr auto; } .growth-actions { grid-column: 1 / -1; justify-content: flex-start; } }
