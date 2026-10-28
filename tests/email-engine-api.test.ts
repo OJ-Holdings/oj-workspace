@@ -36,11 +36,11 @@ function memoryStore(init: { prospects: EngineProspect[]; events?: EmailEvent[];
   return { s, store };
 }
 
-test('plan reserves what it hands out, records a heartbeat and starts the warm-up clock', async () => {
+test('plan reserves what it hands out, records a heartbeat', async () => {
   const { s, store } = memoryStore({ prospects: [1, 2, 3].map(n => prospect(n)) });
   const first = await planRun(store, env, { now: tuesday, senderName: 'Oscar', senderDomain: 'ojsolutions.org' });
   assert.equal(first.state, 'sending');
-  assert.deepEqual(first.items.map(i => i.prospect_id), [id(1), id(2)]);
+  assert.deepEqual(first.items.map(i => i.prospect_id), [id(1), id(2), id(3)]);
   assert.match(first.items[0].body, /Oscar\nOJ Solutions\n123 Main St/);
   assert.equal(s.state?.last_heartbeat_at, tuesday.toISOString());
   assert.equal(s.state?.warmup_started_on, '2026-10-27');

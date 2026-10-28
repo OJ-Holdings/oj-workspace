@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  bounceBrake, classifyReply, composeEmail, emailStats, engineStatus, lintEmail, nextStatus, planEmailRun, selectSendable, sendWindow, validEmail, warmupCap,
+  bounceBrake, classifyReply, composeEmail, emailStats, engineStatus, lintEmail, nextStatus, planEmailRun, selectSendable, sendWindow, validEmail, dailyCap,
   type EmailEvent, type EngineProspect, type EngineState,
 } from '../src/lib/email-engine';
 
@@ -25,19 +25,13 @@ test('send window: Monday to Saturday, 9:00 to 16:30 Central', () => {
   assert.equal(sendWindow(new Date('2026-10-31T17:00:00Z')).open, true);
 });
 
-test('warm-up: 5, 10, 20, 30, 40, then 50 by day 28, never above the ceiling', () => {
-  assert.equal(warmupCap(null, '2026-10-27', 50), 5);
-  assert.equal(warmupCap('2026-10-27', '2026-10-27', 50), 5);
-  assert.equal(warmupCap('2026-10-27', '2026-10-30', 50), 10);
-  assert.equal(warmupCap('2026-10-27', '2026-11-03', 50), 20);
-  assert.equal(warmupCap('2026-10-27', '2026-11-10', 50), 30);
-  assert.equal(warmupCap('2026-10-27', '2026-11-17', 50), 40);
-  assert.equal(warmupCap('2026-10-27', '2026-11-24', 50), 50);
-  assert.equal(warmupCap('2026-10-27', '2027-03-01', 50), 50);
-  assert.equal(warmupCap('2026-10-27', '2026-12-15', 25), 25, 'the ceiling still wins');
-  assert.equal(warmupCap('2026-10-27', '2026-12-01', 12), 12);
-  assert.equal(warmupCap('2026-10-27', '2026-12-15', 500), 50, 'nothing above the hard maximum of 50');
-  assert.equal(warmupCap(null, '2026-10-27', 3), 3);
+test('daily limit: no warm-up, it is the ceiling, never above Google\'s 1,500 and never below 1', () => {
+  assert.equal(dailyCap(50), 50);
+  assert.equal(dailyCap(500), 500);
+  assert.equal(dailyCap(1500), 1500);
+  assert.equal(dailyCap(99999), 1500, 'nothing above the hard maximum');
+  assert.equal(dailyCap(3), 3);
+  assert.equal(dailyCap(0), 1);
 });
 
 test('lint stands in for approval: bad drafts are skipped, never sent', () => {
@@ -121,12 +115,12 @@ test('bounce brake trips at 4 bounces and 8 percent, not before', () => {
   assert.equal(bounceBrake([...Array.from({ length: 100 }, (_, i) => ev(`t${i}`, 'sent', '2026-10-26T15:00:00Z')), ...bounces(0), ...Array.from({ length: 4 }, (_, i) => ev(`t${i}`, 'bounce', '2026-10-26T16:00:00Z'))], tuesdayMorning).braked, false);
 });
 
-test('plan: sends a small paced batch (two an hour at the start), in order, with the footer', () => {
+test('plan: sends everything ready up to the batch size, in order, with the footer', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: null, state: null, prospects, events: [], sender });
   assert.equal(plan.state, 'sending');
-  assert.equal(plan.capToday, 5);
-  assert.deepEqual(plan.items.map(i => i.prospect_id), ['a', 'b']);
+  assert.equal(plan.capToday, 1500);
+  assert.deepEqual(plan.items.map(i => i.prospect_id), ['a', 'b', 'c', 'd', 'e']);
   assert.equal(plan.items[0].to, 'a@biz.com');
   assert.match(plan.items[0].body, /123 Main St/);
   assert.equal(plan.warmupStartedOn, '2026-10-27');
@@ -144,13 +138,13 @@ test('plan: every reason not to send is reported honestly', () => {
   assert.equal(run({ settings: { enabled: true, daily_cap_max: 25, niche_filter: 'dentist' } }).state, 'nothing-to-send');
 
   const fiveToday = ['p1', 'p2', 'p3', 'p4', 'p5'].map(id => ev(id, 'sent', '2026-10-27T14:30:00Z'));
-  const capped = run({ events: fiveToday, state: { warmup_started_on: '2026-10-27' } });
+  const capped = run({ events: fiveToday, settings: { enabled: true, daily_cap_max: 5, niche_filter: null } });
   assert.equal(capped.state, 'cap-reached');
   assert.equal(capped.sentToday, 5);
   // Yesterday's sends do not count against today.
-  assert.equal(run({ events: fiveToday.map(e => ({ ...e, event_at: '2026-10-26T20:00:00Z' })), state: { warmup_started_on: '2026-10-26' } }).state, 'sending');
+  assert.equal(run({ events: fiveToday.map(e => ({ ...e, event_at: '2026-10-26T20:00:00Z' })), settings: { enabled: true, daily_cap_max: 5, niche_filter: null } }).state, 'sending');
   // Two sent in the last hour on a day with room: wait so mail is not sent in a burst.
-  const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], state: { warmup_started_on: '2026-10-22' } }); // day 5: a cap of 10, so two an hour
+  const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], settings: { enabled: true, daily_cap_max: 10, niche_filter: null } }); // a ceiling of 10, so two an hour
   assert.equal(paced.state, 'idle');
   const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-20T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-21T15:00:00Z'))] });
   assert.equal(bounced.state, 'braked');
@@ -158,7 +152,7 @@ test('plan: every reason not to send is reported honestly', () => {
 
 test('plan: a batch never exceeds what is left of today or this hour', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => prospect(id));
-  const plan = planEmailRun({ now: tuesdayMorning, settings: null, state: { warmup_started_on: '2026-10-27' }, prospects, sender, events: [ev('x', 'sent', '2026-10-27T14:10:00Z'), ev('y', 'sent', '2026-10-27T14:20:00Z'), ev('z', 'sent', '2026-10-27T14:30:00Z'), ev('w', 'sent', '2026-10-27T14:40:00Z')] });
+  const plan = planEmailRun({ now: tuesdayMorning, settings: { enabled: true, daily_cap_max: 5, niche_filter: null }, state: null, prospects, sender, events: [ev('x', 'sent', '2026-10-27T14:10:00Z'), ev('y', 'sent', '2026-10-27T14:20:00Z'), ev('z', 'sent', '2026-10-27T14:30:00Z'), ev('w', 'sent', '2026-10-27T14:40:00Z')] });
   assert.equal(plan.capToday, 5);
   assert.equal(plan.items.length, 1);
 });

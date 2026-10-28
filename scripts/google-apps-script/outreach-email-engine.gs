@@ -56,7 +56,7 @@ function runEmailEngine() {
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
     plan.items.forEach(function (item, i) {
-      if (i > 0) Utilities.sleep(20000 + Math.floor(Math.random() * 40000));
+      if (i > 0) Utilities.sleep(2000 + Math.floor(Math.random() * 3000));
       results.push(sendOne_(item, props.getProperty('SENDER_NAME')));
     });
     results = results.concat(scanInbox_(plan.watch || []));
