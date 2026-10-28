@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Weather ahead on Command)
+**Summary:** Master plan 6.3 and 6.15 ask for weather-aware scheduling ('NWS forecast per job day; flags rain/wind/freezing'), naming NWS or Open-Meteo as the free source. New Weather ahead card on the Command screen: the next seven days for Kenosha (high and low, a plain-word summary, and flags for rain, wind or freezing) and, under it, the booked jobs that fall on a flagged day with the reason, each linking to the job. Source is Open-Meteo (free, no key, public data, so no sign-in needed), fetched on the server by loadWeather and cached 30 minutes. Flag thresholds: rain at 60% chance or 0.1 in, wind at 20 mph, freezing at a low of 32 F or less. A missing reading drops that day instead of reading as zero (a unit test caught null being read as a calm day). If the forecast cannot be fetched the card says so. Nothing is rescheduled automatically and no customer is messaged; the plan's one-tap propose-reschedule is not built.
+**Files:** src/lib/weather.ts, src/app/workspace/weather-actions.ts, src/components/app/{WeatherAhead,TodayBoard}.tsx, src/styles/os-skin.css, tests/weather.test.ts.
+**Verified:** typecheck; 928 tests; build; /preview Command at 800 px with the real forecast (Sat to Mon flagged rain).
+**Not verified:** a booked job landing on a flagged day on the live site; phone width; whether 60% and 20 mph are the right thresholds for Oscar's services (window cleaning is more sensitive than house washing).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Data quality center v1)
 **Summary:** Master plan section 9 (Phase 1): a data quality center, 'counts of customers missing phone/address, jobs missing price/cost... each with a fix button'. New page /workspace/quality (More menu, Data quality). Pure logic in src/lib/data-quality.ts; it reads the leads and bookings the app already loads and changes nothing. Checks: finished jobs with no revenue, finished jobs with no costs, upcoming jobs with no price, upcoming jobs with no address, open customers with no usable phone (placeholder NP_ numbers count as missing), leads with no source (blank or Other), and customers entered more than once (the existing planDedupe rules: a completed job for a returning client is never counted as a duplicate). Shows a percent of checked fields in order, worst problem first, each with a few example names and a link to where it gets fixed. No SQL.
 **Files:** src/lib/data-quality.ts, src/components/app/{DataQualityView,Shell,App}.tsx, src/styles/os-skin.css, tests/data-quality.test.ts.
