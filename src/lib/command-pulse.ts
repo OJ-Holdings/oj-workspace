@@ -12,7 +12,7 @@ const addDays = (key: string, n: number) => { const d = new Date(`${key}T12:00:0
  * The few numbers and exceptions the Command screen carries: this month's pace, the open pipeline, and what needs a person right now.
  * Exceptions only appear when their count is above zero. Close rate is jobs won over jobs won plus leads closed without a job; null until there is a decided lead.
  */
-export function commandPulse(data: ExteriorData, jobs: JobItem[], today: string, nowMs: number) {
+export function commandPulse(data: ExteriorData, jobs: JobItem[], today: string, nowMs: number, invoices?: { openCents: number; overdueCents: number; overdueCount: number }) {
   const month = today.slice(0, 7);
   const doneThisMonth = data.leads.filter(l => l.status === 'completed' && doneDay(l)?.startsWith(month));
   const withRevenue = doneThisMonth.filter(l => l.job_revenue !== null);
@@ -33,8 +33,9 @@ export function commandPulse(data: ExteriorData, jobs: JobItem[], today: string,
     lateLeads ? { id: 'late-leads', text: `${lateLeads} new lead${lateLeads === 1 ? '' : 's'} waiting 30+ min for a reply`, href: '/growth' } : null,
     cold ? { id: 'cold', text: `${cold} quote${cold === 1 ? '' : 's'} going cold`, href: '/growth' } : null,
     soon ? { id: 'no-quote', text: `${soon} job${soon === 1 ? '' : 's'} today or tomorrow with no price`, href: '/b/exterior/bookings' } : null,
+    invoices && invoices.overdueCount ? { id: 'overdue-invoices', text: `${invoices.overdueCount} invoice${invoices.overdueCount === 1 ? '' : 's'} overdue, ${(invoices.overdueCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} owed`, href: '/invoices' } : null,
     needFigures ? { id: 'figures', text: `${needFigures} finished job${needFigures === 1 ? '' : 's'} with no revenue entered`, href: '/b/exterior/field' } : null,
   ].filter((e): e is Exception => e !== null);
 
-  return { ticker, pipeline: pipeline(data.leads), exceptions };
+  return { ticker, pipeline: pipeline(data.leads), exceptions, owedCents: invoices ? invoices.openCents : null };
 }
