@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Printer, Trash2 } from 'lucide-react';
-import { createProposal, deleteDraftProposal, loadProposals, setProposalStatus, type ProposalsLoad } from '@/app/workspace/proposal-actions';
+import { createProposal, deleteDraftProposal, loadProposals, setProposalStatus, sharePortalLink, type ProposalsLoad } from '@/app/workspace/proposal-actions';
 import { leadForInvoice, type JobForInvoice } from '@/app/workspace/invoice-actions';
 import { DEFAULT_EXCLUSIONS, DEFAULT_TERMS, draftTotals, effectiveStatus, followUp, paymentTermOptions, statusLabel, summariseProposals, type DraftLine, type Proposal } from '@/lib/proposals';
 import { businessDay } from '@/lib/reporting';
@@ -81,6 +81,16 @@ export function ProposalsView({ org, mode, readOnly, base }: Props) {
         {proposals.map(p => <ProposalRow key={p.id} p={p} today={today} base={base} busy={busy} canWrite={canWrite}
           send={() => void run(() => setProposalStatus(org, p.id, 'sent', today, ''), `${p.number} marked sent.`)}
           decide={(status, note) => void run(() => setProposalStatus(org, p.id, status, today, note), `${p.number} marked ${status}.`)}
+          share={async () => {
+            setBusy(true); setNotice('');
+            try {
+              const r = await sharePortalLink(org, p.id);
+              if (!r.ok) { setNotice(r.message); return; }
+              const url = window.location.origin + r.path;
+              try { await navigator.clipboard.writeText(url); setNotice('Link copied. It works for 30 days. Anyone who has it can read and sign this proposal, so send it only to the customer.'); }
+              catch { window.prompt('Copy this link and send it to the customer:', url); }
+            } catch { setNotice('That did not go through. Try again.'); } finally { setBusy(false); }
+          }}
           remove={() => { if (window.confirm(`Delete draft ${p.number}?`)) void run(() => deleteDraftProposal(org, p.id), 'Draft deleted.'); }} />)}
       </ul>}
     </section>
@@ -90,7 +100,7 @@ export function ProposalsView({ org, mode, readOnly, base }: Props) {
   </>;
 }
 
-function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove }: { p: Proposal; today: string; base: string; busy: boolean; canWrite: boolean; send: () => void; decide: (s: 'accepted' | 'declined', note: string) => void; remove: () => void }) {
+function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove, share }: { p: Proposal; today: string; base: string; busy: boolean; canWrite: boolean; send: () => void; decide: (s: 'accepted' | 'declined', note: string) => void; remove: () => void; share: () => void }) {
   const status = effectiveStatus(p, today);
   const nudge = followUp(p, today);
   return (
@@ -100,13 +110,15 @@ function ProposalRow({ p, today, base, busy, canWrite, send, decide, remove }: {
         <span>{p.number} · valid through {when(p.valid_until)}{p.sent_on ? ` · sent ${when(p.sent_on)}` : ''}</span>
         {nudge && <span className={`proposal-nudge${nudge.days >= 7 ? ' is-late' : ''}`}>{nudge.step}</span>}
         {p.decision_note && <span>{p.decision_note}</span>}
+        {p.signed && <span className="proposal-signed">{p.signed.decision === 'accepted' ? 'Signed' : 'Declined'} online by {p.signed.name} on {when(p.signed.at.slice(0, 10))}{p.signed.decision === 'accepted' ? `, ${cents(p.signed.total_cents)}` : ''}. Fingerprint {p.signed.hash.slice(0, 12)}</span>}
       </div>
       <strong>{cents(p.total_cents)}</strong>
       <span className={`proposal-status is-${status}`}>{statusLabel[status]}</span>
       <div className="proposal-actions">
         <a className="secondary small" href={`${base}/proposals/${p.id}`} target="_blank" rel="noopener"><Printer size={14} aria-hidden="true" /> View</a>
         {canWrite && status === 'draft' && <button className="primary small" disabled={busy} onClick={send}>Mark sent</button>}
-        {canWrite && status === 'sent' && <button className="primary small" disabled={busy} onClick={() => decide('accepted', '')}>Accepted</button>}
+        {canWrite && status === 'sent' && <button className="primary small" disabled={busy} onClick={share}>Share link</button>}
+        {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={() => decide('accepted', '')}>Accepted</button>}
         {canWrite && status === 'sent' && <button className="secondary small" disabled={busy} onClick={() => decide('declined', window.prompt('Why was it declined? (optional)') ?? '')}>Declined</button>}
         {canWrite && status === 'draft' && <button className="icon-button" aria-label={`Delete draft ${p.number}`} disabled={busy} onClick={remove}><Trash2 size={14} aria-hidden="true" /></button>}
       </div>
