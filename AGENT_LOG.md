@@ -1,5 +1,9 @@
 # AGENT LOG
 
+## 2026-10-28 -- Codex (Hyperborea light around the route)
+
+Darkened the alpine material progressively with distance from the existing switchback route. Nearby snow retains its detail and distant slopes fall into deeper shadow; the lighting is scenery only and changes no business records or route calculations. Checked the close and full-mountain view in the local sample workspace, including a 390 x 844 mobile viewport, with no browser warnings or errors. Exact CI and deployment evidence are recorded on the release PR; physical iPhone testing remains outstanding.
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Mercury connected, truck fund and bank balance read from the bank)
 **Summary:** Master plan 8 and 6.17. Oscar supplied a Mercury API token. It was checked with one read-only call (9 active accounts) and stored as OJ_MERCURY_API_TOKEN in the OJ app's git-ignored .env.local (never in the repo, a log or a commit message). Each deploy copies .env.local into the new release, so it takes effect when this change is deployed. The existing read-only Mercury code (src/lib/mercury-server.ts, owner only) then fills the Money page's Mercury panel and In the bank tile. New in this change: the truck fund card reads the balance of the one active Mercury account whose name mentions the truck fund (the plan's OJ EC TRUCK FUND) instead of a hand-typed number (truckBalanceFromBank, withBankBalance in src/lib/truck-fund.ts; it falls back to the hand-logged balance when Mercury is down, no account matches or more than one does, and the manual form is hidden only while the bank figure is in use), and the Command screen shows In the bank, the total across the Mercury accounts, for the owner. Nothing writes to Mercury: the code only uses GET accounts and transactions. Oscar should confirm the token's role in Mercury is Read Only.
 **Files:** src/lib/truck-fund.ts, src/components/app/{TruckFundCard,TodayBoard}.tsx, tests/truck-fund.test.ts.
