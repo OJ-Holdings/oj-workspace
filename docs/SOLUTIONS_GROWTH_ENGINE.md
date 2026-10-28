@@ -6,14 +6,14 @@ The OJ Solutions section is built around the outreach plan: automated email, a d
 |---|---|
 | Command | What to do now, today's quest, email engine status, pipeline, warm leads, inbound |
 | Daily 10 | Each partner's DM quest: next target with the drafted message, "I sent it" button, XP, levels, streaks, duo streak |
-| Email engine | Honest status, today's limit, warm-up ramp, results, pause switch |
+| Email engine | Honest status, today's limit, results, pause switch |
 | Prospects | The existing imported list, now with an "Exterior cleaning" filter |
 | Warm leads | Replied and Demo Booked people, website requests, the warm-call script |
 
 ## What runs where
 
 - **Email sender:** the Google Apps Script `scripts/google-apps-script/outreach-email-engine.gs`, bound to the Outreach spreadsheet. It sends from that Google account. It asks the server what to send, sends exactly that, and reports back.
-- **Rules:** `src/lib/email-engine.ts` (window, warm-up, draft checks, bounce brake, reply handling), exposed two ways with the same code: the app route `/api/outreach-email-engine` (served by the Windows/Tailscale Funnel host) and `netlify/functions/outreach-email-engine.ts` (Netlify). Bearer-token only, using the same secret as the spreadsheet import. The service key stays on the server that answers. No signed-in user can trigger it, and it sends nothing itself.
+- **Rules:** `src/lib/email-engine.ts` (window, daily limit, draft checks, bounce brake, reply handling), exposed two ways with the same code: the app route `/api/outreach-email-engine` (served by the Windows/Tailscale Funnel host) and `netlify/functions/outreach-email-engine.ts` (Netlify). Bearer-token only, using the same secret as the spreadsheet import. The service key stays on the server that answers. No signed-in user can trigger it, and it sends nothing itself.
 - **Texting is untouched.** The one SMS sender rule still holds. This is email only.
 - **Reminders:** the same script emails each partner who is under the DM goal at 10 AM, 2 PM, 6 PM and 8 PM Central. The server picks the reminder text.
 
@@ -42,7 +42,7 @@ To stop: press Pause on the Email engine screen (takes effect within 10 minutes)
 
 - Send from a **separate domain** (for example a lookalike of ojsolutions.org), never the main one, so a spam problem cannot touch the company mail.
 - Use a Google Workspace mailbox on that domain (a free Gmail address is capped near 100 recipients a day and looks less credible), with SPF, DKIM and DMARC set up.
-- The warm-up ramp starts at 5 a day and climbs to 50 by day 28 (5, then 10, 20, 30, 40, 50), never above the ceiling you set. 50 a day is the hard maximum. A new sender that jumps straight to 50 gets flagged, so the ramp is not skipped. Cold email results take weeks to judge.
+- There is no warm-up ramp. The day's limit is the ceiling set on the page (50 to 1,500 a day; 1,500 is Google's own limit for a Workspace account). Each 10-minute run sends up to 40 emails a few seconds apart, Monday to Saturday, 9:00 AM to 4:30 PM Central. The bounce brake still stops sending if too many emails bounce. Mail from a new sending domain at high volume is likely to land in spam, so watch the reply and bounce numbers.
 
 ## What it does by itself instead of an approval step
 

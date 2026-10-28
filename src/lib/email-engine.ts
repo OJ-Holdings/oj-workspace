@@ -7,7 +7,7 @@ import { effectiveOutreachStatus, isExteriorNiche, type OutreachProspect, type O
  * decision about who gets an email, and when, is made here so it can be tested.
  */
 export const HEARTBEAT_FRESH_MINUTES = 25;
-export const BATCH_SIZE = 3;
+export const BATCH_SIZE = 40;
 export const SEND_OPEN_MINUTE = 9 * 60;
 export const SEND_CLOSE_MINUTE = 16 * 60 + 30;
 export const WATCH_LIMIT = 300;
@@ -15,7 +15,7 @@ export const WATCH_LIMIT = 300;
 export const engineStates = ['sending', 'idle', 'outside-window', 'cap-reached', 'paused', 'braked', 'blocked', 'nothing-to-send'] as const;
 export type EngineStateName = typeof engineStates[number];
 export type EngineSettings = { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
-export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 25, niche_filter: null };
+export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 1500, niche_filter: null };
 export type EngineState = { last_heartbeat_at: string; state: EngineStateName; detail: string; warmup_started_on: string | null; sender_domain: string | null };
 export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop'] as const;
 export type EmailEventKind = typeof eventKinds[number];
@@ -37,24 +37,12 @@ export function sendWindow(now: Date): WindowState {
   if (minutes >= SEND_CLOSE_MINUTE) return { open: false, reason: 'after-hours' };
   return { open: true, reason: 'open' };
 }
-const daysBetween = (from: string, to: string) => {
-  const t = (d: string) => { const [y, m, day] = d.split('-').map(Number); return Date.UTC(y, m - 1, day); };
-  return Math.round((t(to) - t(from)) / 86_400_000);
-};
+/** The most the engine will ever send in a day: Google's own limit for a Workspace account (1,500 recipients a day). The database enforces the same limit. */
+export const MAX_DAILY_CAP = 1500;
 
-/** The most the engine will ever send in a day, whatever the ceiling is set to. The database enforces the same limit. */
-export const MAX_DAILY_CAP = 50;
-
-/**
- * New sending accounts earn trust slowly, so the ceiling is reached in steps rather than on day one: 5 a day for the first 3 days, 10 until day 7,
- * 20 until day 14, 30 until day 21, 40 until day 28, then 50. The day's limit is never more than the ceiling set on the page.
- */
-export function warmupCap(startedOn: string | null, today: string, max: number) {
-  const ceiling = Math.min(Math.max(Math.floor(max), 1), MAX_DAILY_CAP);
-  if (!startedOn) return Math.min(5, ceiling);
-  const days = Math.max(daysBetween(startedOn, today), 0);
-  const cap = days < 3 ? 5 : days < 7 ? 10 : days < 14 ? 20 : days < 21 ? 30 : days < 28 ? 40 : 50;
-  return Math.min(cap, ceiling);
+/** The day's limit is the ceiling set on the page, never above the hard maximum. There is no warm-up ramp: the engine sends as much as the ceiling allows. */
+export function dailyCap(max: number) {
+  return Math.min(Math.max(Math.floor(max), 1), MAX_DAILY_CAP);
 }
 
 // ---- Drafts ------------------------------------------------------------------------------
@@ -181,7 +169,7 @@ export function planEmailRun(input: {
   const today = workDay(now);
   const counted = events.filter(e => (e.kind === 'sent' || e.kind === 'reserved'));
   const sentToday = counted.filter(e => workDay(new Date(e.event_at)) === today).length;
-  const capToday = warmupCap(input.state?.warmup_started_on ?? null, today, settings.daily_cap_max);
+  const capToday = dailyCap(settings.daily_cap_max);
   const answered = new Set(events.filter(e => ['reply', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
   const sentRecently = new Set(events.filter(e => e.kind === 'sent' && Date.parse(e.event_at) >= now.getTime() - 30 * 86_400_000).map(e => e.prospect_id));
   const byId = new Map(input.prospects.map(p => [p.id, p]));
@@ -196,7 +184,7 @@ export function planEmailRun(input: {
   if (brake.braked) return done('braked', `${brake.bounced} of ${brake.sent} recent emails bounced. Sending stopped to protect the sender. Fix the list, then switch it on again.`);
   const window = sendWindow(now);
   if (!window.open) return done('outside-window', window.reason === 'sunday' ? 'Sundays are off. Sending resumes Monday 9:00 AM Central.' : 'Sending runs Monday to Saturday, 9:00 AM to 4:30 PM Central.');
-  if (sentToday >= capToday) return done('cap-reached', `Today's limit of ${capToday} is used. This ramps up as the sender builds a track record.`);
+  if (sentToday >= capToday) return done('cap-reached', `Today's limit of ${capToday} is used. Sending resumes tomorrow.`);
   const hourlyLimit = Math.max(2, Math.ceil(capToday / 6));
   const lastHour = counted.filter(e => Date.parse(e.event_at) >= now.getTime() - 3_600_000).length;
   if (lastHour >= hourlyLimit) return done('idle', 'Spacing sends out so they do not arrive in a burst.');

@@ -6,13 +6,12 @@ import NumberFlow from '@number-flow/react';
 import { Mail, Pause, Play, ShieldCheck } from 'lucide-react';
 import { setEmailEngine } from '@/app/workspace/growth-actions';
 import { updateOutreachStatus } from '@/app/workspace/outreach-actions';
-import { ago, emailStats, engineStatus, nextUp, replyInbox, replyToneLabel, sentMail, warmupCap, type EmailEvent, type EngineSettings } from '@/lib/email-engine';
+import { ago, emailStats, engineStatus, nextUp, replyInbox, replyToneLabel, sentMail, dailyCap, type EmailEvent, type EngineSettings } from '@/lib/email-engine';
 import { todayKey } from '@/lib/dm-quests';
 import { Gate, InstallNote, Pill, Stat } from './parts';
 import type { GrowthStore } from './useGrowth';
 
 const kindLabel: Record<EmailEvent['kind'], string> = { reserved: 'Queued', sent: 'Sent', failed: 'Failed', reply: 'Replied', bounce: 'Bounced', stop: 'Asked to stop' };
-const ramp = [[0, 5], [3, 10], [7, 15], [14, 20], [21, 25]] as const;
 
 /** The automated email outreach: honest status, today's limits, results, and setup steps until it is running. */
 export function EmailEngine({ g, base }: { g: GrowthStore; base: string }) {
@@ -26,8 +25,7 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
   const status = engineStatus({ settings, state, now: g.now });
   const stats = emailStats(events, data.prospects, g.now, settings);
   const today = todayKey(g.now);
-  const cap = warmupCap(state?.warmup_started_on ?? null, today, settings.daily_cap_max);
-  const day = state?.warmup_started_on ? Math.max(Math.round((Date.parse(today) - Date.parse(state.warmup_started_on)) / 86_400_000), 0) : 0;
+  const cap = dailyCap(settings.daily_cap_max);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [capDraft, setCapDraft] = useState(String(settings.daily_cap_max));
@@ -75,7 +73,7 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
         <button className={settings.enabled ? 'secondary' : 'primary'} disabled={saving || !blocked} onClick={() => save({ enabled: !settings.enabled })}>
           {settings.enabled ? <><Pause size={15} aria-hidden="true" />Pause sending</> : <><Play size={15} aria-hidden="true" />Resume sending</>}</button>
         <label>Daily ceiling<select value={capDraft} disabled={saving || !blocked} onChange={e => { setCapDraft(e.target.value); void save({ dailyCapMax: Number(e.target.value) }); }}>
-          {[10, 15, 20, 25, 30, 40, 50].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
+          {[50, 100, 250, 500, 1000, 1500].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
         <label>Who to email<select value={niche ?? ''} disabled={saving || !blocked} onChange={e => void save({ niche: e.target.value })}>
           <option value="">Everyone with a good draft</option><option value="exterior">Exterior cleaning first and only</option></select></label>
       </div>
@@ -122,11 +120,6 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
       </section>
 
       <aside className="gx-side">
-        <section className="panel" aria-labelledby="gx-warm-title">
-          <header className="panel-head"><h2 id="gx-warm-title">Warm-up</h2><span className="quiet">{state?.warmup_started_on ? `Day ${day + 1}` : 'Starts with the first send'}</span></header>
-          <p className="quiet">A new sender earns trust slowly. The daily limit climbs on its own, up to your ceiling.</p>
-          <ol className="gx-ramp">{ramp.map(([from, n], i) => { const next = ramp[i + 1]?.[0] ?? Infinity; const on = state?.warmup_started_on ? day >= from && day < next : i === 0; return <li key={from} className={on ? 'is-on' : ''}><b>{n}</b><span>{from === 0 ? 'Days 1-3' : from === 21 ? 'Day 22+' : `Days ${from + 1}-${next}`}</span></li>; })}</ol>
-        </section>
         <section className="panel" aria-labelledby="gx-next-title">
           <header className="panel-head"><h2 id="gx-next-title">Next up</h2><span className="quiet">You can veto, nothing needs approval</span></header>
           {upcoming.length ? <ul className="gx-nextup">{upcoming.map(p => <li key={p.id}>
