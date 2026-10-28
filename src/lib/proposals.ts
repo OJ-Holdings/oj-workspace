@@ -8,6 +8,8 @@ export type Proposal = {
   status: ProposalStatus; valid_until: string; payment_terms: string; terms: string; exclusions: string; notes: string;
   subtotal_cents: number; discount_cents: number; total_cents: number; sent_on: string | null; decided_on: string | null; decision_note: string; created_at: string;
   lines: ProposalLine[];
+  /** The customer's online decision, once there is one (needs the portal SQL). */
+  signed?: { decision: 'accepted' | 'declined'; name: string; at: string; total_cents: number; hash: string } | null;
 };
 export type DraftLine = { description: string; detail: string; quantity: string; price: string; optional: boolean };
 

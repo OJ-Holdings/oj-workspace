@@ -1,5 +1,6 @@
 'use server';
 
+import { createHash, randomBytes } from 'node:crypto';
 import { requireMember } from '@/lib/supabase';
 import { dollarsToCents, isMissingTable } from '@/lib/invoices';
 import type { Proposal, ProposalLine, ProposalStatus } from '@/lib/proposals';
@@ -38,9 +39,13 @@ export async function loadProposals(org: string): Promise<ProposalsLoad> {
   const ids = (props.data ?? []).map(p => p.id as string);
   const lines = ids.length ? await client.from('oj_proposal_lines').select('*').eq('organization_id', org).in('proposal_id', ids).order('position') : { data: [] as Row[], error: null };
   if (lines.error) return { ok: false, reason: 'failed' };
+  // The customer's online decision, when the portal SQL has been run; without it proposals simply have no signature record.
+  const decisions = await client.from('oj_proposal_acceptances').select('proposal_id,decision,signer_name,created_at,agreed_total_cents,document_hash').eq('organization_id', org).order('created_at');
+  const signed = new Map<string, NonNullable<Proposal['signed']>>();
+  if (!decisions.error) for (const d of (decisions.data ?? []) as Row[]) signed.set(String(d.proposal_id), { decision: d.decision as 'accepted' | 'declined', name: String(d.signer_name), at: String(d.created_at), total_cents: Number(d.agreed_total_cents), hash: String(d.document_hash) });
   const byProposal = new Map<string, ProposalLine[]>();
   for (const l of (lines.data ?? []) as Row[]) byProposal.set(String(l.proposal_id), [...(byProposal.get(String(l.proposal_id)) ?? []), toLine(l)]);
-  return { ok: true, proposals: (props.data ?? []).map(p => toProposal(p as Row, byProposal.get(String(p.id)) ?? [])) };
+  return { ok: true, proposals: (props.data ?? []).map(p => ({ ...toProposal(p as Row, byProposal.get(String(p.id)) ?? []), signed: signed.get(String(p.id)) ?? null })) };
 }
 
 export type CreateProposalInput = {
@@ -98,4 +103,32 @@ export async function deleteDraftProposal(org: string, id: string): Promise<Acti
     if (error) return { ok: false, message: friendly(error.message) };
     return { ok: true };
   } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not delete the draft.' }; }
+}
+
+/**
+ * Makes a private link a customer can open, with no account, to read and sign a SENT proposal. The random token is made here; only its SHA-256 hash is
+ * stored (docs/db-change-proposals/RUN-ME-2026-10-28-portal-esign.sql), so the link exists only in what this returns. The link works for 30 days or until
+ * the proposal's valid-through date, whichever is first. Anyone who has it can read and sign that one proposal, so it is shared like a password.
+ */
+export async function sharePortalLink(org: string, proposalId: string): Promise<ActionResult<{ path: string }>> {
+  try {
+    const { client } = await requireMember(org, true);
+    if (!UUID.test(proposalId)) return { ok: false, message: 'Choose a valid proposal.' };
+    const token = randomBytes(32).toString('base64url');
+    const digest = createHash('sha256').update(token).digest('hex');
+    const { error } = await client.rpc('oj_create_portal_link', { p_org: org, p_proposal: proposalId, p_digest: digest, p_days: 30 });
+    if (error) return { ok: false, message: isMissingTable(error) || /function .* does not exist|schema cache/i.test(error.message) ? 'Sharing links is not switched on yet. A founder needs to run the portal SQL.' : friendly(error.message) };
+    return { ok: true, path: `/p/${token}` };
+  } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not create the link.' }; }
+}
+
+/** Stop sharing: every link to this proposal stops working at once. Sharing again makes a new one. */
+export async function stopSharingProposal(org: string, proposalId: string): Promise<ActionResult<{ closed: number }>> {
+  try {
+    const { client } = await requireMember(org, true);
+    if (!UUID.test(proposalId)) return { ok: false, message: 'Choose a valid proposal.' };
+    const { data, error } = await client.rpc('oj_revoke_proposal_links', { p_org: org, p_proposal: proposalId });
+    if (error) return { ok: false, message: friendly(error.message) };
+    return { ok: true, closed: Number(data ?? 0) };
+  } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not stop sharing.' }; }
 }
