@@ -21,7 +21,7 @@ export function TruckFundCard({ store, today, readOnly }: Props) {
   const valid = value.trim() !== '' && Number.isFinite(amount) && amount >= 0 && amount < 100_000_000;
 
   return (
-    <section className="today-card truck-card" aria-labelledby="truck-h">
+    <section id="truck-fund" className="today-card truck-card" aria-labelledby="truck-h">
       <header><h2 id="truck-h"><Truck size={18} aria-hidden="true" /> Work truck fund</h2></header>
       {fund.known ? <>
         <p className="truck-figure"><strong>{money(fund.balance!)}</strong> <span>of {money(fund.goal)} by {day(fund.deadline)}</span></p>

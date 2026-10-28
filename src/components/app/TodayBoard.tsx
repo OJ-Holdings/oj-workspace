@@ -125,7 +125,7 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
             </Link>
           </div>
 
-          <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} />
+          <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} metrics={store.data?.metricEntries ?? []} />
           <WeatherAhead jobs={jobs} base={base} />
 
           <section className="today-card" aria-labelledby="today-needs">
