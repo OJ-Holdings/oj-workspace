@@ -7,8 +7,13 @@ const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', displa
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora', display: 'swap' });
 const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['400', '500', '600'], style: ['normal', 'italic'], variable: '--font-cormorant', display: 'swap' });
 
-export const metadata: Metadata = { title: 'OJ Workspace', description: 'One dashboard for OJ Exterior Care, OJ Solutions and OJ Essentials' };
-export const viewport: Viewport = { themeColor: '#050914', width: 'device-width', initialScale: 1 };
+export const metadata: Metadata = {
+  title: 'OJ Workspace', description: 'One dashboard for OJ Exterior Care, OJ Solutions and OJ Essentials',
+  // Add to Home Screen on iPhone: its own icon and name, full screen with a dark status bar.
+  icons: { apple: '/brand/exterior-mark.png' },
+  appleWebApp: { capable: true, title: 'OJ OS', statusBarStyle: 'black-translucent' },
+};
+export const viewport: Viewport = { themeColor: '#07080b', width: 'device-width', initialScale: 1 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <html lang="en" className={`${manrope.variable} ${sora.variable} ${cormorant.variable}`}><body>{children}</body></html>;

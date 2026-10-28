@@ -244,3 +244,25 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .proposal-row > div:first-child .proposal-nudge.is-late { color: var(--bad); }
 .proposal-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .check { display: flex; align-items: center; gap: 8px; }
+
+/* ---------- Customer directory ---------- */
+.subtabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); }
+.subtabs a { padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--ink-3); text-decoration: none; }
+.subtabs a[aria-current='page'] { background: var(--accent-soft); color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(226, 184, 102, 0.38); }
+.customer-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.customer-list button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 70px 90px 120px; gap: 12px; align-items: center; padding: 12px 14px; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); color: var(--ink); cursor: pointer; }
+.customer-list button:hover { border-color: var(--accent); }
+.customer-list span:first-child { display: grid; gap: 2px; min-width: 0; }
+.customer-list small { color: var(--ink-3); }
+.customer-list .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
+.customer-sheet { display: grid; gap: 14px; min-width: 0; }
+.customer-sheet h3 { margin: 6px 0 0; }
+.customer-contact, .customer-property { border: 1px solid var(--line-2); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 10px; min-width: 0; margin: 0; }
+.customer-contact legend { padding: 0 6px; color: var(--ink-3); font-size: 12px; }
+.customer-sheet label { display: grid; gap: 6px; font-size: 13px; color: var(--ink-3); }
+.customer-sheet input, .customer-sheet textarea, .customer-sheet select { width: 100%; min-width: 0; box-sizing: border-box; }
+.customer-addprop { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.customer-jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.customer-jobs li { display: grid; grid-template-columns: 100px minmax(0, 1fr) 90px 100px auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.customer-merge summary { cursor: pointer; color: var(--ink-3); font-size: 13px; }
+@media (max-width: 640px) { .customer-list button { grid-template-columns: 1fr auto; } .customer-list .num:nth-of-type(3), .customer-list .num:nth-of-type(4) { display: none; } .customer-jobs li { grid-template-columns: 1fr auto; } }
