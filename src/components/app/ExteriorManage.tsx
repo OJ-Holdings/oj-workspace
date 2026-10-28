@@ -20,6 +20,7 @@ import { saveEmployeeAssignment } from '@/app/workspace/employees/actions';
 import { LeadSourceTagger } from './LeadSourceTagger';
 import { RebookList } from './RebookList';
 import { JobCosts } from './JobCosts';
+import { JobTimeline } from './JobTimeline';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -314,6 +315,7 @@ export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base,
             <p className="jobsheet-profit">Profit <b className={profit !== null && profit < 0 ? 'neg' : ''}>{profit === null ? 'enter both amounts' : dollars(profit)}</b>{profit !== null && revenue ? <small> {Math.round((profit / revenue) * 100)}% margin</small> : null}</p>
             <label>Notes<textarea rows={2} maxLength={4000} value={f.notes} onChange={set('notes')} /></label>
           </fieldset>
+          <JobTimeline org={org} leadId={lead.id} live={!base.startsWith('/preview')} />
           <div className="dialog-actions">
             {onAdvanced && <button type="button" className="linkish" onClick={onAdvanced}>Crew, field and closeout details</button>}
             {!readOnly && !done && <button type="button" className="primary" disabled={busy} onClick={() => save(true)}>{busy ? 'Saving' : 'Mark complete and save'}</button>}

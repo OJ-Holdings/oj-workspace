@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, MountainSnow, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X, TrendingUp } from 'lucide-react';
+import { ShieldCheck, BarChart3, Bell, Building2, CalendarDays, CheckSquare, FileText, Home, LogOut, Menu, MessageSquare, Plus, Search, Settings, Users, UsersRound, Wallet, Wrench, Truck, MountainSnow, Activity as ActivityIcon, PanelLeftClose, PanelLeftOpen, UserRoundPlus, CalendarPlus, ReceiptText, ClipboardList, X, TrendingUp } from 'lucide-react';
 import { discoverableVentures, contentPersistenceEnabled, type VentureId } from '@/lib/ventures';
 import { visibleBusinessRoute } from '@/lib/operator-shortcuts';
 import type { Activity, Card } from '@/lib/board';
@@ -19,7 +19,7 @@ import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 import { commandIntents } from '@/lib/command-intents';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -38,6 +38,7 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   // Founders only: hidden from every non-owner in the live workspace (see founderNav below).
   { key:'summit', label:'Hyperborea', path:'/summit', icon:MountainSnow, group:'BUSINESSES' },
   { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
+  { key:'quality', label:'Data quality', path:'/quality', icon:ShieldCheck, group:'MORE' },
   { key:'files', label:'Files', path:'/files', icon:FileText, group:'MORE' },
   { key:'messages', label:'Messages', path:'/messages', icon:MessageSquare, group:'MORE' },
   { key:'team', label:'Team', path:'/team', icon:Users, group:'MORE' },

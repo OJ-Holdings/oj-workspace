@@ -527,3 +527,17 @@ export async function removeJobExpense(org: string, expenseId: string): Promise<
     return { ok: true };
   });
 }
+
+/* ------------------------------ Job history ------------------------------ */
+
+export type JobEvent = { id: string; who: string; text: string; at: string };
+
+/** Everything the workspace recorded about one customer's job, newest first: who changed what, and when. */
+export async function loadJobTimeline(org: string, leadId: string): Promise<{ ok: true; events: JobEvent[] } | { ok: false; message: string }> {
+  let client: Client;
+  try { ({ client } = await requireMember(org, true)); } catch { return { ok: false, message: 'Only workspace members can see job history.' }; }
+  if (typeof leadId !== 'string' || !/^[0-9a-f-]{36}$/i.test(leadId)) return { ok: false, message: 'That job no longer exists.' };
+  const { data, error } = await client.from('activity_log').select('id,operator,description,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(25);
+  if (error) return { ok: false, message: 'History did not load.' };
+  return { ok: true, events: (data ?? []).map(r => ({ id: String(r.id), who: (r.operator as string) || 'Someone', text: (r.description as string) || '', at: r.created_at as string })) };
+}
