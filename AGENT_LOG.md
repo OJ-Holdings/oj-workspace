@@ -1,5 +1,21 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: itemised job costs on the Job sheet, STAGED SQL)
+**Summary:** Phase 1 job drawer, cost side. Master plan 6.1 wants materials, labor and other expenses on the job with a live margin; today a job holds one cost number and only 12 jobs have it. New staged SQL docs/db-change-proposals/RUN-ME-2026-10-28-job-expenses.sql adds ONE table, oj_job_expenses (lead_id, kind materials/fuel/labor/equipment/other, amount, note, date) with RLS like the other workspace tables (members read; owners and members add as themselves and remove). NOT APPLIED. Three server actions in exterior-actions.ts (loadJobExpenses, addJobExpense, removeJobExpense) and a JobCosts component inside the Job sheet: list, Add cost, remove. The itemised total replaces the single cost box, feeds the live profit, and is written to the lead's job_cost (the same field the Money page and reports already read) on every add or remove. If the table is missing, or in /preview, the Job sheet keeps the single cost box exactly as before. If every itemised cost is removed, the old single figure is left alone (missing is not zero).
+**Files:** docs/db-change-proposals/RUN-ME-2026-10-28-job-expenses.sql, src/app/workspace/exterior-actions.ts, src/components/app/{JobCosts,ExteriorManage}.tsx, src/styles/os-skin.css, tests/job-expenses-sql.test.ts (3 PGlite permission checks).
+**Verified:** typecheck; 919 tests; build; SQL applies and enforces member/viewer/stranger rules in PGlite.
+**Not verified:** the itemised UI itself (it only shows on live data once the SQL is run, so /preview cannot render it); phone width. Owner must run the SQL for this to switch on.
+
+---
+
+## 2026-10-27 UTC -- Claude Code (OJ OS: Command gets Act now and This month)
+**Summary:** Two cards on the Command screen from the plan's live board (5.2). Act now lists only what needs a person right now, each with one tap to the place that fixes it: new leads waiting 30+ minutes, quotes going cold, jobs today or tomorrow with no price, finished jobs with no revenue entered. This month shows revenue, jobs done, average job and close rate (won over won plus closed) with the open pipeline by stage and its quoted value. Pure logic in src/lib/command-pulse.ts, built on the Growth queue functions; it reads the leads the app already loads. No SQL.
+**Files:** src/lib/command-pulse.ts, src/components/app/{CommandPulse,TodayBoard,HomeView,App}.tsx, src/styles/os-skin.css, tests/command-pulse.test.ts.
+**Verified:** typecheck; 916 tests; build; /preview Command at 800 px.
+**Not verified:** live figures; phone width. Still missing from plan 5.2: crew lanes, the map, cash position, unassigned-job and overdue-invoice exceptions.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Growth room, Crew and Insight in the dock)
 **Summary:** First step toward the plan's eight rooms (Command, Jobs, Customers, Schedule, Crew, Money, Growth, Insight). New Growth room at /workspace/growth (GrowthView.tsx, src/lib/growth-queues.ts): Answer these now (new leads nobody has replied to, oldest first, late after 30 minutes, Call and Mark contacted), Quotes going cold (open quoted leads untouched 3+ days, biggest first, Call and Followed up), the LSA spend card, Where leads come from (leads, won, win rate, revenue by source) and the rebooking list. All of it reads the leads the app already loads and uses the existing setLeadStatus action; no SQL. The dock now reads Today, Jobs, Customers, Schedule, Crew (was Tasks & Crew), Growth, Money, Invoices, Insight (was Reports under More).
 **Files:** src/lib/growth-queues.ts, src/components/app/{GrowthView,Shell,App}.tsx, src/styles/os-skin.css, tests/growth-queues.test.ts.
