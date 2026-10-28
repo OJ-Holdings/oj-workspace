@@ -118,6 +118,11 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
               <strong>{finance?.available ? money(finance.recordedRevenue) : '-'}</strong>
               <small>{finance?.available ? 'Recorded' : 'Nothing recorded'}</small>
             </Link>
+            {store.data?.mercury?.state === 'available' && <Link href={base + '/finance'} className="today-stat">
+              <span><Wallet size={15} aria-hidden="true" /> In the bank</span>
+              <strong>{money(store.data.mercury.accounts.reduce((t, acc) => t + (acc.currentBalance ?? 0), 0))}</strong>
+              <small>{store.data.mercury.accounts.length} Mercury accounts</small>
+            </Link>}
             <Link href={base + '/finance'} className="today-stat">
               <span><Wallet size={15} aria-hidden="true" /> Out this month</span>
               <strong>{finance?.available ? money(finance.recordedCosts) : '-'}</strong>

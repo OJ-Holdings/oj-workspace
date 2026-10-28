@@ -1,4 +1,4 @@
-import type { MetricEntry } from './dashboard';
+import type { MercurySnapshot, MetricEntry } from './dashboard';
 
 /** The work-truck goal Oscar set on 2026-10-27: $20,000 all-in, ready before the 2027 season. Edit here if the plan changes. */
 export const TRUCK_GOAL = 20000;
@@ -43,4 +43,20 @@ export function truckFund(entries: MetricEntry[], today: string, goal = TRUCK_GO
     daysLeft, perWeekNeeded, perMonthNeeded: (perWeekNeeded * 52) / 12, weeklyRate, projectedDate,
     onTrack: projectedDate === null ? (remaining === 0 ? true : null) : projectedDate <= deadline,
   };
+}
+
+/**
+ * The truck fund balance straight from the bank: the Mercury account whose name mentions the truck fund (the plan's OJ EC TRUCK FUND account).
+ * Returns null when Mercury is not connected, no account matches, or more than one does (never guessing which is meant); the card then falls back to the hand-logged balance.
+ */
+export function truckBalanceFromBank(snapshot: MercurySnapshot | null | undefined): { balance: number; asOf: string; name: string } | null {
+  if (!snapshot || (snapshot.state !== 'available' && snapshot.state !== 'partial')) return null;
+  const matches = snapshot.accounts.filter(a => /truck/i.test(a.name) && a.status === 'active' && a.currentBalance !== null && Number.isFinite(a.currentBalance));
+  if (matches.length !== 1) return null;
+  return { balance: matches[0].currentBalance as number, asOf: snapshot.checkedAt.slice(0, 10), name: matches[0].name };
+}
+
+/** The logged entries plus, when the bank reports the truck fund balance, today's balance from Mercury, so the pace and projection use the real figure. */
+export function withBankBalance(entries: MetricEntry[], bank: { balance: number; asOf: string } | null): MetricEntry[] {
+  return bank ? [...entries, { id: 'mercury-truck-fund', venture: 'exterior', label: TRUCK_LABEL, value: bank.balance, unit: 'USD', measured_on: bank.asOf, note: 'From Mercury' }] : entries;
 }

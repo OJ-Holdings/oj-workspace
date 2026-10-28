@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { TRUCK_LABEL, truckFund } from '../src/lib/truck-fund';
+import { TRUCK_LABEL, truckBalanceFromBank, truckFund, withBankBalance } from '../src/lib/truck-fund';
 import type { MetricEntry } from '../src/lib/dashboard';
 
 const entry = (measured_on: string, value: number, over: Partial<MetricEntry> = {}): MetricEntry => ({ id: measured_on + value, venture: 'exterior', label: TRUCK_LABEL, value, unit: 'USD', measured_on, note: '', ...over });
@@ -52,4 +52,30 @@ test('past the deadline the whole remainder is shown as needed now', () => {
   const f = truckFund([entry('2027-04-10', 15000)], '2027-04-10');
   assert.equal(f.daysLeft, 0);
   assert.equal(f.perWeekNeeded, 5000);
+});
+
+const bank = (accounts: { name: string; balance: number | null; status?: string }[], state: 'available' | 'partial' | 'unavailable' | 'not-connected' = 'available') => ({
+  state, detail: '', checkedAt: '2026-10-28T12:00:00Z', transactions: [],
+  accounts: accounts.map((a, i) => ({ id: String(i), name: a.name, currentBalance: a.balance, availableBalance: a.balance, currency: 'USD', status: a.status ?? 'active' })),
+});
+
+test('the truck fund balance comes from the one Mercury account named for it', () => {
+  const b = truckBalanceFromBank(bank([{ name: '01 Revenue Clearing', balance: 169 }, { name: 'OJ EC TRUCK FUND', balance: 2150.5 }]));
+  assert.deepEqual(b, { balance: 2150.5, asOf: '2026-10-28', name: 'OJ EC TRUCK FUND' });
+});
+
+test('no bank balance when Mercury is down, unconnected, has no truck account, or is ambiguous', () => {
+  assert.equal(truckBalanceFromBank(null), null);
+  assert.equal(truckBalanceFromBank(bank([{ name: 'OJ EC TRUCK FUND', balance: 5 }], 'unavailable')), null);
+  assert.equal(truckBalanceFromBank(bank([{ name: 'Operations', balance: 5 }])), null);
+  assert.equal(truckBalanceFromBank(bank([{ name: 'Truck fund', balance: 5 }, { name: 'Truck savings', balance: 9 }])), null);
+  assert.equal(truckBalanceFromBank(bank([{ name: 'OJ EC TRUCK FUND', balance: null }])), null);
+  assert.equal(truckBalanceFromBank(bank([{ name: 'OJ EC TRUCK FUND', balance: 5, status: 'archived' }])), null);
+});
+
+test('the bank balance is added as an entry for today so the pace and goal use the real number', () => {
+  const entries = [entry('2026-10-01', 1000)];
+  const withBank = withBankBalance(entries, { balance: 1995, asOf: '2026-10-28' });
+  assert.equal(truckFund(withBank, '2026-10-28').balance, 1995);
+  assert.equal(withBankBalance(entries, null), entries);
 });

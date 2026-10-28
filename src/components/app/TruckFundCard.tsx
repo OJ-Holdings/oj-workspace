@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Truck } from 'lucide-react';
 import type { DashboardStore } from './useDashboard';
 import { money } from '@/lib/metrics';
-import { TRUCK_LABEL, truckFund } from '@/lib/truck-fund';
+import { TRUCK_LABEL, truckBalanceFromBank, truckFund, withBankBalance } from '@/lib/truck-fund';
 
 type Props = { store: DashboardStore; today: string; readOnly: boolean };
 
@@ -16,7 +16,9 @@ const day = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('en-
  */
 export function TruckFundCard({ store, today, readOnly }: Props) {
   const [value, setValue] = useState('');
-  const fund = truckFund(store.data?.metricEntries ?? [], today || new Date().toISOString().slice(0, 10));
+  // The owner's Mercury connection reports the truck fund account directly; the hand-logged balance is the fallback.
+  const bank = truckBalanceFromBank(store.data?.mercury);
+  const fund = truckFund(withBankBalance(store.data?.metricEntries ?? [], bank), today || new Date().toISOString().slice(0, 10));
   const amount = Number(value);
   const valid = value.trim() !== '' && Number.isFinite(amount) && amount >= 0 && amount < 100_000_000;
 
@@ -31,10 +33,10 @@ export function TruckFundCard({ store, today, readOnly }: Props) {
             ? 'Goal reached.'
             : `${money(fund.remaining!)} to go. About ${money(Math.ceil(fund.perWeekNeeded!))} a week (${money(Math.ceil(fund.perMonthNeeded!))} a month) to be ready in time.`}
           {fund.projectedDate && fund.remaining !== 0 ? ` At your logged pace you finish around ${day(fund.projectedDate)}${fund.onTrack ? ', on time.' : ', after the deadline.'}` : ''}
-          {' '}Balance as of {day(fund.asOf!)}.
+          {' '}Balance as of {day(fund.asOf!)}{bank ? ', read from Mercury' : ''}.
         </p>
       </> : <p className="today-empty">No balance logged yet. Enter what the truck fund account holds today and this card tracks the rest.</p>}
-      {!readOnly && (
+      {!readOnly && !bank && (
         <form className="truck-form" onSubmit={e => {
           e.preventDefault();
           if (!valid) return;
