@@ -42,7 +42,7 @@ To stop: press Pause on the Email engine screen (takes effect within 10 minutes)
 
 - Send from a **separate domain** (for example a lookalike of ojsolutions.org), never the main one, so a spam problem cannot touch the company mail.
 - Use a Google Workspace mailbox on that domain (a free Gmail address is capped near 100 recipients a day and looks less credible), with SPF, DKIM and DMARC set up.
-- The warm-up ramp starts at 5 a day and rises to 25 by day 22. Do not raise the ceiling quickly. Cold email results take weeks to judge.
+- The warm-up ramp starts at 5 a day and climbs to 50 by day 28 (5, then 10, 20, 30, 40, 50), never above the ceiling you set. 50 a day is the hard maximum. A new sender that jumps straight to 50 gets flagged, so the ramp is not skipped. Cold email results take weeks to judge.
 
 ## What it does by itself instead of an approval step
 

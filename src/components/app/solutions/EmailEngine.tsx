@@ -75,7 +75,7 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
         <button className={settings.enabled ? 'secondary' : 'primary'} disabled={saving || !blocked} onClick={() => save({ enabled: !settings.enabled })}>
           {settings.enabled ? <><Pause size={15} aria-hidden="true" />Pause sending</> : <><Play size={15} aria-hidden="true" />Resume sending</>}</button>
         <label>Daily ceiling<select value={capDraft} disabled={saving || !blocked} onChange={e => { setCapDraft(e.target.value); void save({ dailyCapMax: Number(e.target.value) }); }}>
-          {[10, 15, 20, 25, 30, 40].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
+          {[10, 15, 20, 25, 30, 40, 50].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
         <label>Who to email<select value={niche ?? ''} disabled={saving || !blocked} onChange={e => void save({ niche: e.target.value })}>
           <option value="">Everyone with a good draft</option><option value="exterior">Exterior cleaning first and only</option></select></label>
       </div>
