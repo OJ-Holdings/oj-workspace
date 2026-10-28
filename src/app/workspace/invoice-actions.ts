@@ -109,3 +109,17 @@ export async function voidInvoice(org: string, invoiceId: string, date: string, 
     return { ok: true };
   } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not void the invoice.' }; }
 }
+
+export type JobForInvoice = { leadId: string; name: string; address: string; service: string; amount: number | null };
+
+/** The few facts a job needs to start an invoice: who, where, what, and the amount (what was recorded as paid, else the quote). Only the job's id travels in the URL. */
+export async function leadForInvoice(org: string, leadId: string): Promise<ActionResult<{ lead: JobForInvoice }>> {
+  try {
+    if (!UUID.test(leadId)) return { ok: false, message: 'That job no longer exists.' };
+    const { client } = await requireMember(org, true);
+    const { data } = await client.from('leads').select('id,name,address,service_requested,quote_amount,job_revenue').eq('id', leadId).maybeSingle();
+    if (!data) return { ok: false, message: 'That job no longer exists.' };
+    const amount = data.job_revenue ?? data.quote_amount ?? null;
+    return { ok: true, lead: { leadId: data.id as string, name: (data.name as string) ?? '', address: (data.address as string) ?? '', service: (data.service_requested as string) ?? '', amount: amount === null ? null : Number(amount) } };
+  } catch { return { ok: false, message: 'Only workspace members can start an invoice.' }; }
+}

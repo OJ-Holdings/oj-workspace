@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus, Printer } from 'lucide-react';
-import { issueInvoice, loadInvoices, recordPayment, seedChart, voidInvoice, type AccountOption, type InvoicesLoad } from '@/app/workspace/invoice-actions';
+import { issueInvoice, leadForInvoice, loadInvoices, recordPayment, seedChart, voidInvoice, type AccountOption, type InvoicesLoad, type JobForInvoice } from '@/app/workspace/invoice-actions';
 import { balanceCents, daysOverdue, dollarsToCents, draftTotals, paymentMethods, sortInvoices, summariseInvoices, termOptions, type Invoice } from '@/lib/invoices';
 import { businessDay } from '@/lib/reporting';
 import { dollars } from '@/lib/metrics';
@@ -28,6 +29,18 @@ export function InvoicesView({ org, mode, readOnly, owner, base }: Props) {
 
   const refresh = useCallback(async () => { setLoad(await loadInvoices(org)); }, [org]);
   useEffect(() => { if (mode === 'live') void refresh(); }, [mode, refresh]);
+  // Arriving from a job (?lead=<id>): open the New invoice form filled from that job, once.
+  const [prefill, setPrefill] = useState<JobForInvoice | null>(null);
+  const leadParam = useSearchParams().get('lead');
+  const handled = useRef('');
+  useEffect(() => {
+    if (mode !== 'live' || !leadParam || !load || !load.ok || !load.chartReady || handled.current === leadParam) return;
+    handled.current = leadParam;
+    void leadForInvoice(org, leadParam).then(r => {
+      if (r.ok) { setPrefill(r.lead); setCreating(true); }
+      const url = new URL(window.location.href); url.searchParams.delete('lead'); window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    });
+  }, [mode, leadParam, load, org]);
 
   if (mode === 'preview') return <section className="panel"><p className="quiet">Invoicing works in your live workspace. The sample workspace never creates invoices or moves money.</p></section>;
   if (!load) return <div className="loading" aria-busy="true" />;
@@ -108,7 +121,7 @@ export function InvoicesView({ org, mode, readOnly, owner, base }: Props) {
         )}
       </section>
 
-      <NewInvoice open={creating} close={() => setCreating(false)} accounts={incomeAccounts} today={today} busy={busy}
+      <NewInvoice open={creating} close={() => { setCreating(false); setPrefill(null); }} prefill={prefill} accounts={incomeAccounts} today={today} busy={busy}
         submit={(input) => run(() => issueInvoice(org, input), 'Invoice created.').then(ok => { if (ok) setCreating(false); return ok; })} />
       <PaymentDialog invoice={paying} close={() => setPaying(null)} today={today} busy={busy}
         submit={(input) => run(() => recordPayment(org, input), 'Payment recorded.').then(ok => { if (ok) setPaying(null); return ok; })} />
@@ -116,10 +129,10 @@ export function InvoicesView({ org, mode, readOnly, owner, base }: Props) {
   );
 }
 
-function NewInvoice({ open, close, accounts, today, busy, submit }: { open: boolean; close: () => void; accounts: AccountOption[]; today: string; busy: boolean; submit: (input: Parameters<typeof issueInvoice>[1]) => Promise<boolean> }) {
+function NewInvoice({ open, close, prefill, accounts, today, busy, submit }: { open: boolean; close: () => void; prefill: JobForInvoice | null; accounts: AccountOption[]; today: string; busy: boolean; submit: (input: Parameters<typeof issueInvoice>[1]) => Promise<boolean> }) {
   const defaultAccount = (division: string) => accounts.find(a => a.code === DEFAULT_ACCOUNT[division])?.id ?? accounts[0]?.id ?? '';
   const blank = useCallback((division = 'exterior'): { key: string; name: string; email: string; billTo: string; division: string; netDays: number; issueDate: string; notes: string; lines: Line[] } => (
-    { key: newKey(), name: '', email: '', billTo: '', division, netDays: 30, issueDate: today, notes: '', lines: [{ description: '', quantity: '1', price: '', incomeAccountId: defaultAccount(division) }] }), [today, accounts]); // eslint-disable-line react-hooks/exhaustive-deps
+    { key: newKey(), name: prefill?.name ?? '', email: '', billTo: prefill?.address ?? '', division, netDays: 30, issueDate: today, notes: '', lines: [{ description: prefill?.service ?? '', quantity: '1', price: prefill?.amount != null ? String(prefill.amount) : '', incomeAccountId: defaultAccount(division) }] }), [today, accounts, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
   const [f, setF] = useState(blank);
   useEffect(() => { if (open) setF(blank()); }, [open, blank]);
   const parsed = f.lines.map(l => ({ quantity: Number(l.quantity) || 0, unit_price_cents: dollarsToCents(l.price) ?? 0 }));
@@ -127,7 +140,7 @@ function NewInvoice({ open, close, accounts, today, busy, submit }: { open: bool
   const setLine = (index: number, patch: Partial<Line>) => setF({ ...f, lines: f.lines.map((l, i) => i === index ? { ...l, ...patch } : l) });
   return (
     <Modal title="New invoice" open={open} onClose={close}>
-      <form onSubmit={e => { e.preventDefault(); void submit({ key: f.key, name: f.name, email: f.email, billTo: f.billTo, division: f.division, issueDate: f.issueDate, netDays: f.netDays, notes: f.notes, lines: f.lines.map(l => ({ description: l.description, quantity: Number(l.quantity), price: l.price, incomeAccountId: l.incomeAccountId })) }); }}>
+      <form onSubmit={e => { e.preventDefault(); void submit({ key: f.key, name: f.name, email: f.email, billTo: f.billTo, division: f.division, issueDate: f.issueDate, netDays: f.netDays, notes: f.notes, leadId: prefill?.leadId ?? null, lines: f.lines.map(l => ({ description: l.description, quantity: Number(l.quantity), price: l.price, incomeAccountId: l.incomeAccountId })) }); }}>
         <div className="form-grid">
           <label>Bill to<input required maxLength={200} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Customer or company" /></label>
           <label>Email<input type="email" maxLength={200} value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>
