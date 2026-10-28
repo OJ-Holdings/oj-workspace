@@ -14,6 +14,12 @@ export type PulseEvent = {
   group?: string; many?: string; count?: number;
 };
 
+/** Recent customer-relevant entries for the compact bell; never fabricate urgency or payment status. */
+export function notificationEvents(events: PulseEvent[], limit = 8): PulseEvent[] {
+  const kinds = new Set<PulseKind>(['lead', 'customer', 'reply', 'proposal-won', 'proposal-lost', 'booking', 'payment']);
+  return events.filter(event => kinds.has(event.kind)).slice(0, Math.max(0, Math.min(20, limit)));
+}
+
 export const ENGINE = 'Email engine';
 
 /** Points for each kind of work. Money and closed deals score most; small edits score a little so nothing is invisible. */
