@@ -32,6 +32,7 @@ import { InvoicesView } from './InvoicesView';
 import { HyperboreaView } from './HyperboreaView';
 import type { WorkData } from '@/lib/work';
 import { GrowthView } from './GrowthView';
+import { portfolio } from '@/lib/portfolio';
 import { DataQualityView } from './DataQualityView';
 import { AnalyticsView, CalendarView, CrmView, FilesView, FinanceView, MessagesView, SettingsView, type Connections } from './Pages';
 
@@ -259,13 +260,22 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <div className="page">
           <header className="page-head"><h1>Businesses</h1><p>Manage the active businesses and explore the Oscar Jacob production studio preview.</p></header>
           <div className="business-index">
-            {ventureList.map(v => (
+            {ventureList.map(v => {
+              const fig = store.data && store.now ? portfolio(store.data.finance, store.now.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }))[v.id] : null;
+              const usd0 = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+              return (
               <Link key={v.id} href={`${base}/b/${v.id}`} className="business-tile" data-venture={v.id}>
                 <span className="venture-logo"><Image src={v.mark} alt="" width={96} height={96} /></span>
                 <h2>{v.name}</h2><p>{v.tagline}</p>
+                {fig && <dl className="business-tile-money">
+                  <div><dt>This month</dt><dd>{usd0(fig.monthIn)} in, {usd0(fig.monthOut)} out</dd></div>
+                  <div><dt>This year</dt><dd>{usd0(fig.yearIn)} in{fig.margin === null ? '' : `, ${Math.round(fig.margin * 100)}% left over`}</dd></div>
+                  <div><dt>Share of revenue</dt><dd>{fig.share === null ? '-' : `${Math.round(fig.share * 100)}%`}</dd></div>
+                </dl>}
                 <span className="business-tile-foot">{open.filter(c => c.business === v.id).length} open tasks</span>
               </Link>
-            ))}
+              );
+            })}
             {!contentPersistenceEnabled && <Link href={`${base}/tools/content-preview`} className="business-tile" data-venture="content">
               <span className="venture-logo"><Image src={ventures.content.mark} alt="" width={96} height={96} /></span>
               <h2>Oscar Jacob</h2><p>Production Studio · read-only sample</p>

@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: portfolio figures on Businesses)
+**Summary:** Master plan 11b: a portfolio view that always shows every division side by side with the same figures, so where to put time is answered with numbers. Each business tile on the Businesses page now carries This month (money in and out), This year (money in, and the margin once both revenue and costs have been entered) and its Share of all revenue. Pure logic in src/lib/portfolio.ts over the finance entries the page already has. Margin is blank, not 100%, until costs are entered, and share is blank until anything has come in. Cash per business is not shown (needs the Mercury feed).
+**Files:** src/lib/portfolio.ts, src/components/app/App.tsx, src/styles/os-skin.css, tests/portfolio.test.ts.
+**Verified:** typecheck; 930 tests; build; /preview/businesses at 800 px (sample data).
+**Not verified:** live figures; phone width. Not built from 11b: the season switch (in-season versus off-season Home).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Owed to you and overdue invoices on Command)
 **Summary:** Master plan 5.2: the Command screen's money pulse should show unpaid invoices and its exceptions should include an overdue invoice. The This month card now has Owed to you (the open balance on invoices) and Act now gains a line such as '2 invoices overdue, $1,200 owed' linking to Invoices. Both come from the invoices already in the books (loadInvoices and summariseInvoices) and appear only on the live workspace, and only once invoicing is switched on and there is something to show. The summary is computed at render because the business date is set after the page mounts.
 **Files:** src/lib/command-pulse.ts, src/components/app/CommandPulse.tsx, tests/command-pulse.test.ts.
