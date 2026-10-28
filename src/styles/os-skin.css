@@ -199,3 +199,11 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .jobcosts li b { font-variant-numeric: tabular-nums; }
 .jobcosts-add { display: grid; grid-template-columns: 110px 100px minmax(0, 1fr) auto; gap: 8px; }
 @media (max-width: 640px) { .jobcosts-add { grid-template-columns: 1fr 1fr; } .jobcosts-add input[type="text"] { grid-column: 1 / -1; } }
+
+/* ---------- Job history ---------- */
+.jobtimeline summary { cursor: pointer; color: var(--ink-3); font-size: 13px; }
+.jobtimeline ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; max-height: 220px; overflow-y: auto; }
+.jobtimeline li { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; font-size: 13px; }
+.jobtimeline time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.jobtimeline small { color: var(--ink-3); }
+@media (max-width: 640px) { .jobtimeline li { grid-template-columns: 1fr; gap: 2px; } }

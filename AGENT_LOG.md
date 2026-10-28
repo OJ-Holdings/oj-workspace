@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: job History on the Job sheet)
+**Summary:** Master plan 6.1 asks for a job timeline: every event, who and when. The workspace already records each change to a customer in activity_log, so the Job sheet now has a History section (JobTimeline.tsx, loadJobTimeline in exterior-actions.ts): the last 25 events for that customer, newest first, with the time in Chicago time and who did it. It loads the first time it is opened and only on the live workspace. Read-only; no SQL.
+**Files:** src/app/workspace/exterior-actions.ts, src/components/app/{JobTimeline,ExteriorManage}.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; tests; build.
+**Not verified:** how it looks (live-only, /preview cannot render it); that older activity rows carry a lead id for every event.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Invoice this job)
 **Summary:** Plan 6.1 wants a finished job to lead straight to its invoice. The Job sheet has an Invoice this job link that opens Invoices with the New invoice form already filled from the job: bill-to name and address, the service as the line, and the amount (what was recorded as paid, else the quote). Only the job's id travels in the URL (?lead=<id>); a new leadForInvoice server action looks the details up as the signed-in member. Nothing is created until the user presses Create invoice, and the invoice carries the lead id. Deliberately NOT automatic: an invoice posts to the new ledger while the job's recorded revenue already feeds the old Money totals, so turning one into the other needs a deliberate step until the two are unified.
 **Files:** src/app/workspace/invoice-actions.ts, src/components/app/{InvoicesView,ExteriorManage}.tsx.
