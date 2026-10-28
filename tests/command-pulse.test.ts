@@ -38,3 +38,12 @@ test('exceptions appear only when counted', () => {
   assert.deepEqual(p.exceptions.map(e => e.id), ['late-leads', 'cold', 'no-quote', 'figures']);
   assert.match(p.exceptions[2].text, /^1 job /);
 });
+
+test('overdue invoices become an exception and the open amount is carried; without invoices it is null', () => {
+  const p = commandPulse(data([]), [], '2026-10-27', NOW, { openCents: 250000, overdueCents: 120000, overdueCount: 2 });
+  assert.deepEqual(p.exceptions.map(e => e.id), ['overdue-invoices']);
+  assert.match(p.exceptions[0].text, /^2 invoices overdue, \$1,200 owed$/);
+  assert.equal(p.owedCents, 250000);
+  assert.equal(commandPulse(data([]), [], '2026-10-27', NOW).owedCents, null);
+  assert.deepEqual(commandPulse(data([]), [], '2026-10-27', NOW, { openCents: 0, overdueCents: 0, overdueCount: 0 }).exceptions, []);
+});

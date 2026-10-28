@@ -8,6 +8,22 @@
 
 ---
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: portfolio figures on Businesses)
+**Summary:** Master plan 11b: a portfolio view that always shows every division side by side with the same figures, so where to put time is answered with numbers. Each business tile on the Businesses page now carries This month (money in and out), This year (money in, and the margin once both revenue and costs have been entered) and its Share of all revenue. Pure logic in src/lib/portfolio.ts over the finance entries the page already has. Margin is blank, not 100%, until costs are entered, and share is blank until anything has come in. Cash per business is not shown (needs the Mercury feed).
+**Files:** src/lib/portfolio.ts, src/components/app/App.tsx, src/styles/os-skin.css, tests/portfolio.test.ts.
+**Verified:** typecheck; 930 tests; build; /preview/businesses at 800 px (sample data).
+**Not verified:** live figures; phone width. Not built from 11b: the season switch (in-season versus off-season Home).
+
+---
+
+## 2026-10-28 UTC -- Claude Code (OJ OS: Owed to you and overdue invoices on Command)
+**Summary:** Master plan 5.2: the Command screen's money pulse should show unpaid invoices and its exceptions should include an overdue invoice. The This month card now has Owed to you (the open balance on invoices) and Act now gains a line such as '2 invoices overdue, $1,200 owed' linking to Invoices. Both come from the invoices already in the books (loadInvoices and summariseInvoices) and appear only on the live workspace, and only once invoicing is switched on and there is something to show. The summary is computed at render because the business date is set after the page mounts.
+**Files:** src/lib/command-pulse.ts, src/components/app/CommandPulse.tsx, tests/command-pulse.test.ts.
+**Verified:** typecheck; 929 tests; build; the overdue and owed logic in unit tests.
+**Not verified:** on the live site (no invoices exist yet; preview does not load invoices). Cash in the bank is still missing from the pulse until the Mercury feed exists.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Weather ahead on Command)
 **Summary:** Master plan 6.3 and 6.15 ask for weather-aware scheduling ('NWS forecast per job day; flags rain/wind/freezing'), naming NWS or Open-Meteo as the free source. New Weather ahead card on the Command screen: the next seven days for Kenosha (high and low, a plain-word summary, and flags for rain, wind or freezing) and, under it, the booked jobs that fall on a flagged day with the reason, each linking to the job. Source is Open-Meteo (free, no key, public data, so no sign-in needed), fetched on the server by loadWeather and cached 30 minutes. Flag thresholds: rain at 60% chance or 0.1 in, wind at 20 mph, freezing at a low of 32 F or less. A missing reading drops that day instead of reading as zero (a unit test caught null being read as a calm day). If the forecast cannot be fetched the card says so. Nothing is rescheduled automatically and no customer is messaged; the plan's one-tap propose-reschedule is not built.
 **Files:** src/lib/weather.ts, src/app/workspace/weather-actions.ts, src/components/app/{WeatherAhead,TodayBoard}.tsx, src/styles/os-skin.css, tests/weather.test.ts.
