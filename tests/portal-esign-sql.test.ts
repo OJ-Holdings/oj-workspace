@@ -88,12 +88,15 @@ test('accepting records the signature, the chosen add-on, the agreed total and a
   const r = (await db.query<{ r: { decision: string; agreed_total_cents: number; document_hash: string } }>(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', 'Thanks', array['${s.optional}']::uuid[], '10.0.0.1', '203.0.113.9, 10.0.0.1', 'Mozilla/5.0') as r`)).rows[0].r;
   assert.deepEqual([r.decision, r.agreed_total_cents], ['accepted', 275000 + 235000]);
   assert.match(r.document_hash, /^[a-f0-9]{64}$/);
+  const receipt = (await db.query<{ p: { decision: { selected_optional_ids: string[]; agreed_total_cents: number } } }>(`select public.oj_portal_proposal('${s.t}') as p`)).rows[0].p;
+  assert.deepEqual(receipt.decision.selected_optional_ids, [s.optional]);
+  assert.equal(receipt.decision.agreed_total_cents, r.agreed_total_cents);
   await assert.rejects(() => db.query(`select public.oj_portal_decide('${s.t}', 'accepted', 'Jane Q. Customer', '', null, '10.0.0.1', '203.0.113.9, 10.0.0.1', 'x')`), /already been decided/);
   await as(db, owner);
   const p = (await db.query<{ status: string; decision_note: string }>(`select status, decision_note from oj_proposals where id = '${s.id}'`)).rows[0];
   assert.deepEqual([p.status, p.decision_note], ['accepted', 'Accepted online by Jane Q. Customer: Thanks']);
   const a = (await db.query<{ signer_name: string; ip_address: string; forwarded_for: string; selected_optional_ids: string[]; document_hash: string }>('select signer_name, ip_address, forwarded_for, selected_optional_ids, document_hash from oj_proposal_acceptances')).rows[0];
-  // The address the trusted proxy reported is kept apart from the raw header chain, which is recorded exactly as received.
+  // Public callers can supply these fields; never treat their values as identity evidence.
   assert.deepEqual([a.signer_name, a.ip_address, a.forwarded_for, a.selected_optional_ids, a.document_hash], ['Jane Q. Customer', null, null, [s.optional], r.document_hash]);
 });
 

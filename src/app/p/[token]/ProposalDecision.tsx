@@ -25,7 +25,8 @@ export function ProposalDecision({ token, baseCents, optional }: { token: string
   };
 
   if (done) return <div className="decision-done" role="status"><h2>{done.decision === 'accepted' ? 'Thank you. This proposal is accepted.' : 'Thank you. We have recorded that you declined.'}</h2>
-    <p>{done.decision === 'accepted' ? `You agreed to ${money(done.agreedCents)}. We will be in touch to schedule the work. You can print this page for your records.` : 'If anything changes, just let us know.'}</p></div>;
+    <p>{done.decision === 'accepted' ? `You agreed to ${money(done.agreedCents)}. We will be in touch to schedule the work. You can print this page for your records.` : 'If anything changes, just let us know.'}</p>
+    {done.decision === 'accepted' && <p>Selected optional services: {optional.filter(o => picked.includes(o.id)).map(o => o.description).join(', ') || 'None'}</p>}</div>;
 
   return (
     <form className="decision" onSubmit={e => { e.preventDefault(); if (agree && name.trim().length >= 2) void send('accepted'); }}>

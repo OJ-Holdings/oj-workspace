@@ -12,7 +12,7 @@ type Line = { id: string; description: string; detail: string; quantity: number;
 type Proposal = {
   number: string; customer_name: string; site_address: string; status: string; valid_until: string; payment_terms: string; terms: string; exclusions: string; notes: string;
   subtotal_cents: number; discount_cents: number; total_cents: number; lines: Line[]; expired: boolean;
-  decision: { decision: 'accepted' | 'declined'; signer_name: string; at: string; agreed_total_cents: number } | null;
+  decision: { decision: 'accepted' | 'declined'; signer_name: string; at: string; agreed_total_cents: number; selected_optional_ids: string[] } | null;
 };
 
 const money = (cents: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -70,7 +70,9 @@ export default async function PublicProposal({ params }: { params: Promise<{ tok
         {p.exclusions ? <><h2>Exclusions</h2><p className="copy">{p.exclusions}</p></> : null}
         {p.notes ? <><h2>Notes</h2><p className="copy">{p.notes}</p></> : null}
 
-        {p.decision && <div className="decided" role="status"><b>{p.decision.decision === 'accepted' ? `Accepted by ${p.decision.signer_name}` : `Declined by ${p.decision.signer_name}`}</b> on {when(p.decision.at)}{p.decision.decision === 'accepted' ? `, for ${money(p.decision.agreed_total_cents)}.` : '.'}</div>}
+        {p.decision && <div className="decided" role="status"><b>{p.decision.decision === 'accepted' ? `Accepted by ${p.decision.signer_name}` : `Declined by ${p.decision.signer_name}`}</b> on {when(p.decision.at)}{p.decision.decision === 'accepted' ? `, for ${money(p.decision.agreed_total_cents)}.` : '.'}
+          {p.decision.decision === 'accepted' && <p>Selected optional services: {optional.filter(o => p.decision?.selected_optional_ids?.includes(o.id)).map(o => o.description).join(', ') || 'None'}</p>}
+        </div>}
         {!p.decision && p.expired && <div className="decided" role="status">This proposal expired on {when(p.valid_until)}. Please contact us for a new one.</div>}
         {open && <ProposalDecision token={token} baseCents={p.total_cents} optional={optional.map(o => ({ id: o.id, description: o.description, amount_cents: o.amount_cents }))} />}
       </article>

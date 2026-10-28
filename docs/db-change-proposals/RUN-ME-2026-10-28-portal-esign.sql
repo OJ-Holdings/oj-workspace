@@ -137,7 +137,7 @@ begin
   select * into p from public.oj_proposals where organization_id = l.organization_id and id = l.proposal_id;
   select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'description', x.description, 'detail', x.detail, 'quantity', x.quantity, 'unit_price_cents', x.unit_price_cents, 'amount_cents', x.amount_cents, 'optional', x.optional) order by x.position), '[]'::jsonb)
     into items from public.oj_proposal_lines x where x.organization_id = l.organization_id and x.proposal_id = l.proposal_id;
-  select jsonb_build_object('decision', a.decision, 'signer_name', a.signer_name, 'at', a.created_at, 'agreed_total_cents', a.agreed_total_cents)
+  select jsonb_build_object('decision', a.decision, 'signer_name', a.signer_name, 'at', a.created_at, 'agreed_total_cents', a.agreed_total_cents, 'selected_optional_ids', a.selected_optional_ids)
     into signed from public.oj_proposal_acceptances a where a.organization_id = l.organization_id and a.proposal_id = l.proposal_id order by a.created_at desc limit 1;
   update public.oj_portal_links set last_seen_at = now() where id = l.id;
   return jsonb_build_object('number', p.number, 'customer_name', p.customer_name, 'site_address', p.site_address, 'status', p.status, 'valid_until', p.valid_until,
