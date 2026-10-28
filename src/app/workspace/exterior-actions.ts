@@ -589,7 +589,10 @@ export async function bookCommercialVisits(org: string, input: CommercialBooking
         for (const d of plan.filter(x => x.visit === v)) { await book(client, who, lead.id, d.date, slot); booked += 1; }
       }
     } catch (error) {
-      const why = error instanceof Error ? error.message.replace(/^!/, '') : 'Something went wrong.';
+      // Only a deliberate message for the person (it starts with '!') is shown; a database or network error is logged here and shown as a generic reason.
+      const deliberate = error instanceof Error && error.message.startsWith('!');
+      if (!deliberate) console.error('Commercial booking failed part-way:', error instanceof Error ? error.message : error);
+      const why = deliberate ? (error as Error).message.slice(1) : 'a system error occurred.';
       say(`${booked} of ${plan.length} days were booked before a problem: ${why} Check the calendar for ${company} before booking again.`);
     }
     return { ok: true, visits, days: plan.length, first, last };
