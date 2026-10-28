@@ -24,7 +24,7 @@ function memoryStore(init: { prospects: EngineProspect[]; events?: EmailEvent[];
     settings: async () => s.settings, state: async () => s.state, prospects: async () => s.prospects, events: async () => s.events,
     async record(events: NewEvent[]) {
       const fresh = events.filter(e => !s.keys.has(e.dedupe_key));
-      for (const e of fresh) { s.keys.add(e.dedupe_key); s.events.push({ prospect_id: e.prospect_id, kind: e.kind, event_at: e.event_at, dedupe_key: e.dedupe_key }); }
+      for (const e of fresh) { s.keys.add(e.dedupe_key); s.events.push({ prospect_id: e.prospect_id, kind: e.kind, event_at: e.event_at, detail: e.detail, dedupe_key: e.dedupe_key }); }
       return fresh;
     },
     async setStatus(pid, status) { s.statuses.push([pid, status]); },
@@ -93,7 +93,7 @@ test('report records sends and moves status forward once, even if the script ret
   assert.equal(s.statuses.length, 2);
 });
 
-test('report classifies replies: stop requests suppress, auto-replies are ignored, text is never stored', async () => {
+test('report classifies replies: stop requests suppress, auto-replies are ignored, only a real reply keeps its first lines', async () => {
   const { s, store } = memoryStore({ prospects: [1, 2, 3, 4].map(n => prospect(n, { outreach_status: 'Emailed' })) });
   const out = await reportRun(store, { now: tuesday, results: [
     { prospect_id: id(1), kind: 'reply', ref: 'm1', text: 'Sure, call me at 3' },
@@ -104,7 +104,9 @@ test('report classifies replies: stop requests suppress, auto-replies are ignore
   assert.equal(out.recorded, 3);
   assert.equal(out.ignored, 1);
   assert.deepEqual(s.statuses, [[id(1), 'Replied'], [id(2), 'Not Interested']]);
-  assert.ok(s.events.every(e => !JSON.stringify(e).includes('Sure, call me')));
+  assert.ok(s.events.filter(e => e.kind !== 'reply').every(e => !e.detail), 'stops and bounces keep no text');
+  assert.equal(s.events.find(e => e.kind === 'reply')?.detail, 'interested|Sure, call me at 3');
+  assert.ok(!JSON.stringify(s.events).includes('stop emailing'), 'a stop request is never stored');
   assert.deepEqual(s.events.map(e => e.kind).sort(), ['bounce', 'reply', 'stop']);
 });
 
@@ -145,4 +147,19 @@ test('endpoint: bearer token, JSON object and known action are required before a
   } finally {
     if (previous === undefined) delete process.env.OJ_OUTREACH_SYNC_TOKEN; else process.env.OJ_OUTREACH_SYNC_TOKEN = previous;
   }
+});
+
+test('the claim keeps the subject, and a real reply keeps its tone and first lines but a stop keeps nothing', async () => {
+  const { s, store } = memoryStore({ prospects: [1, 2].map(n => prospect(n)) });
+  const plan = await planRun(store, env, { now: tuesday, senderName: 'Oscar' });
+  assert.equal(plan.items.length, 2);
+  assert.ok(s.events.filter(e => e.kind === 'reserved').every(e => e.detail === 'Missed calls'));
+  await reportRun(store, { now: tuesday, results: [
+    { prospect_id: id(1), kind: 'reply', ref: 'm1', text: 'Sounds good, call me tomorrow.\n\nOn Mon, Oct 26, 2026 at 9:00 AM Oscar wrote:\n> Hi Sam' },
+    { prospect_id: id(2), kind: 'reply', ref: 'm2', text: 'Please remove me from your list.' },
+  ] });
+  const reply = s.events.find(e => e.kind === 'reply');
+  assert.equal(reply?.detail, 'interested|Sounds good, call me tomorrow.');
+  const stop = s.events.find(e => e.kind === 'stop');
+  assert.equal(stop?.detail, '');
 });

@@ -190,3 +190,27 @@
 }
 
 .outreach-preview-note + .gx-head { margin-top: var(--s-4); }
+
+/* Email engine: reply inbox, sent mail, next up */
+.gx-inbox { margin-block: var(--s-4); }
+.gx-replies { list-style: none; margin: 0; padding: 0; display: grid; }
+.gx-replies li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: var(--s-4); align-items: center; padding: var(--s-3) 0; border-top: 1px solid var(--line); }
+.gx-replies li:first-child { border-top: 0; }
+.gx-replies h3 { margin: 0 0 4px; font-size: var(--t-md); }
+.gx-replies p { margin: 0; overflow-wrap: anywhere; }
+.gx-replies small { margin-left: var(--s-2); }
+.gx-tone { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: var(--t-xs); font-weight: 700; border: 1px solid var(--line-2); color: var(--ink-2); }
+.gx-tone.is-interested { color: var(--good); border-color: color-mix(in srgb, var(--good) 50%, transparent); }
+.gx-tone.is-later { color: var(--watch); border-color: color-mix(in srgb, var(--watch) 50%, transparent); }
+.gx-sentmail, .gx-nextup { list-style: none; margin: 0; padding: 0; display: grid; }
+.gx-sentmail li, .gx-nextup li { border-top: 1px solid var(--line); padding: var(--s-2) 0; }
+.gx-sentmail li:first-child, .gx-nextup li:first-child { border-top: 0; }
+.gx-sentmail summary, .gx-nextup summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; cursor: pointer; }
+.gx-sentmail summary span, .gx-nextup summary span { color: var(--ink-2); overflow-wrap: anywhere; }
+.gx-sentmail pre, .gx-nextup pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin: var(--s-2) 0 0; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.gx-nextup li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-3); align-items: start; }
+@media (max-width: 720px) {
+  .gx-replies li { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+}
+.gx-quote { margin: 4px 0 !important; overflow-wrap: anywhere; font-style: italic; }
+.gx-quote .gx-tone { font-style: normal; margin-right: var(--s-2); }

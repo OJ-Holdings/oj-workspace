@@ -4,6 +4,15 @@
 
 Integrated the staged portal on current main for review. The public decision RPC can be called directly, so client-supplied IP and browser fields are not trustworthy: this version stores those fields as null rather than claiming identity evidence. The earlier entry's description of IP capture no longer applies. Production SQL and customer acceptance have not been activated or verified; exact CI, restored backup and live role/flow checks remain required.
 
+## 2026-10-28 UTC -- Claude Code (Solutions email engine, Tier 1: reply inbox, sent mail, Next up)
+**Summary:** The Email engine page now shows replies (tone guess plus the first 280 characters), exactly what went out (subject recorded at claim time, draft body), and a veto-only "Next up" list with Skip (marks the prospect Dead, no approval step). Warm leads shows the latest reply text. The setup panel and the script header now match the real setup (standalone Apps Script project, host .env.local, ENGINE_URL). No schema change: the subject rides in the reserved event's detail and the reply in the reply event's detail (tone|text), so there is no SQL to apply. The old "reply text is never stored" rule is intentionally replaced; stop requests still keep nothing.
+**Files:** src/lib/{email-engine,email-engine-api,growth-preview}.ts, src/components/app/solutions/{EmailEngine,WarmLeads,SolutionsSuite}.tsx, src/styles/solutions-growth.css, scripts/google-apps-script/outreach-email-engine.gs, docs/SOLUTIONS_GROWTH_ENGINE.md, tests/{email-engine,email-engine-api}.test.ts.
+**Verified:** typecheck; 977 tests; webpack build with the Google Fonts mock (the sandbox cannot reach Google Fonts); /preview Email engine and Warm leads at 1366 px and 390 px, no horizontal overflow.
+**Not verified:** live data; clicking Skip; the Windows host. Emails sent before this release have no recorded subject and show "Subject not recorded". Replies recorded before it show no text.
+**Next:** Tier 2 (follow-ups, subject/opening variants with reply rate per variant, health strip) needs real columns, so it needs a staged SQL change.
+
+---
+
 ## 2026-10-28 -- Codex (Hyperborea light around the route)
 
 Darkened the alpine material progressively with distance from the existing switchback route. Nearby snow retains its detail and distant slopes fall into deeper shadow; the lighting is scenery only and changes no business records or route calculations. Checked the close and full-mountain view in the local sample workspace, including a 390 x 844 mobile viewport, with no browser warnings or errors. Exact CI and deployment evidence are recorded on the release PR; physical iPhone testing remains outstanding.

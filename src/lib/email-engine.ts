@@ -82,12 +82,38 @@ export function composeEmail(p: Pick<EngineProspect, 'email_subject' | 'email_bo
 }
 
 export type ReplyKind = 'reply' | 'stop' | 'auto';
-/** Reads only the new text of a reply (quoted lines ignored); the text itself is never stored. */
+/** The new text of a reply with quoted lines dropped, spaces collapsed. */
+function freshReply(text: string, max: number) {
+  const unquoted = text.split(/\r?\n/).filter(l => !l.trim().startsWith('>')).join(' ');
+  return unquoted.split(/\bOn [^\n]{0,160}\bwrote:/i)[0].replace(/\s+/g, ' ').trim().slice(0, max);
+}
+/** Reads only the new text of a reply (quoted lines ignored). */
 export function classifyReply(text: string): ReplyKind {
-  const fresh = text.split(/\r?\n/).filter(l => !l.trim().startsWith('>')).join(' ').slice(0, 700).toLowerCase();
+  const fresh = freshReply(text, 700).toLowerCase();
   if (/out of office|automatic reply|auto-?reply|autoreply|away from (my|the) (desk|email)|on vacation|will be back/.test(fresh)) return 'auto';
   if (/\b(stop|unsubscribe|remove me|take me off|opt[\s-]?out|not interested|no thanks|no thank you)\b|do not (contact|email)|don'?t (contact|email)|leave me alone/.test(fresh)) return 'stop';
   return 'reply';
+}
+
+/** A best guess at what a real reply means, so "yes, call me" is not lost among the rest. Always shown beside the text itself. */
+export type ReplyTone = 'interested' | 'question' | 'later' | 'other';
+export const replyToneLabel: Record<ReplyTone, string> = { interested: 'Sounds interested', question: 'Asked a question', later: 'Maybe later', other: 'Replied' };
+export function replyTone(text: string): ReplyTone {
+  const fresh = freshReply(text, 700).toLowerCase();
+  if (/\b(not right now|maybe later|later (this|next)|next (year|spring|season|month|quarter)|circle back|check back|reach out (again )?(in|later)|busy (right now|season))\b/.test(fresh)) return 'later';
+  if (/\b(interested|sounds (good|great|interesting)|tell me more|more (info|information|details)|send (me )?(over )?(some |more )?(info|details|a quote|pricing)|call me|give me a call|how much|what does it cost|pricing|let'?s (talk|chat|connect|set up|schedule)|demo|yes|yeah|love to)\b/.test(fresh)) return 'interested';
+  if (fresh.includes('?')) return 'question';
+  return 'other';
+}
+const REPLY_STORE_MAX = 280;
+/** What is kept of a reply: its tone and the first lines, so the inbox can show it. Never the whole thread. */
+export function packReply(text: string): string {
+  const tone = replyTone(text);
+  return `${tone}|${freshReply(text, REPLY_STORE_MAX - tone.length - 1)}`;
+}
+export function unpackReply(detail: string | null | undefined): { tone: ReplyTone; text: string } | null {
+  const m = /^(interested|question|later|other)\|([\s\S]*)$/.exec(detail ?? '');
+  return m ? { tone: m[1] as ReplyTone, text: m[2] } : null;
 }
 
 /** What a recorded event does to the prospect's status, or null to leave it. */
@@ -231,4 +257,30 @@ export function emailStats(events: EmailEvent[], prospects: EngineProspect[], no
     demos: prospects.filter(p => sentIds.has(p.id) && effectiveOutreachStatus(p) === 'Demo Booked').length,
     lastSentAt: sent.map(e => e.event_at).sort().at(-1) ?? null, series, ready: ready.length, skips, stuck: new Set(reservedOnly.map(e => e.prospect_id)).size,
   };
+}
+
+// ---- Inbox and sent mail -----------------------------------------------------------------
+export type InboxReply = { prospect_id: string; at: string; business: string; tone: ReplyTone; text: string; status: OutreachStatus };
+/** Replies, newest first. Older replies recorded before text was kept show a plain "Replied" with no text. */
+export function replyInbox(events: EmailEvent[], prospects: Pick<EngineProspect, 'id' | 'business_name' | 'outreach_status' | 'source_status'>[], limit = 20): InboxReply[] {
+  const byId = new Map(prospects.map(p => [p.id, p]));
+  return events.filter(e => e.kind === 'reply').sort((a, b) => b.event_at.localeCompare(a.event_at)).slice(0, limit).map(e => {
+    const p = byId.get(e.prospect_id), packed = unpackReply(e.detail);
+    return { prospect_id: e.prospect_id, at: e.event_at, business: p?.business_name ?? 'Unknown business', tone: packed?.tone ?? 'other', text: packed?.text ?? '', status: p ? effectiveOutreachStatus(p) : 'Replied' };
+  });
+}
+export type SentMail = { prospect_id: string; at: string; business: string; to: string | null; subject: string | null; body: string | null };
+/** What went out, newest first. The subject was recorded when the email was claimed; the body is the prospect's draft (the footer is added at send time). */
+export function sentMail(events: EmailEvent[], prospects: Pick<EngineProspect, 'id' | 'business_name' | 'email' | 'email_body'>[], limit = 30): SentMail[] {
+  const byId = new Map(prospects.map(p => [p.id, p]));
+  const subject = new Map<string, string>();
+  for (const e of [...events].sort((a, b) => a.event_at.localeCompare(b.event_at))) if (e.kind === 'reserved' && e.detail) subject.set(e.prospect_id, e.detail);
+  return events.filter(e => e.kind === 'sent').sort((a, b) => b.event_at.localeCompare(a.event_at)).slice(0, limit).map(e => {
+    const p = byId.get(e.prospect_id);
+    return { prospect_id: e.prospect_id, at: e.event_at, business: p?.business_name ?? 'Unknown business', to: p?.email ?? null, subject: subject.get(e.prospect_id) ?? null, body: p?.email_body ?? null };
+  });
+}
+/** The next emails the engine would pick, in order. Same rules the sender uses. */
+export function nextUp(prospects: EngineProspect[], events: EmailEvent[], settings: EngineSettings | null, limit = 5) {
+  return selectSendable(prospects, events, { niche: settings?.niche_filter ?? null }).ready.slice(0, limit);
 }
