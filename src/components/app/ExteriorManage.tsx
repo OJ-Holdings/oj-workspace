@@ -22,6 +22,8 @@ import { RebookList } from './RebookList';
 import { JobCosts } from './JobCosts';
 import { JobTimeline } from './JobTimeline';
 import { JobPhotos } from './JobPhotos';
+import { CommercialBooking, type CommercialPrefill } from './CommercialBooking';
+import { loadProposalForBooking } from '@/app/workspace/proposal-actions';
 
 // The parts of Exterior Care that change records: the same actions the original
 // Exterior Care app offers, against the same database.
@@ -516,6 +518,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [editing, setEditing] = useState<ExtBooking | null>(null);
   const [assigning, setAssigning] = useState<ExtBooking | null>(null);
   const [flow, setFlow] = useState<string | null>(null);
+  const [commercial, setCommercial] = useState<CommercialPrefill | null | undefined>(undefined);
   const [focus, setFocus] = useState<BookingWorkFocus>('upcoming');
   const [view, setView] = useState<'cards' | 'table'>('cards');
   const [search, setSearch] = useState('');
@@ -541,6 +544,17 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     setSelectedJob(null);
     setAdvanced(false);
   };
+  // Arriving from an accepted proposal (?commercial=<id>): open the commercial booking dialog filled from it, once.
+  const commercialParam = bookingParams.get('commercial');
+  useEffect(() => {
+    if (readOnly || !commercialParam) return;
+    const url = new URL(window.location.href); url.searchParams.delete('commercial');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    void loadProposalForBooking(org, commercialParam).then(r => {
+      if (r.ok) setCommercial({ company: r.proposal.company, address: r.proposal.address, service: r.proposal.service, price: r.proposal.total, proposalNumber: r.proposal.number });
+      else setCommercial(null);
+    });
+  }, [readOnly, commercialParam, org]);
   useEffect(() => {
     if (readOnly || launchNewBooking !== '1') return;
     setFlow('');
@@ -583,7 +597,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     <section className="atlas-booking-command" aria-label="Booking operation queues">
       <header className="atlas-booking-command-head">
         <div><h2>Jobs</h2></div>
-        {!readOnly && <button type="button" className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={17} aria-hidden="true"/>Book a job</button>}
+        {!readOnly && <div className="atlas-booking-head-actions"><button type="button" className="secondary" disabled={busy} onClick={() => setCommercial(null)}>Book commercial client</button><button type="button" className="primary" disabled={busy} onClick={() => setFlow('')}><CalendarPlus size={17} aria-hidden="true"/>Book a job</button></div>}
       </header>
       <div className="atlas-booking-command-stats">
         <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today on</span></div>
@@ -696,6 +710,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       </>}
     </section>
     <MoneyDialog lead={completing} close={() => setCompleting(null)} act={act} busy={busy} org={org} />
+    <CommercialBooking open={commercial !== undefined} close={() => setCommercial(undefined)} act={act} busy={busy} org={org} bookings={data.bookings} today={today} prefill={commercial ?? null} />
     <BookFlow startDate={flow} close={() => setFlow(null)} data={data} act={act} busy={busy} org={org} now={now} />
     <BookDialog lead={moving ? lead.get(moving.lead_id ?? '') ?? null : null} booking={moving ?? undefined} close={() => setMoving(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />
     <JobDialog booking={editing} lead={editing ? lead.get(editing.lead_id ?? '') : undefined} close={() => setEditing(null)} act={act} busy={busy} org={org} bookings={data.bookings} now={now} />

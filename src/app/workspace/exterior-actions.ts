@@ -4,6 +4,7 @@ import { requireMember } from '@/lib/supabase';
 import type { Done, ExteriorData, ExteriorResult, ExtExtras, ExtLead, ExtSession } from '@/lib/exterior';
 import { upgradeGroups } from '@/lib/upgrades';
 import { isSheetUrl, isValidBlock, leadSources, leadStatuses, normalizePhone, planLeadUpdate, settingKeys, slotTaken, type LeadPatch } from '@/lib/exterior-ops';
+import { planClashes, planVisits, MAX_DAYS_PER_VISIT, MAX_VISITS, type Frequency } from '@/lib/commercial-booking';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
@@ -540,4 +541,60 @@ export async function loadJobTimeline(org: string, leadId: string): Promise<{ ok
   const { data, error } = await client.from('activity_log').select('id,operator,description,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(25);
   if (error) return { ok: false, message: 'History did not load.' };
   return { ok: true, events: (data ?? []).map(r => ({ id: String(r.id), who: (r.operator as string) || 'Someone', text: (r.description as string) || '', at: r.created_at as string })) };
+}
+
+/* ------------------------------ Commercial clients ------------------------------ */
+
+export type CommercialBookingInput = {
+  company: string; contact: string; phone: string; email: string; address: string; service: string; pricePerVisit: string | number | null;
+  source: string; notes: string; firstDate: string; timeBlock: string; frequency: Frequency; visits: number; daysPerVisit: number; proposalNumber?: string;
+};
+
+/**
+ * Books a commercial client: one job record per visit (so revenue and costs are tracked per visit), each visit on one or more consecutive working days.
+ * The whole plan is checked against the calendar first and nothing is created if any day is in the past or clashes with a job already booked.
+ * If something fails part-way the message says how many days were booked, so nothing is silently half done.
+ */
+export async function bookCommercialVisits(org: string, input: CommercialBookingInput): Promise<Done<{ visits: number; days: number; first: string; last: string }>> {
+  return guarded(org, async (client, who) => {
+    const company = text(input.company, 255, 'Company', true)!;
+    const phone = normalizePhone(text(input.phone, 40, 'Contact phone', true)!) ?? say('Enter a 10-digit contact phone number.');
+    const when = day(input.firstDate), slot = block(input.timeBlock);
+    if (!(['once', 'monthly', 'quarterly', 'semiannual'] as const).includes(input.frequency)) say('Choose how often the work repeats.');
+    const visits = input.frequency === 'once' ? 1 : Math.floor(Number(input.visits));
+    const span = Math.floor(Number(input.daysPerVisit));
+    if (!Number.isFinite(visits) || visits < 1 || visits > MAX_VISITS) say(`Choose between 1 and ${MAX_VISITS} visits.`);
+    if (!Number.isFinite(span) || span < 1 || span > MAX_DAYS_PER_VISIT) say(`A visit can run 1 to ${MAX_DAYS_PER_VISIT} days.`);
+    const price = money(input.pricePerVisit, 'Price per visit');
+    const plan = planVisits(when, input.frequency, visits, span);
+    const first = plan[0].date, last = plan[plan.length - 1].date;
+    const { data: existing } = await client.from('bookings').select('id,date,time_block,status').gte('date', first).lte('date', last);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    const clashes = planClashes(plan, slot, existing ?? [], today);
+    if (clashes.length) say(`Nothing was booked. ${clashes.length} day${clashes.length === 1 ? '' : 's'} cannot be booked (${clashes.slice(0, 4).map(c => `${c.date}${c.reason === 'past' ? ' is in the past' : ' is taken'}`).join(', ')}${clashes.length > 4 ? ', and more' : ''}). Choose another start date or time.`);
+    const contact = text(input.contact, 200, 'Contact name');
+    const email = text(input.email, 200, 'Email');
+    const extra = text(input.notes, 2000, 'Notes');
+    const service = text(input.service, 255, 'Service');
+    const address = text(input.address, 500, 'Address');
+    const source = text(input.source, 100, 'Source') ?? 'manual';
+    let booked = 0;
+    try {
+      for (let v = 1; v <= visits; v += 1) {
+        const notes = ['Commercial client.', contact ? `Contact: ${contact}.` : '', email ? `Email: ${email}.` : '', input.proposalNumber ? `Proposal ${text(input.proposalNumber, 40, 'Proposal')}.` : '', visits > 1 ? `Visit ${v} of ${visits}.` : '', extra ?? ''].filter(Boolean).join(' ');
+        const now = new Date().toISOString();
+        const { data: lead, error } = await client.from('leads').insert({ name: company, phone, address, service_requested: service, quote_amount: price, notes, source, status: 'new', manually_updated_fields: [], created_at: now, updated_at: now }).select('id').single();
+        if (error || !lead) throw new Error(error?.message ?? 'Job record not created.');
+        await log(client, who, 'lead_created', `Added commercial job: ${company}${service ? ` - ${service}` : ''}`, { id: lead.id, name: company });
+        for (const d of plan.filter(x => x.visit === v)) { await book(client, who, lead.id, d.date, slot); booked += 1; }
+      }
+    } catch (error) {
+      // Only a deliberate message for the person (it starts with '!') is shown; a database or network error is logged here and shown as a generic reason.
+      const deliberate = error instanceof Error && error.message.startsWith('!');
+      if (!deliberate) console.error('Commercial booking failed part-way:', error instanceof Error ? error.message : error);
+      const why = deliberate ? (error as Error).message.slice(1) : 'a system error occurred.';
+      say(`${booked} of ${plan.length} days were booked before a problem: ${why} Check the calendar for ${company} before booking again.`);
+    }
+    return { ok: true, visits, days: plan.length, first, last };
+  });
 }

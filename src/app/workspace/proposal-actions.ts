@@ -132,3 +132,18 @@ export async function stopSharingProposal(org: string, proposalId: string): Prom
     return { ok: true, closed: Number(data ?? 0) };
   } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not stop sharing.' }; }
 }
+
+export type ProposalForBooking = { company: string; address: string; service: string; total: number; number: string };
+
+/** What the commercial booking dialog needs from an accepted proposal. Only the proposal's id travels in the URL. */
+export async function loadProposalForBooking(org: string, id: string): Promise<ActionResult<{ proposal: ProposalForBooking }>> {
+  try {
+    const { client } = await requireMember(org, true);
+    if (!UUID.test(id)) return { ok: false, message: 'That proposal no longer exists.' };
+    const { data: p } = await client.from('oj_proposals').select('id,number,customer_name,site_address,total_cents,status').eq('organization_id', org).eq('id', id).maybeSingle();
+    if (!p) return { ok: false, message: 'That proposal no longer exists.' };
+    if (p.status !== 'accepted') return { ok: false, message: 'Only an accepted proposal can be scheduled.' };
+    const { data: line } = await client.from('oj_proposal_lines').select('description').eq('organization_id', org).eq('proposal_id', id).eq('optional', false).order('position').limit(1).maybeSingle();
+    return { ok: true, proposal: { company: String(p.customer_name), address: String(p.site_address ?? ''), service: String(line?.description ?? ''), total: Number(p.total_cents) / 100, number: String(p.number) } };
+  } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'Could not load the proposal.' }; }
+}
