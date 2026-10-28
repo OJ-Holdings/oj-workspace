@@ -266,3 +266,11 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .customer-jobs li { display: grid; grid-template-columns: 100px minmax(0, 1fr) 90px 100px auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .customer-merge summary { cursor: pointer; color: var(--ink-3); font-size: 13px; }
 @media (max-width: 640px) { .customer-list button { grid-template-columns: 1fr auto; } .customer-list .num:nth-of-type(3), .customer-list .num:nth-of-type(4) { display: none; } .customer-jobs li { grid-template-columns: 1fr auto; } }
+
+/* ---------- Message drafts ---------- */
+.draft-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.draft-list li { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); }
+.draft-list li > div:first-child { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.draft-list li > div:first-child span { color: var(--ink-3); font-size: 13px; }
+.draft-list p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.draft-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

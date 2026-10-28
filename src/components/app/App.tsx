@@ -308,7 +308,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           {current === 'customers' && <CustomersView org={organizationId} mode={mode} readOnly={readOnly} base={base} />}
           {current === 'proposals' && <ProposalsView org={organizationId} mode={mode} readOnly={readOnly} base={base} />}
           {current === 'quality' && <DataQualityView org={organizationId} mode={mode} base={base} />}
-          {current === 'growth' && <GrowthView org={organizationId} mode={mode} store={store} readOnly={readOnly} base={base} />}
+          {current === 'growth' && <GrowthView org={organizationId} mode={mode} store={store} readOnly={readOnly} base={base} displayName={displayName} />}
           {current === 'analytics' && <AnalyticsView store={store} readOnly={readOnly} cards={board.data.cards} />}
           {current === 'settings' && <SettingsView store={store} displayName={displayName} role={role} connections={connections} mode={mode} workMissing={work.missing} />}
         </div>
