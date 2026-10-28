@@ -93,7 +93,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
   if (tab === 'projects') return <AtlasNexusProjects key={org+mode+String(readOnly)} org={org} base={mode === 'preview' ? '/preview' : '/workspace'} mode={mode} readOnly={readOnly} exterior={data} cards={cards} activity={activity} />;
-  if (tab === 'commercial') return <CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} cards={cards} />;
+  if (tab === 'commercial') return <>{status}<CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} cards={cards} act={act} busy={busy} today={dayKey(now)} /></>;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
