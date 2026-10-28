@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: Weather ahead on Command)
+**Summary:** Master plan 6.3 and 6.15 ask for weather-aware scheduling ('NWS forecast per job day; flags rain/wind/freezing'), naming NWS or Open-Meteo as the free source. New Weather ahead card on the Command screen: the next seven days for Kenosha (high and low, a plain-word summary, and flags for rain, wind or freezing) and, under it, the booked jobs that fall on a flagged day with the reason, each linking to the job. Source is Open-Meteo (free, no key, public data, so no sign-in needed), fetched on the server by loadWeather and cached 30 minutes. Flag thresholds: rain at 60% chance or 0.1 in, wind at 20 mph, freezing at a low of 32 F or less. A missing reading drops that day instead of reading as zero (a unit test caught null being read as a calm day). If the forecast cannot be fetched the card says so. Nothing is rescheduled automatically and no customer is messaged; the plan's one-tap propose-reschedule is not built.
+**Files:** src/lib/weather.ts, src/app/workspace/weather-actions.ts, src/components/app/{WeatherAhead,TodayBoard}.tsx, src/styles/os-skin.css, tests/weather.test.ts.
+**Verified:** typecheck; 928 tests; build; /preview Command at 800 px with the real forecast (Sat to Mon flagged rain).
+**Not verified:** a booked job landing on a flagged day on the live site; phone width; whether 60% and 20 mph are the right thresholds for Oscar's services (window cleaning is more sensitive than house washing).
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: command bar Do it lines)
 **Summary:** Master plan 5.1 makes the command bar the main way around, with 'complete job', 'invoice Debbie', 'log $84 chemicals on Patrick'; 6.1 asks for quick entry from anywhere. The Ctrl K palette now understands a leading verb plus a customer name from the booked jobs (src/lib/command-intents.ts, plain parsing, no AI): complete or done opens that job's sheet; invoice or bill opens Invoices with the form filled from that job; log, expense, spent or cost reads an amount and a kind (chemicals, soap and supplies are materials; gas and fuel are fuel; labor and help are labor; equipment, repair and parts are equipment) and opens the job with that cost ready to add; directions opens Google Maps to the address. Several matches show the job closest to today first, cancelled jobs are never offered. Each line only opens the screen where the person confirms; nothing saves from the palette. Shown on the live workspace to members who can change records.
 **Files:** src/lib/command-intents.ts, src/components/app/{Shell,JobCosts,ExteriorManage}.tsx, tests/command-intents.test.ts.
