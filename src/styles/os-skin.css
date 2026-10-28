@@ -229,3 +229,18 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .wx-days li em { font-style: normal; font-weight: 700; color: var(--watch); }
 .wx-days li.is-flagged { border-color: var(--watch); }
 .growth-big { margin-left: 8px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent-hi); font-style: normal; font-size: 11px; font-weight: 700; }
+
+/* ---------- Proposals ---------- */
+.proposal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.proposal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); }
+.proposal-row > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.proposal-row > div:first-child span { color: var(--ink-3); font-size: 13px; }
+.proposal-row > strong { font-variant-numeric: tabular-nums; }
+.proposal-status { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px; color: var(--ink-2); }
+.proposal-status.is-accepted { color: var(--good); border-color: var(--good); }
+.proposal-status.is-declined, .proposal-status.is-expired { color: var(--bad); border-color: var(--bad); }
+.proposal-status.is-sent { color: var(--accent-hi); border-color: var(--accent); }
+.proposal-row > div:first-child .proposal-nudge { color: var(--watch); font-weight: 700; }
+.proposal-row > div:first-child .proposal-nudge.is-late { color: var(--bad); }
+.proposal-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.check { display: flex; align-items: center; gap: 8px; }
