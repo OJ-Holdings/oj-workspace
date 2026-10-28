@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Command gets Act now and This month)
+**Summary:** Two cards on the Command screen from the plan's live board (5.2). Act now lists only what needs a person right now, each with one tap to the place that fixes it: new leads waiting 30+ minutes, quotes going cold, jobs today or tomorrow with no price, finished jobs with no revenue entered. This month shows revenue, jobs done, average job and close rate (won over won plus closed) with the open pipeline by stage and its quoted value. Pure logic in src/lib/command-pulse.ts, built on the Growth queue functions; it reads the leads the app already loads. No SQL.
+**Files:** src/lib/command-pulse.ts, src/components/app/{CommandPulse,TodayBoard,HomeView,App}.tsx, src/styles/os-skin.css, tests/command-pulse.test.ts.
+**Verified:** typecheck; 916 tests; build; /preview Command at 800 px.
+**Not verified:** live figures; phone width. Still missing from plan 5.2: crew lanes, the map, cash position, unassigned-job and overdue-invoice exceptions.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Growth room, Crew and Insight in the dock)
 **Summary:** First step toward the plan's eight rooms (Command, Jobs, Customers, Schedule, Crew, Money, Growth, Insight). New Growth room at /workspace/growth (GrowthView.tsx, src/lib/growth-queues.ts): Answer these now (new leads nobody has replied to, oldest first, late after 30 minutes, Call and Mark contacted), Quotes going cold (open quoted leads untouched 3+ days, biggest first, Call and Followed up), the LSA spend card, Where leads come from (leads, won, win rate, revenue by source) and the rebooking list. All of it reads the leads the app already loads and uses the existing setLeadStatus action; no SQL. The dock now reads Today, Jobs, Customers, Schedule, Crew (was Tasks & Crew), Growth, Money, Invoices, Insight (was Reports under More).
 **Files:** src/lib/growth-queues.ts, src/components/app/{GrowthView,Shell,App}.tsx, src/styles/os-skin.css, tests/growth-queues.test.ts.

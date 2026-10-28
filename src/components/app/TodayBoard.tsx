@@ -13,10 +13,11 @@ import { blockLabel } from '@/lib/exterior-ops';
 import { todayJobs } from '@/lib/today-jobs';
 import { OperatorLaunchpad } from './OperatorLaunchpad';
 import { TruckFundCard } from './TruckFundCard';
+import { CommandPulse } from './CommandPulse';
 
 type Props = {
   base: string; board: Board; store: DashboardStore; jobs: JobItem[]; today: string;
-  mode: 'preview' | 'live'; readOnly: boolean; displayName: string; limited: boolean;
+  mode: 'preview' | 'live'; readOnly: boolean; displayName: string; limited: boolean; org: string;
 };
 
 const formatDay = (day: string) => new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -47,7 +48,7 @@ function Stop({ job, base, dim }: { job: JobItem; base: string; dim?: boolean })
  * The Command screen: today's jobs as a timeline, what needs you, the month's recorded money and the truck fund.
  * Every figure comes from the records already loaded for the workspace; nothing here is new data.
  */
-export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, displayName, limited }: Props) {
+export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, displayName, limited, org }: Props) {
   const snapshot = useMemo(
     () => (today ? buildAtlasSnapshot({ cards: board.data.cards, dashboard: store.data, jobs, today, limited }) : null),
     [board.data.cards, store.data, jobs, today, limited],
@@ -122,6 +123,8 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
               <small>{finance?.available ? 'Recorded' : 'Nothing recorded'}</small>
             </Link>
           </div>
+
+          <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} />
 
           <section className="today-card" aria-labelledby="today-needs">
             <header><h2 id="today-needs">Needs you</h2><Link href={base + '/tasks'}>Tasks <ArrowRight size={14} aria-hidden="true" /></Link></header>
