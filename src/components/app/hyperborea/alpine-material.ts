@@ -16,7 +16,7 @@ export function alpineMaterial(grain: THREE.Texture, rock: THREE.Color, snow: TH
     texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=grain.anisotropy;
     texture.colorSpace=kind==='color'?THREE.SRGBColorSpace:THREE.NoColorSpace;
   }
-  material.customProgramCacheKey = () => 'hyperborea-alpine-v2';
+  material.customProgramCacheKey = () => 'hyperborea-alpine-v3-trail-light';
   material.onBeforeCompile = shader => {
     shader.uniforms.hbGrain = { value: grain };
     shader.uniforms.hbRock = { value: rock };
@@ -73,7 +73,18 @@ export function alpineMaterial(grain: THREE.Texture, rock: THREE.Color, snow: TH
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       roughnessFactor = mix(0.95,mix(0.7,0.34,hbIceAmount),max(hbSnowAmount,hbIceAmount));`)
       .replace('#include <normal_fragment_maps>', `
-      normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(hbRelief),dFdy(hbRelief)),faceDirection);`);
+      normal = perturbNormalArb(-vViewPosition,normal,vec2(dFdx(hbRelief),dFdy(hbRelief)),faceDirection);`)
+      .replace('#include <opaque_fragment>', `
+      // The same radial switchbacks as makeRoute: light falls away from the actual route,
+      // leaving distant slopes in shadow while preserving the snow beside the climbers.
+      float hbRadius = length(hbPosition.xz);
+      float hbRouteProgress = 1.0 - pow(clamp(hbRadius / 153.0, 0.0, 1.0), 1.0 / 1.08);
+      float hbRouteAngle = 0.95 + 0.42 * sin(hbRouteProgress * 3.14159265 * 5.5) * (1.0 - hbRouteProgress) + 0.25 * hbRouteProgress;
+      vec2 hbRouteAtRadius = hbRadius * vec2(cos(hbRouteAngle), sin(hbRouteAngle));
+      float hbRouteDistance = length(hbPosition.xz - hbRouteAtRadius);
+      float hbTrailLight = 1.0 - smoothstep(5.0, 32.0, hbRouteDistance);
+      outgoingLight *= mix(0.16, 1.0, hbTrailLight);
+      #include <opaque_fragment>`);
   };
   return material;
 }
