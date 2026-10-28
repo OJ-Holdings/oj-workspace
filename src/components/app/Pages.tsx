@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
+import { SeasonPnl } from './SeasonPnl';
 import { AtlasBankReview } from './AtlasBankReview';
 import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
 import { AtlasStatementInspector } from './AtlasStatementInspector';
@@ -238,6 +239,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
       base={pathname.startsWith('/preview') ? '/preview' : '/workspace'}
       onExpense={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'cost'})}
       onIncome={()=>setForm({...blank(),venture:filterBusiness??blank().venture,kind:'revenue'})} />
+    <SeasonPnl entries={data.finance} venture={filterBusiness} thisYear={dayKey(now).slice(0, 4)} />
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}
       <label>Entries for month<input type="month" value={filterMonth} onChange={e => pick('month', e.target.value)} /></label>

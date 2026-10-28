@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Season profit and loss on Money)
+**Summary:** The Money page only showed the current month. New Season profit and loss panel (SeasonPnl.tsx, src/lib/season-pnl.ts): pick a year and see money in, money out and left over, month by month with bars, plus the biggest cost categories. It reads the same recorded finance entries the page already loads (Exterior job revenue and costs, expenses, Shopify, hand-entered income), follows the business filter, and says plainly that costs are only what has been entered. No SQL, no new server calls.
+**Files:** src/lib/season-pnl.ts, src/components/app/SeasonPnl.tsx, src/components/app/Pages.tsx, src/styles/os-skin.css, tests/season-pnl.test.ts.
+**Verified:** typecheck; 908 tests; build; /preview/finance at 800 px (sample data).
+**Not verified:** live figures; phone width; months with only unentered job costs will look better than they are, by design of the source data.
+
+---
+
 ## 2026-10-27 -- Codex (Hyperborea mobile trail and dark snow)
 
 Removed large mobile scene captions and replaced them with accessible touch markers and existing on-demand details. Added bounded close zoom, 25 m travel and 1,770 calculated 5 m revenue steps with a camera-independent Trail browser. Darkened lighting/background peaks and increased snow. Repaired focus-induced internal scene scrolling. Source records and financial calculations unchanged. 905 tests and TypeScript passed; mobile Chromium viewports 320/390/430 checked. Build, exact-head CI and authenticated served-SHA release evidence follow in the PR. No schema or commercial actions; Exterior estimates unchanged. See docs/HYPERBOREA_MOBILE_TRAIL.md.
