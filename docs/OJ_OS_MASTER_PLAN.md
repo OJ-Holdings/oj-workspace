@@ -752,6 +752,43 @@ Cross-cutting sections:
 Staged SQL waiting on an owner (nothing here is applied): RUN-ME-2026-10-28-job-expenses.sql, RUN-ME-2026-10-28-proposals.sql.
 Open items from Oscar: Stripe account, Mercury read-only token, GBP and GA4 access, first invoice, truck fund balance, weekly LSA spend, lead-source tagging, finish figures on past jobs.
 
+## 17c. Re-audit (2026-10-28 evening, main e9bf6b2)
+
+Method: read the whole plan again, listed every merged change since the 17b audit (18 PRs), and counted real rows in the live Supabase project (aggregates only). Percentages are still my estimate of built scope per phase, now weighted by the phase sizes in section 11 (P0 1.5, P1 3, P2 3, P3 3, P4 3, P5 1.5, P6 2). Overall about 35% of Phases 0 to 6 (17b said 22% on a harsher read; on the same method as this table, 17b was about 28%).
+
+**Every staged SQL file is now applied** (customers, job expenses, job photos, proposals, portal and e-sign, presence, money core, 1500-a-day email cap). Nothing is waiting on an owner except the items listed under Open items.
+
+| Phase | Was | Now | What moved since 17b |
+|---|---|---|---|
+| 0. Clean and re-shell | 75 | 80 | Commercial folded into Customers (the cut list's "Commercial into Customers"); installable on the phone. Still open: Project 360 / NEXUS, docs archive, sidebar count, feature flags. |
+| 1. Job spine | 40 | 55 | Customer and property model live (176 customers, 129 properties, 179 lead links); job photos; quick business expense; commercial booking from a company. Still open: jobs are still lead rows (no visit model), price book, templates and checklists, recurring plans, moving the 72 jobs. |
+| 2. Money core | 30 | 38 | Mercury connected read-only (truck fund and bank balance now come from the bank). Still open: Stripe, bank-feed categorising and reconciliation, bookkeeping catch-up, receipts and OCR, allocation engine, ledger reports. |
+| 3. Live ops and crew | 15 | 20 | Phone install manifest. Still open: crew lanes, map, routing, clock-in per job, GPS, rig planner. |
+| 4. Growth, portal, automations | 20 | 32 | Proposals builder, customer proposal links and e-sign (applied), Messages ready to send (first automation slice), Solutions email engine now running. Still open: LSA import, speed-to-lead, recurring contracts from an accepted proposal, review engine, portal pages, booking page, rules engine. |
+| 5. Insight and assistant | 15 | 28 | 30-day forecast, anomaly radar, season switch and Winter plan. Still open: targets and pacing, pricing intelligence, ask-anything assistant, weekly brief. |
+| 6. Entity depth | 10 | 12 | Email engine is Solutions outreach, not MRR. Still open: Solutions MRR and clients, Essentials COGS and payouts, fleet, compliance calendar. |
+
+**The finding that matters more than the percentage: capability is ahead of use.** Live row counts: invoices 1, payments 0, job expenses 0, job photos 0, proposals 0, portal links 0, finance entries 0, journal entries 1. Presence (285) and work sessions (30) are used. Success metric 1 (zero money tracked elsewhere) is therefore not met, and the next phases should be chosen to make money and jobs flow through OJ OS, not to add more screens beside it.
+
+**Gaps found against the plan during this audit**
+- Out-of-state flag (1e, section 13) is not built, and the Waukegan job is in Illinois.
+- LSA is still a hand-logged weekly card (spend and lead count). The plan asks for lead import, source set to LSA, the Aug and Sep gap filled, speed-to-lead and a dispute deadline list.
+- No rig budget, deal hunter or washer repair-or-replace tracker (6.17), although the truck is the stated number one pain.
+- No receipt photo on expenses (7.5).
+
+**Next steps, in the order I would do them**
+1. Out-of-state flag on jobs, bookings and proposals (small, needed for the Waukegan job).
+2. LSA import: paste the Google export, match to existing leads by phone and name, create the missing Aug and Sep leads, set source to LSA, show cost per lead and per booked job, list dispute deadlines.
+3. Bank feed to books: Mercury transactions in a categorise queue (suggest from vendor rules), one tap posts a balanced journal entry, month-by-month reconcile. This is the bookkeeping catch-up wizard (7.8) and the largest single item left in Phase 2.
+4. Truck and rig planner (6.17): rig budget lines, deal hunter board, washer repair-or-replace, all on the real truck fund balance.
+5. Receipt photo on every expense, then OCR later.
+6. Recurring plans from an accepted commercial proposal (visits and invoices generated on schedule).
+7. Jobs into the visit model and the 72 historical jobs moved over.
+8. Stripe payment pages (needs Oscar's restricted key saved to a file) and customer portal pages.
+9. Finish Phase 0: remove Project 360 / NEXUS, collapse the docs archive.
+
+Open items from Oscar: Stripe restricted key, Illinois coverage decision, first real invoice, washer repair quote and rental cost, who holds the ojexteriorcare.com DNS login, the Google account that owns the Business Profile, billing email address.
+
 ## 16. Sources (research done 2026-10-26)
 - REA repository: https://github.com/morluto/rea (README: MIT, MCP reverse-engineering toolkit, lawful-use scope)
 - Field service software landscape and prices: https://www.servicetitan.com/blog/housecall-pro-vs-jobber-vs-servicetitan (vendor page), https://fieldservicesoftware.io/best-field-service-software/servicetitan-competitors/ , https://www.selecthub.com/field-service-software/housecall-pro-vs-servicetitan/
