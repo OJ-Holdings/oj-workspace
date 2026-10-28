@@ -1,13 +1,13 @@
 /**
  * OJ Solutions email engine + Daily 10 reminders.
  *
- * Paste this file into the SAME Apps Script project as outreach-sync.gs (it reuses the
- * OUTREACH_SYNC_TOKEN script property). It holds no rules of its own: it asks the OJ server
+ * Paste this file into a NEW standalone Apps Script project (script.google.com) signed in as the sending
+ * account, e.g. oscar@ojsolutions.org. It holds no rules of its own: it asks the OJ server
  * "what should I send now?", sends exactly that from this Google account, then reports
  * what happened (sent, failed, replies, bounces). Set the project timezone to America/Chicago.
  *
  * Script properties to set (Project Settings > Script properties):
- *   OUTREACH_SYNC_TOKEN  same value as the existing spreadsheet sync
+ *   OUTREACH_SYNC_TOKEN  same value as OJ_OUTREACH_SYNC_TOKEN on the OJ server
  *   SENDER_NAME          the name on the signature, e.g. Oscar
  *   SENDER_FILTER        optional: Oscar or Jacob, to send only that founder's prospects
  *   NAG_EMAILS           JSON for the Daily 10 reminders, e.g. {"Oscar":"you@gmail.com","Jacob":"him@gmail.com"}

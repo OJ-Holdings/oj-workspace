@@ -20,7 +20,7 @@ export function SolutionsSuite({ base, tab, org, mode, readOnly, displayName, ch
     <QuestBar g={g} base={base} />
     {tab === 'overview' && <SolutionsCommand g={g} base={base} />}
     {tab === 'dms' && <DailyTen g={g} />}
-    {tab === 'email' && <EmailEngine g={g} />}
+    {tab === 'email' && <EmailEngine g={g} base={base} />}
     {tab === 'warm' && <WarmLeads g={g} />}
     {tab === 'outreach' && <OutreachView organizationId={org} mode={mode} readOnly={readOnly} displayName={displayName} />}
     {children}

@@ -1,5 +1,5 @@
 import { buildReminders, centralHour, partnerOf, streakFor, todayKey, DEFAULT_DM_GOAL, type DmLogEntry, type Partner, type Reminder } from './dm-quests';
-import { classifyReply, nextStatus, planEmailRun, type EmailEvent, type EmailEventKind, type EngineProspect, type EngineSettings, type EngineState, type EngineStateName, type PlanItem } from './email-engine';
+import { classifyReply, nextStatus, packReply, planEmailRun, type EmailEvent, type EmailEventKind, type EngineProspect, type EngineSettings, type EngineState, type EngineStateName, type PlanItem } from './email-engine';
 import type { OutreachStatus } from './outreach';
 import { effectiveOutreachStatus } from './outreach';
 
@@ -38,7 +38,7 @@ export async function planRun(store: EngineStore, env: EngineEnv, input: { now: 
   const plan = planEmailRun({ now: input.now, settings, state, prospects, events, sender, senderFilter: filter });
   let items: PlanItem[] = plan.items;
   if (items.length && !input.dryRun) {
-    const claimed = await store.record(items.map(i => ({ prospect_id: i.prospect_id, kind: 'reserved' as const, dedupe_key: `reserve:${i.prospect_id}`, detail: '', event_at: input.now.toISOString() })));
+    const claimed = await store.record(items.map(i => ({ prospect_id: i.prospect_id, kind: 'reserved' as const, dedupe_key: `reserve:${i.prospect_id}`, detail: i.subject.slice(0, 90), event_at: input.now.toISOString() })));
     const won = new Set(claimed.map(c => c.prospect_id));
     items = items.filter(i => won.has(i.prospect_id));
   }
@@ -67,12 +67,12 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
       case 'failed': events.push({ prospect_id: id, kind: 'failed', dedupe_key: `failed:${id}:${ref || input.now.getTime()}`, detail, event_at: at }); break;
       case 'bounce': events.push({ prospect_id: id, kind: 'bounce', dedupe_key: `bounce:${id}`, detail: '', event_at: at }); break;
       case 'reply': {
-        // The reply text is read once to tell a stop request from a reply, and is not kept.
+        // A stop request keeps no text. A real reply keeps its tone and the first lines (280 characters) for the inbox.
         const verdict = classifyReply(typeof r.text === 'string' ? r.text.slice(0, 4000) : '');
         if (verdict === 'auto') { ignored++; break; }
         events.push(verdict === 'stop'
           ? { prospect_id: id, kind: 'stop', dedupe_key: `stop:${id}`, detail: '', event_at: at }
-          : { prospect_id: id, kind: 'reply', dedupe_key: `reply:${id}:${ref || 'first'}`, detail: '', event_at: at });
+          : { prospect_id: id, kind: 'reply', dedupe_key: `reply:${id}:${ref || 'first'}`, detail: packReply(typeof r.text === 'string' ? r.text.slice(0, 4000) : ''), event_at: at });
         break;
       }
       default: ignored++;
