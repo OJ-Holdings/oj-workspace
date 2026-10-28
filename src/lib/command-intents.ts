@@ -14,6 +14,8 @@ const KINDS: [RegExp, string][] = [
   [/^(labor|labour|help|wage|wages|helper)$/, 'labor'],
   [/^(equipment|repair|part|parts|tool|tools)$/, 'equipment'],
 ];
+// What an expense is filed under on the Money page, by kind.
+const CATEGORY: Record<string, string> = { materials: 'Chemicals and supplies', fuel: 'Fuel', labor: 'Crew commission', equipment: 'Equipment repair', other: '' };
 const FILLER = new Set(['on', 'for', 'the', 'job', 'to', 'at', 'of', 'a', 'my', 'dollars', 'bucks']);
 const dayNum = (iso: string) => Date.parse(`${iso}T12:00:00Z`) / 86_400_000;
 
@@ -35,15 +37,18 @@ export function commandIntents(query: string, jobs: JobItem[], today: string, ba
     if (!FILLER.has(w)) rest.push(w);
   }
   const needle = rest.join(' ');
-  if (!needle) return [];
+  // A cost with no customer named is a business expense: open the Money page with it ready to save.
+  const expense: Intent[] = verb === 'cost' && amount !== null ? [{ id: 'expense', label: `Record $${amount} ${kind === 'other' ? '' : kind + ' '}expense`.replace('  ', ' '), href: `${base}/finance?new=cost&amount=${amount}${CATEGORY[kind] ? `&category=${encodeURIComponent(CATEGORY[kind])}` : ''}` }] : [];
+  if (!needle) return expense;
   const live = jobs.filter(j => j.status !== 'cancelled' && j.status !== 'denied' && j.name.toLowerCase().includes(needle));
   const near = [...live].sort((a, b) => Math.abs(dayNum(a.date) - dayNum(today)) - Math.abs(dayNum(b.date) - dayNum(today))).slice(0, 3);
   const when = (j: JobItem) => new Date(`${j.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return near.flatMap((j): Intent[] => {
+  const onJobs = near.flatMap((j): Intent[] => {
     if (verb === 'complete') return [{ id: `complete-${j.id}`, label: `Complete job: ${j.name} (${when(j)})`, href: `${base}/b/exterior/bookings?booking=${encodeURIComponent(j.id)}` }];
     if (verb === 'invoice') return [{ id: `invoice-${j.id}`, label: `Invoice ${j.name}`, href: `${base}/invoices?lead=${encodeURIComponent(j.lead_id)}` }];
     if (verb === 'directions') return j.address ? [{ id: `dir-${j.id}`, label: `Directions to ${j.name}`, href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(j.address)}`, external: true }] : [];
     if (amount === null) return [];
     return [{ id: `cost-${j.id}`, label: `Log $${amount} ${kind} on ${j.name} (${when(j)})`, href: `${base}/b/exterior/bookings?booking=${encodeURIComponent(j.id)}&cost=${amount}&kind=${kind}` }];
   });
+  return [...onJobs, ...expense];
 }

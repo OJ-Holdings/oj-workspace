@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-28 UTC -- Claude Code (OJ OS: quick business expense from the command bar)
+**Summary:** Master plan section 14 asks for expense capture in under 15 seconds. The command bar could log a cost against a named job but not a plain business expense. Now 'spent 84 fuel', 'expense 120 chemicals' or just 'log 40' offers Record $84 fuel expense, which opens the Money page with the Record expense form already filled in: the amount, and a category (materials to Chemicals and supplies, fuel to Fuel, labor to Crew commission, equipment to Equipment repair). It still needs one tap on Save entry; nothing saves from the command bar. With a customer named too, the job lines come first and the expense is the last choice. The Money page now accepts ?amount= (a plain number) and ?category= on its existing ?new=cost launch link, and clears them from the address afterwards.
+**Files:** src/lib/command-intents.ts, src/components/app/Pages.tsx, tests/command-intents.test.ts.
+**Verified:** typecheck; 947 tests; build; parsing and the launch link in unit tests.
+**Not verified:** in a signed-in browser (the palette only shows on the live workspace). Receipt photo capture and OCR are still not built.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: audited status against the whole master plan)
 **Summary:** Docs only. Oscar asked for the comparison against the entire master plan. Added section 17b to docs/OJ_OS_MASTER_PLAN.md: each phase and each cross-cutting section (architecture, shell, omniscience, premium customer experience, truck fund, finance, connections, data migration, quality, success metrics) marked LIVE, STAGED, PARTIAL or NONE against what is actually in main 5e4f114, with an estimate per phase (overall about 22% of Phases 0 to 6). Checked against the repo, not memory: the cut-list files that still exist (Project 360, email-engine-api, outreach-import), docs still 5.2 MB, no PWA or service worker, no AI gateway, no Stripe, fleet still browser-local, Mercury read code present but needing a token.
 **Files:** docs/OJ_OS_MASTER_PLAN.md.

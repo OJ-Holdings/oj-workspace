@@ -30,3 +30,13 @@ test('no verb, no name, or a cost with no amount gives nothing; directions need 
   assert.equal(commandIntents('directions fay', [job('1', 'Fay', '2026-10-26', { address: null })], '2026-10-27', '/workspace').length, 0);
   assert.equal(run('directions fay')[0].external, true);
 });
+
+test('a cost with no customer is a business expense that opens the Money page with the amount and category filled', () => {
+  assert.deepEqual(run('spent 84 fuel'), [{ id: 'expense', label: 'Record $84 fuel expense', href: '/workspace/finance?new=cost&amount=84&category=Fuel' }]);
+  assert.equal(run('expense 120 chemicals')[0].href, '/workspace/finance?new=cost&amount=120&category=Chemicals%20and%20supplies');
+  assert.equal(run('log 40')[0].label, 'Record $40 expense');
+  assert.equal(run('log 40')[0].href, '/workspace/finance?new=cost&amount=40');
+  // With a customer named the job lines come first and the expense stays available as the last choice.
+  const both = run('log 84 fuel patrick');
+  assert.deepEqual(both.map(i => i.id), ['cost-2', 'cost-3', 'expense']);
+});
