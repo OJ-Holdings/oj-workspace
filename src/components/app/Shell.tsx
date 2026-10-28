@@ -19,7 +19,7 @@ import { StatusBar } from './StatusBar';
 import { operatorActionHref } from '@/lib/operator-shortcuts';
 import { commandIntents } from '@/lib/command-intents';
 
-export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality' | 'proposals';
+export type NavKey = 'home' | 'exterior-bookings' | 'exterior-leads' | 'businesses' | 'tasks' | 'calendar' | 'crm' | 'finance' | 'files' | 'messages' | 'analytics' | 'team' | 'settings' | 'tools' | 'fleet' | 'nexus' | 'invoices' | 'summit' | 'growth' | 'quality' | 'proposals' | 'customers';
 
 type NavGroup='DAILY'|'BUSINESSES'|'MORE';
 // Phase 0 (OJ OS): the rail is deliberately short. Retired destinations (company CRM, NEXUS, Project 360, the tools hub) stay reachable by URL
@@ -38,6 +38,7 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   // Founders only: hidden from every non-owner in the live workspace (see founderNav below).
   { key:'summit', label:'Hyperborea', path:'/summit', icon:MountainSnow, group:'BUSINESSES' },
   { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
+  { key:'customers', label:'Customer directory', path:'/customers', icon:UsersRound, group:'MORE' },
   { key:'proposals', label:'Proposals', path:'/proposals', icon:FileSignature, group:'MORE' },
   { key:'quality', label:'Data quality', path:'/quality', icon:ShieldCheck, group:'MORE' },
   { key:'files', label:'Files', path:'/files', icon:FileText, group:'MORE' },
