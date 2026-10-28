@@ -14,6 +14,7 @@ import { todayJobs } from '@/lib/today-jobs';
 import { OperatorLaunchpad } from './OperatorLaunchpad';
 import { TruckFundCard } from './TruckFundCard';
 import { CommandPulse } from './CommandPulse';
+import { WeatherAhead } from './WeatherAhead';
 
 type Props = {
   base: string; board: Board; store: DashboardStore; jobs: JobItem[]; today: string;
@@ -125,6 +126,7 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
           </div>
 
           <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} />
+          <WeatherAhead jobs={jobs} base={base} />
 
           <section className="today-card" aria-labelledby="today-needs">
             <header><h2 id="today-needs">Needs you</h2><Link href={base + '/tasks'}>Tasks <ArrowRight size={14} aria-hidden="true" /></Link></header>
