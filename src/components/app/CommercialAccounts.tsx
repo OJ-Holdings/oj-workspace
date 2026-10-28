@@ -18,7 +18,7 @@ const empty=():CommercialAccountDraft=>({
 type Attempt={id:string;revision:number;commandId:string;draft:CommercialAccountDraft};
 type Props={org:string;base:string;mode:'live'|'preview';readOnly:boolean;
  booking?:{act:Act;busy:boolean;bookings:ExtBooking[];today:string};
- onStartEstimate:(accountId:string,accountName:string,propertyId:string,propertyName:string)=>void;
+ onStartEstimate?:(accountId:string,accountName:string,propertyId:string,propertyName:string)=>void;
 };
 export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstimate}:Props){
  const [bookFor,setBookFor]=useState<CommercialPrefill|null>(null);
@@ -86,7 +86,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
   if(!recorded||!site){setMessage('Save the company and property before preparing an estimate.');return;}
   if(!window.confirm('Start a new internal estimate for '+site.name+'? The current estimate editor will reset. This will NOT book a visit, create a contract, or link records automatically.'))return;
   const prepared=prepareCommercialPropertyEstimate(recorded,site.id);
-  onStartEstimate(prepared.accountId,prepared.accountName,prepared.propertyId,prepared.propertyName);
+  onStartEstimate?.(prepared.accountId,prepared.accountName,prepared.propertyId,prepared.propertyName);
  }
  async function perform(attempt:Attempt){
   if(loading.current)return;
@@ -218,7 +218,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
      </div>
      <div className="com-account-property-action">
       <span>{p.frequency==='unknown'?'No service frequency has been agreed.':p.frequency==='one-time'?'One-time service interest — not a scheduled job.':p.frequency+' service interest — not an active recurring agreement.'}</span>
-      {selected.revision>0&&<button type="button" className="secondary"
+      {selected.revision>0&&onStartEstimate&&<button type="button" className="secondary"
        disabled={!canEdit||dirty||state!=='ready'||!!pending.current
         ||!accounts.find(a=>a.id===selected.id)?.properties.some(saved=>saved.id===p.id)}
        onClick={()=>startPropertyEstimate(p.id)}>

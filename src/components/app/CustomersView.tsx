@@ -9,7 +9,8 @@ import { statusLabel, type ExteriorData } from '@/lib/exterior';
 import { jobDate } from '@/lib/exterior';
 import { businessDay } from '@/lib/reporting';
 import { dollars } from '@/lib/metrics';
-import { Modal } from './ExteriorManage';
+import { Modal, type Act } from './ExteriorManage';
+import { CommercialAccounts } from './CommercialAccounts';
 
 const shortDate = (key: string | null) => key ? new Date(key + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
 const SEGMENTS = Object.keys(segmentLabels) as Segment[];
@@ -24,6 +25,7 @@ export function CustomersView({ org, mode, readOnly, base }: { org: string; mode
   const [openId, setOpenId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'directory' | 'commercial'>('directory');
   const today = useMemo(() => businessDay(new Date().toISOString()) ?? new Date().toISOString().slice(0, 10), []);
 
   const refresh = useCallback(async () => {
@@ -36,7 +38,9 @@ export function CustomersView({ org, mode, readOnly, base }: { org: string; mode
   const visible = useMemo(() => filterDirectory(rows, segment, search, today), [rows, segment, search, today]);
   const counts = useMemo(() => segmentCounts(rows, today), [rows, today]);
 
-  const tabs = <nav className="subtabs" aria-label="Customers views"><Link href={`${base}/b/exterior/leads`}>Pipeline</Link><Link href={`${base}/customers`} aria-current="page">Directory</Link></nav>;
+  const tabs = <nav className="subtabs" aria-label="Customers views"><Link href={`${base}/b/exterior/leads`}>Pipeline</Link>
+    <button type="button" aria-current={view === 'directory' ? 'page' : undefined} onClick={() => setView('directory')}>Directory</button>
+    <button type="button" aria-current={view === 'commercial' ? 'page' : undefined} onClick={() => setView('commercial')}>Commercial</button></nav>;
   if (mode === 'preview') return <>{tabs}<section className="panel"><p className="quiet">The customer directory works in your live workspace. The sample workspace does not keep customers.</p></section></>;
   if (!load || !ext) return <>{tabs}<div className="loading" aria-busy="true" /></>;
   if (!load.ok) {
@@ -54,12 +58,22 @@ export function CustomersView({ org, mode, readOnly, base }: { org: string; mode
     try { const r = await work(); if (!r.ok) { setNotice(r.message ?? 'That did not go through.'); return false; } setNotice(success); await refresh(); return true; }
     catch { setNotice('That did not go through. Try again.'); return false; } finally { setBusy(false); }
   };
+  /** Runs one change the way the Exterior pages do: says what happened and reloads. */
+  const act: Act = async (work, success) => {
+    setBusy(true); setNotice('');
+    try { const r = await work(); if (!r.ok) { setNotice(r.message); return false; } setNotice(success(r)); await refresh(); return true; }
+    catch { setNotice('That did not go through. Check your connection and try again.'); return false; } finally { setBusy(false); }
+  };
   const revenue = rows.reduce((t, r) => t + (r.lifetimeRevenue ?? 0), 0);
   const open = rows.find(r => r.customer.id === openId) ?? null;
 
   return <>
     {tabs}
     <p className="notice" role="status" aria-live="polite">{notice}</p>
+    {view === 'commercial' ? <>
+      <p className="quiet">Company profiles with their contacts and properties. Open one to book a visit. <Link href={`${base}/b/exterior/commercial`}>Estimates and project work</Link></p>
+      <CommercialAccounts org={org} base={base} mode={mode} readOnly={readOnly} booking={readOnly ? undefined : { act, busy, bookings: ext.bookings, today }} />
+    </> : <>
     {unlinked > 0 && !readOnly && <section className="panel"><p><b>{unlinked} job{unlinked === 1 ? '' : 's'} not in the directory yet.</b> Sync builds a customer and property for each person, matching by phone, then name and address.</p>
       <button className="primary" disabled={busy} onClick={() => void run(() => syncCustomers(org), 'Customers synced.')}>{busy ? 'Syncing' : 'Sync customers'}</button></section>}
     <div className="kpis">
@@ -84,6 +98,7 @@ export function CustomersView({ org, mode, readOnly, base }: { org: string; mode
       {visible.length > shown && <button className="secondary showmore" onClick={() => setShown(n => n + 40)}>Show {Math.min(40, visible.length - shown)} more</button>}
     </section>
     <CustomerDialog row={open} rows={rows} close={() => setOpenId(null)} base={base} readOnly={readOnly} busy={busy} run={run} org={org} />
+    </>}
   </>;
 }
 
