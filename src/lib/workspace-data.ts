@@ -17,7 +17,7 @@ async function loadDashboard(client: Client, org: string, names: Map<string, str
     client.from('oj_messages').select('id,venture,author_id,body,created_at').eq('organization_id', org).order('created_at', { ascending: false }).limit(200),
     client.from('oj_leads').select('id,venture,name,contact,stage,value,source,notes,created_at').eq('organization_id', org).order('created_at', { ascending: false }).limit(1000),
     client.from('oj_finance_entries').select('id,venture,kind,amount,occurred_on,category,note').eq('organization_id', org).order('occurred_on', { ascending: false }).limit(2000),
-    client.from('oj_metric_entries').select('id,venture,label,value,unit,measured_on,note').eq('organization_id', org).order('measured_on', { ascending: false }).limit(1000),
+    client.from('oj_metric_entries').select('id,venture,label,value,unit,measured_on,note').eq('organization_id', org).order('measured_on', { ascending: false }).order('created_at', { ascending: false }).limit(1000),
     client.from('oj_events').select('id,venture,title,starts_at,ends_at,all_day,location,notes,source').eq('organization_id', org).order('starts_at').limit(1000),
     client.from('oj_documents').select('id,venture,name,tag,storage_path,size_bytes,mime,uploaded_by,created_at').eq('organization_id', org).order('created_at', { ascending: false }).limit(500),
   ]);
