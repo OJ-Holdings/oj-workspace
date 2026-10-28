@@ -18,6 +18,14 @@ create function oj_private.address_key(p text) returns text language sql immutab
 $$;
 revoke all on function oj_private.phone_key(text), oj_private.address_key(text) from public;
 
+-- The old Exterior Care leads belong to exactly one workspace (recorded in oj_private.legacy_owner when exterior-read.sql was applied).
+-- Only that workspace may build customers from them or link them; any other workspace is refused, so one company's customers can never be copied into another's.
+-- If that table does not exist the functions fail closed.
+create function oj_private.owns_legacy_leads(p_org uuid) returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from oj_private.legacy_owner where organization_id = p_org)
+$$;
+revoke all on function oj_private.owns_legacy_leads(uuid) from public;
+
 create table public.oj_customers (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.oj_organizations(id),
@@ -107,6 +115,7 @@ create function public.oj_backfill_customers(p_org uuid) returns jsonb language 
 declare r record; cust uuid; prop uuid; pk text; ak text; nm text; made_c integer := 0; made_p integer := 0; linked integer := 0;
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
+  if not oj_private.owns_legacy_leads(p_org) then raise exception 'Only the workspace that owns the Exterior Care records can build customers from them'; end if;
   for r in select l.id, l.name, l.phone, l.address from public.leads l where not exists (select 1 from public.oj_lead_links k where k.lead_id = l.id) order by l.created_at, l.id loop
     pk := oj_private.phone_key(r.phone);
     ak := oj_private.address_key(r.address);
@@ -140,6 +149,8 @@ end $$;
 create function public.oj_link_lead(p_org uuid, p_lead uuid, p_customer uuid, p_property uuid) returns void language plpgsql security definer set search_path = '' as $$
 begin
   if auth.uid() is null or coalesce(oj_private.member_role(p_org), '') not in ('owner', 'member') then raise exception 'Workspace member access required'; end if;
+  if not oj_private.owns_legacy_leads(p_org) then raise exception 'Only the workspace that owns the Exterior Care records can link them'; end if;
+  if not exists (select 1 from public.leads where id = p_lead) then raise exception 'That job does not exist'; end if;
   if not exists (select 1 from public.oj_customers where organization_id = p_org and id = p_customer) then raise exception 'Customer not found'; end if;
   if p_property is not null and not exists (select 1 from public.oj_properties where organization_id = p_org and id = p_property and customer_id = p_customer) then raise exception 'That property does not belong to this customer'; end if;
   insert into public.oj_lead_links(lead_id, organization_id, customer_id, property_id) values (p_lead, p_org, p_customer, p_property)

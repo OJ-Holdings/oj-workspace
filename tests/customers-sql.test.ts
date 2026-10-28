@@ -18,6 +18,8 @@ async function setup() {
   await db.exec(`insert into oj_organizations(id,name) values ('${org}','OJ'),('${other}','Other');
     insert into oj_memberships(organization_id,user_id,role,display_name) values ('${org}','${owner}','owner','Oscar'),('${org}','${viewer}','viewer','View'),('${other}','${stranger}','owner','Eve');`);
   // Seven jobs: Fay twice by phone and once by name and address, two different people on the same placeholder number, and one unnamed customer at two addresses.
+  // Mirrors what exterior-read.sql records in production: the one workspace that owns the legacy leads.
+  await db.exec(`create table oj_private.legacy_owner(organization_id uuid primary key references public.oj_organizations(id)); insert into oj_private.legacy_owner values ('${org}');`);
   await db.exec(`insert into public.leads(id,name,phone,address,created_at) values
     ('${id(1)}','Fay Akindes','(414) 555-0101','1 Main St','2026-06-01'),
     ('${id(2)}','Fay A.','+1 414 555 0101','1 Main St','2026-08-01'),
@@ -97,4 +99,20 @@ test('the script is one transaction and refuses a second run', async () => {
   await db.exec('reset role');
   const script = await readFile(new URL('../docs/db-change-proposals/RUN-ME-2026-10-28-customers.sql', import.meta.url), 'utf8');
   await assert.rejects(() => db.exec(script), /already exists/);
+});
+
+test('only the workspace that owns the old leads can build customers from them or link them', async () => {
+  const db = await setup();
+  // A second workspace has its own owner and tries to pull the first company's leads into its own books.
+  await as(db, stranger);
+  await assert.rejects(() => db.query(`select public.oj_backfill_customers('${other}')`), /owns the Exterior Care records/);
+  await assert.rejects(() => db.query(`select public.oj_link_lead('${other}', '${id(1)}', '${id(1)}', null)`), /owns the Exterior Care records/);
+  await db.exec('reset role');
+  assert.equal(await count(db, 'oj_customers'), 0);
+  assert.equal(await count(db, 'oj_lead_links'), 0);
+  // The owning workspace cannot link a job that does not exist.
+  await as(db, owner);
+  await db.query(`select public.oj_backfill_customers('${org}')`);
+  const c = (await db.query<{ id: string }>('select id from oj_customers limit 1')).rows[0].id;
+  await assert.rejects(() => db.query(`select public.oj_link_lead('${org}', '${id(99)}', '${c}', null)`), /does not exist/);
 });
