@@ -49,7 +49,7 @@ export type AppProps = {
 const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
   calendar: { title: 'Calendar', body: 'Events and task due dates for all four businesses, with a private link for your iPhone.' },
   crm: { title: 'Leads and CRM', body: 'Workspace leads across all four businesses.' },
-  finance: { title: 'Finance', body: 'Money in, money out and profit, for each business and combined.' },
+  finance: { title: 'Money', body: 'What came in, what went out, and what is left.' },
   invoices: { title: 'Invoices', body: 'Bill customers and record what they pay.' },
   files: { title: 'Files', body: 'Every document across the businesses, private to workspace members.' },
   messages: { title: 'Messages', body: 'Notes between the two of you, with a thread for each business.' },

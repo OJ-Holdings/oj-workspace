@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Money page rebuilt without the slop)
+**Summary:** Oscar: the Money page still had 'hella slop'. It opened with Financial structure, Bookkeeping exceptions, an Accounting / Month-end preparation block listing a wall of 'unavailable' requirements, and caveats under nearly every section. Now the page reads top to bottom: this month's Money in, Money out and Left over (plus In the bank when Mercury is connected) with Record expense and Record income buttons; Season profit and loss; Money in for the last 12 months; Transactions. Treasury, bank review, statement inspector and month-end prep are unchanged but folded under one Accounting tools control at the bottom. Removed the export, source-date and chart disclaimers; the Mercury not-connected message is one line. Page title is Money. No data or logic changes.
+**Files:** src/components/app/Pages.tsx, src/components/app/App.tsx, src/styles/os-skin.css.
+**Verified:** typecheck; 908 tests; build; /preview/finance at 800 px.
+**Not verified:** live data; phone width; the folded Accounting tools panels still use their old copy.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: plain captions on Customers and customer history)
 **Summary:** Copy only. The Customers queue tiles carried caveats like 'Contact history is not independently verified' and 'Zero is a known number; blank is unknown'; they now say things like 'Not contacted yet.' and 'Done jobs missing revenue or costs.' The customer History entries lost their 'not proof of...' sentences (Lead added, Record updated, Job completed). An estimated completion date is still flagged as estimated (basis stays estimated-date and the text says the exact date was not recorded); the one test that matched the old wording was updated.
 **Files:** src/lib/exterior-lead-workflow.ts, src/lib/exterior-customer-360.ts, tests/exterior-customer-360.test.ts.
