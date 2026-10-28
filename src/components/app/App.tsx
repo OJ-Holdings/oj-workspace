@@ -283,7 +283,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
           <header className="page-head"><h1>{info?.title}</h1><p>{info?.body}</p></header>
           {current === 'calendar' && <CalendarView store={store} readOnly={readOnly} cards={board.data.cards} jobs={jobs} base={base} />}
           {current === 'crm' && <CrmView store={store} readOnly={readOnly} cards={board.data.cards} />}
-          {current === 'finance' && <FinanceView store={store} readOnly={readOnly} owner={owner} />}
+          {current === 'finance' && <FinanceView store={store} readOnly={readOnly} owner={owner} jobs={owner && mode === 'live' && jobsState === 'ready' ? jobs : undefined} />}
           {current === 'invoices' && <InvoicesView org={organizationId} mode={mode} readOnly={readOnly} owner={owner} base={base} />}
           {current === 'files' && <FilesView store={store} readOnly={readOnly} />}
           {current === 'messages' && <MessagesView store={store} readOnly={readOnly} />}

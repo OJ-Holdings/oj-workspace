@@ -7,6 +7,8 @@ import { isFinanceLaunch } from '@/lib/operator-shortcuts';
 import { matchesMoneyWorkFocus, moneyWorkFocuses, moneyWorkLabels, sortMoneyWorkEntries, type MoneyWorkFocus } from '@/lib/money-workflow';
 import { AtlasTreasuryCommand } from './AtlasTreasuryCommand';
 import { SeasonPnl } from './SeasonPnl';
+import { BookedAhead } from './BookedAhead';
+import type { JobItem as AheadJob } from '@/app/workspace/exterior-actions';
 import { AtlasBankReview } from './AtlasBankReview';
 import { AtlasMonthEndPrep } from './AtlasMonthEndPrep';
 import { AtlasStatementInspector } from './AtlasStatementInspector';
@@ -170,16 +172,16 @@ export function CrmView({ store, readOnly, venture, cards = [] }: Common & { car
 }
 
 /* ------------------------------ Finance ------------------------------ */
-export function FinanceView({ store, readOnly, venture, owner = false }: Common & { owner?: boolean }) {
+export function FinanceView({ store, readOnly, venture, owner = false, jobs }: Common & { owner?: boolean; jobs?: AheadJob[] }) {
   const blank = () => ({ venture: venture ?? 'exterior' as VentureId, kind: 'revenue' as const, amount: '', occurred_on: store.now ? dayKey(store.now) : '', category: '', note: '' });
   const [form, setForm] = useState<{ venture: VentureId; kind: 'revenue' | 'cost'; amount: string; occurred_on: string; category: string; note: string } | null>(null);
   return (
     <Gate store={store} what="Finance">
-      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} owner={owner} form={form} setForm={setForm} blank={blank} />}
+      {() => <FinanceBody store={store} readOnly={readOnly} venture={venture} owner={owner} jobs={jobs} form={form} setForm={setForm} blank={blank} />}
     </Gate>
   );
 }
-function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, blank }: Common & { owner?: boolean; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
+function FinanceBody({ store, readOnly, venture, owner = false, jobs, form, setForm, blank }: Common & { owner?: boolean; jobs?: AheadJob[]; form: ReturnType<typeof Object> | null; setForm: (f: any) => void; blank: () => any }) {
   const now = store.now!, data = store.data!;
   const [shown, setShown] = useState(12);
   const [moneyFocus, setMoneyFocus] = useState<MoneyWorkFocus>('all');
@@ -250,6 +252,7 @@ function FinanceBody({ store, readOnly, venture, owner = false, form, setForm, b
         {owner && data.mercury?.state === 'available' && <div><span>In the bank</span><strong>{dollars(data.mercury.accounts.reduce((t, a) => t + (a.currentBalance ?? 0), 0))}</strong></div>}
       </div>
     </section>
+    {!venture && jobs && <BookedAhead jobs={jobs} today={dayKey(now)} base={pathname.startsWith('/preview') ? '/preview' : '/workspace'} />}
     <SeasonPnl entries={data.finance} venture={filterBusiness} thisYear={dayKey(now).slice(0, 4)} />
     <div className="toolbar">
       {!venture && <label>Business<select value={filterBusiness ?? ''} onChange={e => pick('business', e.target.value)}><option value="">All businesses</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.short}</option>)}</select></label>}

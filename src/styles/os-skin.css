@@ -159,3 +159,9 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .moneytop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .moneytop .kpis .neg { color: var(--bad); }
 .money-advanced > :not(summary) { margin-top: 16px; }
+.bookedahead-total { margin: 0 0 10px; }
+.bookedahead-weeks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bookedahead-weeks li { display: grid; grid-template-columns: 90px 1fr minmax(120px, auto); gap: 12px; align-items: center; font-size: 13px; color: var(--ink-3); }
+.bookedahead-weeks i { display: block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bookedahead-weeks i b { display: block; height: 100%; border-radius: 3px; background: var(--accent); min-width: 2px; }
+@media (max-width: 640px) { .bookedahead-weeks li { grid-template-columns: 80px 1fr; } .bookedahead-weeks li > span:last-child { grid-column: 1 / -1; } }

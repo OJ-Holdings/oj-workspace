@@ -1,5 +1,13 @@
 # AGENT LOG
 
+## 2026-10-27 UTC -- Claude Code (OJ OS: Booked ahead on Money)
+**Summary:** Money now shows what is already on the calendar. New Booked ahead panel (BookedAhead.tsx, src/lib/booked-ahead.ts): the next four weeks in weekly rows with job counts and what they were quoted at, a total, and a count of jobs with no quote (never valued at zero). It reuses the booked jobs the app already loads for the calendar (useJobs), so no new queries or SQL. Shown to the owner on the live all-business Money page only; quotes are labelled as quotes, not money in.
+**Files:** src/lib/booked-ahead.ts, src/components/app/BookedAhead.tsx, src/components/app/{Pages,App}.tsx, src/styles/os-skin.css, tests/booked-ahead.test.ts.
+**Verified:** typecheck; 910 tests; build.
+**Not verified:** how it looks (it does not render in /preview because it needs live jobs); live figures.
+
+---
+
 ## 2026-10-27 UTC -- Claude Code (OJ OS: Money page rebuilt without the slop)
 **Summary:** Oscar: the Money page still had 'hella slop'. It opened with Financial structure, Bookkeeping exceptions, an Accounting / Month-end preparation block listing a wall of 'unavailable' requirements, and caveats under nearly every section. Now the page reads top to bottom: this month's Money in, Money out and Left over (plus In the bank when Mercury is connected) with Record expense and Record income buttons; Season profit and loss; Money in for the last 12 months; Transactions. Treasury, bank review, statement inspector and month-end prep are unchanged but folded under one Accounting tools control at the bottom. Removed the export, source-date and chart disclaimers; the Mercury not-connected message is one line. Page title is Money. No data or logic changes.
 **Files:** src/components/app/Pages.tsx, src/components/app/App.tsx, src/styles/os-skin.css.
