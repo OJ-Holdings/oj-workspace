@@ -11,6 +11,7 @@ import { contentPersistenceEnabled, isVenture, ventureList, ventures, type Ventu
 import { deriveMetrics, type Dashboard } from '@/lib/dashboard';
 import { Shell, type NavKey } from './Shell';
 import { HomeView } from './HomeView';
+import { PulseProvider, PulsePage } from './Pulse';
 import { SystemsHealthDesk } from './SystemsHealthDesk';
 import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
 import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
@@ -233,14 +234,14 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
     venture = parts[1];
   }
   else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
-  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit', 'growth', 'quality', 'proposals', 'customers', 'books', 'rig'].includes(parts[0])) current = parts[0] as NavKey;
+  else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit', 'growth', 'quality', 'proposals', 'customers', 'books', 'rig', 'pulse'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
   const status = [connectionStatus && connectionStatus !== 'Live updates connected' ? connectionStatus : '', limited ? 'Showing the first 1,000 tasks and most recent 1,000 comments.' : ''].filter(Boolean).join(' ');
   const info = planned[current];
 
   return (
-    <Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
+    <PulseProvider org={organizationId} base={base} enabled={mode === 'live' && owner}><Shell base={base} current={current} venture={venture} mode={mode} members={members} displayName={displayName} owner={owner} readOnly={readOnly}
       openTasks={open.length} cards={board.data.cards} dashboard={store.data} activity={board.data.activity ?? []} status={status} toolConnections={connections} jobs={jobs}
       timer={<WorkTimer work={work} />}
       presence={<PresencePanel mode={mode} organizationId={organizationId} members={members} cards={board.data.cards} onOpenCard={board.openCard} />}
@@ -249,6 +250,8 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         <VentureView base={base} venture={venture} tab={parts[2] ?? 'overview'} board={board} store={store} metrics={metrics} members={members} readOnly={readOnly} displayName={displayName} organizationId={organizationId} mode={mode} />
       ) : current === 'home' ? (
         <HomeView org={organizationId} base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
+      ) : current === 'pulse' ? (
+        mode === 'live' && owner ? <PulsePage /> : <div className="page"><h1>Pulse unavailable</h1><p>Pulse is available to workspace owners in the live workspace.</p></div>
       ) : current === 'summit' ? (
         mode === 'live' && !owner
           ? <div className="page"><header className="page-head"><h1>Founders only</h1><p>This page is reserved for the workspace owners.</p></header></div>
@@ -321,6 +324,6 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       )}
       <ChatBubble store={store} organizationId={organizationId} displayName={displayName} readOnly={readOnly} mode={mode} />
       <CardDialog board={board} members={members} readOnly={readOnly} mode={mode} dashboard={store.data} jobs={jobs} base={base} />
-    </Shell>
+    </Shell></PulseProvider>
   );
 }
