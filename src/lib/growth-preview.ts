@@ -29,7 +29,7 @@ export function previewGrowth(now: Date): GrowthData {
     email: {
       settings: { enabled: true, daily_cap_max: 25, niche_filter: null },
       state: { last_heartbeat_at: stamp, state: 'sending', detail: 'Fictional preview.', warmup_started_on: addDays(today, -5), sender_domain: 'example.invalid' },
-      events: [sent(4, 50), sent(3, 140), { prospect_id: 'preview-p3', kind: 'reply', event_at: new Date(now.getTime() - 20 * 60_000).toISOString() }],
+      events: [{ prospect_id: 'preview-p4', kind: 'reserved', event_at: new Date(now.getTime() - 52 * 60_000).toISOString(), detail: 'Fictional preview subject' }, sent(4, 50), sent(3, 140), { prospect_id: 'preview-p3', kind: 'reply', event_at: new Date(now.getTime() - 20 * 60_000).toISOString(), detail: 'interested|Fictional preview reply: this sounds useful, can you call me tomorrow afternoon?' }],
     },
     lastSync: { status: 'success', finished_at: stamp }, fetchedAt: stamp,
   };

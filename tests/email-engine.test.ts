@@ -198,3 +198,67 @@ test('stats count people, not emails; and flag sends that never confirmed', () =
   assert.equal(stats.lastSentAt, '2026-10-27T15:00:00Z');
   assert.equal(emailStats([], prospects, tuesdayMorning, null).replyRate, null);
 });
+
+// ---- Reply inbox, sent mail, next up ------------------------------------------------------
+import { nextUp, packReply, replyInbox, replyTone, sentMail, unpackReply } from '../src/lib/email-engine';
+
+test('replyTone reads what a reply probably means, and never labels a stop as interest', () => {
+  assert.equal(replyTone('Sounds good, can you call me tomorrow?'), 'interested');
+  assert.equal(replyTone('How much does it cost?'), 'interested');
+  assert.equal(replyTone('Not right now, maybe next spring.'), 'later');
+  assert.equal(replyTone('Do you work with pressure washing companies in Racine?'), 'question');
+  assert.equal(replyTone('Got it.'), 'other');
+  assert.equal(replyTone('> yes\nThanks, got it.'), 'other', 'quoted lines are ignored');
+});
+
+test('packReply keeps the tone and the first lines only, and unpackReply reads it back', () => {
+  const long = `Sounds interested, call me. ${'x'.repeat(600)}`;
+  const packed = packReply(`${long}\n\nOn Tue, Oct 27, 2026 at 9:01 AM Oscar <o@ojsolutions.org> wrote:\n> the original email`);
+  assert.ok(packed.length <= 280);
+  const back = unpackReply(packed);
+  assert.equal(back?.tone, 'interested');
+  assert.ok(back!.text.startsWith('Sounds interested, call me.'));
+  assert.ok(!/wrote:|original email/.test(packReply('Yes please.\nOn Tue, Oct 27, 2026 at 9:01 AM Oscar <o@ojsolutions.org> wrote:\n> the original email')));
+  assert.equal(unpackReply(''), null);
+  assert.equal(unpackReply('Replied'), null, 'older replies with no text read as plain replies');
+});
+
+test('replyInbox lists newest first with the business and what the prospect is now', () => {
+  const prospects = [
+    { id: 'a', business_name: 'Alpha Wash', outreach_status: 'Replied' as const, source_status: 'Emailed' as const },
+    { id: 'b', business_name: 'Bravo Wash', outreach_status: null, source_status: 'Emailed' as const },
+  ];
+  const events = [
+    { prospect_id: 'a', kind: 'reply' as const, event_at: '2026-10-27T15:00:00Z', detail: 'interested|Yes, call me.' },
+    { prospect_id: 'b', kind: 'reply' as const, event_at: '2026-10-27T16:00:00Z', detail: '' },
+    { prospect_id: 'a', kind: 'sent' as const, event_at: '2026-10-27T14:00:00Z' },
+  ];
+  const inbox = replyInbox(events, prospects);
+  assert.deepEqual(inbox.map(r => r.business), ['Bravo Wash', 'Alpha Wash']);
+  assert.equal(inbox[0].text, '');
+  assert.equal(inbox[0].tone, 'other');
+  assert.equal(inbox[1].tone, 'interested');
+  assert.equal(inbox[1].status, 'Replied');
+});
+
+test('sentMail pairs each sent email with the subject recorded when it was claimed', () => {
+  const prospects = [{ id: 'a', business_name: 'Alpha Wash', email: 'a@alpha.com', email_body: 'Hello Alpha' }];
+  const events = [
+    { prospect_id: 'a', kind: 'reserved' as const, event_at: '2026-10-27T14:00:00Z', detail: 'Missed calls' },
+    { prospect_id: 'a', kind: 'sent' as const, event_at: '2026-10-27T14:01:00Z' },
+  ];
+  const [mail] = sentMail(events, prospects);
+  assert.equal(mail.subject, 'Missed calls');
+  assert.equal(mail.body, 'Hello Alpha');
+  assert.equal(mail.to, 'a@alpha.com');
+  assert.equal(sentMail([{ prospect_id: 'a', kind: 'sent', event_at: '2026-10-27T14:01:00Z' }], prospects)[0].subject, null);
+});
+
+test('nextUp is the same list the sender would pick, capped', () => {
+  const body = 'Hi Sam, I saw your crew is out on jobs most of the day, so calls probably roll to voicemail. We built an AI receptionist that answers, takes the details and texts you.';
+  const mk = (n: number) => ({ id: `p${n}`, business_name: `Biz ${n}`, industry: null, best_fit_service: null, secondary_fit: null, email: `p${n}@biz.com`, email_subject: 'Missed calls', email_body: body, sent_by: null, date_added: '2026-10-01', source_status: 'Not Sent' as const, outreach_status: null });
+  const prospects = [1, 2, 3, 4, 5, 6, 7].map(mk);
+  assert.equal(nextUp(prospects, [], null, 5).length, 5);
+  const sentOne = [{ prospect_id: 'p1', kind: 'sent' as const, event_at: '2026-10-27T14:00:00Z' }];
+  assert.ok(!nextUp(prospects, sentOne, null, 7).some(p => p.id === 'p1'));
+});

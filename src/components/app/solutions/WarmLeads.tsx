@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail, Phone } from 'lucide-react';
 import { updateOutreachStatus } from '@/app/workspace/outreach-actions';
+import { replyInbox, replyToneLabel } from '@/lib/email-engine';
 import { effectiveOutreachStatus, outreachNextStep, outreachStatuses, safeOutreachUrl, type OutreachProspect, type OutreachStatus } from '@/lib/outreach';
 import { socialUrl } from '@/lib/dm-quests';
 import { SolutionsConsultations } from '../SolutionsConsultations';
@@ -19,12 +20,13 @@ const script: [string, string][] = [
 
 /** People who answered, plus website requests: the only people worth a phone call. */
 export function WarmLeads({ g }: { g: GrowthStore }) {
-  return <Gate g={g}>{data => <Warm g={g} prospects={data.prospects} />}</Gate>;
+  return <Gate g={g}>{data => <Warm g={g} prospects={data.prospects} replies={data.email?.events ?? []} />}</Gate>;
 }
 
-function Warm({ g, prospects }: { g: GrowthStore; prospects: OutreachProspect[] }) {
+function Warm({ g, prospects, replies }: { g: GrowthStore; prospects: OutreachProspect[]; replies: NonNullable<NonNullable<GrowthStore['data']>['email']>['events'] }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const lastReply = new Map(replyInbox(replies, prospects, 200).filter(r => r.text).map(r => [r.prospect_id, r] as const).reverse());
   const leads = prospects.filter(p => warm.includes(effectiveOutreachStatus(p)))
     .sort((a, b) => Number(effectiveOutreachStatus(a) === 'Demo Booked') - Number(effectiveOutreachStatus(b) === 'Demo Booked') || (b.status_updated_at ?? '').localeCompare(a.status_updated_at ?? ''));
   async function change(p: OutreachProspect, next: OutreachStatus) {
@@ -44,6 +46,7 @@ function Warm({ g, prospects }: { g: GrowthStore; prospects: OutreachProspect[] 
         const ig = socialUrl(p.instagram, 'instagram'), fb = socialUrl(p.facebook, 'facebook');
         return <li key={p.id}>
           <div><h3>{p.business_name}</h3><p className="quiet">{[p.decision_maker, p.industry, p.city_state].filter(Boolean).join(' · ') || 'Details not recorded'}</p>
+            {lastReply.get(p.id) && <p className="gx-quote"><span className={`gx-tone is-${lastReply.get(p.id)!.tone}`}>{replyToneLabel[lastReply.get(p.id)!.tone]}</span> “{lastReply.get(p.id)!.text}”</p>}
             <p className="gx-next"><b>Next:</b> {outreachNextStep(status)}</p></div>
           <div className="gx-lead-links">
             {p.phone_number && <a className="primary" href={`tel:${p.phone_number.replace(/[^\d+]/g, '')}`}><Phone size={14} aria-hidden="true" />{p.phone_number}</a>}

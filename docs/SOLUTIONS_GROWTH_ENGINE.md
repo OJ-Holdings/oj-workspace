@@ -49,7 +49,7 @@ To stop: press Pause on the Email engine screen (takes effect within 10 minutes)
 - Sends Monday to Saturday, 9:00 AM to 4:30 PM Central, a few at a time with random gaps.
 - Skips any draft with placeholders, markup, spam phrases, all-caps subjects or more than one link.
 - Adds name, company, the mailing address and a one-word opt-out to every email.
-- Reply "stop" (or similar) marks the prospect Not Interested and they are never emailed again. Auto-replies are ignored. Reply text is read once and never stored.
+- Reply "stop" (or similar) marks the prospect Not Interested and they are never emailed again. Auto-replies are ignored. A stop request keeps no text. A real reply keeps its tone (interested, question, maybe later) and its first 280 characters so the Email engine page can show it. Never the whole thread.
 - Pauses itself if 4 or more recent emails bounced and bounces are 8% of sends or more.
 - Never emails an address this Google account has already written to.
 
