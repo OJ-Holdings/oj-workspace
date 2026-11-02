@@ -28,6 +28,11 @@
   --watch: #f6b94c;
   --bad: #ff6f6f;
 
+  /* The open list of a dropdown: black on white everywhere, whatever the business theme. */
+  --menu-bg: #ffffff;
+  --menu-ink: #000000;
+  --menu-ink-off: #6b6b6b;
+
   /* Leading the weekly leaderboard: the crown and the leader's card. */
   --win: #f5c451;
   --win-soft: rgba(245, 196, 81, 0.14);

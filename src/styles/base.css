@@ -15,6 +15,9 @@ input, textarea, select {
   min-width: 0; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 11px 12px;
   transition: border-color var(--fast) linear, box-shadow var(--fast) linear;
 }
+/* A select's open list draws white on Windows, so its options are black on white to stay readable. */
+option, optgroup { background: var(--menu-bg); color: var(--menu-ink); }
+option:disabled { color: var(--menu-ink-off); }
 input::placeholder, textarea::placeholder { color: var(--ink-4); }
 input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 textarea { resize: vertical; }

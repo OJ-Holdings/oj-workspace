@@ -1,5 +1,12 @@
 # AGENT LOG
 
+## 2026-11-02 18:43 UTC -- Claude Code, for Jacob (Dropdown lists readable: black text on white)
+**Summary:** Jacob: the open list of the Move to dropdown showed light grey text on white, so only the highlighted option could be read. Every select's options are now black on white (disabled options grey), set once in base.css so it covers every dropdown in the app. The closed select keeps its themed text. New tokens --menu-bg, --menu-ink, --menu-ink-off in tokens.css.
+**Files:** src/styles/base.css, src/styles/tokens.css.
+**Verified:** npm run typecheck; npm test (1034 passing); npm run build, then next start on localhost:3010, /preview/tasks at desktop and 375 px: every Move to option computes to black on white, no sideways scroll. **Not verified:** the open native list itself in a screenshot (the browser pane cannot capture it); Mac and phone pickers are drawn by the OS and ignore these colours.
+
+---
+
 ## 2026-10-28 UTC -- Claude Code (OJ OS: Done tasks bunched, delete a task, STAGED SQL)
 **Summary:** Oscar: bunch the Done tasks so tasks fit on screen, and add a delete option. (1) The Done column now lists finished tasks as one-to-two-line rows (business dot, title, assignee, a trash button), the five most recently added, with 'Show N more done' for the rest; dragging a row to another column still works and clicking it opens the task. The open columns keep their full cards. (2) Delete: a Delete task button in the task dialog and a trash button on each Done row, both with an in-place confirm ('Delete this task and its comments?'). Tasks had no delete permission (no delete grant, and comments and activity point at them), so deleting needs one new database function: docs/db-change-proposals/RUN-ME-2026-10-28-delete-task.sql (NOT APPLIED; additive, one function public.oj_delete_card, owner or member only, removes the task with its comments and activity, clears it from a teammate's 'working on' note and the leaderboard untracked list, safe to run twice; 3 PGlite tests). Until an owner runs it, Delete shows 'Deleting tasks is not switched on yet'. A deleted completed task no longer counts toward the weekly leaderboard. The sample workspace deletes locally.
 **Files:** src/app/workspace/actions.ts (deleteCard), src/components/app/{useBoard,BoardView,CardDialog}.tsx, src/styles/os-skin.css, docs/db-change-proposals/RUN-ME-2026-10-28-delete-task.sql, tests/delete-task-sql.test.ts.
