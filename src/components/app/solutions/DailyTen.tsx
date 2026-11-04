@@ -5,13 +5,12 @@ import NumberFlow from '@number-flow/react';
 import { Check, Copy, ExternalLink, Flame, Pencil, SkipForward, Trophy, Undo2 } from 'lucide-react';
 import { setDmGoal } from '@/app/workspace/growth-actions';
 import {
-  centralHour, dayCount, dmChannels, dmTargets, GOAL_BONUS_XP, lastSevenDays, levelFor, questLine, streakFor, teamStreak, todayKey, weekTotal, XP_PER_DM, xpFor,
+  centralHour, dailyMessage, dayCount, dmChannels, dmTargets, GOAL_BONUS_XP, lastSevenDays, levelFor, questLine, streakFor, teamStreak, todayKey, weekTotal, XP_PER_DM, xpFor,
   type DmChannel,
 } from '@/lib/dm-quests';
 import { Gate, InstallNote, Ring } from './parts';
 import type { GrowthStore } from './useGrowth';
 
-const fallbackDm = 'Hey! I run a pressure washing company here in Kenosha and kept missing calls while I was on jobs, so I built an AI receptionist that answers, takes the details and texts me. Want to hear it? I can send you a number to call.';
 const channelLabel: Record<DmChannel, string> = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', other: 'Somewhere else' };
 
 /** The Daily 10: each partner's DM quest, the next target to message, and the score. */
@@ -50,6 +49,7 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
   const myToday = new Set(dm.log.filter(e => !e.undone_at && e.actor_id === me.userId && e.work_day === today && e.prospect_id).map(e => e.prospect_id!));
   const queue = dmTargets(data.prospects, me.partner, myToday).filter(t => !skipped.has(t.prospect.id));
   const target = queue[0];
+  const message = target ? dailyMessage(target.prospect) : null;
   const lastMine = dm.log.filter(e => !e.undone_at && e.actor_id === me.userId && !e.id.startsWith('pending-'))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const undoable = lastMine && g.now.getTime() - Date.parse(lastMine.created_at) < 15 * 60_000 ? lastMine : null;
@@ -129,10 +129,10 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
             <div className="gx-target-tags">{target.exterior && <span className="gx-chip">Exterior cleaning</span>}{target.mine && <span className="gx-chip">Your list</span>}</div>
           </div>
           {target.prospect.leak && <p className="gx-leak"><b>Why them:</b> {target.prospect.leak}</p>}
-          <label className="gx-draft"><span>Message {target.prospect.dm ? '(from the research sheet)' : '(starter)'}</span>
-            <textarea readOnly rows={5} value={target.prospect.dm || fallbackDm} onFocus={e => e.currentTarget.select()} /></label>
+          <label className="gx-draft"><span>Message {message?.fromSheet ? '(from the research sheet)' : '(starter)'}</span>
+            <textarea readOnly rows={5} value={message?.text ?? ''} onFocus={e => e.currentTarget.select()} /></label>
           <div className="gx-actions">
-            <button className="secondary" onClick={() => copy(target.prospect.dm || fallbackDm)}>{copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}{copied ? 'Copied' : 'Copy message'}</button>
+            <button className="secondary" onClick={() => copy(message?.text ?? '')}>{copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}{copied ? 'Copied' : 'Copy message'}</button>
             <a className="secondary" href={target.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={15} aria-hidden="true" />Open {channelLabel[target.channel]}</a>
             <button className="secondary" onClick={() => setSkipped(new Set(skipped).add(target.prospect.id))}><SkipForward size={15} aria-hidden="true" />Skip</button>
             <button className="primary gx-send" disabled={busy || g.readOnly || g.mode === 'preview'} onClick={() => send(target.prospect.id, target.channel)}><Check size={16} aria-hidden="true" />I sent it · +{XP_PER_DM} XP</button>

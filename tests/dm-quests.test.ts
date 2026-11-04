@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, buildReminders, centralHour, dayCount, dmTargets, isRestDay, lastSevenDays, levelFor, partnerOf, questLine, streakFor, teamStreak, weekStart, weekTotal, xpFor, type DmLogEntry } from '../src/lib/dm-quests';
+import { addDays, buildReminders, centralHour, dailyMessage, dayCount, dmTargets, isRestDay, lastSevenDays, levelFor, partnerOf, questLine, streakFor, teamStreak, weekStart, weekTotal, xpFor, type DmLogEntry } from '../src/lib/dm-quests';
 import type { OutreachProspect } from '../src/lib/outreach';
 
 // 2026-10-26 is a Monday.
@@ -104,6 +104,14 @@ test('DM targets: reachable, not yet DMed, own list and exterior cleaning first'
   assert.equal(targets[2].url, 'https://instagram.com/plaindental');
   assert.equal(targets[0].mine, true);
   assert.equal(dmTargets(list, null).length, 4);
+});
+
+test('Daily 10 uses the sheet Message, never the separate DM field, and falls back only when empty', () => {
+  const chosen = dailyMessage(prospect({ email_body: '  Hello\\nSecond line  ', dm: 'Different DM' }));
+  assert.deepEqual(chosen, { text: '  Hello\nSecond line  ', fromSheet: true });
+  assert.equal(dailyMessage(prospect({ email_body: 'A different business' })).text, 'A different business');
+  assert.equal(dailyMessage(prospect({ email_body: null, dm: 'Different DM' })).fromSheet, false);
+  assert.equal(dailyMessage(prospect({ email_body: '  \\n  ' })).fromSheet, false);
 });
 
 test('reminders: latest slot only, only people under goal, none on Sunday or after the cutoff', () => {

@@ -56,8 +56,15 @@ test('lint stands in for approval: bad drafts are skipped, never sent', () => {
 test('every email carries who we are, a real address and a one-word opt-out', () => {
   const mail = composeEmail({ email_subject: ' Hi ', email_body: ` ${body} ` }, sender);
   assert.equal(mail.subject, 'Hi');
-  assert.ok(mail.body.startsWith(body));
+  assert.ok(mail.body.startsWith(` ${body} \n\n`));
   assert.match(mail.body, /Oscar\nOJ Solutions\n123 Main St, Kenosha, WI 53140/);
+  assert.match(mail.body, /Reply "stop"/);
+});
+
+test('the email message preserves sheet text and decodes literal line breaks before the existing footer', () => {
+  const text = '  Hello there,\\n\\nThis is the exact business-specific message.  ';
+  const mail = composeEmail({ email_subject: 'Subject', email_body: text }, sender);
+  assert.ok(mail.body.startsWith('  Hello there,\n\nThis is the exact business-specific message.  \n\n'));
   assert.match(mail.body, /Reply "stop"/);
 });
 

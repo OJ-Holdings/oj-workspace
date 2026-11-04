@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { parseOutreachRows } from '../../src/lib/outreach-import';
 
-const MAX_BODY_BYTES = 512_000;
+export const MAX_BODY_BYTES = 512_000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_OJ_SUPABASE_URL || 'https://vgckpcktsfuithqggknd.supabase.co';
 
 type Event = { httpMethod?: string; headers?: Record<string, string | undefined>; body?: string | null };
@@ -27,7 +27,7 @@ function setting(name: string) {
   return value;
 }
 
-/** Receives a private spreadsheet-bound Apps Script push. The Supabase service key stays on Netlify. */
+/** Receives a private spreadsheet-bound Apps Script push. The Supabase service key stays on the server. */
 export async function handler(event: Event): Promise<Result> {
   if (event.httpMethod !== 'POST') return response(405, { error: 'Method not allowed.' });
   if (!hasValidSyncToken(event.headers?.authorization ?? event.headers?.Authorization, process.env.OJ_OUTREACH_SYNC_TOKEN)) {

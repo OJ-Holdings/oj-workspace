@@ -11,6 +11,11 @@ const headerAliases: Record<keyof Omit<OutreachSourceRow, 'source_key' | 'source
 };
 
 const cell = (row: string[], index: number | undefined) => index === undefined || index < 0 ? '' : (row[index] ?? '').trim();
+const messageCell = (row: string[], index: number | undefined, rowNumber: number) => {
+  const value = index === undefined || index < 0 ? '' : (row[index] ?? '');
+  if (value.length > 5000) throw new Error(`Row ${rowNumber} has a Message longer than 5,000 characters.`);
+  return value.trim() ? value : null;
+};
 const clean = (value: string, max: number) => value.trim().slice(0, max) || null;
 const normalizeWebsite = (value: string) => value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0].replace(/\.$/, '');
 
@@ -67,7 +72,7 @@ export function parseOutreachRows(rows: string[][]) {
       best_fit_service: clean(cell(row, columns.best_fit_service), 120), secondary_fit: clean(cell(row, columns.secondary_fit), 120),
       leak: clean(cell(row, columns.leak), 2000), evidence: clean(cell(row, columns.evidence), 3000),
       email: clean(cell(row, columns.email), 320), instagram: clean(cell(row, columns.instagram), 1000), facebook: clean(cell(row, columns.facebook), 1000),
-      email_subject: clean(cell(row, columns.email_subject), 500), email_body: clean(cell(row, columns.email_body), 5000), dm: clean(cell(row, columns.dm), 3000),
+      email_subject: clean(cell(row, columns.email_subject), 500), email_body: messageCell(row, columns.email_body, i + 1), dm: clean(cell(row, columns.dm), 3000),
       date_added: parseDate(cell(row, columns.date_added)), sent_by: sentRaw === 'Oscar' || sentRaw === 'Jacob' ? sentRaw : null,
       source_status: sourceStatus, source_notes: clean(cell(row, columns.source_notes), 3000),
     });

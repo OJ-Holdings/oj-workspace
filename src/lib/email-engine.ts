@@ -1,5 +1,5 @@
 import { workDay } from './task-workflows';
-import { effectiveOutreachStatus, isExteriorNiche, type OutreachProspect, type OutreachStatus } from './outreach';
+import { effectiveOutreachStatus, isExteriorNiche, sheetMessage, type OutreachProspect, type OutreachStatus } from './outreach';
 
 /**
  * Rules for the OJ Solutions email engine. The sender is a Google Apps Script that
@@ -70,7 +70,7 @@ export function lintEmail(subject: string | null | undefined, body: string | nul
 export type Sender = { name: string; company: string; postalAddress: string };
 /** The compliance footer is added to every email: who we are, a real address, and a one-word way out. */
 export function composeEmail(p: Pick<EngineProspect, 'email_subject' | 'email_body'>, sender: Sender) {
-  const body = (p.email_body ?? '').trim();
+  const body = sheetMessage(p.email_body) ?? '';
   const footer = `${sender.name}\n${sender.company}\n${sender.postalAddress}\n\nNot a fit? Reply "stop" and I will not email you again.`;
   return { subject: (p.email_subject ?? '').trim(), body: `${body}\n\n${footer}` };
 }

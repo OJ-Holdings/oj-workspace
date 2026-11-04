@@ -47,6 +47,19 @@ test('identity keys survive URL scheme, www and path changes; repeated businesse
   assert.deepEqual(result.skippedRows, [4]);
 });
 
+test('column E Message is preserved for each business and overlong text is rejected', () => {
+  const live = ['Sent By','Channel','Send To','Subject','Message','Status','Notes','Business Name','Best Fit Service'];
+  const rows = parseOutreachRows([live,
+    ['Oscar','Email','one@example.test','Hello','  First line\\nSecond line  ','Not Sent','','First business','Web'],
+    ['Jacob','Email','two@example.test','Hello','Another message\nwith real line breaks','Not Sent','','Second business','Web'],
+    ['Oscar','Email','empty@example.test','Hello','   ','Not Sent','','Third business','Web'],
+  ]).prospects;
+  assert.equal(rows[0].email_body, '  First line\\nSecond line  ');
+  assert.equal(rows[1].email_body, 'Another message\nwith real line breaks');
+  assert.equal(rows[2].email_body, null);
+  assert.throws(() => parseOutreachRows([live, ['Oscar','Email','','Hello','x'.repeat(5001),'Not Sent','','Business','Web']]), /Message longer than 5,000/);
+});
+
 test('invalid headers, date values and statuses fail visibly instead of corrupting the import', () => {
   assert.throws(() => parseOutreachRows([['Business Name']]), /Missing required Outreach columns/);
   assert.throws(() => parseOutreachRows([headers, ['Business','','','','','','','','','','','','','','','','','Oscar','Sent maybe','']]), /unknown Outreach Status/);

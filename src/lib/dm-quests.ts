@@ -1,5 +1,5 @@
 import { workDay } from './task-workflows';
-import { effectiveOutreachStatus, isExteriorNiche, safeOutreachUrl, type OutreachProspect } from './outreach';
+import { effectiveOutreachStatus, isExteriorNiche, safeOutreachUrl, sheetMessage, type OutreachProspect } from './outreach';
 
 /** The Daily 10: every DM is logged by the database, the day is Central time, and the score is worked out here. */
 export const DEFAULT_DM_GOAL = 10;
@@ -7,6 +7,12 @@ export const XP_PER_DM = 10;
 export const GOAL_BONUS_XP = 50;
 /** Reminders stop pestering after this hour (Central). */
 export const QUEST_CUTOFF_HOUR = 21;
+const fallbackDm = 'Hey! I run a pressure washing company here in Kenosha and kept missing calls while I was on jobs, so I built an AI receptionist that answers, takes the details and texts me. Want to hear it? I can send you a number to call.';
+
+export function dailyMessage(p: Pick<OutreachProspect, 'email_body'>) {
+  const message = sheetMessage(p.email_body);
+  return { text: message ?? fallbackDm, fromSheet: message !== null };
+}
 
 export const dmChannels = ['instagram', 'facebook', 'linkedin', 'other'] as const;
 export type DmChannel = typeof dmChannels[number];
@@ -108,7 +114,7 @@ export function socialUrl(value: string | null, channel: keyof typeof socialRoot
 export type DmTarget = {
   prospect: OutreachProspect; channel: 'instagram' | 'facebook'; url: string; exterior: boolean; mine: boolean;
 };
-export const dmTargetFields = 'id,organization_id,business_name,industry,city_state,website_url,decision_maker,best_fit_service,secondary_fit,leak,instagram,facebook,dm,date_added,sent_by,source_status,outreach_status,email,source_row' as const;
+export const dmTargetFields = 'id,organization_id,business_name,industry,city_state,website_url,decision_maker,best_fit_service,secondary_fit,leak,instagram,facebook,dm,email_body,date_added,sent_by,source_status,outreach_status,email,source_row' as const;
 
 /** People worth a DM now: not contacted by DM, reachable on a social profile, own list first, exterior cleaning first. */
 export function dmTargets(prospects: OutreachProspect[], me: Partner | null, dmedToday: ReadonlySet<string> = new Set()): DmTarget[] {
