@@ -126,6 +126,26 @@ try {
   $watchers = @(Get-CimInstance Win32_Process -Filter "name='powershell.exe' or name='pwsh.exe'" |
     Where-Object { $_.CommandLine -match '[\\/]host-loop\.ps1\b' })
   if($watchers.Count -gt 0){Log 'BLOCKED: existing host-loop.ps1 watchdog is running; coordinate its shutdown first';return}
+  # Restore the already-deployed, recorded release before checking whether a
+  # newer main revision is ready. A failed future CI must not cause downtime.
+  if($Apply -and $state -and -not (PortOwner 3011)) {
+    $savedSha = [string]$state.sha
+    if($savedSha -notmatch '^[a-f0-9]{40}$'){throw 'Recorded release SHA is invalid; refusing recovery'}
+    $expectedPath = [IO.Path]::GetFullPath((Join-Path $root $savedSha))
+    $savedPath = [IO.Path]::GetFullPath([string]$state.path)
+    if($savedPath -ne $expectedPath -or -not (Test-Path -LiteralPath (Join-Path $savedPath '.next\BUILD_ID'))){throw 'Recorded release path or build is invalid; refusing recovery'}
+    $actualSha = @(& git -C $savedPath rev-parse HEAD)
+    if($LASTEXITCODE -ne 0 -or $actualSha.Count -ne 1 -or $actualSha[0].Trim() -ne $savedSha){throw 'Recorded release checkout does not match its SHA; refusing recovery'}
+    $restored = Launch $savedPath $savedSha 3011 'recovery'
+    if(-not (WaitHealth 3011 $savedSha $true)) {
+      $owner = PortOwner 3011
+      if($owner -and [int]$owner.ProcessId -eq [int]$restored.Id){Stop-Process -Id $restored.Id -Force}
+      throw 'Recorded release failed its versioned recovery health check'
+    }
+    $owner = PortOwner 3011
+    if(-not $owner -or [int]$owner.ProcessId -ne [int]$restored.Id){throw 'Recovered listener identity could not be verified'}
+    Log ('RECOVERED recorded release ' + $savedSha.Substring(0,12) + ' on port 3011')
+  }
   $ref = @(InvokeGit @('ls-remote',$remote,'refs/heads/main'))
   if($ref.Count -ne 1){throw 'Unable to verify GitHub main HEAD'}
   if($ref[0] -match '^([0-9a-f]{40})\s'){$sha=$Matches[1]}
