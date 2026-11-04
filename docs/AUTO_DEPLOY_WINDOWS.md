@@ -4,6 +4,8 @@ This is an opt-in local deployment agent for the Windows PC running OJ Workspace
 
 Tailscale Funnel on HTTPS port 10000 already forwards to http://127.0.0.1:3011. Keep that configuration unchanged.
 
+If port 3011 is empty, `-Apply` first attempts to restart the recorded release from its existing SHA-named worktree. The deploy lock, operator pause, competing-watchdog check, recorded path and checkout SHA still apply; recovery succeeds only after the versioned health endpoint confirms that exact release. A newer main commit still requires its own green CI and the normal deployment gates. A missing or damaged dependency directory requires repair before recovery can succeed; the updater does not replace it automatically.
+
 ## Mechanism
 
 1. Check the exact GitHub main SHA and its completed passing CI job.
