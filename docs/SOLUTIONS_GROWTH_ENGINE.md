@@ -17,6 +17,10 @@ The OJ Solutions section is built around the outreach plan: automated email, a d
 - **Texting is untouched.** The one SMS sender rule still holds. This is email only.
 - **Reminders:** the same script emails each partner who is under the DM goal at 10 AM, 2 PM, 6 PM and 8 PM Central. The server picks the reminder text.
 
+The Outreach sheet's **Message** column is the source for the Daily 10 message and the email draft. Literal `\n` sequences become line breaks; the Daily 10 uses its starter only when that cell is empty. The email engine retains its existing sender/address/opt-out footer.
+
+The checked-in `outreach-sync.gs` targets the authenticated Windows host at `/api/daily-outreach-sync` and reads the actual sheet width, capped at 20 columns. Updating this repository does **not** update a spreadsheet-bound Apps Script: a founder must update the bound script separately before that change can take effect. The email sender's `ENGINE_URL` is a separate script property; verify it points to the intended live `/api/outreach-email-engine` host before enabling any sending. Neither change runs an import or sends mail by itself.
+
 ## "Running" means running
 
 The dashboard says **Running** only when the sender has checked in within the last 25 minutes and is switched on. Otherwise it says Not started, Stopped checking in, Paused, Auto-paused or Blocked, with the reason. It never shows a made-up status.

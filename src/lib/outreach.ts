@@ -18,6 +18,12 @@ export type OutreachActivity = { id: string; prospect_id: string; actor_id: stri
 export const effectiveOutreachStatus = (p: Pick<OutreachProspect, 'outreach_status' | 'source_status'>): OutreachStatus => p.outreach_status ?? p.source_status;
 export const isOutreachComplete = (status: OutreachStatus) => status !== 'Not Sent';
 
+/** The sheet sometimes stores line breaks as the two literal characters \\n. */
+export function sheetMessage(value: string | null | undefined): string | null {
+  const text = value?.replace(/\\n/g, '\n') ?? '';
+  return text.trim() ? text : null;
+}
+
 /** Our first niche: exterior cleaning, the trade the founders also run (OJ Exterior Care). */
 const exteriorNiche = /(pressure|power)[\s-]*wash|soft[\s-]*wash|house[\s-]*wash|window[\s-]*clean|exterior[\s-]*clean|gutter|driveway|\bdeck\b|paver/i;
 export const isExteriorNiche = (p: Pick<OutreachSourceRow, 'industry' | 'best_fit_service' | 'business_name' | 'secondary_fit'>) =>

@@ -1,10 +1,10 @@
 /**
  * Bind this script to the OJ outreach spreadsheet. It reads only the Outreach
- * tab and pushes values to the authenticated Netlify receiver once per day.
+ * tab and pushes values to the authenticated OJ Workspace receiver once per day.
  * Configure the project timezone to America/Chicago before installing the trigger.
  */
 const OUTREACH_SPREADSHEET_ID = '1p98z0dW-KERPxTTDQo_mBLUlXSGdFB_pNsWGyJieYpU';
-const OUTREACH_ENDPOINT = 'https://ojworkspace.netlify.app/.netlify/functions/daily-outreach-sync';
+const OUTREACH_ENDPOINT = 'https://desktop-lbi2ein.tail3f006f.ts.net:10000/api/daily-outreach-sync';
 
 function syncOutreachSheet() {
   const token = PropertiesService.getScriptProperties().getProperty('OUTREACH_SYNC_TOKEN');
@@ -13,7 +13,8 @@ function syncOutreachSheet() {
   const sheet = SpreadsheetApp.openById(OUTREACH_SPREADSHEET_ID).getSheetByName('Outreach');
   if (!sheet) throw new Error('The source spreadsheet must contain an Outreach tab.');
   const lastRow = Math.min(Math.max(sheet.getLastRow(), 1), 1000);
-  const rows = sheet.getRange(1, 1, lastRow, 20).getDisplayValues();
+  const columns = Math.min(Math.max(sheet.getLastColumn(), 1), 20);
+  const rows = sheet.getRange(1, 1, lastRow, columns).getDisplayValues();
   const result = UrlFetchApp.fetch(OUTREACH_ENDPOINT, {
     method: 'post',
     contentType: 'application/json',
