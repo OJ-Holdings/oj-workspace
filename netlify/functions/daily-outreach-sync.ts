@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { parseOutreachRows } from '../../src/lib/outreach-import';
 
-export const MAX_BODY_BYTES = 512_000;
+export const MAX_BODY_BYTES = 2_000_000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_OJ_SUPABASE_URL || 'https://vgckpcktsfuithqggknd.supabase.co';
 
 type Event = { httpMethod?: string; headers?: Record<string, string | undefined>; body?: string | null };
@@ -34,7 +34,7 @@ export async function handler(event: Event): Promise<Result> {
     return response(401, { error: 'Unauthorized.' });
   }
   if (!event.body || Buffer.byteLength(event.body, 'utf8') > MAX_BODY_BYTES) {
-    return response(413, { error: 'Request body is empty or exceeds the 500 KB limit.' });
+    return response(413, { error: 'Request body is empty or exceeds the 2 MB limit.' });
   }
 
   let rows: unknown;

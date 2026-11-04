@@ -40,6 +40,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Verify automated outreach sheet parsing and safety
+        run: node --test scripts/test-outreach-auto-sync.mjs
       - name: Validate PowerShell backup and deployment helpers parse
         shell: pwsh
         run: |
@@ -59,7 +61,9 @@ jobs:
             'scripts/tests/age-stream-helper-smoke.ps1',
             'scripts/exterior-p2-release-evidence.ps1',
             'scripts/lib/exterior-p2-release-evidence.ps1',
-            'scripts/tests/exterior-p2-release-evidence.Tests.ps1'
+            'scripts/tests/exterior-p2-release-evidence.Tests.ps1',
+            'scripts/outreach-auto-sync.ps1',
+            'scripts/install-outreach-auto-sync.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
