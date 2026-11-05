@@ -174,27 +174,9 @@
 .com-workflow-nav button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
 .com-workflow-nav button:focus-visible,.com-account-app button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .com-account-app{border:1px solid var(--line);border-radius:var(--r-xl);background:var(--panel);padding:clamp(16px,2.5vw,25px);margin-bottom:17px}
-.com-account-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap;margin-bottom:18px}
-.com-account-head h3{font-family:var(--font-display);font-size:clamp(23px,3vw,31px);margin:6px 0}
-.com-account-head p:not(.exec-kicker){max-width:65ch;font-size:12px;color:var(--ink-2);line-height:1.65}
-.com-account-controls{display:flex;gap:8px;flex-wrap:wrap}
-.com-account-controls button,.com-account-subhead button{display:inline-flex;align-items:center;gap:7px;min-height:38px}
+.com-account-subhead button{display:inline-flex;align-items:center;gap:7px;min-height:38px}
 .com-account-notice{font-size:12px;color:var(--ink-2);background:var(--panel-2);padding:11px 13px;border:1px solid var(--line);border-radius:9px;margin:8px 0 15px}
-.com-account-layout{display:grid;grid-template-columns:minmax(195px,260px) minmax(0,1fr);gap:18px;min-width:0}
-.com-account-list{display:flex;flex-direction:column;gap:7px;min-width:0}
-.com-account-list>button{display:flex;align-items:center;text-align:left;gap:11px;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);cursor:pointer;color:var(--ink);min-width:0}
-.com-account-list>button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
-.com-account-list button>span:last-child{display:grid;min-width:0;gap:4px}
-.com-account-list button strong{font-size:12px;overflow-wrap:anywhere}
-.com-account-list button small{font-size:10px;color:var(--ink-3)}
-.com-account-list>p{font-size:11px;color:var(--ink-3)}
-.com-account-monogram{width:39px;height:39px;display:grid;place-items:center;flex-shrink:0;border-radius:9px;background:color-mix(in srgb,var(--accent) 12%,var(--panel-2));color:var(--accent-hi);font-weight:850;font-size:14px}
 .com-account-editor{min-width:0;display:flex;flex-direction:column;gap:14px}
-.com-account-editor-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
-.com-account-editor-head>div{display:grid;gap:5px;flex:1;min-width:0}
-.com-account-editor-head strong{font-size:17px;overflow-wrap:anywhere}
-.com-account-editor-head small{font-size:11px;color:var(--ink-3)}
-.com-account-editor-head button{display:flex;align-items:center;gap:7px;min-height:40px}
 .com-account-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
 .com-account-fields label{min-width:0;display:grid;align-content:start;gap:6px;color:var(--ink-2);font-size:11px;font-weight:700}
 .com-account-fields input,.com-account-fields textarea,.com-account-fields select{width:100%;min-width:0;min-height:39px;padding:10px 11px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;font:inherit}
@@ -204,9 +186,7 @@
 .com-account-subhead h4{display:flex;align-items:center;gap:7px;margin:0;font-size:15px}
 .com-account-entry{border:1px solid var(--line);border-radius:9px;padding:12px;min-width:0}
 .com-account-entry legend{padding:0 7px;font-size:11px;color:var(--ink-2);font-weight:750}
-.com-account-foot{display:flex;gap:8px;align-items:start;font-size:11px;line-height:1.6;color:var(--ink-3);margin:0}
-@media(max-width:780px){.com-account-layout{grid-template-columns:minmax(0,1fr)}.com-account-list{flex-direction:row;overflow-x:auto;padding-bottom:5px}.com-account-list>button{min-width:180px;max-width:230px;flex-shrink:0}}
-@media(max-width:460px){.com-account-fields{grid-template-columns:minmax(0,1fr)}.com-account-editor-head>button{width:100%;justify-content:center}.com-account-controls button{flex:1}}
+@media(max-width:460px){.com-account-fields{grid-template-columns:minmax(0,1fr)}}
 
 
 /* U2B — founder-reviewed exact project/company/property relationships. */
@@ -233,13 +213,11 @@
 
 
 /* U2C: property-driven estimating, planning cadence (not contracts). */
-.com-account-property-action{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
-.com-account-property-action>span{font-size:11px;color:var(--ink-2);line-height:1.5}
-.com-account-property-action button,.atlas-project-link-suggestion button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px}
 .com-account-service-overview{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .com-account-service-overview>span{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;padding:9px 12px;color:var(--ink-2);font-size:11px;background:var(--panel-2)}
 .com-account-service-overview strong{font-weight:800;color:var(--ink)}
 .atlas-project-link-suggestion{border:1px dashed var(--accent);border-radius:9px;padding:12px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .atlas-project-link-suggestion span{font-size:11px;line-height:1.6;flex:1;min-width:180px;color:var(--ink-2)}
 .atlas-project-link-suggestion strong{color:var(--ink)}
-@media(max-width:650px){.com-account-property-action>button,.atlas-project-link-suggestion>button{width:100%}}
+.atlas-project-link-suggestion button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px}
+@media(max-width:650px){.atlas-project-link-suggestion>button{width:100%}}
