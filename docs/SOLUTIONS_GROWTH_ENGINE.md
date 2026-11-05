@@ -21,6 +21,8 @@ The Outreach sheet's **Message** column is the source for the Daily 10 message a
 
 The checked-in `outreach-sync.gs` targets the authenticated Windows host at `/api/daily-outreach-sync` and reads the actual sheet width, capped at 20 columns. Updating this repository does **not** update a spreadsheet-bound Apps Script: a founder must update the bound script separately before that change can take effect. The email sender's `ENGINE_URL` is a separate script property; verify it points to the intended live `/api/outreach-email-engine` host before enabling any sending. Neither change runs an import or sends mail by itself.
 
+For the Windows host, `scripts/install-outreach-auto-sync.ps1 -ExpectedCommit <full-deployed-sha>` installs an opt-in per-user task that checks the existing sheet every 10 minutes and imports it through the same token-protected importer when it changes. An unchanged sheet is refreshed at least hourly to recover from an older database restore. It stores only a digest and receipt in `oj-workspace-releases`, never sheet contents or the token; status and errors go to `logs/outreach-auto-sync.log`. It does not send email or change the email engine's setting. Disable the **OJ Workspace - Outreach Sheet Sync** scheduled task to stop polling. This reader requires the sheet's existing link-sharing access; if access is removed or its shape or size exceeds the import limits, it fails closed and logs the reason.
+
 ## "Running" means running
 
 The dashboard says **Running** only when the sender has checked in within the last 25 minutes and is switched on. Otherwise it says Not started, Stopped checking in, Paused, Auto-paused or Blocked, with the reason. It never shows a made-up status.

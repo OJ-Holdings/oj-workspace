@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handler, hasValidSyncToken } from '../netlify/functions/daily-outreach-sync';
+import { handler, hasValidSyncToken, MAX_BODY_BYTES } from '../netlify/functions/daily-outreach-sync';
 import { GET as nextGet, POST as nextPost } from '../src/app/api/daily-outreach-sync/route';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
@@ -20,8 +20,8 @@ test('Windows import route authenticates before reading and limits uploaded byte
     assert.equal((await nextGet()).status, 405);
     assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', body: 'not json' }))).status, 401);
     const auth = { authorization: 'Bearer synthetic-token' };
-    assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', headers: { ...auth, 'content-length': '512001' }, body: 'x' }))).status, 413);
-    assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', headers: auth, body: 'x'.repeat(512_001) }))).status, 413);
+    assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', headers: { ...auth, 'content-length': String(MAX_BODY_BYTES + 1) }, body: 'x' }))).status, 413);
+    assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', headers: auth, body: 'x'.repeat(MAX_BODY_BYTES + 1) }))).status, 413);
     assert.equal((await nextPost(new Request('http://localhost/api/daily-outreach-sync', { method: 'POST', headers: auth, body: 'invalid json' }))).status, 400);
   } finally { if (previous === undefined) delete process.env.OJ_OUTREACH_SYNC_TOKEN; else process.env.OJ_OUTREACH_SYNC_TOKEN = previous; }
 });
@@ -51,7 +51,7 @@ test('outreach sync endpoint rejects untrusted requests before parsing data', as
   process.env.OJ_OUTREACH_SYNC_TOKEN = 'test';
   try {
     const oversized = await handler({
-      httpMethod: 'POST', headers: { authorization: 'Bearer test' }, body: 'x'.repeat(512_001),
+      httpMethod: 'POST', headers: { authorization: 'Bearer test' }, body: 'x'.repeat(MAX_BODY_BYTES + 1),
     });
     assert.equal(oversized.statusCode, 413);
     const invalid = await handler({ httpMethod: 'POST', headers: { authorization: 'Bearer test' }, body: 'not-json' });
