@@ -7,6 +7,7 @@ import {ojConnection} from '@/lib/oj-connection';
 import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/commercial-account-actions';
 import {CommercialAccountProjects} from './CommercialAccountProjects';
 import {CommercialBooking,type CommercialPrefill} from './CommercialBooking';
+import {CompanyRecords} from './CompanyRecords';
 import type {Act} from './ExteriorManage';
 import type {ExtBooking} from '@/lib/exterior';
 import {
@@ -388,6 +389,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
    <div><dt>Rhythm</dt><dd className="cw-small">{accountRhythm(draft)}</dd></div>
   </dl>}
   {editing?form:readout}
+  {!editing&&selected.revision>0&&<CompanyRecords org={org} accountId={selected.id} company={recorded?.name??draft.name} canEdit={canEdit}/>}
   {!editing&&selected.revision>0&&<CommercialAccountProjects org={org} accountId={selected.id} base={base} properties={recorded?.properties??[]}/>}
  </>;
 

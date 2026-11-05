@@ -56,3 +56,16 @@ test('company logos: newest upload per account wins, website icon only from a sa
   assert.equal(websiteIcon(''), '');
   assert.equal(websiteIcon('https://www.americanroller.com/about'), 'https://www.google.com/s2/favicons?domain=americanroller.com&sz=128');
 });
+
+test('company ledger counts only real invoices, and name matches are suggested first', async () => {
+  const {companyLedger, suggestRecords} = await import('../src/lib/commercial-accounts');
+  const r = (kind: 'proposal'|'invoice'|'document', id: string, status: string, total: number|null, paid: number|null, customer = '', date = '2026-11-01') =>
+    ({kind, id, title: id, customer, status, date, totalCents: total, paidCents: paid});
+  const ledger = companyLedger([r('invoice','a','paid',50000,50000), r('invoice','b','open',20000,5000), r('invoice','c','void',99900,0),
+    r('proposal','d','accepted',50000,null), r('proposal','e','sent',10000,null), r('document','f','',null,null)]);
+  assert.deepEqual(ledger, {invoiced: 70000, paid: 55000, open: 15000, invoices: 2, proposals: 2, won: 1, documents: 1});
+  assert.deepEqual(companyLedger([]), {invoiced: 0, paid: 0, open: 0, invoices: 0, proposals: 0, won: 0, documents: 0});
+  const order = suggestRecords('American Roller Company', [r('invoice','x','open',1,0,'Smith Residence','2026-11-03'),
+    r('invoice','y','open',1,0,'american roller co','2026-10-01'), r('invoice','z','open',1,0,'Lake Company','2026-11-02')]);
+  assert.deepEqual(order.map(o => o.id), ['y','x','z']);
+});
