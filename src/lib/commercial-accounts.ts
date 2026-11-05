@@ -94,3 +94,39 @@ export function prepareCommercialPropertyEstimate(account:CommercialAccount,prop
   suggestedEstimateTitle:(account.name+' · '+property.name).slice(0,160),
  };
 }
+
+/** "1440 13th Avenue, Union Grove, WI 53182" reads as "Union Grove, WI". Empty when the address has no town part. */
+export function townOf(address:string):string{
+ const parts=address.split(',').map(s=>s.trim()).filter(Boolean);
+ if(parts.length<3)return '';
+ const state=parts[parts.length-1].split(/\s+/)[0];
+ return parts[parts.length-2]+(state?', '+state:'');
+}
+/** The distinct towns an account's saved properties are in, in property order. */
+export const accountTowns=(a:CommercialAccountDraft)=>[...new Set(a.properties.map(p=>townOf(p.address)).filter(Boolean))];
+/** "https://www.americanroller.com/about" reads as "americanroller.com"; empty when nothing usable was saved. */
+export function siteDomain(website:string):string{
+ const raw=website.trim();
+ if(!raw)return '';
+ try{return new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw).hostname.replace(/^www\./,'');}catch{return '';}
+}
+/** How often the account's sites are serviced, from the agreed property frequencies only. */
+export function accountRhythm(a:CommercialAccountDraft):string{
+ const agreed=a.properties.map(p=>p.frequency).filter(f=>f!=='unknown');
+ if(!agreed.length)return 'No rhythm agreed';
+ const set=new Set(agreed);
+ if(set.size>1)return 'Mixed rhythm';
+ const f=agreed[0];
+ return f==='one-time'?'One-time work':f[0].toUpperCase()+f.slice(1)+' service';
+}
+/** A steady hue per company name, so each initials plate keeps its own colour until a real logo is uploaded. */
+export function monogramHue(name:string):number{
+ let h=0;
+ for(const ch of name.trim().toLowerCase())h=(h*31+ch.charCodeAt(0))%360;
+ return h;
+}
+/** Up to two initials from the first two words ("American Roller Company" reads as "AR"). */
+export function initialsOf(name:string):string{
+ const words=name.trim().split(/\s+/).filter(w=>/[a-z0-9]/i.test(w));
+ return (words.length>1?words[0][0]+words[1][0]:(words[0]??'').slice(0,2)).toUpperCase()||'OJ';
+}

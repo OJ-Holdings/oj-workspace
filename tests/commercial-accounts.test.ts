@@ -27,3 +27,21 @@ test('only verified save revisions and bounded normalized pages are accepted',()
  assert.throws(()=>parseCommercialAccountsPage({...page,hasMore:'false'}));
  assert.throws(()=>parseCommercialAccountsPage({...page,accounts:[page.accounts[0],page.accounts[0]]}));
 });
+test('client wall readouts come only from saved fields',async()=>{
+ const {townOf,accountTowns,siteDomain,accountRhythm,initialsOf,monogramHue}=await import('../src/lib/commercial-accounts');
+ assert.equal(townOf('1440 13th Avenue, Union Grove, WI 53182'),'Union Grove, WI');
+ assert.equal(townOf('Waukegan National Airport'),'');
+ assert.deepEqual(accountTowns({...draft,properties:[
+  {...draft.properties[0],address:'1 A St, Kenosha, WI 53140'},
+  {...draft.properties[0],id:person,address:'2 B St, Kenosha, WI 53144'}]}),['Kenosha, WI']);
+ assert.equal(siteDomain('https://www.americanroller.com/about'),'americanroller.com');
+ assert.equal(siteDomain('americanroller.com'),'americanroller.com');
+ assert.equal(siteDomain('  '),'');
+ assert.equal(accountRhythm(draft),'Quarterly service');
+ assert.equal(accountRhythm({...draft,properties:[]}),'No rhythm agreed');
+ assert.equal(accountRhythm({...draft,properties:[draft.properties[0],{...draft.properties[0],id:person,frequency:'monthly'}]}),'Mixed rhythm');
+ assert.equal(initialsOf('American Roller Company'),'AR');
+ assert.equal(initialsOf('Leiferman Aviation / Waukegan'),'LA');
+ assert.equal(initialsOf(''),'OJ');
+ assert.equal(monogramHue('Acme'),monogramHue(' acme '));
+});
