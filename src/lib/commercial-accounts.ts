@@ -149,3 +149,20 @@ export function latestLogos(names:string[]):Map<string,{latest:string;all:string
  return out;
 }
 export const websiteIcon=(website:string)=>{const d=siteDomain(website);return d?'https://www.google.com/s2/favicons?domain='+encodeURIComponent(d)+'&sz=128':'';};
+
+// Proposals, invoices and documents linked to a company (staged SQL RUN-ME-2026-11-05-commercial-links.sql).
+export type CompanyRecordKind='proposal'|'invoice'|'document';
+export type CompanyRecord={kind:CompanyRecordKind;id:string;title:string;customer:string;status:string;date:string;totalCents:number|null;paidCents:number|null};
+export function companyLedger(records:CompanyRecord[]){
+ const live=records.filter(r=>r.kind==='invoice'&&r.status!=='void');
+ const invoiced=live.reduce((t,r)=>t+(r.totalCents??0),0),paid=live.reduce((t,r)=>t+(r.paidCents??0),0);
+ const proposals=records.filter(r=>r.kind==='proposal');
+ return {invoiced,paid,open:invoiced-paid,invoices:live.length,proposals:proposals.length,
+  won:proposals.filter(r=>r.status==='accepted').length,documents:records.filter(r=>r.kind==='document').length};
+}
+// Unlinked records whose customer name shares a word of 3+ letters with the company come first.
+export function suggestRecords(company:string,candidates:CompanyRecord[]):CompanyRecord[]{
+ const words=new Set(company.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>=3&&!['the','and','inc','llc','company','corp'].includes(w)));
+ const hit=(r:CompanyRecord)=>(r.customer+' '+r.title).toLowerCase().split(/[^a-z0-9]+/).some(w=>words.has(w));
+ return [...candidates].sort((a,b)=>Number(hit(b))-Number(hit(a))||b.date.localeCompare(a.date));
+}

@@ -146,6 +146,31 @@
   background: none; border: 0; color: var(--ink-3); font-size: 12px; cursor: pointer; }
 .cw-remove:hover:not(:disabled) { color: var(--bad); }
 
+/* work and money: linked proposals, invoices and files */
+.cw-records { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: var(--panel-2); margin-bottom: 16px; min-width: 0; }
+.cw-records-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.cw-records-head h4 { display: flex; align-items: center; gap: 7px; font-size: 14px; }
+.cw-records-head h4 svg { color: var(--accent); }
+.cw-records-head button, .cw-link-picker button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+.cw-link-picker { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.cw-link-picker label { flex: 1 1 260px; display: grid; gap: 6px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.cw-link-picker select { width: 100%; min-height: 42px; }
+.cw-ledger { margin-bottom: 12px; }
+.cw-timeline { list-style: none; margin: 0; padding: 0; }
+.cw-entry { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.cw-entry:first-child { border-top: 0; }
+.cw-entry-mark { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-3); border: 1px solid var(--line-2); color: var(--ink-2); }
+.cw-entry.is-invoice .cw-entry-mark { color: var(--accent); }
+.cw-entry-main { display: grid; gap: 2px; min-width: 0; }
+.cw-entry-main strong { font-size: 14px; overflow-wrap: anywhere; }
+.cw-entry-main small { font-size: 12px; color: var(--ink-3); }
+.cw-entry-status { font-size: 11px; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.cw-entry-status.is-paid, .cw-entry-status.is-accepted { border-color: color-mix(in srgb, var(--good) 55%, transparent); color: var(--good); }
+.cw-entry-status.is-void, .cw-entry-status.is-declined, .cw-entry-status.is-expired { color: var(--ink-4); text-decoration: line-through; }
+.cw-entry-amount { display: grid; justify-items: end; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cw-entry-amount small { font-size: 11px; font-weight: 400; color: var(--ink-3); }
+.cw-entry .cw-remove { margin-top: 0; min-width: 32px; justify-content: center; }
+
 .cw button:focus-visible, .cw a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 900px) {
@@ -162,4 +187,7 @@
   .cw-head { align-items: stretch; }
   .cw-controls { width: 100%; }
   .cw-controls .primary { flex: 1; justify-content: center; }
+  .cw-entry { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .cw-entry-status { grid-column: 2; justify-self: start; }
+  .cw-entry-amount { grid-column: 3; grid-row: 1; }
 }
