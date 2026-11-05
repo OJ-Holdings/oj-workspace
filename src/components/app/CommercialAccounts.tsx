@@ -1,15 +1,17 @@
 'use client';
 
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
-import {ArrowLeft,Building2,CalendarPlus,Download,ExternalLink,Mail,MapPin,PencilLine,Phone,Plus,RefreshCw,Save,UserRound,X} from 'lucide-react';
+import {createBrowserClient} from '@supabase/ssr';
+import {ArrowLeft,Building2,CalendarPlus,Download,ExternalLink,ImageUp,Mail,MapPin,PencilLine,Phone,Plus,RefreshCw,Save,UserRound,X} from 'lucide-react';
+import {ojConnection} from '@/lib/oj-connection';
 import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/commercial-account-actions';
 import {CommercialAccountProjects} from './CommercialAccountProjects';
 import {CommercialBooking,type CommercialPrefill} from './CommercialBooking';
 import type {Act} from './ExteriorManage';
 import type {ExtBooking} from '@/lib/exterior';
 import {
- accountRhythm,accountTowns,commercialAccountMaxContacts,commercialAccountMaxProperties,initialsOf,monogramHue,
- prepareCommercialPropertyEstimate,siteDomain,townOf,validateCommercialAccountDraft,
+ accountRhythm,accountTowns,commercialAccountMaxContacts,commercialAccountMaxProperties,initialsOf,latestLogos,logoFolder,logoMaxBytes,logoTypes,monogramHue,
+ prepareCommercialPropertyEstimate,siteDomain,townOf,validateCommercialAccountDraft,websiteIcon,
  type CommercialAccount,type CommercialAccountDraft,type CommercialProperty,
 } from '@/lib/commercial-accounts';
 
@@ -21,8 +23,15 @@ const frequencyText:Record<CommercialProperty['frequency'],string>={unknown:'No 
 const since=(iso:string)=>new Date(iso).toLocaleDateString('en-US',{month:'short',year:'numeric'});
 const mapLink=(address:string)=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
 const hue=(name:string)=>({'--hue':monogramHue(name)}) as CSSProperties;
-function Plate({name,size}:{name:string;size?:'lg'}){
- return <span className={'cw-plate'+(size?' cw-plate-lg':'')} style={hue(name)} aria-hidden="true"><span>{initialsOf(name)}</span></span>;
+const bucket=()=>createBrowserClient(ojConnection.url,ojConnection.publishableKey).storage.from('oj-documents');
+/** A company's logo (uploaded, else its website icon), falling back to the lit initials plate when neither loads. */
+function Plate({name,logo,size}:{name:string;logo?:string;size?:'lg'}){
+ const [broken,setBroken]=useState('');
+ const show=!!logo&&broken!==logo;
+ return <span className={'cw-plate'+(size?' cw-plate-lg':'')+(show?' has-logo':'')} style={hue(name)} aria-hidden="true">
+  {show?<img src={logo} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setBroken(logo)}
+   onLoad={e=>{if(e.currentTarget.naturalWidth<32)setBroken(logo);}}/>:<span>{initialsOf(name)}</span>}
+ </span>;
 }
 
 type Attempt={id:string;revision:number;commandId:string;draft:CommercialAccountDraft};
@@ -43,6 +52,9 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
  const [message,setMessage]=useState('');
  const [screen,setScreen]=useState<'wall'|'company'>('wall');
  const [editing,setEditing]=useState(false);
+ const [logos,setLogos]=useState<Record<string,{url:string;files:string[]}>>({});
+ const [logoBusy,setLogoBusy]=useState(false);
+ const logoInput=useRef<HTMLInputElement>(null);
  const pending=useRef<Attempt|null>(null);
  const loading=useRef(false);
  const open=(x:CommercialAccount)=>{
@@ -62,8 +74,47 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
    if(!active)return;setState('offline');
    setMessage(e instanceof Error?e.message:'Company profile storage unavailable.');
   });
+  void loadLogos().then(next=>{if(active)setLogos(next);}).catch(()=>{});
   return ()=>{active=false;};
  },[org,canEdit]);
+ // Logos are decoration: if storage cannot be read, tiles keep the website icon or initials.
+ async function loadLogos(){
+  const {data}=await bucket().list(logoFolder(org),{limit:1000});
+  const found=latestLogos((data??[]).map(f=>f.name));
+  if(!found.size)return {};
+  const {data:signed}=await bucket().createSignedUrls([...found.values()].map(v=>logoFolder(org)+'/'+v.latest),3600);
+  const next:Record<string,{url:string;files:string[]}>={};
+  for(const [id,v] of found){
+   const url=signed?.find(s=>s.path===logoFolder(org)+'/'+v.latest)?.signedUrl;
+   if(url)next[id]={url,files:v.all};
+  }
+  return next;
+ }
+ const logoOf=(id:string,website:string)=>logos[id]?.url||websiteIcon(website);
+ async function uploadLogo(file?:File){
+  if(!file||!selected||selected.revision===0)return;
+  const ext=logoTypes[file.type];
+  if(!ext){setMessage('Logos can be PNG, JPG or WebP images.');return;}
+  if(file.size>logoMaxBytes){setMessage('Logos can be up to 2 MB.');return;}
+  setLogoBusy(true);setMessage('');
+  try{
+   const old=logos[selected.id]?.files??[];
+   const {error}=await bucket().upload(logoFolder(org)+'/'+selected.id+'--'+Date.now()+'.'+ext,file,{contentType:file.type,upsert:false});
+   if(error)throw error;
+   // The new file is already the newest, so a failed clean-up of older ones changes nothing visible.
+   if(old.length)await bucket().remove(old.map(n=>logoFolder(org)+'/'+n));
+   setLogos(await loadLogos());setMessage('Logo saved. Both founders see it.');
+  }catch{setMessage('The logo did not upload. Check your connection and try again.');}
+  finally{setLogoBusy(false);}
+ }
+ async function removeLogo(){
+  const files=selected?logos[selected.id]?.files:undefined;
+  if(!files||!window.confirm('Remove the uploaded logo? The website icon or initials will show instead.'))return;
+  setLogoBusy(true);setMessage('');
+  const {error}=await bucket().remove(files.map(n=>logoFolder(org)+'/'+n));
+  setLogos(await loadLogos().catch(()=>logos));setLogoBusy(false);
+  setMessage(error?'The logo could not be removed. Try again.':'Uploaded logo removed.');
+ }
  const locked=!canEdit||state==='saving'||state==='conflict'||!!pending.current;
  const edit=(next:(v:CommercialAccountDraft)=>CommercialAccountDraft)=>{
   if(locked)return;
@@ -191,7 +242,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
     const towns=accountTowns(a),domain=siteDomain(a.website);
     return <button type="button" key={a.id} className="cw-tile" style={hue(a.name)} onClick={()=>select(a)} disabled={state==='saving'||!!pending.current}>
      <span className="cw-tile-top">
-      <Plate name={a.name}/>
+      <Plate name={a.name} logo={logoOf(a.id,a.website)}/>
       <span className="cw-tile-name"><strong>{a.name}</strong>{a.industry&&<small>{a.industry}</small>}</span>
      </span>
      {towns.length>0&&<span className="cw-tile-place"><MapPin size={13}/>{towns.slice(0,2).join(' and ')}{towns.length>2?' and more':''}</span>}
@@ -213,6 +264,14 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
  const form=<div className="com-account-editor">
   {!!pending.current&&<button className="secondary" type="button" disabled={state==='saving'} onClick={()=>{if(pending.current)void perform(pending.current);}}>Retry original save</button>}
   {(dirty||state==='conflict')&&<button type="button" className="secondary cw-export" onClick={download}><Download size={15}/> Export unsaved copy</button>}
+  {selected&&selected.revision>0&&<div className="cw-logo-row">
+   <Plate name={draft.name||'OJ'} logo={logoOf(selected.id,draft.website)}/>
+   <p><strong>Logo</strong><small>{logos[selected.id]?'Uploaded logo':siteDomain(draft.website)?'Taken from '+siteDomain(draft.website)+' until you upload one':'Initials until you add a website or upload a logo'}</small></p>
+   <input ref={logoInput} type="file" hidden accept="image/png,image/jpeg,image/webp" aria-label="Choose a logo image"
+    onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';void uploadLogo(file);}}/>
+   <button type="button" className="secondary" disabled={logoBusy||!canEdit} onClick={()=>logoInput.current?.click()}><ImageUp size={15}/> {logoBusy?'Working':'Upload logo'}</button>
+   {logos[selected.id]&&<button type="button" className="cw-remove" disabled={logoBusy} onClick={()=>void removeLogo()}><X size={13}/> Remove uploaded logo</button>}
+  </div>}
   <div className="com-account-fields">
    <label>Company name<input maxLength={160} value={draft.name} disabled={fieldsDisabled}
     onChange={e=>edit(d=>({...d,name:e.target.value}))} placeholder="Company or property management group"/></label>
@@ -232,7 +291,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
      <label key={field}>{label}<input type={type} maxLength={max} value={c[field]} disabled={fieldsDisabled}
       onChange={e=>edit(d=>({...d,contacts:d.contacts.map(v=>v.id===c.id?{...v,[field]:e.target.value}:v)}))}/></label>)}
    </div>
-   <button type="button" className="cw-remove" disabled={fieldsDisabled} onClick={()=>edit(d=>({...d,contacts:d.contacts.filter(v=>v.id!==c.id)}))}><X size={13}/> Remove person</button>
+   {!recorded?.contacts.some(v=>v.id===c.id)&&<button type="button" className="cw-remove" disabled={fieldsDisabled} onClick={()=>edit(d=>({...d,contacts:d.contacts.filter(v=>v.id!==c.id)}))}><X size={13}/> Remove person</button>}
   </fieldset>)}
   <div className="com-account-subhead"><h4><MapPin size={17}/> Sites</h4>
    <button type="button" className="secondary" disabled={fieldsDisabled||draft.properties.length>=commercialAccountMaxProperties} onClick={addProperty}><Plus size={15}/> Add site</button>
@@ -251,7 +310,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
     <label>Crew notes for this site<textarea rows={2} maxLength={2000} value={p.serviceNotes} disabled={fieldsDisabled}
      onChange={e=>edit(d=>({...d,properties:d.properties.map(v=>v.id===p.id?{...v,serviceNotes:e.target.value}:v)}))}/></label>
    </div>
-   <button type="button" className="cw-remove" disabled={fieldsDisabled} onClick={()=>edit(d=>({...d,properties:d.properties.filter(v=>v.id!==p.id)}))}><X size={13}/> Remove site</button>
+   {!recorded?.properties.some(v=>v.id===p.id)&&<button type="button" className="cw-remove" disabled={fieldsDisabled} onClick={()=>edit(d=>({...d,properties:d.properties.filter(v=>v.id!==p.id)}))}><X size={13}/> Remove site</button>}
   </fieldset>)}
  </div>;
 
@@ -302,7 +361,7 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
  const company=selected&&<>
   <button type="button" className="cw-back" onClick={backToWall} disabled={!!pending.current}><ArrowLeft size={15}/> All companies</button>
   <header className="cw-hero" style={hue(draft.name||'OJ')} key={selected.id}>
-   <Plate name={draft.name||'OJ'} size="lg"/>
+   <Plate name={draft.name||'OJ'} logo={logoOf(selected.id,draft.website)} size="lg"/>
    <div className="cw-hero-text">
     <h3>{draft.name||'New company'}</h3>
     <p>{[draft.industry,towns.join(' and ')].filter(Boolean).join(', ')||(selected.revision===0?'Fill in the details below and save.':'')}</p>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {parseAccountReceipt,parseCommercialAccountsPage,validateCommercialAccountDraft} from '../src/lib/commercial-accounts';
+import {parseAccountReceipt,parseCommercialAccountsPage,validateCommercialAccountDraft,latestLogos,websiteIcon} from '../src/lib/commercial-accounts';
 const id='11111111-1111-4111-8111-111111111111';
 const person='22222222-2222-4222-8222-222222222222';
 const property='33333333-3333-4333-8333-333333333333';
@@ -44,4 +44,15 @@ test('client wall readouts come only from saved fields',async()=>{
  assert.equal(initialsOf('Leiferman Aviation / Waukegan'),'LA');
  assert.equal(initialsOf(''),'OJ');
  assert.equal(monogramHue('Acme'),monogramHue(' acme '));
+});
+
+test('company logos: newest upload per account wins, website icon only from a saved domain', () => {
+  const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
+  const got = latestLogos([`${a}--100.png`, `${a}--900.jpg`, `${a}--50.webp`, `${b}--7.png`, 'stray.txt', `${a}--1.gif`]);
+  assert.equal(got.get(a)?.latest, `${a}--900.jpg`);
+  assert.equal(got.get(a)?.all.length, 3);
+  assert.equal(got.get(b)?.latest, `${b}--7.png`);
+  assert.equal(got.size, 2);
+  assert.equal(websiteIcon(''), '');
+  assert.equal(websiteIcon('https://www.americanroller.com/about'), 'https://www.google.com/s2/favicons?domain=americanroller.com&sz=128');
 });

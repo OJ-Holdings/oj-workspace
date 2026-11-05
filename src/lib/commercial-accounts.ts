@@ -130,3 +130,22 @@ export function initialsOf(name:string):string{
  const words=name.trim().split(/\s+/).filter(w=>/[a-z0-9]/i.test(w));
  return (words.length>1?words[0][0]+words[1][0]:(words[0]??'').slice(0,2)).toUpperCase()||'OJ';
 }
+
+// Company logos live in the private oj-documents bucket at <org>/commercial-logos/<accountId>--<stamp>.<ext>;
+// the newest file per account wins. With no upload, the website's own icon is shown, then the initials plate.
+export const logoFolder=(org:string)=>org+'/commercial-logos';
+export const logoTypes:Record<string,string>={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
+export const logoMaxBytes=2*1024*1024;
+export function latestLogos(names:string[]):Map<string,{latest:string;all:string[]}>{
+ const out=new Map<string,{latest:string;all:string[]}>();
+ for(const name of names){
+  const m=/^([0-9a-f-]{36})--(\d+)\.(png|jpg|webp)$/.exec(name);
+  if(!m)continue;
+  const entry=out.get(m[1])??{latest:name,all:[]};
+  entry.all.push(name);
+  if(Number(/--(\d+)/.exec(entry.latest)![1])<Number(m[2]))entry.latest=name;
+  out.set(m[1],entry);
+ }
+ return out;
+}
+export const websiteIcon=(website:string)=>{const d=siteDomain(website);return d?'https://www.google.com/s2/favicons?domain='+encodeURIComponent(d)+'&sz=128':'';};

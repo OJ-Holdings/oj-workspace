@@ -21,6 +21,19 @@
 .cw-plate span { font-family: var(--display); font-weight: var(--display-weight, 700); font-size: calc(var(--size) * .36); letter-spacing: .04em;
   color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
 .cw-plate-lg { --size: 96px; border-radius: 22px; }
+/* a real logo sits on a white card, so dark marks on transparent backgrounds stay visible */
+.cw-plate.has-logo, .cw-tile:hover .cw-plate.has-logo { background: var(--menu-bg);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent), 0 10px 26px -12px rgba(0, 0, 0, .7); }
+.cw-plate.has-logo::after { display: none; }
+.cw-plate img { width: 78%; height: 78%; object-fit: contain; border-radius: 6px; }
+
+/* logo row at the top of the edit form */
+.cw-logo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; padding: 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2); }
+.cw-logo-row p { margin: 0; flex: 1 1 180px; display: grid; gap: 3px; }
+.cw-logo-row small { font-size: 12px; color: var(--ink-3); }
+.cw-logo-row > button.secondary { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; }
+.cw-logo-row .cw-remove { margin-top: 0; }
 
 /* wall header and tally */
 .cw-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
