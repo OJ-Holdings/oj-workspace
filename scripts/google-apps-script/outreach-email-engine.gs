@@ -59,6 +59,7 @@ function runEmailEngine() {
       action: 'plan', senderName: props.getProperty('SENDER_NAME') || '',
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
+    if (plan.state === 'braked') console.error('Email auto-paused: ' + plan.detail);
     // Reconcile stale claims using this account's Gmail Sent history before any new send.
     (plan.unconfirmed || []).forEach(function (candidate) {
       const sent = findSent_(candidate.to);

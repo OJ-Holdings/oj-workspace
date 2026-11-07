@@ -122,13 +122,13 @@ test('who is sendable: untouched, valid, clean, on niche, once', () => {
   assert.deepEqual(selectSendable(list, events, { sender: 'Oscar' }).ready.map(p => p.id), ['exterior', 'dmed', 'failed-once', 'ok']);
 });
 
-test('bounce brake trips at 4 bounces and 8 percent, not before', () => {
+test('bounce brake trips above 3 percent over 7 days or at 3 in one day', () => {
   const sent = Array.from({ length: 40 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-26T15:00:00Z'));
   const bounces = (n: number) => Array.from({ length: n }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-26T16:00:00Z'));
-  assert.equal(bounceBrake([...sent, ...bounces(3)], tuesdayMorning).braked, false);
+  assert.equal(bounceBrake([...sent, ...bounces(3)], tuesdayMorning).braked, true);
   assert.equal(bounceBrake([...sent, ...bounces(4)], tuesdayMorning).braked, true);
   assert.equal(bounceBrake([...sent, ...bounces(4)].map(e => ({ ...e, event_at: '2026-09-01T00:00:00Z' })), tuesdayMorning).braked, false);
-  assert.equal(bounceBrake([...Array.from({ length: 100 }, (_, i) => ev(`t${i}`, 'sent', '2026-10-26T15:00:00Z')), ...bounces(0), ...Array.from({ length: 4 }, (_, i) => ev(`t${i}`, 'bounce', '2026-10-26T16:00:00Z'))], tuesdayMorning).braked, false);
+  assert.equal(bounceBrake([...Array.from({ length: 100 }, (_, i) => ev(`t${i}`, 'sent', '2026-10-26T15:00:00Z')), ...bounces(0), ...Array.from({ length: 4 }, (_, i) => ev(`t${i}`, 'bounce', '2026-10-26T16:00:00Z'))], tuesdayMorning).braked, true);
 });
 
 test('plan: schedules one email in a spaced slot, with the footer', () => {

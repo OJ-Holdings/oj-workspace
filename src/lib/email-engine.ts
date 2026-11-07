@@ -153,11 +153,17 @@ export function selectSendable(prospects: EngineProspect[], events: EmailEvent[]
 
 /** Pause by itself when too many addresses are bouncing: damaged sender reputation is hard to repair. */
 export function bounceBrake(events: EmailEvent[], now: Date) {
-  const since = now.getTime() - 14 * 86_400_000;
+  const since = now.getTime() - 7 * 86_400_000;
   const recent = events.filter(e => Date.parse(e.event_at) >= since);
   const sent = new Set(recent.filter(e => e.kind === 'sent').map(e => e.prospect_id)).size;
-  const bounced = new Set(recent.filter(e => e.kind === 'bounce').map(e => e.prospect_id)).size;
-  return { sent, bounced, braked: bounced >= 4 && bounced / Math.max(sent, 1) >= 0.08 };
+  const bounceRows = recent.filter(e => e.kind === 'bounce');
+  const bounced = new Set(bounceRows.map(e => e.prospect_id)).size;
+  const today = workDay(now);
+  const todayBounced = new Set(bounceRows.filter(e => workDay(new Date(e.event_at)) === today).map(e => e.prospect_id)).size;
+  const rate = bounced / Math.max(sent, 1);
+  const reason = todayBounced >= 3 ? `${todayBounced} bounces today (limit: 3).`
+    : sent > 0 && rate > 0.03 ? `${(rate * 100).toFixed(1)}% bounced over the last 7 days (limit: 3%).` : '';
+  return { sent, bounced, todayBounced, rate, reason, braked: Boolean(reason) };
 }
 
 export type PlanItem = { prospect_id: string; to: string; subject: string; body: string };
@@ -186,7 +192,7 @@ export function planEmailRun(input: {
   if (!input.sender?.postalAddress.trim()) return done('blocked', 'Add the business mailing address to the server settings (OJ_EMAIL_POSTAL_ADDRESS). Every cold email must carry one.');
   if (!settings.enabled) return done('paused', 'Paused from the dashboard.');
   const brake = bounceBrake(events, now);
-  if (brake.braked) return done('braked', `${brake.bounced} of ${brake.sent} recent emails bounced. Sending stopped to protect the sender. Fix the list, then switch it on again.`);
+  if (brake.braked) return done('braked', `Auto-paused: ${brake.reason} Sending is stopped until the bounce issue is resolved.`);
   const window = sendWindow(now);
   if (!window.open) return done('outside-window', window.reason === 'sunday' ? 'Sundays are off. Sending resumes Monday 9:00 AM Central.' : 'Sending runs Monday to Saturday, 9:00 AM to 4:30 PM Central.');
   if (sentToday >= capToday) return done('cap-reached', `Today's limit of ${capToday} is used. Sending resumes tomorrow.`);

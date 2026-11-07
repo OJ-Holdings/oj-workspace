@@ -150,7 +150,7 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
             <li>Skips any draft with placeholders, spam phrases, shouting or broken links.</li>
             <li>Adds your name, company, mailing address and a one-word opt-out to every email.</li>
             <li>Anyone who replies "stop" is marked Not Interested and never emailed again.</li>
-            <li>Stops itself if bounces climb past 8%, to protect your sender reputation.</li>
+            <li>Stops itself above 3% bounces over seven days or after 3 bounces in one day, to protect your sender reputation.</li>
             <li>Never emails someone this Gmail account has already written to.</li>
           </ul>
         </section>
