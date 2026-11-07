@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Copy, RefreshCw } from 'lucide-react';
-import { loadOutreach, loadOutreachHistory, loadLeadQuality, updateOutreachStatus } from '@/app/workspace/outreach-actions';
+import { loadOutreach, loadOutreachHistory, loadLeadQuality, loadSparkFeed, updateOutreachStatus } from '@/app/workspace/outreach-actions';
 import type { leadQualitySummary } from '@/lib/outreach-quality';
 import { contactsMarkedToday, effectiveOutreachStatus, outreachNextStep, selectProspects, outreachStatuses, safeOutreachUrl, type OutreachActivity, type OutreachProspect, type OutreachStatus, type OutreachQueue } from '@/lib/outreach';
 import { RecordPanel } from './RecordPanel';
@@ -31,6 +31,8 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
   const [notice, setNotice] = useState('');
   const [leadQuality, setLeadQuality] = useState<ReturnType<typeof leadQualitySummary> | null>(null);
   const [qualityError, setQualityError] = useState('');
+  const [spark, setSpark] = useState<Awaited<ReturnType<typeof loadSparkFeed>> | null>(null);
+  const [sparkError, setSparkError] = useState('');
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => { setNotice(''); }, [selectedId]);
 
@@ -55,6 +57,8 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
   useEffect(() => {
     if (mode !== 'live') return;
     let active = true;
+    loadSparkFeed(organizationId).then(v=>{if(active){setSpark(v);setSparkError('');}})
+      .catch(e=>{if(active)setSparkError(e instanceof Error?e.message:'Spark feed unavailable.');});
     loadLeadQuality(organizationId).then(v => { if (active) { setLeadQuality(v); setQualityError(''); } })
       .catch(e => { if (active) setQualityError(e instanceof Error ? e.message : 'Lead quality unavailable.'); });
     return () => { active = false; };
@@ -93,6 +97,18 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
         <div><span>Contact marked today</span><strong>{activity && now ? `${activityLimited ? '≥ ' : ''}${contactsMarkedToday(activity, now)}` : '—'}</strong><small>{activity ? 'Unique prospects in manual status history · Central time' : 'Status history unavailable'}</small></div>
       </div>
       <p className="quiet">Contact markings are not verified message delivery. Import dates do not count as activity.</p>
+      <section className="panel" aria-labelledby="spark-feed-title">
+        <header className="panel-head"><h2 id="spark-feed-title">Spark feed</h2><span className="quiet">Today vs daily research targets</span></header>
+        {sparkError ? <p className="outreach-error" role="status">{sparkError}</p> : !spark ? <p className="quiet">Loading daily snapshots...</p> : <>
+          <div className="outreach-summary">{spark.deltas.map(v => <div key={v.sender + v.channel}>
+            <span>{v.sender} / {v.channel === 'dm' ? 'DM' : 'Email'}</span>
+            <strong style={v.lateAndEmpty ? {color:'#e78e8e'} : undefined}>{v.newToday === null ? 'Not measured yet' : `${v.newToday} / ${v.target}`}</strong>
+            <small>{v.rows ?? '?'} rows currently in sheet {v.lateAndEmpty ? '· No new rows after 10 AM' : ''}</small>
+          </div>)}</div>
+          <p>DMs ready: Jacob {spark.dm.Jacob}, Oscar {spark.dm.Oscar}. Emails ready: {spark.emailReady}.</p>
+          <p className="quiet">Oscar: additional 20-email research batch at 10 PM Central Monday to Saturday. Counts are calculated from snapshots, not a date-added column.</p>
+        </>}
+      </section>
       <section className="panel" aria-labelledby="lead-quality-title">
         <header className="panel-head"><h2 id="lead-quality-title">Lead quality</h2><span className="quiet">Last 7 days</span></header>
         {qualityError ? <p className="outreach-error" role="status">{qualityError}</p> : !leadQuality ? <p className="quiet">Loading quality metrics...</p> : <>

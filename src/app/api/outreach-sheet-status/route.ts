@@ -8,7 +8,7 @@ const failure = (status: number, error: string) => Response.json({ error }, { st
 const central = (s: string) => new Date(s).toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', year: 'numeric' });
 
 export async function GET(request: Request) {
-  if (!hasValidSyncToken(request.headers.get('authorization'), process.env.OJ_OUTREACH_SYNC_TOKEN)) return failure(401, 'Unauthorized');
+  if (!hasValidSyncToken(request.headers.get('authorization') || undefined, process.env.OJ_OUTREACH_SYNC_TOKEN)) return failure(401, 'Unauthorized');
   const org = process.env.OJ_OUTREACH_ORGANIZATION_ID;
   const key = process.env.OJ_SUPABASE_SERVICE_ROLE_KEY;
   if (!org || !key) return failure(503, 'Sheet writeback is not configured on this host.');

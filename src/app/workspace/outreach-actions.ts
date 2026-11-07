@@ -4,7 +4,12 @@ import { requireMember } from '@/lib/supabase';
 import type { OutreachActivity, OutreachProspect, OutreachStatus } from '@/lib/outreach';
 import { outreachStatuses } from '@/lib/outreach';
 import { leadQualitySummary } from '@/lib/outreach-quality';
+import { sparkDeltas, type SparkCount } from '@/lib/spark-feed';
+import { selectSendable } from '@/lib/email-engine';
+import { dmTargets } from '@/lib/dm-quests';
 import type { SkipRecord } from '@/lib/outreach-skips';
+
+import type { EmailEvent } from '@/lib/email-engine';
 
 export async function loadOutreach(org: string) {
   const { client } = await requireMember(org);
@@ -50,4 +55,28 @@ export async function loadLeadQuality(org: string) {
     throw new Error('Lead quality needs the reviewed DM skips SQL and email log access.');
   }
   return leadQualitySummary((skips.data ?? []) as SkipRecord[], (dm.count ?? 0) + (emails.count ?? 0));
+}
+
+/** Snapshot-only Spark metrics, scoped to the authorized workspace member. */
+export async function loadSparkFeed(org: string) {
+  const { client } = await requireMember(org);
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 3 * 86_400_000).toISOString().slice(0,10);
+  const [snapshots, prospects, skips, events, settings] = await Promise.all([
+    client.from('oj_outreach_spark_snapshots').select('sender,channel,row_count,snapshot_day').eq('organization_id',org).gte('snapshot_day',yesterday).limit(30),
+    client.from('oj_outreach_prospects').select('*').eq('organization_id',org).limit(1000),
+    client.from('oj_outreach_skips').select('prospect_id').eq('organization_id',org).limit(1000),
+    client.from('oj_email_events').select('prospect_id,kind,event_at').eq('organization_id',org).gte('event_at',new Date(now.getTime()-60*86_400_000).toISOString()).limit(5000),
+    client.from('oj_email_engine_settings').select('niche_filter').eq('organization_id',org).maybeSingle(),
+  ]);
+  if ([snapshots, prospects, skips, events, settings].some(v=>v.error)) {
+    console.error('Spark feed lookup failed', [snapshots,prospects,skips,events,settings].filter(v=>v.error).map(v=>v.error?.code));
+    throw new Error('Spark feed needs the reviewed Spark and DM skips SQL migrations.');
+  }
+  const list = (prospects.data ?? []) as OutreachProspect[];
+  const skipIds = new Set((skips.data ?? []).map((s:{prospect_id:string})=>s.prospect_id));
+  const dm = Object.fromEntries(['Jacob','Oscar'].map(name => [name, dmTargets(list.filter(p => p.sent_by === name && !skipIds.has(p.id)), name as 'Jacob'|'Oscar').length]));
+  const emailReady = selectSendable(list, (events.data ?? []) as EmailEvent[], { niche: settings.data?.niche_filter || null }).ready.length;
+  return { deltas: sparkDeltas((snapshots.data ?? []) as SparkCount[], now), dm, emailReady,
+    oscarNightBatch: { target: 20, hourCentral: 22, days: 'Monday to Saturday' } };
 }

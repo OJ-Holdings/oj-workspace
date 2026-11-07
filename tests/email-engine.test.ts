@@ -164,8 +164,8 @@ test('plan: every reason not to send is reported honestly', () => {
   assert.equal(run({ events: fiveToday.map(e => ({ ...e, event_at: '2026-10-26T20:00:00Z' })), settings: { enabled: true, daily_cap_max: 5, niche_filter: null } }).state, 'sending');
   // Two sent in the last hour on a day with room: wait so mail is not sent in a burst.
   const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], settings: { enabled: true, daily_cap_max: 10, niche_filter: null } }); // a ceiling of 10, so two an hour
-  assert.equal(paced.state, 'sending');
-  const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-20T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-21T15:00:00Z'))] });
+  assert.equal(paced.state, 'idle');
+  const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-21T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-22T15:00:00Z'))] });
   assert.equal(bounced.state, 'braked');
 });
 
@@ -173,7 +173,7 @@ test('plan: a batch never exceeds what is left of today or this hour', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: { enabled: true, daily_cap_max: 5, niche_filter: null }, state: null, prospects, sender, events: [ev('x', 'sent', '2026-10-27T14:10:00Z'), ev('y', 'sent', '2026-10-27T14:20:00Z'), ev('z', 'sent', '2026-10-27T14:30:00Z'), ev('w', 'sent', '2026-10-27T14:40:00Z')] });
   assert.equal(plan.capToday, 10);
-  assert.equal(plan.items.length, 1);
+  assert.equal(plan.items.length, 0);
 });
 
 test('plan: watch list covers recent sends that have not answered', () => {

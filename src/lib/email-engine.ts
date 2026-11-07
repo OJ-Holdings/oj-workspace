@@ -20,7 +20,7 @@ export type EngineState = { last_heartbeat_at: string; state: EngineStateName; d
 export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop', 'followup_reserved', 'followup_sent'] as const;
 export type EmailEventKind = typeof eventKinds[number];
 export type EmailEvent = { prospect_id: string; kind: EmailEventKind; event_at: string; detail?: string };
-export type EngineProspect = Pick<OutreachProspect, 'id' | 'business_name' | 'industry' | 'best_fit_service' | 'secondary_fit' | 'email' | 'email_subject' | 'email_body' | 'sent_by' | 'date_added' | 'source_status' | 'outreach_status' | 'decision_maker'>;
+export type EngineProspect = Pick<OutreachProspect, 'id' | 'business_name' | 'industry' | 'best_fit_service' | 'secondary_fit' | 'email' | 'email_subject' | 'email_body' | 'sent_by' | 'date_added' | 'source_status' | 'outreach_status'> & { decision_maker?: string | null };
 
 // ---- Time --------------------------------------------------------------------------------
 function central(now: Date) {
@@ -73,9 +73,9 @@ export function lintEmail(subject: string | null | undefined, body: string | nul
 export type Sender = { name: string; company: string; postalAddress: string };
 /** The compliance footer is added to every email: who we are, a real address, and a one-word way out. */
 export function composeEmail(p: Pick<EngineProspect, 'email_subject' | 'email_body'>, sender: Sender) {
-  const body = (sheetMessage(p.email_body) ?? '').trimEnd();
+  const body = sheetMessage(p.email_body) ?? '';
   const signature = `${sender.name}\n${sender.company}`;
-  const hasSignOff = body.toLowerCase().endsWith(signature.toLowerCase());
+  const hasSignOff = body.trimEnd().toLowerCase().endsWith(signature.toLowerCase());
   const hasOptOut = /if this isn.t relevant,? just reply no and i won.t reach out again\.?|not a fit\? reply ["']?stop["']? and i will not email you again\.?/i.test(body);
   const optOut = 'Not a fit? Reply "stop" and I will not email you again.';
   const tail = [hasOptOut ? '' : optOut, hasSignOff ? '' : signature, sender.postalAddress].filter(Boolean).join('\n\n');
