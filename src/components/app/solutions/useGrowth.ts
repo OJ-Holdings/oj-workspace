@@ -5,7 +5,7 @@ import { loadGrowth, logDm, undoDm, type GrowthData } from '@/app/workspace/grow
 import type { DmChannel, DmLogEntry } from '@/lib/dm-quests';
 import { todayKey } from '@/lib/dm-quests';
 import { previewGrowth } from '@/lib/growth-preview';
-import { effectiveOutreachStatus } from '@/lib/outreach';
+import { mutationFailureMessage } from '@/lib/server-action-errors';
 
 export type GrowthStore = {
   mode: 'preview' | 'live'; readOnly: boolean; org: string; now: Date;
@@ -38,8 +38,8 @@ export function useGrowth(org: string, mode: 'preview' | 'live', readOnly: boole
     loadGrowth(org).then(result => {
       if (!active || busy.current > 0) return;
       if (result.ok) setState({ status: 'ready', data: result.data });
-      else setState(s => ({ status: result.reason === 'no-prospects' ? 'no-prospects' : s.data ? 'ready' : 'error', data: s.data }));
-    }).catch(() => { if (active) setState(s => ({ status: s.data ? 'ready' : 'error', data: s.data })); });
+      else setState(s => ({ status: result.reason === 'no-prospects' ? 'no-prospects' : 'error', data: s.data }));
+    }).catch(() => { if (active) setState(s => ({ status: 'error', data: s.data })); });
     return () => { active = false; };
   }, [org, mode, revision]);
 
@@ -56,7 +56,7 @@ export function useGrowth(org: string, mode: 'preview' | 'live', readOnly: boole
     busy.current++;
     patch(x => ({
       ...x, dm: x.dm && { ...x.dm, log: [entry, ...x.dm.log] },
-      prospects: x.prospects.map(p => p.id === prospectId ? { ...p, outreach_status: effectiveOutreachStatus(p) === 'Not Sent' ? 'DMed' : effectiveOutreachStatus(p) === 'Emailed' ? 'Emailed + DMed' : p.outreach_status } : p),
+      // The pending log hides this target; let the verified server refresh change its outreach status.
     }));
     try {
       const result = await logDm(org, prospectId, channel);
@@ -65,14 +65,14 @@ export function useGrowth(org: string, mode: 'preview' | 'live', readOnly: boole
       return '';
     } catch (e) {
       patch(x => ({ ...x, dm: x.dm && { ...x.dm, log: x.dm.log.filter(item => item.id !== tmp) } }));
-      return e instanceof Error ? e.message : 'Could not record the DM.';
+      return mutationFailureMessage(e, 'Could not record the DM.');
     } finally { busy.current--; reload(); }
   }
   async function undo(entryId: string) {
     if (mode === 'preview' || readOnly) return 'Nothing to undo here.';
     busy.current++;
     try { await undoDm(org, entryId); patch(x => ({ ...x, dm: x.dm && { ...x.dm, log: x.dm.log.map(e => e.id === entryId ? { ...e, undone_at: new Date().toISOString() } : e) } })); return ''; }
-    catch (e) { return e instanceof Error ? e.message : 'Could not undo.'; }
+    catch (e) { return mutationFailureMessage(e, 'Could not undo.'); }
     finally { busy.current--; reload(); }
   }
 

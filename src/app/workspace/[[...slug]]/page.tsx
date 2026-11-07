@@ -5,6 +5,7 @@ import { isConfigured, supabaseServer } from '@/lib/supabase';
 import { loadWorkspace } from '@/lib/workspace-data';
 import { contentPersistenceEnabled } from '@/lib/ventures';
 import { retiredRoute } from '@/lib/retired-routes';
+import { resolveServedRelease } from '@/lib/release-health';
 export const dynamic = 'force-dynamic';
 export default async function WorkspacePage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const { slug = [] } = await params;
@@ -20,5 +21,6 @@ export default async function WorkspacePage({ params }: { params: Promise<{ slug
   if (!membership) return <main className="entry"><div className="entry-card"><h1>Your account is ready.</h1><p>An OJ administrator needs to grant your workspace membership before business records are available.</p><Link href="/login">Return to sign in</Link></div></main>;
   // Only whether each key is present reaches the browser, never the key itself.
   const connections = { shopify: Boolean(process.env.SHOPIFY_CLIENT_ID && process.env.SHOPIFY_CLIENT_SECRET && process.env.SHOPIFY_STORE_DOMAIN), ghl: Boolean(process.env.GHL_ACCESS_TOKEN && process.env.GHL_LOCATION_ID) };
-  return <LiveWorkspace organizationId={membership.organization_id} initial={await loadWorkspace(membership.organization_id)} connections={connections} />;
+  const servedRelease = resolveServedRelease({ explicit: process.env.OJ_WORKSPACE_RELEASE_SHA, netlify: process.env.COMMIT_REF, vercel: process.env.VERCEL_GIT_COMMIT_SHA });
+  return <LiveWorkspace organizationId={membership.organization_id} initial={await loadWorkspace(membership.organization_id)} connections={connections} servedRelease={servedRelease} />;
 }

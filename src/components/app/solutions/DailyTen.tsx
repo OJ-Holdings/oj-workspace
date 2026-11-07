@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Check, Copy, ExternalLink, Flame, Pencil, SkipForward, Trophy, Undo2 } from 'lucide-react';
 import { setDmGoal } from '@/app/workspace/growth-actions';
+import { mutationFailureMessage, STALE_SERVER_ACTION_NOTICE } from '@/lib/server-action-errors';
 import {
   centralHour, dailyMessage, dayCount, dmChannels, dmTargets, GOAL_BONUS_XP, lastSevenDays, levelFor, questLine, streakFor, teamStreak, todayKey, weekTotal, XP_PER_DM, xpFor,
   type DmChannel,
@@ -76,7 +77,7 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
     const n = Number(goalDraft);
     if (g.mode === 'preview') { setNotice('Goals cannot be changed in the preview.'); return; }
     try { await setDmGoal(g.org, n); setEditingGoal(false); g.reload(); setNotice(`Daily goal is now ${n} for both of you.`); }
-    catch (e) { setNotice(e instanceof Error ? e.message : 'Could not change the goal.'); }
+    catch (e) { setNotice(mutationFailureMessage(e, 'Could not change the goal.')); }
   }
 
   return <div className="gx-page">
@@ -118,6 +119,7 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
       {undoable && !g.readOnly && <button className="secondary" disabled={busy} onClick={async () => { setBusy(true); const e = await g.undo(undoable.id); setBusy(false); setNotice(e || `Undid the last DM${undoable.prospect_id && names.get(undoable.prospect_id) ? ` (${names.get(undoable.prospect_id)})` : ''}.`); }}><Undo2 size={14} aria-hidden="true" />Undo last</button>}
     </section>
     <p role="status" className="gx-notice">{notice}</p>
+    {notice === STALE_SERVER_ACTION_NOTICE && <button type="button" className="primary" onClick={() => window.location.reload()}>Reload workspace</button>}
 
     <div className="gx-columns">
       <section className="panel gx-target" aria-labelledby="gx-target-title">

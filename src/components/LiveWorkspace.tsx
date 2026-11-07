@@ -5,11 +5,33 @@ import { App } from '@/components/app/App';
 import type { Connections } from '@/components/app/Pages';
 import type { WorkspaceSnapshot } from '@/lib/board';
 import { ojConnection } from '@/lib/oj-connection';
-export function LiveWorkspace({ organizationId, initial, connections }: { organizationId: string; initial: WorkspaceSnapshot; connections: Connections }) {
+export function LiveWorkspace({ organizationId, initial, connections, servedRelease }: { organizationId: string; initial: WorkspaceSnapshot; connections: Connections; servedRelease: string }) {
   const [snapshot, setSnapshot] = useState(initial);
   const [status, setStatus] = useState('Connecting shared updates…');
   const [available, setAvailable] = useState(true);
   const [ended, setEnded] = useState(false);
+  const [outdated, setOutdated] = useState(false);
+  // The page carries the SHA of the build that rendered its Server Action IDs.
+  // On a host switch, old tabs must reload before making another mutation.
+  useEffect(() => {
+    if (!/^[a-f0-9]{40}$/i.test(servedRelease)) return;
+    let disposed = false;
+    const check = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const response = await fetch('/api/deploy-health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+        if (!response.ok || disposed) return;
+        const health = await response.json() as { release?: string };
+        if (!disposed && typeof health.release === 'string' && /^[a-f0-9]{40}$/i.test(health.release) && health.release !== servedRelease) setOutdated(true);
+      } catch { /* A failed health probe cannot establish a deployment mismatch. */ }
+    };
+    void check();
+    const timer = window.setInterval(() => { void check(); }, 30_000);
+    const onFocus = () => { void check(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => { disposed = true; window.clearInterval(timer); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
+  }, [servedRelease]);
   const hasDashboard = snapshot.dashboard !== null;
   const hasWork = snapshot.work !== null;
   useEffect(() => {
@@ -65,5 +87,11 @@ export function LiveWorkspace({ organizationId, initial, connections }: { organi
     return () => { disposed = true; controller.abort(); window.clearInterval(timer); window.removeEventListener('offline', onOffline); window.removeEventListener('online', onFocus); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); auth.data.subscription.unsubscribe(); void client.removeChannel(channel); if (extra) void client.removeChannel(extra); if (work) void client.removeChannel(work); };
   }, [organizationId, hasDashboard, hasWork]);
   if (ended) return <main className="entry"><div className="entry-card"><h1>Workspace access ended.</h1><p>Returning to sign in…</p></div></main>;
-  return <App base="/workspace" dashboard={snapshot.dashboard} work={snapshot.work} partner={snapshot.role !== 'viewer'} connections={connections} mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={status} limited={snapshot.limited} />;
+  return <>
+    {outdated && <div role="alert" style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, maxWidth: 560, width: 'calc(100% - 32px)', border: '1px solid #c9a37d', borderRadius: 12, background: '#222126', color: '#fff', padding: '12px 16px', boxShadow: '0 8px 32px #0009' }}>
+      <strong>OJ Workspace has been updated.</strong> Copy any unsaved text, then reload before recording more DMs or editing tasks.
+      <button type="button" className="primary" onClick={() => window.location.reload()} style={{ marginLeft: 12 }}>Reload workspace</button>
+    </div>}
+    <App base="/workspace" dashboard={snapshot.dashboard} work={snapshot.work} partner={snapshot.role !== 'viewer'} connections={connections} mode="live" organizationId={organizationId} initial={snapshot.data} members={snapshot.members} readOnly={!available || outdated || snapshot.role === 'viewer'} owner={snapshot.role === 'owner'} displayName={snapshot.displayName} connectionStatus={outdated ? 'Workspace update detected. Reload required.' : status} limited={snapshot.limited} />
+  </>;
 }
