@@ -121,3 +121,10 @@ test('invalid reporting date fails rather than emitting misleading priorities', 
     assert.throws(()=>buildIntelligence({cards:[],dashboard:dashboard(),jobs:[],today:invalid}));
   }
 });
+
+test('General tasks contribute to Today needs-you list without losing the general label', () => {
+  const report = buildIntelligence({ cards: [task('shared', { business: 'general', due_date: today })], dashboard: dashboard(), jobs: [], today });
+  assert.equal(report.totals.dueToday, 1);
+  assert.equal(report.signals[0].business, 'general');
+  assert.equal(report.signals[0].destination, '/tasks?task=shared');
+});
