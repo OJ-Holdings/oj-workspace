@@ -76,6 +76,7 @@ function runEmailEngine() {
     if (plan.items.length) results.push(plan.items[0].kind === 'followup'
       ? sendFollowup_(plan.items[0]) : sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
     results = results.concat(scanInbox_(plan.watch || []));
+    // Confirming a send updates Supabase. The bound outreach-sync.gs writer later updates only sheet F:G.
     if (results.length) {
       try { engineCall_({ action: 'report', senderDomain: domain, results: results }); results = []; }
       catch (e) { console.error('Could not report yet, will retry: ' + e.message); }
