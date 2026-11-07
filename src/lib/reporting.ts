@@ -59,7 +59,7 @@ export function operationalAnalytics(data: Dashboard, cards: Card[], filters: An
   const scope = ventureIds.filter(id => filters.venture === 'all' || id === filters.venture);
   const finance = data.finance.filter(row => scope.includes(row.venture) && inRange(row.occurred_on, filters)).sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
   const leads = data.leads.filter(row => scope.includes(row.venture) && inRange(businessDay(row.created_at), filters));
-  const tasks = cards.filter(card => scope.includes(card.business));
+  const tasks = cards.filter(card => card.business === 'general' || scope.some(id => id === card.business));
   const figures = (entries: FinanceEntry[]) => {
     const revenue = entries.filter(row => row.kind === 'revenue'), costs = entries.filter(row => row.kind === 'cost');
     const revenueTotal = revenue.length ? revenue.reduce((sum, row) => sum + row.amount, 0) : null;

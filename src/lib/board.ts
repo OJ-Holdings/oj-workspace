@@ -1,8 +1,12 @@
-import { isVenture, type VentureId } from './ventures';
+import { isVenture, ventures, type VentureId } from './ventures';
 
 export const stages = ['Backlog', 'Ready', 'In progress', 'Review', 'Done'] as const;
 export type Stage = typeof stages[number];
-export type Business = VentureId;
+export const GENERAL_BUSINESS = 'general' as const;
+export type Business = VentureId | typeof GENERAL_BUSINESS;
+export const isTaskBusiness = (value: unknown): value is Business => value === GENERAL_BUSINESS || (typeof value === 'string' && isVenture(value));
+export const taskBusinessLabel = (business: Business, full = false) => business === GENERAL_BUSINESS ? (full ? 'General (all businesses)' : 'General') : (full ? ventures[business].name : ventures[business].short);
+export const taskBusinessColor = (business: Business) => `var(--c-${business})`;
 export type Card = {
   id: string; organization_id: string; title: string; description: string;
   business: Business; stage: Stage; priority: 'normal' | 'high'; assignee: string;
@@ -22,7 +26,7 @@ export function validateCard(input: unknown): Card {
   if (!input || typeof input !== 'object') throw new Error('Invalid card');
   const c = input as Card;
   if (typeof c.id !== 'string' || typeof c.organization_id !== 'string' || typeof c.title !== 'string' || !c.title.trim() || c.title.length > 180) throw new Error('Give the card a title of 1 to 180 characters.');
-  if (!stages.includes(c.stage) || !isVenture(c.business) || !['normal', 'high'].includes(c.priority)) throw new Error('Invalid card selection.');
+  if (!stages.includes(c.stage) || !isTaskBusiness(c.business) || !['normal', 'high'].includes(c.priority)) throw new Error('Invalid card selection.');
   if (typeof c.description !== 'string' || c.description.length > 8000 || typeof c.assignee !== 'string' || c.assignee.length > 120) throw new Error('Card text is too long.');
   if (typeof c.due_date !== 'string' || (c.due_date !== '' && (!/^\d{4}-\d{2}-\d{2}$/.test(c.due_date) || Number.isNaN(Date.parse(c.due_date)) || new Date(c.due_date).toISOString().slice(0,10) !== c.due_date))) throw new Error('Choose a valid due date.');
   if (!Number.isInteger(c.revision) || c.revision < 0) throw new Error('Invalid revision.');
@@ -37,5 +41,5 @@ export function updateCard(cards: Card[], incoming: Card): Card[] {
   return old ? cards.map(c => c.id === next.id ? next : c) : [...cards, next];
 }
 export function matchesCard(card: Card, business: string, query: string, assignee: string) {
-  return (business === 'all' || card.business === business) && (!assignee || card.assignee === assignee) && `${card.title} ${card.description} ${card.assignee}`.toLowerCase().includes(query.toLowerCase());
+  return (business === 'all' || card.business === GENERAL_BUSINESS || card.business === business) && (!assignee || card.assignee === assignee) && `${card.title} ${card.description} ${card.assignee}`.toLowerCase().includes(query.toLowerCase());
 }

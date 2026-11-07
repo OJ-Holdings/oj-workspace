@@ -13,7 +13,7 @@ export type VentureMetrics = {
 };
 
 export type PipelineStage = { stage: 'New' | 'Contacted' | 'Qualified' | 'Proposal' | 'Won'; count: number };
-export type ScheduleItem = { id: string; time: string; title: string; detail: string; venture: VentureId | 'shared' };
+export type ScheduleItem = { id: string; time: string; title: string; detail: string; venture: VentureId | 'general' | 'shared' };
 export type RecentFile = { id: string; name: string; kind: 'pdf' | 'doc' | 'sheet' | 'zip'; updated: string; venture: VentureId | 'shared' };
 export type Note = { id: string; author: string; body: string; when: string };
 

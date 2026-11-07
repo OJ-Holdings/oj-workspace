@@ -18,7 +18,13 @@ export async function saveCard(input: Card): Promise<Card> {
     ? client.from('oj_cards').update(fields).eq('id', card.id).eq('organization_id', card.organization_id).eq('revision', card.revision)
     : client.from('oj_cards').insert({ ...fields, id: card.id, organization_id: card.organization_id, created_by: user.id });
   const { data, error } = await query.select().single();
-  if (error || !data) throw new Error('Could not save the card. It may have changed; reload the board and try again.');
+  if (error || !data) {
+    if (error) console.error('Task save failed', { code: error.code, message: error.message, details: error.details, business: card.business });
+    if (card.business === 'general' && error?.code === '23514') {
+      throw new Error('General tasks are not enabled in Supabase yet. Ask Oscar to apply the General business SQL proposal, then retry. No task was saved.');
+    }
+    throw new Error('Could not save the task. Check your access and try again. Your draft is still here.');
+  }
   return { ...data, due_date: data.due_date || '' } as Card;
 }
 export async function addComment(cardId: string, organizationId: string, body: string): Promise<Comment> {

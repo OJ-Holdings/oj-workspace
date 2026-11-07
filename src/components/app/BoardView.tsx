@@ -5,8 +5,8 @@ import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
 import { usePathname } from 'next/navigation';
 import { CheckSquare, MessageSquare, Plus, Search, Trash2 } from 'lucide-react';
-import { matchesCard, stages, type Business } from '@/lib/board';
-import { ventureList, ventures, type VentureId } from '@/lib/ventures';
+import { matchesCard, stages, taskBusinessLabel, taskBusinessColor, type Business } from '@/lib/board';
+import { ventureList, type VentureId } from '@/lib/ventures';
 import type { Board } from './useBoard';
 import { selectTasks, taskMatchesFocus, workDay, type TaskFocus } from '@/lib/task-workflows';
 import './workflows.css';
@@ -25,7 +25,7 @@ type Props = { board: Board; members: string[]; readOnly: boolean; displayName: 
 export function BoardView({ board, members, readOnly, displayName, lockVenture }: Props) {
   const { params, update } = useViewParams();
   const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
-  const business = lockVenture ?? (ventureList.some(v => v.id === params.get('business')) ? params.get('business')! : 'all');
+  const business = lockVenture ?? ((params.get('business') === 'general' || ventureList.some(v => v.id === params.get('business'))) ? params.get('business')! : 'all');
   const query = (params.get('q') ?? '').slice(0, 200);
   const assignee = members.includes(params.get('assignee') ?? '') ? params.get('assignee')! : '';
   const focus = (['overdue', 'today', 'unassigned', 'review'].includes(params.get('focus') ?? '') ? params.get('focus') : 'all') as TaskFocus;
@@ -43,7 +43,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
   const filtered = selectTasks(data.cards, scope, query, assignee, focus, today);
   const inScope = data.cards.filter(c => matchesCard(c, scope, query.trim(), assignee));
   const count = (stage: string) => filtered.filter(c => c.stage === stage).length;
-  const newCard = (stage = 'Backlog') => board.openCard(undefined, { business: (scope === 'all' ? 'exterior' : scope) as Business, stage: stage as typeof stages[number] });
+  const newCard = (stage = 'Backlog') => board.openCard(undefined, { business: (scope === 'all' ? 'general' : scope) as Business, stage: stage as typeof stages[number] });
   const people: [string, string][] = [['', 'Everyone'], ...(displayName && members.includes(displayName) ? [[displayName, 'Mine'] as [string, string]] : []), ...members.filter(m => m !== displayName).map(m => [m, m] as [string, string])];
 
   return (
@@ -63,7 +63,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
       <div className="toolbar">
         {!lockVenture && (
           <div className="seg" role="group" aria-label="Filter by business">
-            {[['all', 'All work'] as const, ...ventureList.map(v => [v.id, v.short] as const)].map(([id, label]) => (
+            {[['all', 'All work'] as const, ['general', 'General'] as const, ...ventureList.map(v => [v.id, v.short] as const)].map(([id, label]) => (
               <button key={id} aria-pressed={business === id} onClick={() => setBusiness(id)}>
                 {business === id && <motion.i layoutId="seg-business" className="seg-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
                 <span>{label}</span>
@@ -104,7 +104,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
                 {rows.map(card => compact ? (
                   <article className="taskcard taskcard-done" key={card.id} data-venture-tag={card.business}
                     draggable={!readOnly && !pending} data-dragging={dragging === card.id || undefined} onDragStart={e => { const event = e as unknown as React.DragEvent; event.dataTransfer.setData('text/plain', card.id); event.dataTransfer.effectAllowed = 'move'; setDragging(card.id); }} onDragEnd={() => setDragging(null)}>
-                    <i className="done-dot" style={{ background: `var(--c-${card.business})` }} title={ventures[card.business].short} aria-hidden="true" />
+                    <i className="done-dot" style={{ background: taskBusinessColor(card.business) }} title={taskBusinessLabel(card.business)} aria-hidden="true" />
                     <button className="taskcard-open" onClick={() => board.openCard(card)} title={card.title}><h3>{card.title}</h3></button>
                     {card.assignee && <span className="avatar" title={card.assignee}>{card.assignee.charAt(0).toUpperCase()}</span>}
                     {!readOnly && (confirming === card.id
@@ -116,7 +116,7 @@ export function BoardView({ board, members, readOnly, displayName, lockVenture }
                     draggable={!readOnly && !pending} data-dragging={dragging === card.id || undefined} onDragStart={e => { const event = e as unknown as React.DragEvent; event.dataTransfer.setData('text/plain', card.id); event.dataTransfer.effectAllowed = 'move'; setDragging(card.id); }} onDragEnd={() => { setDragging(null); document.querySelectorAll('.column.is-over').forEach(el => el.classList.remove('is-over')); }}>
                     <button className="taskcard-open" onClick={() => board.openCard(card)}>
                       <div className="taskcard-tags">
-                        <span className="tag" style={{ '--tag': `var(--c-${card.business})` } as React.CSSProperties}>{ventures[card.business].short}</span>
+                        <span className="tag" style={{ '--tag': taskBusinessColor(card.business) } as React.CSSProperties}>{taskBusinessLabel(card.business)}</span>
                         {card.priority === 'high' && <span className="tag tag-high">High</span>}
                       </div>
                       <h3>{card.title}</h3>

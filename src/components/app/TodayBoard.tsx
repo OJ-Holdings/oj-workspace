@@ -8,6 +8,7 @@ import type { DashboardStore } from './useDashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
 import { money } from '@/lib/metrics';
 import { ventures } from '@/lib/ventures';
+import { taskBusinessLabel } from '@/lib/board';
 import { buildAtlasSnapshot } from '@/lib/atlas-command';
 import { blockLabel } from '@/lib/exterior-ops';
 import { todayJobs } from '@/lib/today-jobs';
@@ -58,6 +59,7 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
   const grouped = useMemo(() => (today ? todayJobs(jobs, today) : { today: [], tomorrow: [], later: [] }), [jobs, today]);
   const totals = snapshot?.intelligence.totals;
   const signals = snapshot?.intelligence.signals.slice(0, 5) ?? [];
+  const generalTasks = board.data.cards.filter(card => card.business === 'general' && card.stage !== 'Done');
   const finance = snapshot?.finance;
   // Founders' own work-timer entries ('Oscar at work') are not calendar events worth listing here.
   const events = (snapshot?.schedule ?? []).filter(e => e.key.startsWith('event:') && !/ at work$/i.test(e.title)).slice(0, 4);
@@ -79,7 +81,7 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
 
       <div className="today-grid">
         <div className="today-main">
-          <OperatorLaunchpad base={base as '/workspace' | '/preview'} mode={mode} readOnly={readOnly} compact onNewTask={() => board.openCard(undefined, { business: 'exterior' })} />
+          <OperatorLaunchpad base={base as '/workspace' | '/preview'} mode={mode} readOnly={readOnly} compact onNewTask={() => board.openCard(undefined, { business: 'general' })} />
 
           <section className="today-card today-timeline" aria-labelledby="today-jobs-h">
             <header><h2 id="today-jobs-h"><CalendarClock size={18} aria-hidden="true" /> Jobs</h2><Link href={base + '/b/exterior/bookings'}>All jobs <ArrowRight size={14} aria-hidden="true" /></Link></header>
@@ -142,12 +144,19 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
                 {signals.map(signal => (
                   <li key={signal.id}>
                     <span className={'today-sev today-sev-' + signal.severity}><CircleAlert size={13} aria-hidden="true" />{sevLabel[signal.severity]}</span>
-                    <Link href={base + signal.destination}><strong>{signal.title}</strong><small>{signal.business ? ventures[signal.business].short : 'Company'}</small></Link>
+                    <Link href={base + signal.destination}><strong>{signal.title}</strong><small>{signal.business ? taskBusinessLabel(signal.business) : 'Company'}</small></Link>
                   </li>
                 ))}
               </ol>}
           </section>
 
+          {generalTasks.length > 0 && <section className="today-card" aria-labelledby="today-general-tasks">
+            <header><h2 id="today-general-tasks">General tasks</h2><Link href={base + '/tasks?business=general'}>All General tasks <ArrowRight size={14} aria-hidden="true" /></Link></header>
+            <ol className="today-list">{generalTasks.map(card => <li key={card.id}>
+              <span className="tag task-general-badge" style={{ '--tag': 'var(--c-general)' } as React.CSSProperties}>General</span>
+              <Link href={`${base}/tasks?task=${encodeURIComponent(card.id)}`}><strong>{card.title}</strong><small>{card.assignee || 'Unassigned'}{card.due_date ? ` · Due ${card.due_date}` : ''}</small></Link>
+            </li>)}</ol>
+          </section>}
           <TruckFundCard store={store} today={today} readOnly={readOnly} />
         </aside>
       </div>

@@ -10,7 +10,7 @@ export type IntelligenceSignal = {
   recordId?: string;
   category: IntelligenceCategory;
   severity: IntelligenceSeverity;
-  business: VentureId | null;
+  business: Card['business'] | null;
   title: string;
   explanation: string;
   destination: string;

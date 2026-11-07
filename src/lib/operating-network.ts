@@ -91,7 +91,7 @@ export function buildOperatingNetwork(input:OperatingNetworkInput):OperatingNetw
     if(due&&due>=today&&due<=weekEnd)dueNextSeven++;
     const priority=isOverdue?0:due===today?1:task.stage==='Review'?2:
       !task.assignee.trim()?3:task.priority==='high'?4:due&&due<=weekEnd?5:10;
-    add(row('task:'+task.id,'task',task.business,task.title,
+    add(row('task:'+task.id,'task',task.business === 'general' ? null : task.business,task.title,
       (task.assignee.trim()||'Unassigned')+' · '+task.stage+
       (due?' · Due '+due:''),
       '/tasks?task='+enc(task.id),'Shared task board',due,task.stage,priority));

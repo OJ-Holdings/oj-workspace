@@ -44,7 +44,7 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
   const tabs: readonly (readonly [string, string])[] = tabsFor(venture);
   const active = tabs.some(([id]) => id === tab) ? tab : 'overview';
   const cards = board.data.cards.filter(c => c.business === venture);
-  const open = cards.filter(c => c.stage !== 'Done');
+  const open = board.data.cards.filter(c => (c.business === venture || c.business === 'general') && c.stage !== 'Done');
 
   const content = (<>
     {venture==='exterior'&&active==='overview'&&

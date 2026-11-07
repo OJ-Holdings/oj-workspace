@@ -10,7 +10,7 @@ export function searchWorkspace(query: string, cards: Card[], dashboard?: Dashbo
   if (!q) return [];
   const contains = (...values: (string | null | undefined)[]) => values.join(' ').toLocaleLowerCase('en-US').includes(q);
   return [
-    ...cards.filter(c => contains(c.title, c.description, c.assignee)).map(c => ({ id: c.id, kind: 'Task' as const, title: c.title, detail: `${c.stage}${c.assignee ? ` / ${c.assignee}` : ''}`, path: `/tasks?task=${encodeURIComponent(c.id)}`, venture: c.business })),
+    ...cards.filter(c => contains(c.title, c.description, c.assignee)).map(c => ({ id: c.id, kind: 'Task' as const, title: c.title, detail: `${c.stage}${c.assignee ? ` / ${c.assignee}` : ''}`, path: `/tasks?task=${encodeURIComponent(c.id)}`, venture: c.business === 'general' ? null : c.business })),
     ...jobs.filter(j => j.status !== 'cancelled' && j.status !== 'denied' &&
       contains(j.name, j.service, j.address, j.date, j.status))
       .map(j => ({ id: j.id, kind: 'Booking' as const, title: j.name,

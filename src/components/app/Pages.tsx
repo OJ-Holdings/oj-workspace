@@ -19,7 +19,7 @@ import { CalendarPlus, ChevronLeft, ChevronRight, Download, FileArchive, FileSpr
 import { isVenture, ventureList, ventures, type VentureId } from '@/lib/ventures';
 import { dayKey, documentTags, fileKind, fileSize, lastMonths, leadStages, monthlyTotals, relativeDay, type Dashboard, type DocumentItem, type EventItem, type Lead, type LeadStage } from '@/lib/dashboard';
 import { dollars, money } from '@/lib/metrics';
-import type { Card } from '@/lib/board';
+import type { Card, Business } from '@/lib/board';
 import { AtlasLeadRelations } from './AtlasRelations';
 import { LineChart } from './Charts';
 import type { DashboardStore } from './useDashboard';
@@ -27,8 +27,8 @@ import type { JobItem } from '@/app/workspace/exterior-actions';
 import { blockLabel, parseBlock } from '@/lib/exterior-ops';
 import { businessDay, operationalAnalytics, type AnalyticsFilters } from '@/lib/reporting';
 
-const color = (v: VentureId | null | 'shared') => `var(--c-${v ?? 'shared'})`;
-const short = (v: VentureId | null) => v ? ventures[v].short : 'Shared';
+const color = (v: Business | null | 'shared') => `var(--c-${v ?? 'shared'})`;
+const short = (v: Business | null) => v === 'general' ? 'General' : v ? ventures[v].short : 'Shared';
 type Common = { store: DashboardStore; readOnly: boolean; venture?: VentureId };
 
 /** Shown instead of a page when the live database does not have the dashboard tables yet. */
@@ -396,7 +396,7 @@ function CalendarBody({ store, readOnly, cards, jobs, base, offset, setOffset, d
   const [selectedDay, setSelectedDay] = useState(today);
   const agendaHeading = useRef<HTMLHeadingElement>(null);
   function openDay(day: string) { setSelectedDay(day); requestAnimationFrame(() => { agendaHeading.current?.focus(); agendaHeading.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' }); }); }
-  type Item = { id: string; title: string; venture: VentureId | null; time: string; event?: EventItem; href?: string };
+  type Item = { id: string; title: string; venture: Business | null; time: string; event?: EventItem; href?: string };
   const byDay = useMemo(() => {
     const map = new Map<string, Item[]>();
     const push = (k: string, item: Item) => map.set(k, [...(map.get(k) ?? []), item]);
