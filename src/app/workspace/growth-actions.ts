@@ -4,6 +4,8 @@ import { requireMember } from '@/lib/supabase';
 import { DEFAULT_DM_GOAL, dmChannels, partnerOf, type DmChannel, type DmLogEntry, type Partner } from '@/lib/dm-quests';
 import { defaultEngineSettings, type EmailEvent, type EngineSettings, type EngineState } from '@/lib/email-engine';
 import type { OutreachProspect } from '@/lib/outreach';
+import type { SkipRecord } from '@/lib/outreach-skips';
+import { skipReasons } from '@/lib/outreach-skips';
 
 /** Everything the OJ Solutions growth screens need, loaded with the signed-in member's own session. */
 export type GrowthData = {
@@ -11,6 +13,7 @@ export type GrowthData = {
   members: { userId: string; name: string; partner: Partner | null }[];
   prospects: OutreachProspect[];
   prospectTotal: number;
+  skips?: SkipRecord[] | null;
   /** null when the Daily 10 tables have not been installed yet. */
   dm: { goal: number; log: DmLogEntry[] } | null;
   /** null when the email engine tables have not been installed yet. */
@@ -45,6 +48,7 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
       settings = await client.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter').eq('organization_id', org).maybeSingle();
       followupsConfigured = false;
     }
+    const skipsResult = await client.from('oj_outreach_skips').select('id,organization_id,prospect_id,actor_id,business_name,source_row,channel,reason,note,skipped_at').eq('organization_id', org).order('skipped_at', { ascending: false }).limit(1000);
     const people = (members.data ?? []).map((m: { user_id: string; display_name: string; role: string }) => ({ userId: m.user_id, name: m.display_name, partner: partnerOf(m.display_name), role: m.role }));
     const dmInstalled = !dmLog.error && !goal.error;
     const emailInstalled = !settings.error && !state.error && !events.error;
@@ -54,7 +58,7 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
       data: {
         me: { userId: user.id, name: member.display_name, partner: partnerOf(member.display_name), role: member.role },
         members: people.filter(p => p.role === 'owner' || p.role === 'member').map(({ userId, name, partner }) => ({ userId, name, partner })),
-        prospects: (prospects.data ?? []) as OutreachProspect[], prospectTotal: prospects.count ?? 0,
+        prospects: (prospects.data ?? []) as OutreachProspect[], prospectTotal: prospects.count ?? 0, skips: skipsResult.error ? null : (skipsResult.data ?? []) as SkipRecord[],
         dm: dmInstalled ? { goal: (goal.data as { dm_daily_goal?: number } | null)?.dm_daily_goal ?? DEFAULT_DM_GOAL, log: (dmLog.data ?? []) as DmLogEntry[] } : null,
         email: emailInstalled ? { settings: { ...((settings.data as EngineSettings | null) ?? defaultEngineSettings), followups_enabled: followupsConfigured && ((settings.data as EngineSettings | null)?.followups_enabled ?? true) }, followupsConfigured, state: (state.data as EngineState | null) ?? null, events: (events.data ?? []) as EmailEvent[] } : null,
         lastSync: (sync.data as { status: string; finished_at: string } | null) ?? null,
@@ -106,5 +110,17 @@ export async function setFollowupsEnabled(org: string, enabled: boolean) {
   if (error) {
     console.error('oj_set_followups_enabled rejected change', { code: error.code, message: error.message });
     throw new Error(missing(error) ? 'Follow-ups are not installed. Have Oscar apply the reviewed follow-ups SQL.' : 'Could not save follow-ups.');
+  }
+}
+
+export async function skipDmProspect(org: string, prospectId: string, channel: DmChannel, reason: string, note: string) {
+  const { client } = await requireMember(org, true);
+  if (!uuid.test(prospectId) || !(dmChannels as readonly string[]).includes(channel) || !skipReasons.includes(reason as typeof skipReasons[number]) || note.length > 160)
+    throw new Error('Choose a valid skip reason and a note under 160 characters.');
+  if (reason === 'Other' && !note.trim()) throw new Error('Add a short note when you pick Other.');
+  const { error } = await client.rpc('oj_skip_dm_prospect', { p_org: org, p_prospect: prospectId, p_channel: channel, p_reason: reason, p_note: note });
+  if (error) {
+    console.error('oj_skip_dm_prospect failed', { code: error.code, message: error.message });
+    throw new Error(missing(error) ? 'Durable skips need the reviewed DM skips SQL installed by Oscar.' : 'Could not record the skip. Nothing was removed.');
   }
 }
