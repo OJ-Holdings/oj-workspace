@@ -17,6 +17,8 @@ export interface EngineStore {
   events(since: Date): Promise<EmailEvent[]>;
   /** Inserts events whose dedupe key is new and returns only those. */
   record(events: NewEvent[]): Promise<NewEvent[]>;
+  /** Release only reservations proven absent from the sending mailbox, after a safety delay. */
+  releaseReservations?(ids: string[], before: Date): Promise<number>;
   setStatus(prospectId: string, status: OutreachStatus, at: Date): Promise<void>;
   saveState(patch: { now: Date; state?: EngineStateName; detail?: string; warmupStartedOn?: string | null; senderDomain?: string | null }): Promise<void>;
   questData(since: string): Promise<QuestData>;
@@ -42,13 +44,16 @@ export async function planRun(store: EngineStore, env: EngineEnv, input: { now: 
     const won = new Set(claimed.map(c => c.prospect_id));
     items = items.filter(i => won.has(i.prospect_id));
   }
+  const settled = new Set(events.filter(e => ['sent', 'reply', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
+  const unconfirmed = events.filter(e => e.kind === 'reserved' && !settled.has(e.prospect_id) && Date.parse(e.event_at) < input.now.getTime() - 30 * 60_000)
+    .slice(0, 40).map(e => { const p = prospects.find(p => p.id === e.prospect_id); return p && p.email ? { prospect_id: e.prospect_id, to: p.email } : null; }).filter((v): v is { prospect_id: string; to: string } => Boolean(v));
   const missingName = env.postalAddress && !name;
   const reported = plan.items.length && !items.length ? { state: 'idle' as const, detail: 'Another run already claimed this batch.' }
     : missingName ? { state: 'blocked' as const, detail: 'The sender script has no sender name. Set SENDER_NAME in its script properties.' }
     : { state: plan.state, detail: plan.detail };
   // A dry run only looks: nothing is claimed and no check-in is recorded.
   if (!input.dryRun) await store.saveState({ now: input.now, ...reported, warmupStartedOn: plan.warmupStartedOn, senderDomain: cleanDomain(input.senderDomain) });
-  return { state: reported.state, detail: reported.detail, items: reported.state === 'blocked' ? [] : items, watch: plan.watch, capToday: plan.capToday, sentToday: plan.sentToday };
+  return { state: reported.state, detail: reported.detail, items: reported.state === 'blocked' ? [] : items, watch: plan.watch, capToday: plan.capToday, sentToday: plan.sentToday, unconfirmed };
 }
 
 export type Reported = { prospect_id?: unknown; kind?: unknown; ref?: unknown; text?: unknown; detail?: unknown; sent_at?: unknown };
@@ -56,6 +61,7 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
   const results = Array.isArray(input.results) ? (input.results as Reported[]).slice(0, 200) : [];
   const at = input.now.toISOString();
   const events: NewEvent[] = [];
+  const verifiedMissing: string[] = [];
   let ignored = 0;
   for (const r of results) {
     const id = typeof r?.prospect_id === 'string' && uuid.test(r.prospect_id) ? r.prospect_id : null;
@@ -66,6 +72,7 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
     const candidate = typeof r.sent_at === 'string' ? Date.parse(r.sent_at) : NaN;
     const sentAt = Number.isFinite(candidate) && candidate <= input.now.getTime() + 60_000 && candidate >= input.now.getTime() - 90 * 86_400_000
       ? new Date(candidate).toISOString() : at;
+    if (r.kind === 'not_sent') { verifiedMissing.push(id); continue; }
     switch (r.kind) {
       case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: '', event_at: sentAt }); break;
       case 'failed': events.push({ prospect_id: id, kind: 'failed', dedupe_key: `failed:${id}:${ref || input.now.getTime()}`, detail, event_at: at }); break;
@@ -82,6 +89,10 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
       default: ignored++;
     }
   }
+  // Gmail must explicitly confirm absence before a stale claim is released. Never
+  // release a live reservation or one already confirmed as sent.
+  const released = verifiedMissing.length && store.releaseReservations
+    ? await store.releaseReservations(verifiedMissing, new Date(input.now.getTime() - 30 * 60_000)) : 0;
   const fresh = events.length ? await store.record(events) : [];
   if (fresh.length) {
     const prospects = new Map((await store.prospects()).map(p => [p.id, p]));
@@ -94,7 +105,7 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
     }
   }
   await store.saveState({ now: input.now, senderDomain: cleanDomain(input.senderDomain) });
-  return { recorded: fresh.length, duplicates: events.length - fresh.length, ignored };
+  return { recorded: fresh.length, duplicates: events.length - fresh.length, released, ignored };
 }
 
 /** Today's counts for each partner, and the reminders due now. */

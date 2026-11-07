@@ -49,12 +49,27 @@ function runEmailEngine() {
   try {
     const props = PropertiesService.getScriptProperties();
     const domain = senderDomain_();
-    // Anything a previous run could not report goes first.
+    // First flush previous outcomes, so the server never plans another send on an unconfirmed result.
     let results = readJson_('PENDING_RESULTS', []);
+    if (results.length) {
+      engineCall_({ action: 'report', senderDomain: domain, results: results });
+      results = []; writeJson_('PENDING_RESULTS', []);
+    }
     const plan = engineCall_({
       action: 'plan', senderName: props.getProperty('SENDER_NAME') || '',
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
+    // Reconcile stale claims using this account's Gmail Sent history before any new send.
+    (plan.unconfirmed || []).forEach(function (candidate) {
+      const sent = findSent_(candidate.to);
+      if (sent === undefined) return; // Search unavailable, keep reserved rather than risk a duplicate.
+      results.push(sent ? { prospect_id: candidate.prospect_id, kind: 'sent', sent_at: sent }
+        : { prospect_id: candidate.prospect_id, kind: 'not_sent' });
+    });
+    if (results.length) {
+      engineCall_({ action: 'report', senderDomain: domain, results: results });
+      results = []; writeJson_('PENDING_RESULTS', []);
+    }
     // One email per triggered run. The server schedules spaced slots across the day.
     if (plan.items.length > 1) throw new Error('Unsafe plan: more than one email per run.');
     if (plan.items.length) results.push(sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
@@ -68,11 +83,30 @@ function runEmailEngine() {
   } finally { lock.releaseLock(); }
 }
 
+/** Returns the actual send date, null only on a successful definitive search, undefined on error. */
+function findSent_(address) {
+  try {
+    if (!/^[^\\s@"]+@[^\\s@"]+\\.[^\\s@"]+$/.test(address)) return undefined;
+    const threads = GmailApp.search('in:sent to:"' + address.replace(/"/g, '') + '"', 0, 20);
+    for (let i = 0; i < threads.length; i++) {
+      const messages = threads[i].getMessages();
+      for (let j = messages.length - 1; j >= 0; j--) {
+        const m = messages[j];
+        if (m.isInTrash() || !m.getTo().toLowerCase().split(/[,;]/).some(to => to.includes(address.toLowerCase()))) continue;
+        if (m.getFrom().toLowerCase().includes(Session.getEffectiveUser().getEmail().toLowerCase())) return m.getDate().toISOString();
+      }
+    }
+    return null;
+  } catch (e) { console.error('Gmail Sent lookup failed: ' + e); return undefined; }
+}
+
 function sendOne_(item, name) {
   try {
     // The server composes one compliant footer. Never append a second signature here.
     // Never email someone this account has already written to.
-    if (GmailApp.search('in:sent to:' + item.to, 0, 1).length) return { prospect_id: item.prospect_id, kind: 'sent' };
+    const found = findSent_(item.to);
+    if (found === undefined) throw new Error('Gmail Sent could not be verified, holding reservation.');
+    if (found) return { prospect_id: item.prospect_id, kind: 'sent', sent_at: found };
     GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });
     return { prospect_id: item.prospect_id, kind: 'sent', sent_at: new Date().toISOString() };
   } catch (e) {

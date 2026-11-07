@@ -65,6 +65,20 @@ function supabaseStore(org: string): EngineStore {
       const inserted = new Set((data ?? []).map((r: { dedupe_key: string }) => r.dedupe_key));
       return events.filter(e => inserted.has(e.dedupe_key));
     },
+    async releaseReservations(ids, before) {
+      let released = 0;
+      for (const id of [...new Set(ids)].slice(0, 40)) {
+        const { data: sent, error: readError } = await db.from('oj_email_events').select('id').eq('organization_id', org).eq('prospect_id', id).in('kind', ['sent', 'reply', 'bounce', 'stop']).limit(1);
+        check(readError);
+        if (sent?.length) continue;
+        const { data, error } = await db.from('oj_email_events').delete().eq('organization_id', org).eq('prospect_id', id)
+          .eq('kind', 'reserved').lt('event_at', before.toISOString()).select('id');
+        check(error);
+        released += data?.length ?? 0;
+      }
+      if (released) console.info('Outreach verified missing Gmail Sent reservations released', { count: released });
+      return released;
+    },
     async setStatus(prospectId, status, at) {
       const { error } = await db.from('oj_outreach_prospects').update({ outreach_status: status, status_updated_at: at.toISOString(), updated_at: at.toISOString() })
         .eq('organization_id', org).eq('id', prospectId);
