@@ -64,7 +64,9 @@ export function lintEmail(subject: string | null | undefined, body: string | nul
   if (b.length < 40 || b.length > 1800) problems.push('Body must be 40 to 1,800 characters.');
   if (placeholder.test(s) || placeholder.test(b)) problems.push('Draft still contains a placeholder or markup.');
   if (spam.test(s) || spam.test(b)) problems.push('Draft contains a spam-trigger phrase.');
-  if ((b.match(/https?:\/\//gi) ?? []).length > 1) problems.push('Draft has more than one link.');
+  if (/\b30\s+days\b|\byou\s+don['’]?t\s+pay\b/i.test(s + '\n' + b)) problems.push('Draft contains a disallowed promise.');
+  const links = (b.match(/https?:\/\/[^\s<>]+/gi) ?? []).map(v => v.replace(/[.,!?;:]+$/, '').replace(/\/$/, ''));
+  if (links.length > 1 || links.some(link => link !== 'https://ojsolutions.org')) problems.push('The only permitted link is https://ojsolutions.org.');
   return { ok: problems.length === 0, problems };
 }
 

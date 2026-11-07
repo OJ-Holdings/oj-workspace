@@ -45,7 +45,10 @@ test('lint stands in for approval: bad drafts are skipped, never sent', () => {
   assert.equal(lintEmail('Hello', `${body} {{company}}`).ok, false);
   assert.equal(lintEmail('Hello', `${body} Guaranteed results.`).ok, false);
   assert.equal(lintEmail('Hello', `${body} https://a.com https://b.com`).ok, false);
-  assert.equal(lintEmail('Hello', `${body} https://a.com`).ok, true);
+  assert.equal(lintEmail('Hello', `${body} https://a.com`).ok, false);
+  assert.equal(lintEmail('Hello', `${body} https://ojsolutions.org`).ok, true);
+  assert.equal(lintEmail('Hello', `${body} A 30 days guarantee`).ok, false);
+  assert.equal(lintEmail('Hello', `${body} you don't pay until results`).ok, false);
   assert.equal(validEmail('sam@biz.com'), true);
   assert.equal(validEmail('not-an-email'), false);
   assert.equal(validEmail('sam@example.invalid'), false);

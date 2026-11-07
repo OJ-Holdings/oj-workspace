@@ -108,7 +108,10 @@ function sendOne_(item, name) {
     const found = findSent_(item.to);
     if (found === undefined) throw new Error('Gmail Sent could not be verified, holding reservation.');
     if (found) return { prospect_id: item.prospect_id, kind: 'sent', sent_at: found };
-    GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });
+    // GmailApp.sendEmail uses plain text by default. Do not add htmlBody or open pixels.
+    // Some sheet cells contain literal backslash-n sequences.
+    const plainText = String(item.body || '').replace(/\\n/g, '\n');
+    GmailApp.sendEmail(item.to, item.subject, plainText, { name: name || undefined });
     return { prospect_id: item.prospect_id, kind: 'sent', sent_at: new Date().toISOString() };
   } catch (e) {
     return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) };
