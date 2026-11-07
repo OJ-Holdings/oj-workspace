@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Mail, Pause, Play, ShieldCheck } from 'lucide-react';
-import { setEmailEngine } from '@/app/workspace/growth-actions';
+import { setEmailEngine, setFollowupsEnabled } from '@/app/workspace/growth-actions';
 import { updateOutreachStatus } from '@/app/workspace/outreach-actions';
 import { ago, emailStats, engineStatus, nextUp, replyInbox, replyToneLabel, sentMail, dailyCap, type EmailEvent, type EngineSettings } from '@/lib/email-engine';
 import { todayKey } from '@/lib/dm-quests';
 import { Gate, InstallNote, Pill, Stat } from './parts';
 import type { GrowthStore } from './useGrowth';
 
-const kindLabel: Record<EmailEvent['kind'], string> = { reserved: 'Queued', sent: 'Sent', failed: 'Failed', reply: 'Replied', bounce: 'Bounced', stop: 'Asked to stop' };
+const kindLabel: Record<EmailEvent['kind'], string> = { reserved: 'Queued', sent: 'Sent', failed: 'Failed', reply: 'Replied', bounce: 'Bounced', stop: 'Asked to stop', followup_reserved: 'Follow-up queued', followup_sent: 'Followed up' };
 
 /** The automated email outreach: honest status, today's limits, results, and setup steps until it is running. */
 export function EmailEngine({ g, base }: { g: GrowthStore; base: string }) {
@@ -25,11 +25,13 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
   const status = engineStatus({ settings, state, now: g.now });
   const stats = emailStats(events, data.prospects, g.now, settings);
   const today = todayKey(g.now);
-  const cap = savedCap ?? dailyCap(settings.daily_cap_max);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [capDraft, setCapDraft] = useState(String(dailyCap(settings.daily_cap_max)));
   const [savedCap, setSavedCap] = useState<number | null>(null);
+  const [followupDraft, setFollowupDraft] = useState(settings.followups_enabled ?? false);
+  const cap = savedCap ?? dailyCap(settings.daily_cap_max);
+  useEffect(() => { setFollowupDraft(settings.followups_enabled ?? false); }, [settings.followups_enabled]);
   useEffect(() => { if (!saving) { setCapDraft(String(dailyCap(settings.daily_cap_max))); setSavedCap(null); } }, [settings.daily_cap_max]);
   const names = new Map(data.prospects.map(p => [p.id, p.business_name]));
   const maxBar = Math.max(...stats.series.map(s => s.count), 1);
@@ -78,11 +80,18 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
           {settings.enabled ? <><Pause size={15} aria-hidden="true" />Pause sending</> : <><Play size={15} aria-hidden="true" />Resume sending</>}</button>
         <label>Daily ceiling<select value={capDraft} disabled={saving || !blocked} onChange={e => { setCapDraft(e.target.value); void save({ dailyCapMax: Number(e.target.value) }); }}>
           {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
+        <label>Follow-ups<select value={followupDraft ? 'on' : 'off'} disabled={!blocked || saving || !email.followupsConfigured} onChange={async e => {
+          const enabled = e.target.value === 'on'; setSaving(true); setNotice('');
+          try { await setFollowupsEnabled(g.org, enabled); setFollowupDraft(enabled); g.reload(); setNotice('Follow-up setting saved.'); }
+          catch (err) { setNotice(err instanceof Error ? err.message : 'Could not save follow-ups.'); }
+          finally { setSaving(false); }
+        }}><option value="on">On</option><option value="off">Off</option></select></label>
         <label>Who to email<select value={niche ?? ''} disabled={saving || !blocked} onChange={e => void save({ niche: e.target.value })}>
           <option value="">Everyone with a good draft</option><option value="exterior">Exterior cleaning first and only</option></select></label>
       </div>
     </section>
     <p role="status" aria-live="polite" className="gx-notice">{notice}</p>
+    {!email.followupsConfigured && <p className="outreach-error" role="status">Follow-ups are unavailable until Oscar applies the reviewed follow-ups SQL.</p>}
     {settings.daily_cap_max > 50 && <p className="outreach-error" role="status">A legacy ceiling above 50 is saved. Pick a new ceiling after the reviewed database update is applied.</p>}
 
     <div className="gx-stats">

@@ -14,13 +14,13 @@ export const WATCH_LIMIT = 300;
 
 export const engineStates = ['sending', 'idle', 'outside-window', 'cap-reached', 'paused', 'braked', 'blocked', 'nothing-to-send'] as const;
 export type EngineStateName = typeof engineStates[number];
-export type EngineSettings = { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
-export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 50, niche_filter: null };
+export type EngineSettings = { enabled: boolean; daily_cap_max: number; niche_filter: string | null; followups_enabled?: boolean };
+export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 50, niche_filter: null, followups_enabled: true };
 export type EngineState = { last_heartbeat_at: string; state: EngineStateName; detail: string; warmup_started_on: string | null; sender_domain: string | null };
-export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop'] as const;
+export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop', 'followup_reserved', 'followup_sent'] as const;
 export type EmailEventKind = typeof eventKinds[number];
 export type EmailEvent = { prospect_id: string; kind: EmailEventKind; event_at: string; detail?: string };
-export type EngineProspect = Pick<OutreachProspect, 'id' | 'business_name' | 'industry' | 'best_fit_service' | 'secondary_fit' | 'email' | 'email_subject' | 'email_body' | 'sent_by' | 'date_added' | 'source_status' | 'outreach_status'>;
+export type EngineProspect = Pick<OutreachProspect, 'id' | 'business_name' | 'industry' | 'best_fit_service' | 'secondary_fit' | 'email' | 'email_subject' | 'email_body' | 'sent_by' | 'date_added' | 'source_status' | 'outreach_status' | 'decision_maker'>;
 
 // ---- Time --------------------------------------------------------------------------------
 function central(now: Date) {
@@ -168,7 +168,7 @@ export function bounceBrake(events: EmailEvent[], now: Date) {
   return { sent, bounced, todayBounced, rate, reason, braked: Boolean(reason) };
 }
 
-export type PlanItem = { prospect_id: string; to: string; subject: string; body: string };
+export type PlanItem = { prospect_id: string; to: string; subject: string; body: string; kind?: 'new' | 'followup' };
 export type Plan = {
   state: EngineStateName; detail: string; items: PlanItem[]; capToday: number; sentToday: number;
   warmupStartedOn: string | null; watch: { prospect_id: string; email: string }[];
@@ -180,7 +180,7 @@ export function planEmailRun(input: {
   const { now, events } = input;
   const settings = input.settings ?? defaultEngineSettings;
   const today = workDay(now);
-  const counted = events.filter(e => (e.kind === 'sent' || e.kind === 'reserved'));
+  const counted = events.filter(e => (['sent', 'reserved', 'followup_reserved', 'followup_sent'].includes(e.kind)));
   const sentToday = counted.filter(e => workDay(new Date(e.event_at)) === today).length;
   const capToday = dailyCap(settings.daily_cap_max);
   const answered = new Set(events.filter(e => ['reply', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
@@ -209,9 +209,35 @@ export function planEmailRun(input: {
   if (minutes < due) return done('idle', 'Waiting for the next spaced send slot.');
 
   const { ready } = selectSendable(input.prospects, events, { niche: settings.niche_filter, sender: input.senderFilter });
-  if (!ready.length) return done('nothing-to-send', 'Nobody left with a valid email and a clean draft. Add prospects to the sheet.');
-  const items = ready.slice(0, BATCH_SIZE).map(p => ({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!) }));
-  return done('sending', 'Sending one paced email now.', items);
+  if (ready.length) {
+    const items = ready.slice(0, BATCH_SIZE).map(p => ({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!), kind: 'new' as const }));
+    return done('sending', 'Sending one paced new email now.', items);
+  }
+  // New contacts always take precedence. Follow-ups are at least four Mon-Fri
+  // business days after the initial send and are reserved only once.
+  if (settings.followups_enabled) {
+    const followups = events.filter(e => e.kind === 'sent').sort((a, b) => a.event_at.localeCompare(b.event_at));
+    const hasFurtherActivity = new Set(events.filter(e => ['followup_reserved', 'followup_sent', 'reply', 'stop', 'bounce'].includes(e.kind)).map(e => e.prospect_id));
+    for (const sent of followups) {
+      if (hasFurtherActivity.has(sent.prospect_id)) continue;
+      const first = byId.get(sent.prospect_id);
+      if (!first || !validEmail(first.email) || !matchesNiche(first, settings.niche_filter)) continue;
+      if (input.senderFilter && first.sent_by && first.sent_by !== input.senderFilter) continue;
+      let dueDay = workDay(new Date(sent.event_at));
+      for (let n = 0; n < 4;) {
+        const day = new Date(dueDay + 'T12:00:00Z');
+        day.setUTCDate(day.getUTCDate() + 1);
+        dueDay = day.toISOString().slice(0, 10);
+        if (day.getUTCDay() !== 0 && day.getUTCDay() !== 6) n++;
+      }
+      if (today < dueDay) continue;
+      const firstName = first.decision_maker?.trim().split(/[\s,]+/)[0];
+      const greeting = firstName && /^[\p{L}'-]{2,40}$/u.test(firstName) ? firstName : 'there';
+      const body = `Hey ${greeting}, bumping this in case it got buried. Would love to set up a time to talk.\n\nNot a fit? Reply "stop" and I will not email you again.\n\n${input.sender!.name}\n${input.sender!.company}\n${input.sender!.postalAddress}`;
+      return done('sending', 'Sending one paced follow-up in the original thread.', [{ prospect_id: first.id, to: first.email!.trim().toLowerCase(), subject: first.email_subject || 'Following up', body, kind: 'followup' }]);
+    }
+  }
+  return done('nothing-to-send', 'No new emails or eligible follow-ups are ready.');
 }
 
 // ---- What the dashboard shows ------------------------------------------------------------
@@ -250,7 +276,7 @@ export type EmailStats = {
 };
 export function emailStats(events: EmailEvent[], prospects: EngineProspect[], now: Date, settings: EngineSettings | null): EmailStats {
   const today = workDay(now);
-  const sent = events.filter(e => e.kind === 'sent');
+  const sent = events.filter(e => e.kind === 'sent' || e.kind === 'followup_sent');
   const distinct = (kind: EmailEventKind) => new Set(events.filter(e => e.kind === kind).map(e => e.prospect_id)).size;
   const sentIds = new Set(sent.map(e => e.prospect_id));
   const replied = distinct('reply'), bounced = distinct('bounce');

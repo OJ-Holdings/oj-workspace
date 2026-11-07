@@ -11,7 +11,7 @@ import type { DmLogEntry } from '../../src/lib/dm-quests';
  */
 const MAX_BODY_BYTES = 200_000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_OJ_SUPABASE_URL || 'https://vgckpcktsfuithqggknd.supabase.co';
-const prospectFields = 'id,business_name,industry,best_fit_service,secondary_fit,email,email_subject,email_body,sent_by,date_added,source_status,outreach_status';
+const prospectFields = 'id,business_name,industry,best_fit_service,secondary_fit,email,email_subject,email_body,sent_by,date_added,source_status,outreach_status,decision_maker';
 
 type Event = { httpMethod?: string; headers?: Record<string, string | undefined>; body?: string | null };
 type Result = { statusCode: number; headers: Record<string, string>; body: string };
@@ -36,7 +36,12 @@ function supabaseStore(org: string): EngineStore {
   };
   return {
     async settings() {
-      const { data, error } = await db.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter').eq('organization_id', org).maybeSingle();
+      const { data, error } = await db.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter,followups_enabled').eq('organization_id', org).maybeSingle();
+      if (error?.code === '42703') {
+        const legacy = await db.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter').eq('organization_id', org).maybeSingle();
+        check(legacy.error);
+        return { ...(legacy.data as EngineSettings | null ?? defaultEngineSettings), followups_enabled: false };
+      }
       check(error);
       return (data as EngineSettings | null) ?? { ...defaultEngineSettings };
     },

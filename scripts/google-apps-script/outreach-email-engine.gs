@@ -73,7 +73,8 @@ function runEmailEngine() {
     }
     // One email per triggered run. The server schedules spaced slots across the day.
     if (plan.items.length > 1) throw new Error('Unsafe plan: more than one email per run.');
-    if (plan.items.length) results.push(sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
+    if (plan.items.length) results.push(plan.items[0].kind === 'followup'
+      ? sendFollowup_(plan.items[0]) : sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
     results = results.concat(scanInbox_(plan.watch || []));
     if (results.length) {
       try { engineCall_({ action: 'report', senderDomain: domain, results: results }); results = []; }
@@ -99,6 +100,36 @@ function findSent_(address) {
     }
     return null;
   } catch (e) { console.error('Gmail Sent lookup failed: ' + e); return undefined; }
+}
+
+/**
+ * Gmail Advanced service is required (Apps Script > Services > Gmail API).
+ * Reply in the existing thread using both threadId and RFC In-Reply-To headers.
+ * Refuse if the original or a new inbound reply cannot be verified.
+ */
+function sendFollowup_(item) {
+  try {
+    const threads = GmailApp.search('in:sent to:"' + item.to.replace(/"/g, '') + '"', 0, 10);
+    const thread = threads.find(function (t) { return t.getMessages().some(function (m) {
+      return m.getTo().toLowerCase().indexOf(item.to.toLowerCase()) >= 0;
+    }); });
+    if (!thread) throw new Error('Original sent thread not found; follow-up held.');
+    const messages = thread.getMessages();
+    const replied = messages.find(function (m) { return m.getFrom().toLowerCase().indexOf(item.to.toLowerCase()) >= 0; });
+    if (replied) return { prospect_id: item.prospect_id, kind: 'reply', ref: replied.getId(), text: replied.getPlainBody().slice(0, 1500) };
+    const original = messages.find(function (m) {
+      return m.getTo().toLowerCase().indexOf(item.to.toLowerCase()) >= 0;
+    });
+    const messageId = original && original.getHeader('Message-ID');
+    if (!messageId || !/^<[^\r\n<>]+>$/.test(messageId)) throw new Error('Original Message-ID unavailable, not following up.');
+    const subject = /^re:/i.test(item.subject) ? item.subject : 'Re: ' + item.subject;
+    const raw = ['To: ' + item.to, 'Subject: ' + subject, 'In-Reply-To: ' + messageId,
+      'References: ' + messageId, 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', '',
+      String(item.body).replace(/\\n/g, '\n')].join('\r\n');
+    const sent = Gmail.Users.Messages.send({ raw: Utilities.base64EncodeWebSafe(raw, Utilities.Charset.UTF_8), threadId: thread.getId() }, 'me');
+    if (!sent || !sent.id) throw new Error('Gmail did not confirm the threaded follow-up.');
+    return { prospect_id: item.prospect_id, kind: 'followup_sent', ref: sent.id, sent_at: new Date().toISOString() };
+  } catch (e) { console.error('Follow-up held: ' + e); return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) }; }
 }
 
 function sendOne_(item, name) {

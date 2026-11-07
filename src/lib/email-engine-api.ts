@@ -40,7 +40,7 @@ export async function planRun(store: EngineStore, env: EngineEnv, input: { now: 
   const plan = planEmailRun({ now: input.now, settings, state, prospects, events, sender, senderFilter: filter });
   let items: PlanItem[] = plan.items;
   if (items.length && !input.dryRun) {
-    const claimed = await store.record(items.map(i => ({ prospect_id: i.prospect_id, kind: 'reserved' as const, dedupe_key: `reserve:${i.prospect_id}`, detail: i.subject.slice(0, 90), event_at: input.now.toISOString() })));
+    const claimed = await store.record(items.map(i => ({ prospect_id: i.prospect_id, kind: (i.kind === 'followup' ? 'followup_reserved' : 'reserved') as 'followup_reserved' | 'reserved', dedupe_key: `${i.kind === 'followup' ? 'followup-reserve' : 'reserve'}:${i.prospect_id}`, detail: i.subject.slice(0, 90), event_at: input.now.toISOString() })));
     const won = new Set(claimed.map(c => c.prospect_id));
     items = items.filter(i => won.has(i.prospect_id));
   }
@@ -75,6 +75,7 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
     if (r.kind === 'not_sent') { verifiedMissing.push(id); continue; }
     switch (r.kind) {
       case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: '', event_at: sentAt }); break;
+      case 'followup_sent': events.push({ prospect_id: id, kind: 'followup_sent', dedupe_key: `followup:${id}`, detail: '', event_at: sentAt }); break;
       case 'failed': events.push({ prospect_id: id, kind: 'failed', dedupe_key: `failed:${id}:${ref || input.now.getTime()}`, detail, event_at: at }); break;
       case 'bounce': events.push({ prospect_id: id, kind: 'bounce', dedupe_key: `bounce:${id}`, detail: '', event_at: at }); break;
       case 'reply': {
