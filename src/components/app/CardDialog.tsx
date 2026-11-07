@@ -89,6 +89,7 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
             <span>{mode === 'preview' ? 'Saved in this browser only' : 'Shared with your OJ team'}</span>
             {!readOnly && <button type="submit" className="primary" disabled={pending || stale || Boolean(comment.trim() || checkText.trim())}>{pending ? 'Saving' : 'Save task'}</button>}
           </div>
+          {notice && <p className="dialog-notice" role="status" aria-live="polite">{notice}</p>}
         </form>
 
         {(comment.trim() || checkText.trim()) && <p className="quiet" role="status">Add or clear the checklist item, and post or clear the comment before saving.</p>}
@@ -103,7 +104,6 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
             </div>
           )}
         </section>
-        <p className="dialog-notice" role="status">{notice}</p>
       </>}
     </dialog>
   );
