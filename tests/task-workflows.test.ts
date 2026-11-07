@@ -69,7 +69,7 @@ test('undo stage movement preserves task details and rejects intervening revisio
 
 test('General tasks remain visible with due-date, person and business filters', () => {
   const general: Card = { ...task, id: 'shared-general', business: 'general', assignee: 'Jacob' };
-  const cards = [task, general, { ...task, id: 'sol', business: 'solutions' }];
+  const cards: Card[] = [task, general, { ...task, id: 'sol', business: 'solutions' }];
   assert.deepEqual(selectTasks(cards, 'exterior', '', 'Jacob', 'overdue', '2026-10-04').map(c => c.id), ['shared-general']);
   assert.deepEqual(selectTasks(cards, 'solutions', '', '', 'overdue', '2026-10-04').map(c => c.id), ['shared-general', 'sol']);
   assert.deepEqual(selectTasks(cards, 'general', '', '', 'all', '2026-10-04').map(c => c.id), ['shared-general']);

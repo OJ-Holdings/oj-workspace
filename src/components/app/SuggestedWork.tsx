@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 import { suggestedWork, suggestionDraft, workDay, workRules, type WorkRule } from '@/lib/task-workflows';
 import type { Dashboard } from '@/lib/dashboard';
-import { ventures, type VentureId } from '@/lib/ventures';
+import type { VentureId } from '@/lib/ventures';
+import { taskBusinessLabel } from '@/lib/board';
 import type { Board } from './useBoard';
 import './workflows.css';
 
@@ -34,16 +35,16 @@ export function SuggestedWork({ board, dashboard, base, organizationId, mode, re
     try { localStorage.setItem(storageKey, JSON.stringify(next)); setNotice('Your rule preference is saved in this browser.'); }
     catch { setNotice('This preference works for now, but your browser could not save it.'); }
   };
-  const items = suggestedWork(board.data.cards, dashboard, today).filter(item => rules[item.rule] && (!venture || item.business === venture));
+  const items = suggestedWork(board.data.cards, dashboard, today).filter(item => rules[item.rule] && (!venture || item.business === venture || item.business === 'general'));
   const active = items.filter(item => !item.existingTask || item.sourceType === 'task');
-  const history = board.data.cards.filter(card => (!venture || card.business === venture) && /^\[oj-work:(missing|older):[^\r\n]+\]$/m.test(card.description));
+  const history = board.data.cards.filter(card => (!venture || card.business === venture || card.business === 'general') && /^\[oj-work:(missing|older):[^\r\n]+\]$/m.test(card.description));
   const shown = showAll ? active : active.slice(0, 4);
 
   return <section className="suggested-work panel" aria-labelledby="suggested-work-title">
     <header className="panel-head"><div><h2 id="suggested-work-title">Suggested work</h2><p className="quiet">Checks your records as they change. You review every action.</p></div><button type="button" className="secondary small" aria-expanded={controls} onClick={() => setControls(!controls)}><SlidersHorizontal size={15} aria-hidden="true" />Rules</button></header>
     {controls && <div className="work-rules"><p>Personal preferences for this browser. These checks do not send messages or change records.</p>{workRules.map(rule => <label className="checkbox-row" key={rule.id}><input type="checkbox" checked={rules[rule.id]} onChange={() => toggle(rule.id)} />{rule.label}</label>)}<small>Older leads means at least 7 days since creation, not 7 days since last contact. Tasks you save appear in the shared activity history.</small></div>}
     {!today ? <p className="quiet">Checking dates…</p> : shown.length ? <ul className="work-suggestions">{shown.map(item => <li key={item.id} data-venture-tag={item.business}>
-      <div className="work-suggestion-copy"><span className="work-suggestion-business">{ventures[item.business].short}</span><h3>{item.title}</h3><p>{item.reason}</p></div>
+      <div className="work-suggestion-copy"><span className="work-suggestion-business">{taskBusinessLabel(item.business)}</span><h3>{item.title}</h3><p>{item.reason}</p></div>
       <div className="work-suggestion-actions">
         {item.sourceType === 'lead' && <Link href={`${base}/crm?lead=${encodeURIComponent(item.sourceId)}`}>View lead <ArrowUpRight size={14} aria-hidden="true" /></Link>}
         {item.existingTask ? <button type="button" className="secondary small" onClick={() => board.openCard(item.existingTask)}>Open task</button> : !readOnly && <button type="button" className="secondary small" disabled={board.pending} onClick={() => board.openCard(undefined, suggestionDraft(item, base))}>Review task draft</button>}
