@@ -15,7 +15,7 @@ export const WATCH_LIMIT = 300;
 export const engineStates = ['sending', 'idle', 'outside-window', 'cap-reached', 'paused', 'braked', 'blocked', 'nothing-to-send'] as const;
 export type EngineStateName = typeof engineStates[number];
 export type EngineSettings = { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
-export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 1500, niche_filter: null };
+export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 50, niche_filter: null };
 export type EngineState = { last_heartbeat_at: string; state: EngineStateName; detail: string; warmup_started_on: string | null; sender_domain: string | null };
 export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop'] as const;
 export type EmailEventKind = typeof eventKinds[number];
@@ -38,11 +38,12 @@ export function sendWindow(now: Date): WindowState {
   return { open: true, reason: 'open' };
 }
 /** The most the engine will ever send in a day: Google's own limit for a Workspace account (1,500 recipients a day). The database enforces the same limit. */
-export const MAX_DAILY_CAP = 1500;
+export const MAX_DAILY_CAP = 50;
+export const MIN_DAILY_CAP = 10;
 
 /** The day's limit is the ceiling set on the page, never above the hard maximum. There is no warm-up ramp: the engine sends as much as the ceiling allows. */
 export function dailyCap(max: number) {
-  return Math.min(Math.max(Math.floor(max), 1), MAX_DAILY_CAP);
+  return Math.min(Math.max(Math.floor(Number.isFinite(max) ? max : MIN_DAILY_CAP), MIN_DAILY_CAP), MAX_DAILY_CAP);
 }
 
 // ---- Drafts ------------------------------------------------------------------------------

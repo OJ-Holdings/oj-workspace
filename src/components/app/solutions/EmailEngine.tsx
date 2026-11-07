@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Mail, Pause, Play, ShieldCheck } from 'lucide-react';
 import { setEmailEngine } from '@/app/workspace/growth-actions';
@@ -25,10 +25,12 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
   const status = engineStatus({ settings, state, now: g.now });
   const stats = emailStats(events, data.prospects, g.now, settings);
   const today = todayKey(g.now);
-  const cap = dailyCap(settings.daily_cap_max);
+  const cap = savedCap ?? dailyCap(settings.daily_cap_max);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
-  const [capDraft, setCapDraft] = useState(String(settings.daily_cap_max));
+  const [capDraft, setCapDraft] = useState(String(dailyCap(settings.daily_cap_max)));
+  const [savedCap, setSavedCap] = useState<number | null>(null);
+  useEffect(() => { if (!saving) { setCapDraft(String(dailyCap(settings.daily_cap_max))); setSavedCap(null); } }, [settings.daily_cap_max]);
   const names = new Map(data.prospects.map(p => [p.id, p.business_name]));
   const maxBar = Math.max(...stats.series.map(s => s.count), 1);
   const recent = events.filter(e => e.kind !== 'reserved').slice(0, 20);
@@ -52,9 +54,11 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
     if (g.mode === 'preview') { setNotice('Settings cannot be changed in the preview.'); return; }
     setSaving(true); setNotice('');
     try {
-      await setEmailEngine(g.org, { enabled: next.enabled ?? settings.enabled, dailyCapMax: next.dailyCapMax ?? settings.daily_cap_max, niche: next.niche ?? settings.niche_filter ?? '' });
-      g.reload(); setNotice('Saved. The sender picks this up on its next check, within 10 minutes.');
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not save.'); }
+      const saved = await setEmailEngine(g.org, { enabled: next.enabled ?? settings.enabled, dailyCapMax: next.dailyCapMax ?? cap, niche: next.niche ?? settings.niche_filter ?? '' });
+      setSavedCap(saved.daily_cap_max);
+      setCapDraft(String(saved.daily_cap_max));
+      g.reload(); setNotice('Saved. The sender picks this up on its next check.');
+    } catch (e) { setCapDraft(String(cap)); setNotice(e instanceof Error ? e.message : 'Could not save.'); }
     finally { setSaving(false); }
   }
   const niche: EngineSettings['niche_filter'] = settings.niche_filter;
@@ -73,12 +77,13 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
         <button className={settings.enabled ? 'secondary' : 'primary'} disabled={saving || !blocked} onClick={() => save({ enabled: !settings.enabled })}>
           {settings.enabled ? <><Pause size={15} aria-hidden="true" />Pause sending</> : <><Play size={15} aria-hidden="true" />Resume sending</>}</button>
         <label>Daily ceiling<select value={capDraft} disabled={saving || !blocked} onChange={e => { setCapDraft(e.target.value); void save({ dailyCapMax: Number(e.target.value) }); }}>
-          {[50, 100, 250, 500, 1000, 1500].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
+          {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
         <label>Who to email<select value={niche ?? ''} disabled={saving || !blocked} onChange={e => void save({ niche: e.target.value })}>
           <option value="">Everyone with a good draft</option><option value="exterior">Exterior cleaning first and only</option></select></label>
       </div>
     </section>
-    <p role="status" className="gx-notice">{notice}</p>
+    <p role="status" aria-live="polite" className="gx-notice">{notice}</p>
+    {settings.daily_cap_max > 50 && <p className="outreach-error" role="status">A legacy ceiling above 50 is saved. Pick a new ceiling after the reviewed database update is applied.</p>}
 
     <div className="gx-stats">
       <Stat label="Sent today" value={stats.sentToday} note={`limit ${cap}`} />

@@ -25,13 +25,13 @@ test('send window: Monday to Saturday, 9:00 to 16:30 Central', () => {
   assert.equal(sendWindow(new Date('2026-10-31T17:00:00Z')).open, true);
 });
 
-test('daily limit: no warm-up, it is the ceiling, never above Google\'s 1,500 and never below 1', () => {
+test('daily limit stays between 10 and 50', () => {
   assert.equal(dailyCap(50), 50);
-  assert.equal(dailyCap(500), 500);
-  assert.equal(dailyCap(1500), 1500);
-  assert.equal(dailyCap(99999), 1500, 'nothing above the hard maximum');
-  assert.equal(dailyCap(3), 3);
-  assert.equal(dailyCap(0), 1);
+  assert.equal(dailyCap(500), 50);
+  assert.equal(dailyCap(1500), 50);
+  assert.equal(dailyCap(99999), 50, 'nothing above the hard maximum');
+  assert.equal(dailyCap(3), 10);
+  assert.equal(dailyCap(0), 10);
 });
 
 test('lint stands in for approval: bad drafts are skipped, never sent', () => {
@@ -126,7 +126,7 @@ test('plan: sends everything ready up to the batch size, in order, with the foot
   const prospects = ['a', 'b', 'c', 'd', 'e'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: null, state: null, prospects, events: [], sender });
   assert.equal(plan.state, 'sending');
-  assert.equal(plan.capToday, 1500);
+  assert.equal(plan.capToday, 50);
   assert.deepEqual(plan.items.map(i => i.prospect_id), ['a', 'b', 'c', 'd', 'e']);
   assert.equal(plan.items[0].to, 'a@biz.com');
   assert.match(plan.items[0].body, /123 Main St/);

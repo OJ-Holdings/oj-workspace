@@ -82,8 +82,12 @@ export async function setDmGoal(org: string, goal: number) {
 }
 export async function setEmailEngine(org: string, input: { enabled: boolean; dailyCapMax: number; niche: string }) {
   const { client } = await requireMember(org, true);
-  if (typeof input.enabled !== 'boolean' || !Number.isInteger(input.dailyCapMax) || input.dailyCapMax < 1 || input.dailyCapMax > 40) throw new Error('Choose on or off and a daily limit from 1 to 40.');
+  if (typeof input.enabled !== 'boolean' || !Number.isInteger(input.dailyCapMax) || input.dailyCapMax < 10 || input.dailyCapMax > 50) throw new Error('Choose on or off and a daily limit from 10 to 50.');
   const niche = input.niche.trim().slice(0, 80);
-  const { error } = await client.rpc('oj_set_email_engine', { p_organization_id: org, p_enabled: input.enabled, p_daily_cap_max: input.dailyCapMax, p_niche_filter: niche || null });
-  if (error) throw new Error(missing(error) ? 'The email engine is not installed yet. A founder needs to apply the email engine database update.' : 'Could not save the engine settings.');
+  const { data, error } = await client.rpc('oj_set_email_engine', { p_organization_id: org, p_enabled: input.enabled, p_daily_cap_max: input.dailyCapMax, p_niche_filter: niche || null });
+  if (error) {
+    console.error('oj_set_email_engine rejected settings', { code: error.code, message: error.message, details: error.details });
+    throw new Error(missing(error) ? 'Email settings are not installed. Ask a founder to apply the reviewed SQL.' : 'Could not save the ceiling. The database may still have the old 40 or 1,500 limit. Ask a founder to apply the email ceiling SQL.');
+  }
+  return data as { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
 }
