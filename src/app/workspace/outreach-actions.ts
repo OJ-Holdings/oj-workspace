@@ -3,6 +3,8 @@
 import { requireMember } from '@/lib/supabase';
 import type { OutreachActivity, OutreachProspect, OutreachStatus } from '@/lib/outreach';
 import { outreachStatuses } from '@/lib/outreach';
+import { leadQualitySummary } from '@/lib/outreach-quality';
+import type { SkipRecord } from '@/lib/outreach-skips';
 
 export async function loadOutreach(org: string) {
   const { client } = await requireMember(org);
@@ -32,3 +34,20 @@ export async function updateOutreachStatus(org: string, prospectId: string, stat
   if (error) throw new Error('Could not save the outreach status. Check your access and try again.');
 }
 
+
+/** Last 7 days of outreach quality, from verified Supabase events rather than sheet guesses. */
+export async function loadLeadQuality(org: string) {
+  const { client } = await requireMember(org);
+  const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const [skips, dm, emails] = await Promise.all([
+    client.from('oj_outreach_skips').select('id,organization_id,prospect_id,actor_id,business_name,source_row,channel,reason,note,skipped_at')
+      .eq('organization_id', org).gte('skipped_at', since).order('skipped_at', { ascending: false }).limit(1000),
+    client.from('oj_outreach_dm_log').select('id', { count: 'exact', head: true }).eq('organization_id', org).gte('created_at', since).is('undone_at', null),
+    client.from('oj_email_events').select('id', { count: 'exact', head: true }).eq('organization_id', org).in('kind', ['sent','followup_sent']).gte('event_at', since),
+  ]);
+  if (skips.error || dm.error || emails.error) {
+    console.error('Lead quality query failed', { skip: skips.error?.code, dm: dm.error?.code, emails: emails.error?.code });
+    throw new Error('Lead quality needs the reviewed DM skips SQL and email log access.');
+  }
+  return leadQualitySummary((skips.data ?? []) as SkipRecord[], (dm.count ?? 0) + (emails.count ?? 0));
+}
