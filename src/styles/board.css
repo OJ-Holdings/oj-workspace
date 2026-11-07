@@ -34,6 +34,9 @@
 .taskcard::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c-exterior); }
 .taskcard[data-venture-tag='solutions']::before { background: var(--c-solutions); }
 .taskcard[data-venture-tag='essentials']::before { background: var(--c-essentials); }
+.taskcard[data-venture-tag='general']::before { background: var(--c-general); }
+.task-save-error { color: #e6a3a3; margin: 10px 0; }
+.task-general-badge { flex: none; }
 .taskcard:hover { border-color: var(--line-2); box-shadow: 0 16px 30px -18px #000; }
 .taskcard:active { cursor: grabbing; }
 .taskcard-open { display: block; width: 100%; padding: 14px 14px 10px 16px; text-align: left; }

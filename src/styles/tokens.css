@@ -42,6 +42,7 @@
   --c-solutions: #dc9d84;
   --c-essentials: #e9e2d6;
   --c-shared: #6191ff;
+  --c-general: #929aa8; /* Neutral gray for cross-business tasks. */
 
   --font-ui: var(--font-manrope), 'Segoe UI', system-ui, sans-serif;
   --font-display: var(--font-sora), var(--font-manrope), 'Segoe UI', sans-serif;

@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Trash2, X } from 'lucide-react';
-import { stages, type Business, type Card, type Stage } from '@/lib/board';
-import { ventureList, ventures } from '@/lib/ventures';
+import { stages, taskBusinessLabel, taskBusinessColor, type Business, type Card, type Stage } from '@/lib/board';
+import { ventureList } from '@/lib/ventures';
 import type { Board } from './useBoard';
 import type { Dashboard } from '@/lib/dashboard';
 import type { JobItem } from '@/app/workspace/exterior-actions';
@@ -44,7 +44,7 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
     <dialog ref={dialog} className="card-dialog" data-venture={editing?.business} onCancel={e => { e.preventDefault(); close(); }} onClick={e => { if (e.target === dialog.current) close(); }} aria-labelledby="card-dialog-title">
       {editing && <>
         <div className="dialog-header">
-          <span className="tag" style={{ '--tag': `var(--c-${editing.business})` } as React.CSSProperties}>{ventures[editing.business].name}</span>
+          <span className="tag" style={{ '--tag': taskBusinessColor(editing.business) } as React.CSSProperties}>{taskBusinessLabel(editing.business, true)}</span>
           <button className="icon-button" aria-label="Close" disabled={pending} onClick={close}><X size={20} /></button>
         </div>
         <h2 id="card-dialog-title">{current ? 'Task details' : 'New task'}</h2>
@@ -60,7 +60,7 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
           {sourceLinks.map(link => <Link className="task-source-link" href={link} key={link} onClick={e => { if (!close()) e.preventDefault(); }}>Open linked {link.includes('/crm?') ? 'lead' : 'task'}</Link>)}
           <AtlasTaskRelations card={editing} dashboard={dashboard} jobs={jobs} base={base} onNavigate={close} />
           <div className="form-grid">
-            <label>Business<select disabled={locked} value={editing.business} onChange={e => patch({ business: e.target.value as Business })}>{ventureList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
+            <label>Business<select disabled={locked} value={editing.business} onChange={e => patch({ business: e.target.value as Business })}><option value="general">General (all businesses)</option>{ventureList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
             <label>Status<select disabled={locked} value={editing.stage} onChange={e => patch({ stage: e.target.value as Stage })}>{stages.map(s => <option key={s}>{s}</option>)}</select></label>
             <label>Assigned to<select disabled={locked} value={editing.assignee} onChange={e => patch({ assignee: e.target.value })}><option value="">Unassigned</option>{members.map(m => <option key={m}>{m}</option>)}</select></label>
             <label>Due date<input type="date" disabled={locked} value={editing.due_date} onChange={e => patch({ due_date: e.target.value })} /></label>
@@ -80,6 +80,7 @@ export function CardDialog({ board, members, readOnly, mode, dashboard, jobs, ba
               <button type="button" className="secondary" disabled={pending || !checkText.trim() || editing.checklist.length >= 40} onClick={() => { patch({ checklist: [...editing.checklist, { id: crypto.randomUUID(), text: checkText.trim(), done: false }] }); setCheckText(''); }}>Add</button>
             </div>
           )}
+          {board.saveError && <p className="dialog-notice task-save-error" role="alert">{board.saveError}</p>}
           <div className="dialog-actions">
             {!readOnly && current && (confirmDelete
               ? <span className="delete-confirm" role="group" aria-label="Confirm delete">Delete this task and its comments?

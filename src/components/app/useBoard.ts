@@ -16,6 +16,7 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
   const [data, setData] = useState(initial);
   const [editing, setEditing] = useState<Card | null>(null);
   const [notice, setNotice] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [ready, setReady] = useState(false);
   const [pending, startTransition] = useTransition();
   const [undo, setUndo] = useState<{ id: string; title: string; stage: Stage; revision: number } | null>(null);
@@ -52,10 +53,10 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
 
   function openCard(card?: Card, defaults: Partial<Card> = {}) {
     if (mutation.current) return;
-    setNotice('');
+    setNotice(''); setSaveError('');
     const draft: Card = card ? structuredClone(card) : {
       id: crypto.randomUUID(), organization_id: organizationId, title: '', description: '',
-      business: 'exterior' as Business, stage: 'Backlog' as Stage, priority: 'normal', assignee: '', due_date: '', revision: 0, checklist: [],
+      business: 'general' as Business, stage: 'Backlog' as Stage, priority: 'normal', assignee: '', due_date: '', revision: 0, checklist: [],
       ...defaults,
     };
     originalDraft.current = structuredClone(draft);
@@ -84,6 +85,7 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
   function persist(card: Card, close = false, movedFrom?: Stage) {
     if (readOnly || mutation.current) return;
     mutation.current = true;
+    setSaveError('');
     startTransition(async () => {
       try {
         validateCard(card);
@@ -100,9 +102,13 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
           setData(d => ({ ...d, cards: d.cards.some(c => c.id === saved.id) ? d.cards.map(c => c.id === saved.id ? saved : c) : [...d.cards, saved] }));
         }
         setUndo(movedFrom ? { id: saved.id, title: saved.title, stage: movedFrom, revision: saved.revision } : null);
+        setSaveError('');
         setNotice(movedFrom ? `Moved to ${saved.stage}.` : 'Task saved.');
         if (close) setEditing(null);
-      } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not save this card. Try again.'); }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Could not save this task. Try again.';
+        setSaveError(message); setNotice(message);
+      }
       finally { mutation.current = false; }
     });
   }
@@ -151,7 +157,7 @@ export function useBoard(initial: BoardData, mode: 'preview' | 'live', organizat
     });
   }
 
-  return { data, editing, setEditing, notice, pending, openCard, closeCard, dirty, ready, undo, undoMove, persist, move, remove, postComment };
+  return { data, editing, setEditing, notice, saveError, pending, openCard, closeCard, dirty, ready, undo, undoMove, persist, move, remove, postComment };
 }
 
 export type Board = ReturnType<typeof useBoard>;
