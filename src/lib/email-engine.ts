@@ -71,9 +71,13 @@ export function lintEmail(subject: string | null | undefined, body: string | nul
 export type Sender = { name: string; company: string; postalAddress: string };
 /** The compliance footer is added to every email: who we are, a real address, and a one-word way out. */
 export function composeEmail(p: Pick<EngineProspect, 'email_subject' | 'email_body'>, sender: Sender) {
-  const body = sheetMessage(p.email_body) ?? '';
-  const footer = `${sender.name}\n${sender.company}\n${sender.postalAddress}\n\nNot a fit? Reply "stop" and I will not email you again.`;
-  return { subject: (p.email_subject ?? '').trim(), body: `${body}\n\n${footer}` };
+  const body = (sheetMessage(p.email_body) ?? '').trimEnd();
+  const signature = `${sender.name}\n${sender.company}`;
+  const hasSignOff = body.toLowerCase().endsWith(signature.toLowerCase());
+  const hasOptOut = /if this isn.t relevant,? just reply no and i won.t reach out again\.?|not a fit\? reply ["']?stop["']? and i will not email you again\.?/i.test(body);
+  const optOut = 'Not a fit? Reply "stop" and I will not email you again.';
+  const tail = [hasOptOut ? '' : optOut, hasSignOff ? '' : signature, sender.postalAddress].filter(Boolean).join('\n\n');
+  return { subject: (p.email_subject ?? '').trim(), body: `${body}\n\n${tail}` };
 }
 
 export type ReplyKind = 'reply' | 'stop' | 'auto';

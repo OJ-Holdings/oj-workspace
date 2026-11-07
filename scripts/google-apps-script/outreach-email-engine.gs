@@ -70,6 +70,7 @@ function runEmailEngine() {
 
 function sendOne_(item, name) {
   try {
+    // The server composes one compliant footer. Never append a second signature here.
     // Never email someone this account has already written to.
     if (GmailApp.search('in:sent to:' + item.to, 0, 1).length) return { prospect_id: item.prospect_id, kind: 'sent' };
     GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });

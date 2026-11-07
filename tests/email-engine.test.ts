@@ -61,6 +61,15 @@ test('every email carries who we are, a real address and a one-word opt-out', ()
   assert.match(mail.body, /Reply "stop"/);
 });
 
+test('pre-signed drafts keep one opt-out, one signature and the mailing address', () => {
+  const original = "Hi there, we built an assistant to handle missed calls. Let me know if you want details.\n\nIf this isn't relevant, just reply no and I won't reach out again.\nOscar\nOJ Solutions";
+  const mail = composeEmail({ email_subject: 'Hi', email_body: original }, sender);
+  assert.equal((mail.body.match(/reply no/gi) ?? []).length, 1);
+  assert.equal((mail.body.match(/Oscar\\nOJ Solutions/g) ?? []).length, 1);
+  assert.equal((mail.body.match(/123 Main St/g) ?? []).length, 1);
+  assert.equal((mail.body.match(/Reply "stop"/g) ?? []).length, 0);
+});
+
 test('the email message preserves sheet text and decodes literal line breaks before the existing footer', () => {
   const text = '  Hello there,\\n\\nThis is the exact business-specific message.  ';
   const mail = composeEmail({ email_subject: 'Subject', email_body: text }, sender);
