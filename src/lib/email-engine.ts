@@ -7,7 +7,7 @@ import { effectiveOutreachStatus, isExteriorNiche, sheetMessage, type OutreachPr
  * decision about who gets an email, and when, is made here so it can be tested.
  */
 export const HEARTBEAT_FRESH_MINUTES = 25;
-export const BATCH_SIZE = 40;
+export const BATCH_SIZE = 1;
 export const SEND_OPEN_MINUTE = 9 * 60;
 export const SEND_CLOSE_MINUTE = 16 * 60 + 30;
 export const WATCH_LIMIT = 300;
@@ -186,15 +186,20 @@ export function planEmailRun(input: {
   const window = sendWindow(now);
   if (!window.open) return done('outside-window', window.reason === 'sunday' ? 'Sundays are off. Sending resumes Monday 9:00 AM Central.' : 'Sending runs Monday to Saturday, 9:00 AM to 4:30 PM Central.');
   if (sentToday >= capToday) return done('cap-reached', `Today's limit of ${capToday} is used. Sending resumes tomorrow.`);
-  const hourlyLimit = Math.max(2, Math.ceil(capToday / 6));
-  const lastHour = counted.filter(e => Date.parse(e.event_at) >= now.getTime() - 3_600_000).length;
-  if (lastHour >= hourlyLimit) return done('idle', 'Spacing sends out so they do not arrive in a burst.');
+  // One plan reserves at most one email. Slot centers spread sends across all 450
+  // Central-time minutes, with stable per-slot jitter so polling never creates bursts.
+  const minutes = central(now).minutes;
+  const span = SEND_CLOSE_MINUTE - SEND_OPEN_MINUTE;
+  const interval = span / capToday;
+  const seed = Number(today.replace(/-/g, '')) + sentToday * 149;
+  const jitter = Math.sin(seed * 12.9898) * interval * 0.18;
+  const due = SEND_OPEN_MINUTE + (sentToday + 0.5) * interval + jitter;
+  if (minutes < due) return done('idle', 'Waiting for the next spaced send slot.');
 
   const { ready } = selectSendable(input.prospects, events, { niche: settings.niche_filter, sender: input.senderFilter });
   if (!ready.length) return done('nothing-to-send', 'Nobody left with a valid email and a clean draft. Add prospects to the sheet.');
-  const room = Math.min(BATCH_SIZE, hourlyLimit - lastHour, capToday - sentToday);
-  const items = ready.slice(0, room).map(p => ({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!) }));
-  return done('sending', `Sending ${items.length} now.`, items);
+  const items = ready.slice(0, BATCH_SIZE).map(p => ({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!) }));
+  return done('sending', 'Sending one paced email now.', items);
 }
 
 // ---- What the dashboard shows ------------------------------------------------------------

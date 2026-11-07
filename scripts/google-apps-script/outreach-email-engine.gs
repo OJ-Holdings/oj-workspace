@@ -55,10 +55,9 @@ function runEmailEngine() {
       action: 'plan', senderName: props.getProperty('SENDER_NAME') || '',
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
-    plan.items.forEach(function (item, i) {
-      if (i > 0) Utilities.sleep(2000 + Math.floor(Math.random() * 3000));
-      results.push(sendOne_(item, props.getProperty('SENDER_NAME')));
-    });
+    // One email per triggered run. The server schedules spaced slots across the day.
+    if (plan.items.length > 1) throw new Error('Unsafe plan: more than one email per run.');
+    if (plan.items.length) results.push(sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
     results = results.concat(scanInbox_(plan.watch || []));
     if (results.length) {
       try { engineCall_({ action: 'report', senderDomain: domain, results: results }); results = []; }
@@ -74,7 +73,7 @@ function sendOne_(item, name) {
     // Never email someone this account has already written to.
     if (GmailApp.search('in:sent to:' + item.to, 0, 1).length) return { prospect_id: item.prospect_id, kind: 'sent' };
     GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });
-    return { prospect_id: item.prospect_id, kind: 'sent' };
+    return { prospect_id: item.prospect_id, kind: 'sent', sent_at: new Date().toISOString() };
   } catch (e) {
     return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) };
   }
@@ -145,6 +144,6 @@ function installEngineTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (['runEmailEngine', 'runQuestReminders'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('runEmailEngine').timeBased().everyMinutes(10).create();
+  ScriptApp.newTrigger('runEmailEngine').timeBased().everyMinutes(1).create();
   ScriptApp.newTrigger('runQuestReminders').timeBased().everyHours(1).create();
 }
