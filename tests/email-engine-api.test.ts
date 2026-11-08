@@ -40,7 +40,7 @@ test('plan reserves what it hands out, records a heartbeat', async () => {
   const { s, store } = memoryStore({ prospects: [1, 2, 3].map(n => prospect(n)) });
   const first = await planRun(store, env, { now: tuesday, senderName: 'Oscar', senderDomain: 'ojsolutions.org' });
   assert.equal(first.state, 'sending');
-  assert.deepEqual(first.items.map(i => i.prospect_id), [id(1), id(2), id(3)]);
+  assert.deepEqual(first.items.map(i => i.prospect_id), [id(1)]);
   assert.match(first.items[0].body, /Oscar\nOJ Solutions\n123 Main St/);
   assert.equal(s.state?.last_heartbeat_at, tuesday.toISOString());
   assert.equal(s.state?.warmup_started_on, '2026-10-27');
@@ -54,7 +54,7 @@ test('plan reserves what it hands out, records a heartbeat', async () => {
 test('a dry run shows the next emails without claiming them or recording a check-in', async () => {
   const { s, store } = memoryStore({ prospects: [1, 2].map(n => prospect(n)) });
   const look = await planRun(store, env, { now: tuesday, senderName: 'Oscar', dryRun: true });
-  assert.equal(look.items.length, 2);
+  assert.equal(look.items.length, 1);
   assert.equal(s.events.length, 0);
   assert.equal(s.state, null);
   const real = await planRun(store, env, { now: tuesday, senderName: 'Oscar' });
@@ -152,7 +152,7 @@ test('endpoint: bearer token, JSON object and known action are required before a
 test('the claim keeps the subject, and a real reply keeps its tone and first lines but a stop keeps nothing', async () => {
   const { s, store } = memoryStore({ prospects: [1, 2].map(n => prospect(n)) });
   const plan = await planRun(store, env, { now: tuesday, senderName: 'Oscar' });
-  assert.equal(plan.items.length, 2);
+  assert.equal(plan.items.length, 1);
   assert.ok(s.events.filter(e => e.kind === 'reserved').every(e => e.detail === 'Missed calls'));
   await reportRun(store, { now: tuesday, results: [
     { prospect_id: id(1), kind: 'reply', ref: 'm1', text: 'Sounds good, call me tomorrow.\n\nOn Mon, Oct 26, 2026 at 9:00 AM Oscar wrote:\n> Hi Sam' },

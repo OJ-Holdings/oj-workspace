@@ -25,13 +25,13 @@ test('send window: Monday to Saturday, 9:00 to 16:30 Central', () => {
   assert.equal(sendWindow(new Date('2026-10-31T17:00:00Z')).open, true);
 });
 
-test('daily limit: no warm-up, it is the ceiling, never above Google\'s 1,500 and never below 1', () => {
+test('daily limit stays between 10 and 50', () => {
   assert.equal(dailyCap(50), 50);
-  assert.equal(dailyCap(500), 500);
-  assert.equal(dailyCap(1500), 1500);
-  assert.equal(dailyCap(99999), 1500, 'nothing above the hard maximum');
-  assert.equal(dailyCap(3), 3);
-  assert.equal(dailyCap(0), 1);
+  assert.equal(dailyCap(500), 50);
+  assert.equal(dailyCap(1500), 50);
+  assert.equal(dailyCap(99999), 50, 'nothing above the hard maximum');
+  assert.equal(dailyCap(3), 10);
+  assert.equal(dailyCap(0), 10);
 });
 
 test('lint stands in for approval: bad drafts are skipped, never sent', () => {
@@ -45,7 +45,10 @@ test('lint stands in for approval: bad drafts are skipped, never sent', () => {
   assert.equal(lintEmail('Hello', `${body} {{company}}`).ok, false);
   assert.equal(lintEmail('Hello', `${body} Guaranteed results.`).ok, false);
   assert.equal(lintEmail('Hello', `${body} https://a.com https://b.com`).ok, false);
-  assert.equal(lintEmail('Hello', `${body} https://a.com`).ok, true);
+  assert.equal(lintEmail('Hello', `${body} https://a.com`).ok, false);
+  assert.equal(lintEmail('Hello', `${body} https://ojsolutions.org`).ok, true);
+  assert.equal(lintEmail('Hello', `${body} A 30 days guarantee`).ok, false);
+  assert.equal(lintEmail('Hello', `${body} you don't pay until results`).ok, false);
   assert.equal(validEmail('sam@biz.com'), true);
   assert.equal(validEmail('not-an-email'), false);
   assert.equal(validEmail('sam@example.invalid'), false);
@@ -56,9 +59,18 @@ test('lint stands in for approval: bad drafts are skipped, never sent', () => {
 test('every email carries who we are, a real address and a one-word opt-out', () => {
   const mail = composeEmail({ email_subject: ' Hi ', email_body: ` ${body} ` }, sender);
   assert.equal(mail.subject, 'Hi');
-  assert.ok(mail.body.startsWith(` ${body} \n\n`));
+  assert.ok(mail.body.startsWith(` ${body}\n\n`));
   assert.match(mail.body, /Oscar\nOJ Solutions\n123 Main St, Kenosha, WI 53140/);
   assert.match(mail.body, /Reply "stop"/);
+});
+
+test('pre-signed drafts keep one opt-out, one signature and the mailing address', () => {
+  const original = "Hi there, we built an assistant to handle missed calls. Let me know if you want details.\n\nIf this isn't relevant, just reply no and I won't reach out again.\nOscar\nOJ Solutions";
+  const mail = composeEmail({ email_subject: 'Hi', email_body: original }, sender);
+  assert.equal((mail.body.match(/reply no/gi) ?? []).length, 1);
+  assert.equal((mail.body.match(/Oscar\nOJ Solutions/g) ?? []).length, 1);
+  assert.equal((mail.body.match(/123 Main St/g) ?? []).length, 1);
+  assert.equal((mail.body.match(/Reply "stop"/g) ?? []).length, 0);
 });
 
 test('the email message preserves sheet text and decodes literal line breaks before the existing footer', () => {
@@ -113,21 +125,21 @@ test('who is sendable: untouched, valid, clean, on niche, once', () => {
   assert.deepEqual(selectSendable(list, events, { sender: 'Oscar' }).ready.map(p => p.id), ['exterior', 'dmed', 'failed-once', 'ok']);
 });
 
-test('bounce brake trips at 4 bounces and 8 percent, not before', () => {
+test('bounce brake trips above 3 percent over 7 days or at 3 in one day', () => {
   const sent = Array.from({ length: 40 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-26T15:00:00Z'));
   const bounces = (n: number) => Array.from({ length: n }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-26T16:00:00Z'));
-  assert.equal(bounceBrake([...sent, ...bounces(3)], tuesdayMorning).braked, false);
+  assert.equal(bounceBrake([...sent, ...bounces(3)], tuesdayMorning).braked, true);
   assert.equal(bounceBrake([...sent, ...bounces(4)], tuesdayMorning).braked, true);
   assert.equal(bounceBrake([...sent, ...bounces(4)].map(e => ({ ...e, event_at: '2026-09-01T00:00:00Z' })), tuesdayMorning).braked, false);
-  assert.equal(bounceBrake([...Array.from({ length: 100 }, (_, i) => ev(`t${i}`, 'sent', '2026-10-26T15:00:00Z')), ...bounces(0), ...Array.from({ length: 4 }, (_, i) => ev(`t${i}`, 'bounce', '2026-10-26T16:00:00Z'))], tuesdayMorning).braked, false);
+  assert.equal(bounceBrake([...Array.from({ length: 100 }, (_, i) => ev(`t${i}`, 'sent', '2026-10-26T15:00:00Z')), ...bounces(0), ...Array.from({ length: 4 }, (_, i) => ev(`t${i}`, 'bounce', '2026-10-26T16:00:00Z'))], tuesdayMorning).braked, true);
 });
 
-test('plan: sends everything ready up to the batch size, in order, with the footer', () => {
+test('plan: schedules one email in a spaced slot, with the footer', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: null, state: null, prospects, events: [], sender });
   assert.equal(plan.state, 'sending');
-  assert.equal(plan.capToday, 1500);
-  assert.deepEqual(plan.items.map(i => i.prospect_id), ['a', 'b', 'c', 'd', 'e']);
+  assert.equal(plan.capToday, 50);
+  assert.deepEqual(plan.items.map(i => i.prospect_id), ['a']);
   assert.equal(plan.items[0].to, 'a@biz.com');
   assert.match(plan.items[0].body, /123 Main St/);
   assert.equal(plan.warmupStartedOn, '2026-10-27');
@@ -144,24 +156,61 @@ test('plan: every reason not to send is reported honestly', () => {
   assert.equal(run({ prospects: [] }).state, 'nothing-to-send');
   assert.equal(run({ settings: { enabled: true, daily_cap_max: 25, niche_filter: 'dentist' } }).state, 'nothing-to-send');
 
-  const fiveToday = ['p1', 'p2', 'p3', 'p4', 'p5'].map(id => ev(id, 'sent', '2026-10-27T14:30:00Z'));
-  const capped = run({ events: fiveToday, settings: { enabled: true, daily_cap_max: 5, niche_filter: null } });
+  const fiveToday = Array.from({ length: 10 }, (_, i) => ev(`p${i}`, 'sent', '2026-10-27T14:30:00Z'));
+  const capped = run({ events: fiveToday, settings: { enabled: true, daily_cap_max: 10, niche_filter: null } });
   assert.equal(capped.state, 'cap-reached');
-  assert.equal(capped.sentToday, 5);
+  assert.equal(capped.sentToday, 10);
   // Yesterday's sends do not count against today.
   assert.equal(run({ events: fiveToday.map(e => ({ ...e, event_at: '2026-10-26T20:00:00Z' })), settings: { enabled: true, daily_cap_max: 5, niche_filter: null } }).state, 'sending');
   // Two sent in the last hour on a day with room: wait so mail is not sent in a burst.
   const paced = run({ events: [ev('p1', 'sent', '2026-10-27T15:30:00Z'), ev('p2', 'reserved', '2026-10-27T15:40:00Z'), ev('p3', 'sent', '2026-10-27T15:50:00Z')], settings: { enabled: true, daily_cap_max: 10, niche_filter: null } }); // a ceiling of 10, so two an hour
   assert.equal(paced.state, 'idle');
-  const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-20T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-21T15:00:00Z'))] });
+  const bounced = run({ events: [...Array.from({ length: 20 }, (_, i) => ev(`s${i}`, 'sent', '2026-10-21T15:00:00Z')), ...Array.from({ length: 5 }, (_, i) => ev(`s${i}`, 'bounce', '2026-10-22T15:00:00Z'))] });
   assert.equal(bounced.state, 'braked');
 });
 
-test('plan: a batch never exceeds what is left of today or this hour', () => {
+test('plan: a paced run returns at most one even with many ready', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: { enabled: true, daily_cap_max: 5, niche_filter: null }, state: null, prospects, sender, events: [ev('x', 'sent', '2026-10-27T14:10:00Z'), ev('y', 'sent', '2026-10-27T14:20:00Z'), ev('z', 'sent', '2026-10-27T14:30:00Z'), ev('w', 'sent', '2026-10-27T14:40:00Z')] });
-  assert.equal(plan.capToday, 5);
+  assert.equal(plan.capToday, 10);
   assert.equal(plan.items.length, 1);
+});
+
+test('a reservation and confirmed send count only once toward the daily cap', () => {
+  const events = [
+    ev('first', 'reserved', '2026-10-27T15:00:00Z'),
+    ev('first', 'sent', '2026-10-27T15:02:00Z'),
+    ev('second', 'reserved', '2026-10-27T15:05:00Z'),
+    ev('third', 'needs_review', '2026-10-27T15:10:00Z'),
+    ev('old-release', 'released', '2026-10-27T15:20:00Z'),
+  ];
+  const plan = planEmailRun({ now: tuesdayMorning, settings: { enabled: true, daily_cap_max: 10, niche_filter: null },
+    state: null, prospects: [prospect('new')], events, sender });
+  assert.equal(plan.sentToday, 3, 'first counted once, second once, reviewed once; released not counted');
+  assert.equal(plan.capToday, 10);
+  assert.equal(plan.items.length, 1);
+});
+
+test('late-running engine never bursts while a previous send is in cooldown', () => {
+  const now = new Date('2026-10-27T17:30:00Z');
+  const plan = planEmailRun({ now, settings: { enabled: true, daily_cap_max: 10, niche_filter: null },
+    state: null, prospects: [prospect('new')], events: [ev('old', 'reserved', '2026-10-27T17:28:00Z')], sender });
+  assert.equal(plan.state, 'idle');
+  assert.deepEqual(plan.items, []);
+});
+
+test('manual review prevents retry until a release status is recorded', () => {
+  const prospects = [prospect('review')];
+  assert.equal(selectSendable(prospects, [ev('review', 'needs_review', '2026-10-26T15:00:00Z')]).ready.length, 0);
+  assert.equal(selectSendable(prospects, [ev('review', 'released', '2026-10-26T15:00:00Z')]).ready.length, 1);
+});
+
+test('a signed draft already containing postal address is not duplicated', () => {
+  const signed = `Hello Sam, wanted to share how we handle missed calls and speed up estimates.\n\nIf this isn't relevant, just reply no and I won't reach out again.\nOscar\nOJ Solutions\n123 Main St, Kenosha, WI 53140`;
+  const composed = composeEmail({ email_subject: 'Missed calls', email_body: signed }, sender);
+  assert.equal((composed.body.match(/reply no/gi) ?? []).length, 1);
+  assert.equal((composed.body.match(/Oscar\nOJ Solutions/g) ?? []).length, 1);
+  assert.equal((composed.body.match(/123 Main St/g) ?? []).length, 1);
 });
 
 test('plan: watch list covers recent sends that have not answered', () => {
