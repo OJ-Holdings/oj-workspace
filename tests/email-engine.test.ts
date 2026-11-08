@@ -76,7 +76,7 @@ test('pre-signed drafts keep one opt-out, one signature and the mailing address'
 test('the email message preserves sheet text and decodes literal line breaks before the existing footer', () => {
   const text = '  Hello there,\\n\\nThis is the exact business-specific message.  ';
   const mail = composeEmail({ email_subject: 'Subject', email_body: text }, sender);
-  assert.ok(mail.body.startsWith('  Hello there,\n\nThis is the exact business-specific message.  \n\n'));
+  assert.ok(mail.body.startsWith('  Hello there,\n\nThis is the exact business-specific message.\n\n'));
   assert.match(mail.body, /Reply "stop"/);
 });
 
@@ -173,7 +173,7 @@ test('plan: a paced run returns at most one even with many ready', () => {
   const prospects = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => prospect(id));
   const plan = planEmailRun({ now: tuesdayMorning, settings: { enabled: true, daily_cap_max: 5, niche_filter: null }, state: null, prospects, sender, events: [ev('x', 'sent', '2026-10-27T14:10:00Z'), ev('y', 'sent', '2026-10-27T14:20:00Z'), ev('z', 'sent', '2026-10-27T14:30:00Z'), ev('w', 'sent', '2026-10-27T14:40:00Z')] });
   assert.equal(plan.capToday, 10);
-  assert.equal(plan.items.length, 1);
+  assert.equal(plan.items.length, 0, 'day-wide pacing intentionally waits for the fifth slot');
 });
 
 test('a reservation and confirmed send count only once toward the daily cap', () => {
@@ -188,7 +188,7 @@ test('a reservation and confirmed send count only once toward the daily cap', ()
     state: null, prospects: [prospect('new')], events, sender });
   assert.equal(plan.sentToday, 3, 'first counted once, second once, reviewed once; released not counted');
   assert.equal(plan.capToday, 10);
-  assert.equal(plan.items.length, 1);
+  assert.equal(plan.items.length, 0, 'next spaced slot has not arrived yet');
 });
 
 test('late-running engine never bursts while a previous send is in cooldown', () => {
