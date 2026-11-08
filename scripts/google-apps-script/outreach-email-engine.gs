@@ -42,23 +42,29 @@ function readJson_(key, fallback) {
 }
 function writeJson_(key, value) { PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(value)); }
 
-/** Every 10 minutes. Safe to run by hand: the server decides whether anything is due. */
+/** Checks every minute, but the server allows at most one email per spaced slot. */
 function runEmailEngine() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return;
   try {
     const props = PropertiesService.getScriptProperties();
     const domain = senderDomain_();
-    // Anything a previous run could not report goes first.
+    // Never claim or send again until all previous outcomes are acknowledged.
     let results = readJson_('PENDING_RESULTS', []);
+    if (results.length) {
+      engineCall_({ action: 'report', senderDomain: domain, results: results });
+      results = []; writeJson_('PENDING_RESULTS', []);
+    }
     const plan = engineCall_({
       action: 'plan', senderName: props.getProperty('SENDER_NAME') || '',
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
-    plan.items.forEach(function (item, i) {
-      if (i > 0) Utilities.sleep(2000 + Math.floor(Math.random() * 3000));
-      results.push(sendOne_(item, props.getProperty('SENDER_NAME')));
-    });
+    // One email per run. No automatic Gmail Sent reconciliation or resends.
+    if (plan.items.length > 1) throw new Error('Unsafe plan: multiple sends in one run.');
+    if (plan.items.length) {
+      results.push(sendOne_(plan.items[0], props.getProperty('SENDER_NAME')));
+      writeJson_('PENDING_RESULTS', results.slice(-100));
+    }
     results = results.concat(scanInbox_(plan.watch || []));
     if (results.length) {
       try { engineCall_({ action: 'report', senderDomain: domain, results: results }); results = []; }
@@ -71,10 +77,10 @@ function runEmailEngine() {
 
 function sendOne_(item, name) {
   try {
-    // Never email someone this account has already written to.
-    if (GmailApp.search('in:sent to:' + item.to, 0, 1).length) return { prospect_id: item.prospect_id, kind: 'sent' };
-    GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });
-    return { prospect_id: item.prospect_id, kind: 'sent' };
+    // Plain text only, no htmlBody or tracking pixel. The server owns the footer.
+    const body = String(item.body || '').replace(/\\n/g, '\n');
+    GmailApp.sendEmail(item.to, item.subject, body, { name: name || undefined });
+    return { prospect_id: item.prospect_id, kind: 'sent', sent_at: new Date().toISOString() };
   } catch (e) {
     return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) };
   }
@@ -145,6 +151,6 @@ function installEngineTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (['runEmailEngine', 'runQuestReminders'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('runEmailEngine').timeBased().everyMinutes(10).create();
+  ScriptApp.newTrigger('runEmailEngine').timeBased().everyMinutes(1).create();
   ScriptApp.newTrigger('runQuestReminders').timeBased().everyHours(1).create();
 }
