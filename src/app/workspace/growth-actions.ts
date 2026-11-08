@@ -14,7 +14,7 @@ export type GrowthData = {
   /** null when the Daily 10 tables have not been installed yet. */
   dm: { goal: number; log: DmLogEntry[] } | null;
   /** null when the email engine tables have not been installed yet. */
-  email: { settings: EngineSettings; state: EngineState | null; events: EmailEvent[] } | null;
+  email: { settings: EngineSettings; state: EngineState | null; events: EmailEvent[]; followupsConfigured?: boolean } | null;
   lastSync: { status: string; finished_at: string } | null;
   fetchedAt: string;
 };
@@ -27,18 +27,24 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
   try {
     const { client, user, member } = await requireMember(org);
     const since = new Date(Date.now() - 62 * 86_400_000);
-    const [prospects, members, goal, dmLog, settings, state, events, sync] = await Promise.all([
+    const [prospects, members, goal, dmLog, settingsRaw, state, events, sync] = await Promise.all([
       client.from('oj_outreach_prospects').select('*', { count: 'exact' }).eq('organization_id', org).order('date_added', { ascending: false, nullsFirst: false }).order('business_name').limit(1000),
       client.from('oj_memberships').select('user_id,display_name,role').eq('organization_id', org),
       client.from('oj_growth_settings').select('dm_daily_goal').eq('organization_id', org).maybeSingle(),
       client.from('oj_outreach_dm_log').select('id,actor_id,prospect_id,channel,work_day,undone_at,created_at').eq('organization_id', org)
         .gte('work_day', since.toISOString().slice(0, 10)).order('created_at', { ascending: false }).limit(5000),
-      client.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter').eq('organization_id', org).maybeSingle(),
+      client.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter,followups_enabled').eq('organization_id', org).maybeSingle(),
       client.from('oj_email_engine_state').select('last_heartbeat_at,state,detail,warmup_started_on,sender_domain').eq('organization_id', org).maybeSingle(),
       client.from('oj_email_events').select('prospect_id,kind,event_at,detail').eq('organization_id', org).gte('event_at', since.toISOString()).order('event_at', { ascending: false }).limit(5000),
       client.from('oj_outreach_sync_runs').select('status,finished_at').eq('organization_id', org).order('started_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     if (prospects.error) return { ok: false, reason: missing(prospects.error) ? 'no-prospects' : 'failed' };
+    let settings = settingsRaw;
+    let followupsConfigured = true;
+    if (settings.error?.code === '42703') {
+      settings = await client.from('oj_email_engine_settings').select('enabled,daily_cap_max,niche_filter').eq('organization_id', org).maybeSingle();
+      followupsConfigured = false;
+    }
     const people = (members.data ?? []).map((m: { user_id: string; display_name: string; role: string }) => ({ userId: m.user_id, name: m.display_name, partner: partnerOf(m.display_name), role: m.role }));
     const dmInstalled = !dmLog.error && !goal.error;
     const emailInstalled = !settings.error && !state.error && !events.error;
@@ -50,7 +56,7 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
         members: people.filter(p => p.role === 'owner' || p.role === 'member').map(({ userId, name, partner }) => ({ userId, name, partner })),
         prospects: (prospects.data ?? []) as OutreachProspect[], prospectTotal: prospects.count ?? 0,
         dm: dmInstalled ? { goal: (goal.data as { dm_daily_goal?: number } | null)?.dm_daily_goal ?? DEFAULT_DM_GOAL, log: (dmLog.data ?? []) as DmLogEntry[] } : null,
-        email: emailInstalled ? { settings: (settings.data as EngineSettings | null) ?? { ...defaultEngineSettings }, state: (state.data as EngineState | null) ?? null, events: (events.data ?? []) as EmailEvent[] } : null,
+        email: emailInstalled ? { settings: { ...((settings.data as EngineSettings | null) ?? defaultEngineSettings), followups_enabled: followupsConfigured && ((settings.data as EngineSettings | null)?.followups_enabled ?? true) }, followupsConfigured, state: (state.data as EngineState | null) ?? null, events: (events.data ?? []) as EmailEvent[] } : null,
         lastSync: (sync.data as { status: string; finished_at: string } | null) ?? null,
         fetchedAt: new Date().toISOString(),
       },
@@ -86,4 +92,15 @@ export async function setEmailEngine(org: string, input: { enabled: boolean; dai
   const niche = input.niche.trim().slice(0, 80);
   const { error } = await client.rpc('oj_set_email_engine', { p_organization_id: org, p_enabled: input.enabled, p_daily_cap_max: input.dailyCapMax, p_niche_filter: niche || null });
   if (error) throw new Error(missing(error) ? 'The email engine is not installed yet. A founder needs to apply the email engine database update.' : 'Could not save the engine settings.');
+}
+
+/** Requires the follow-up migration. Missing SQL leaves this toggle safely off. */
+export async function setFollowupsEnabled(org: string, enabled: boolean) {
+  if (typeof enabled !== 'boolean') throw new Error('Choose on or off.');
+  const { client } = await requireMember(org, true);
+  const { error } = await client.rpc('oj_set_followups_enabled', { p_org: org, p_enabled: enabled });
+  if (error) {
+    console.error('oj_set_followups_enabled rejected change', { code: error.code, message: error.message });
+    throw new Error(missing(error) ? 'Follow-ups are not installed. Have Oscar apply the reviewed follow-ups SQL.' : 'Could not save follow-ups.');
+  }
 }
