@@ -1,6 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { parseOutreachRows } from '../../src/lib/outreach-import';
+import { sheetSparkCounts } from '../../src/lib/spark-feed';
+import { workDay } from '../../src/lib/task-workflows';
 
 export const MAX_BODY_BYTES = 2_000_000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_OJ_SUPABASE_URL || 'https://vgckpcktsfuithqggknd.supabase.co';
@@ -66,6 +68,10 @@ export async function handler(event: Event): Promise<Result> {
       const { error } = await db.from('oj_outreach_prospects').upsert(records, { onConflict: 'organization_id,source_key', ignoreDuplicates: false });
       if (error) throw new Error('Could not save the imported outreach rows.');
     }
+    // A missing snapshot migration must not destroy an otherwise valid sheet import.
+    const spark = sheetSparkCounts(rows as string[][], workDay(new Date())).map(row => ({ ...row, organization_id: organizationId, updated_at: now }));
+    const { error: sparkError } = await db.from('oj_outreach_spark_snapshots').upsert(spark, { onConflict: 'organization_id,snapshot_day,sender,channel' });
+    if (sparkError) console.error('Spark snapshots unavailable (run the reviewed SQL):', { code: sparkError.code, message: sparkError.message });
     const rowsSeen = result.prospects.length + result.skippedRows.length + result.duplicateRows.length;
     const { error: finishError } = await db.from('oj_outreach_sync_runs').update({
       status: result.skippedRows.length || result.duplicateRows.length ? 'partial' : 'success',

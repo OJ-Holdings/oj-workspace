@@ -56,7 +56,10 @@ export function parseOutreachRows(rows: string[][]) {
     const businessName = cell(row, columns.business_name);
     if (!businessName) { if (row.some(v => v.trim())) skipped.push(i + 1); continue; }
     const statusRaw = cell(row, columns.source_status);
-    const sourceStatus = (statusRaw || 'Not Sent') as OutreachStatus;
+    // Sheet labels may be richer than the workspace's canonical outreach statuses.
+    // Importing a stale source_status NEVER clears an existing outreach_status override.
+    const sheetAliases: Record<string, OutreachStatus> = { Sent: 'DMed', Skipped: 'Dead', 'Followed up': 'Emailed' };
+    const sourceStatus = (sheetAliases[statusRaw] || statusRaw || 'Not Sent') as OutreachStatus;
     if (!statusSet.has(sourceStatus)) throw new Error(`Row ${i + 1} has an unknown Outreach Status: "${statusRaw}".`);
     const sentRaw = cell(row, columns.sent_by);
     const websiteUrl = clean(cell(row, columns.website_url), 1000);
