@@ -155,7 +155,7 @@ export function bounceBrake(events: EmailEvent[], now: Date) {
   return { sent, bounced, braked: bounced >= 4 && bounced / Math.max(sent, 1) >= 0.08 };
 }
 
-export type PlanItem = { prospect_id: string; to: string; subject: string; body: string; kind?: 'new' | 'followup' };
+export type PlanItem = { prospect_id: string; to: string; subject: string; body: string; kind?: 'new' | 'followup'; gmailMessageId?: string };
 export type Plan = {
   state: EngineStateName; detail: string; items: PlanItem[]; capToday: number; sentToday: number;
   warmupStartedOn: string | null; watch: { prospect_id: string; email: string }[];
@@ -202,6 +202,9 @@ export function planEmailRun(input: {
     const readyFollowups: PlanItem[] = [];
     for (const sent of events.filter(e => e.kind === 'sent').sort((a,b) => a.event_at.localeCompare(b.event_at))) {
       if (doneIds.has(sent.prospect_id)) continue;
+      // Existing legacy sends without a stored Gmail ID stay out of auto-follow-ups.
+      const gmailMessageId = /^gmail:([a-z0-9]+)$/i.exec(sent.detail ?? '')?.[1];
+      if (!gmailMessageId) continue;
       const p = byId.get(sent.prospect_id);
       if (!p || !validEmail(p.email) || !matchesNiche(p, settings.niche_filter)) continue;
       if (input.senderFilter && p.sent_by && p.sent_by !== input.senderFilter) continue;
@@ -215,7 +218,7 @@ export function planEmailRun(input: {
       if (today < dueDay) continue;
       const first = p.decision_maker?.trim().split(/\s+/)[0];
       const name = first && /^[\p{L}'-]{2,40}$/u.test(first) ? first : 'there';
-      readyFollowups.push({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), kind: 'followup',
+      readyFollowups.push({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), kind: 'followup', gmailMessageId,
         subject: p.email_subject || 'Following up',
         body: `Hey ${name}, bumping this in case it got buried. Would love to set up a time to talk.\n\nNot a fit? Reply "stop" and I will not email you again.\n\n${input.sender!.name}\n${input.sender!.company}\n${input.sender!.postalAddress}` });
       if (readyFollowups.length >= room) break;

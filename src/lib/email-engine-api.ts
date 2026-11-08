@@ -63,7 +63,7 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
     const detail = typeof r?.detail === 'string' ? r.detail.replace(/\s+/g, ' ').slice(0, 200) : '';
     if (!id) { ignored++; continue; }
     switch (r.kind) {
-      case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: '', event_at: at }); break;
+      case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: ref ? `gmail:${ref}` : '', event_at: at }); break;
       case 'followup_sent': events.push({ prospect_id: id, kind: 'followup_sent', dedupe_key: `followup:${id}`, detail: '', event_at: at }); break;
       case 'failed': events.push({ prospect_id: id, kind: 'failed', dedupe_key: `failed:${id}:${ref || input.now.getTime()}`, detail, event_at: at }); break;
       case 'bounce': events.push({ prospect_id: id, kind: 'bounce', dedupe_key: `bounce:${id}`, detail: '', event_at: at }); break;
