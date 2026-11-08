@@ -1,17 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Mail, Pause, Play, ShieldCheck } from 'lucide-react';
-import { setEmailEngine } from '@/app/workspace/growth-actions';
+import { setEmailEngine, listEmailReservationReviews, decideEmailReservation, type EmailReservationReview } from '@/app/workspace/growth-actions';
 import { updateOutreachStatus } from '@/app/workspace/outreach-actions';
 import { ago, emailStats, engineStatus, nextUp, replyInbox, replyToneLabel, sentMail, dailyCap, type EmailEvent, type EngineSettings } from '@/lib/email-engine';
 import { todayKey } from '@/lib/dm-quests';
 import { Gate, InstallNote, Pill, Stat } from './parts';
 import type { GrowthStore } from './useGrowth';
 
-const kindLabel: Record<EmailEvent['kind'], string> = { reserved: 'Queued', sent: 'Sent', failed: 'Failed', reply: 'Replied', bounce: 'Bounced', stop: 'Asked to stop' };
+const kindLabel: Record<EmailEvent['kind'], string> = { reserved: 'Queued', needs_review: 'Needs manual review', released: 'Released after review', sent: 'Sent', failed: 'Failed', reply: 'Replied', bounce: 'Bounced', stop: 'Asked to stop' };
 
 /** The automated email outreach: honest status, today's limits, results, and setup steps until it is running. */
 export function EmailEngine({ g, base }: { g: GrowthStore; base: string }) {
@@ -25,10 +25,12 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
   const status = engineStatus({ settings, state, now: g.now });
   const stats = emailStats(events, data.prospects, g.now, settings);
   const today = todayKey(g.now);
-  const cap = dailyCap(settings.daily_cap_max);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
-  const [capDraft, setCapDraft] = useState(String(settings.daily_cap_max));
+  const [capDraft, setCapDraft] = useState(String(dailyCap(settings.daily_cap_max)));
+  const [savedCap, setSavedCap] = useState<number | null>(null);
+  const cap = savedCap ?? dailyCap(settings.daily_cap_max);
+  useEffect(() => { if (!saving) { setCapDraft(String(dailyCap(settings.daily_cap_max))); setSavedCap(null); } }, [settings.daily_cap_max]);
   const names = new Map(data.prospects.map(p => [p.id, p.business_name]));
   const maxBar = Math.max(...stats.series.map(s => s.count), 1);
   const recent = events.filter(e => e.kind !== 'reserved').slice(0, 20);
@@ -37,6 +39,21 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
   const sentList = sentMail(events, data.prospects, 15);
   const upcoming = nextUp(data.prospects, events, settings, 5);
   const [skipping, setSkipping] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<EmailReservationReview[]>([]);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState<string | null>(null);
+  useEffect(() => {
+    if (!blocked) return;
+    let alive = true;
+    setReviewLoading(true);
+    listEmailReservationReviews(g.org).then(rows => {
+      if (alive) { setReviews(rows); setReviewError(''); }
+    }).catch(e => {
+      if (alive) setReviewError(e instanceof Error ? e.message : 'Could not load reservations.');
+    }).finally(() => { if (alive) setReviewLoading(false); });
+    return () => { alive = false; };
+  }, [g.org, blocked]);
   const when = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   /** A veto, not an approval: the engine already follows its rules. Skipping marks the prospect Dead so it is never emailed. */
@@ -52,10 +69,23 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
     if (g.mode === 'preview') { setNotice('Settings cannot be changed in the preview.'); return; }
     setSaving(true); setNotice('');
     try {
-      await setEmailEngine(g.org, { enabled: next.enabled ?? settings.enabled, dailyCapMax: next.dailyCapMax ?? settings.daily_cap_max, niche: next.niche ?? settings.niche_filter ?? '' });
-      g.reload(); setNotice('Saved. The sender picks this up on its next check, within 10 minutes.');
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not save.'); }
+      const saved = await setEmailEngine(g.org, { enabled: next.enabled ?? settings.enabled, dailyCapMax: next.dailyCapMax ?? cap, niche: next.niche ?? settings.niche_filter ?? '' });
+      setSavedCap(saved.daily_cap_max);
+      setCapDraft(String(saved.daily_cap_max));
+      g.reload(); setNotice('Saved. The sender picks this up on its next check.');
+    } catch (e) { setCapDraft(String(cap)); setNotice(e instanceof Error ? e.message : 'Could not save.'); }
     finally { setSaving(false); }
+  }
+  async function decideReview(id: string, decision: 'sent' | 'release') {
+    if (!blocked || reviewSaving) return;
+    setReviewSaving(id); setReviewError('');
+    try {
+      await decideEmailReservation(g.org, id, decision);
+      setReviews(rows => rows.filter(r => r.prospect_id !== id));
+      setNotice(decision === 'sent' ? 'Confirmed as sent. This recipient stays out of the queue.' : 'Released for a future paced send.');
+      g.reload();
+    } catch (e) { setReviewError(e instanceof Error ? e.message : 'Could not change this reservation.'); }
+    finally { setReviewSaving(null); }
   }
   const niche: EngineSettings['niche_filter'] = settings.niche_filter;
 
@@ -73,12 +103,29 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
         <button className={settings.enabled ? 'secondary' : 'primary'} disabled={saving || !blocked} onClick={() => save({ enabled: !settings.enabled })}>
           {settings.enabled ? <><Pause size={15} aria-hidden="true" />Pause sending</> : <><Play size={15} aria-hidden="true" />Resume sending</>}</button>
         <label>Daily ceiling<select value={capDraft} disabled={saving || !blocked} onChange={e => { setCapDraft(e.target.value); void save({ dailyCapMax: Number(e.target.value) }); }}>
-          {[50, 100, 250, 500, 1000, 1500].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
+          {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n} a day</option>)}</select></label>
         <label>Who to email<select value={niche ?? ''} disabled={saving || !blocked} onChange={e => void save({ niche: e.target.value })}>
           <option value="">Everyone with a good draft</option><option value="exterior">Exterior cleaning first and only</option></select></label>
       </div>
     </section>
-    <p role="status" className="gx-notice">{notice}</p>
+    <p role="status" aria-live="polite" className="gx-notice">{notice}</p>
+    {settings.daily_cap_max > 50 && <p className="outreach-error" role="status">A legacy ceiling above 50 is saved. Pick a new ceiling after the reviewed database update is applied.</p>}
+
+    <section className="panel" aria-labelledby="gx-email-reviews-title">
+      <header className="panel-head"><h2 id="gx-email-reviews-title">Needs manual review</h2><span className="quiet">{reviews.length} unconfirmed</span></header>
+      <p className="quiet">These messages were reserved but delivery was not confirmed. No automatic retry or Gmail Sent search is performed. Oscar must check Gmail Sent for each exact recipient before taking action.</p>
+      {reviewLoading && <p role="status">Checking unresolved reservations...</p>}
+      {reviewError && <p className="outreach-error" role="alert">{reviewError}</p>}
+      {!blocked && <p className="quiet">Sign in with editing access to review unresolved emails.</p>}
+      {!reviewLoading && !reviewError && reviews.length === 0 && <p className="quiet">No unresolved email reservations.</p>}
+      {reviews.length > 0 && <div className="tablewrap"><table className="table"><thead><tr><th>Business</th><th>Recipient</th><th>Reserved (Central)</th><th>Review action</th></tr></thead>
+        <tbody>{reviews.map(r => <tr key={r.prospect_id}><td>{r.business_name}</td><td>{r.recipient}</td><td>{when(r.reserved_at)}</td><td>
+          <div className="gx-actions">
+            <button className="secondary" disabled={!blocked || Boolean(reviewSaving)} onClick={() => void decideReview(r.prospect_id, 'sent')}>Mark sent</button>
+            <button className="secondary" disabled={!blocked || Boolean(reviewSaving)} onClick={() => void decideReview(r.prospect_id, 'release')}>Release</button>
+          </div>
+        </td></tr>)}</tbody></table></div>}
+    </section>
 
     <div className="gx-stats">
       <Stat label="Sent today" value={stats.sentToday} note={`limit ${cap}`} />
@@ -141,12 +188,12 @@ function Engine({ g, base, data, email }: { g: GrowthStore; base: string; data: 
         <section className="panel" aria-labelledby="gx-rules-title">
           <header className="panel-head"><h2 id="gx-rules-title"><ShieldCheck size={16} aria-hidden="true" /> What it does by itself</h2></header>
           <ul className="gx-rules">
-            <li>Sends Monday to Saturday, 9:00 AM to 4:30 PM Central, a few at a time with gaps.</li>
+            <li>Sends one email per spaced slot, Monday to Saturday, 9:00 AM to 4:30 PM Central.</li>
             <li>Skips any draft with placeholders, spam phrases, shouting or broken links.</li>
             <li>Adds your name, company, mailing address and a one-word opt-out to every email.</li>
             <li>Anyone who replies "stop" is marked Not Interested and never emailed again.</li>
-            <li>Stops itself if bounces climb past 8%, to protect your sender reputation.</li>
-            <li>Never emails someone this Gmail account has already written to.</li>
+            <li>Stops itself above 3% bounces over seven days or after 3 bounces in one day, to protect your sender reputation.</li>
+            <li>Never automatically retries unconfirmed reservations. Check Gmail Sent and review each one manually.</li>
           </ul>
         </section>
       </aside>
