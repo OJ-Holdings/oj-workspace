@@ -18,7 +18,12 @@ export default async function WorkspacePage({ params }: { params: Promise<{ slug
   if (!user) redirect('/login');
   const { data: membership, error } = await client.from('oj_memberships').select('organization_id').eq('user_id', user.id).order('created_at').limit(1).maybeSingle();
   if (error) return <main className="entry"><div className="entry-card"><h1>Workspace unavailable</h1><p>Your workspace connection needs attention. No sample business data has been substituted.</p><Link href="/login">Return to sign in</Link></div></main>;
-  if (!membership) return <main className="entry"><div className="entry-card"><h1>Your account is ready.</h1><p>An OJ administrator needs to grant your workspace membership before business records are available.</p><Link href="/login">Return to sign in</Link></div></main>;
+  if (!membership) {
+    const { data: employee, error: employeeError } = await client.rpc('oj_employee_context');
+    if (employeeError) return <main className="entry"><div className="entry-card"><h1>Account access unavailable</h1><p>We could not check your employee access. Please try again or ask the OJ owner for help.</p><Link href="/login">Return to sign in</Link></div></main>;
+    if (Array.isArray(employee) && employee.length > 0) redirect('/employee');
+    return <main className="entry"><div className="entry-card"><h1>Your account is ready.</h1><p>An OJ administrator needs to grant your workspace membership before business records are available.</p><Link href="/login">Return to sign in</Link></div></main>;
+  }
   // Only whether each key is present reaches the browser, never the key itself.
   const connections = { shopify: Boolean(process.env.SHOPIFY_CLIENT_ID && process.env.SHOPIFY_CLIENT_SECRET && process.env.SHOPIFY_STORE_DOMAIN), ghl: Boolean(process.env.GHL_ACCESS_TOKEN && process.env.GHL_LOCATION_ID) };
   const servedRelease = resolveServedRelease({ explicit: process.env.OJ_WORKSPACE_RELEASE_SHA, netlify: process.env.COMMIT_REF, vercel: process.env.VERCEL_GIT_COMMIT_SHA });

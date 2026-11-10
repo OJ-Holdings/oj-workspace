@@ -69,7 +69,16 @@ test('employee portal isolates access, invitations, closeouts and commission rec
     await as(edy);
     await db.query(`select public.oj_accept_employee_invitation($1,$2)`,[token(1),'Edy']);
     assert.equal((await db.query('select * from public.oj_memberships')).rows.length,0);
+    assert.deepEqual((await db.query('select * from public.oj_employee_context()')).rows, [{ display_name: 'Edy' }]);
     await assert.rejects(() => db.query(`select public.oj_accept_employee_invitation($1,$2)`,[token(1),'Edy']));
+    await as(viewer);
+    assert.equal((await db.query('select * from public.oj_employee_context()')).rows.length, 0);
+    await db.exec('reset role');
+    await db.query('update oj_private.employees set active=false where user_id=$1', [edy]);
+    await as(edy);
+    assert.equal((await db.query('select * from public.oj_employee_context()')).rows.length, 0);
+    await db.exec('reset role');
+    await db.query('update oj_private.employees set active=true where user_id=$1', [edy]);
   });
 
   await t.test('owner assigns one job with an explicit rate and private instructions', async () => {
