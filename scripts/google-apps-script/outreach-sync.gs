@@ -35,3 +35,43 @@ function installDailyOutreachTrigger() {
   });
   ScriptApp.newTrigger('syncOutreachSheet').timeBased().everyDays(1).atHour(22).create();
 }
+
+/** Supabase is authoritative. Only edit existing Outreach cells F:G, never other columns. */
+function writeOutreachStatusesToSheet() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try {
+    const token = PropertiesService.getScriptProperties().getProperty('OUTREACH_SYNC_TOKEN');
+    if (!token) throw new Error('OUTREACH_SYNC_TOKEN must be configured.');
+    const sheet = SpreadsheetApp.openById(OUTREACH_SPREADSHEET_ID).getSheetByName('Outreach');
+    if (!sheet) throw new Error('Outreach tab not found.');
+    const header = sheet.getRange(1, 1, 1, 18).getDisplayValues()[0].map(x => x.trim().toLowerCase());
+    if (header[5] !== 'status' || header[6] !== 'notes' || header[7] !== 'business name')
+      throw new Error('Sheet columns changed: refusing any edits.');
+    const endpoint = OUTREACH_ENDPOINT.replace('/api/daily-outreach-sync','/api/outreach-sheet-status');
+    const response = UrlFetchApp.fetch(endpoint, { method: 'get', headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) throw new Error('Sheet status endpoint unavailable: HTTP ' + response.getResponseCode());
+    const body = JSON.parse(response.getContentText());
+    if (!body || !Array.isArray(body.rows) || body.rows.length > 1000) throw new Error('Unexpected writeback payload.');
+    let changed = 0;
+    body.rows.forEach(function (r) {
+      if (!Number.isInteger(r.row) || r.row < 2 || r.row > sheet.getLastRow()) return;
+      if (!['Sent','Skipped','Emailed','Followed up'].includes(r.status) || typeof r.notes !== 'string' || r.notes.length > 300) return;
+      // The row is unchanged only if the business still matches. Never write to a shifted row.
+      if (sheet.getRange(r.row, 8).getDisplayValue().trim().toLowerCase() !== String(r.business).trim().toLowerCase()) return;
+      const range = sheet.getRange(r.row, 6, 1, 2);
+      const existing = range.getDisplayValues()[0];
+      if (existing[0] === r.status && existing[1] === r.notes) return;
+      range.setValues([[r.status, r.notes]]);
+      changed++;
+    });
+    console.log('Supabase status writeback, F:G only. Updated rows: ' + changed);
+  } finally { lock.releaseLock(); }
+}
+
+function installOutreachStatusWritebackTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'writeOutreachStatusesToSheet') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('writeOutreachStatusesToSheet').timeBased().everyMinutes(5).create();
+}

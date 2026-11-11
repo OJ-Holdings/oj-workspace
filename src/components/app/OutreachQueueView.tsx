@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Copy, RefreshCw } from 'lucide-react';
-import { loadOutreach, loadOutreachHistory, updateOutreachStatus } from '@/app/workspace/outreach-actions';
+import { loadOutreach, loadOutreachHistory, loadLeadQuality, loadSparkFeed, updateOutreachStatus } from '@/app/workspace/outreach-actions';
+import type { leadQualitySummary } from '@/lib/outreach-quality';
 import { contactsMarkedToday, effectiveOutreachStatus, outreachNextStep, selectProspects, outreachStatuses, safeOutreachUrl, type OutreachActivity, type OutreachProspect, type OutreachStatus, type OutreachQueue } from '@/lib/outreach';
 import { RecordPanel } from './RecordPanel';
 import { useViewParams } from './useViewParams';
@@ -28,6 +29,10 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
   const [revision, setRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [leadQuality, setLeadQuality] = useState<ReturnType<typeof leadQualitySummary> | null>(null);
+  const [qualityError, setQualityError] = useState('');
+  const [spark, setSpark] = useState<Awaited<ReturnType<typeof loadSparkFeed>> | null>(null);
+  const [sparkError, setSparkError] = useState('');
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => { setNotice(''); }, [selectedId]);
 
@@ -48,6 +53,16 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [organizationId, mode, revision, saving]);
+
+  useEffect(() => {
+    if (mode !== 'live') return;
+    let active = true;
+    loadSparkFeed(organizationId).then(v=>{if(active){setSpark(v);setSparkError('');}})
+      .catch(e=>{if(active)setSparkError(e instanceof Error?e.message:'Spark feed unavailable.');});
+    loadLeadQuality(organizationId).then(v => { if (active) { setLeadQuality(v); setQualityError(''); } })
+      .catch(e => { if (active) setQualityError(e instanceof Error ? e.message : 'Lead quality unavailable.'); });
+    return () => { active = false; };
+  }, [organizationId, mode, revision]);
 
   const filtered = useMemo(() => selectProspects(prospects, query, owner, status, queue), [prospects, query, owner, status, queue]);
   const selected = prospects.find(p => p.id === selectedId);
@@ -82,6 +97,30 @@ export function OutreachQueueView({ organizationId, mode, readOnly, displayName,
         <div><span>Contact marked today</span><strong>{activity && now ? `${activityLimited ? '≥ ' : ''}${contactsMarkedToday(activity, now)}` : '—'}</strong><small>{activity ? 'Unique prospects in manual status history · Central time' : 'Status history unavailable'}</small></div>
       </div>
       <p className="quiet">Contact markings are not verified message delivery. Import dates do not count as activity.</p>
+      <section className="panel" aria-labelledby="spark-feed-title">
+        <header className="panel-head"><h2 id="spark-feed-title">Spark feed</h2><span className="quiet">Today vs daily research targets</span></header>
+        {sparkError ? <p className="outreach-error" role="status">{sparkError}</p> : !spark ? <p className="quiet">Loading daily snapshots...</p> : <>
+          <div className="outreach-summary">{spark.deltas.map(v => <div key={v.sender + v.channel}>
+            <span>{v.sender} / {v.channel === 'dm' ? 'DM' : 'Email'}</span>
+            <strong style={v.lateAndEmpty ? {color:'#e78e8e'} : undefined}>{v.newToday === null ? 'Not measured yet' : `${v.newToday} / ${v.target}`}</strong>
+            <small>{v.rows ?? '?'} rows currently in sheet {v.lateAndEmpty ? '· No new rows after 10 AM' : ''}</small>
+          </div>)}</div>
+          <p>DMs ready: Jacob {spark.dm.Jacob}, Oscar {spark.dm.Oscar}. Emails ready: {spark.emailReady}.</p>
+          <p className="quiet">Oscar: additional 20-email research batch at 10 PM Central Monday to Saturday. Counts are calculated from snapshots, not a date-added column.</p>
+        </>}
+      </section>
+      <section className="panel" aria-labelledby="lead-quality-title">
+        <header className="panel-head"><h2 id="lead-quality-title">Lead quality</h2><span className="quiet">Last 7 days</span></header>
+        {qualityError ? <p className="outreach-error" role="status">{qualityError}</p> : !leadQuality ? <p className="quiet">Loading quality metrics...</p> : <>
+          <p><strong>{leadQuality.rate === null ? 'No activity' : `${Math.round(leadQuality.rate * 100)}% skipped`}</strong> of {leadQuality.sends} sends and {leadQuality.skipped} skips</p>
+          <div className="outreach-summary">{Object.entries(leadQuality.byReason).map(([reason, count]) =>
+            <div key={reason}><span>{reason}</span><strong>{count}</strong></div>)}</div>
+          <h3>Five most recent skips</h3>
+          {leadQuality.recent.length ? <ul className="gx-skips">{leadQuality.recent.map(s =>
+            <li key={s.id}><span><b>{s.business_name}</b> (row {s.source_row}, {s.channel})<small> {s.reason}{s.note ? ': ' + s.note : ''}</small></span><small>{new Date(s.skipped_at).toLocaleString()}</small></li>)}</ul>
+          : <p className="quiet">No skips recorded this week.</p>}
+        </>}
+      </section>
       <div className="queue-tabs" role="group" aria-label="Prospect queues">{queues.map(([id, label]) => <button key={id} aria-pressed={queue === id} onClick={() => update({ view: id === 'all' ? '' : id, status: '' })}>{label}</button>)}{mine && <button aria-pressed={owner === mine} onClick={() => update({ owner: owner === mine ? '' : mine })}>Mine</button>}</div>
       <div className="outreach-toolbar">
         <label className="outreach-search">Search prospects<input type="search" maxLength={200} value={query} placeholder="Business, service, person…" onChange={e => update({ q: e.target.value })} /></label>

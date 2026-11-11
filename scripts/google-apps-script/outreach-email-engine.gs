@@ -42,7 +42,7 @@ function readJson_(key, fallback) {
 }
 function writeJson_(key, value) { PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(value)); }
 
-/** Every 10 minutes. Safe to run by hand: the server decides whether anything is due. */
+/** PR B is a draft dependent on outreach-core and its one-send planner. */
 function runEmailEngine() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return;
@@ -55,10 +55,10 @@ function runEmailEngine() {
       action: 'plan', senderName: props.getProperty('SENDER_NAME') || '',
       senderFilter: props.getProperty('SENDER_FILTER') || undefined, senderDomain: domain,
     });
-    plan.items.forEach(function (item, i) {
-      if (i > 0) Utilities.sleep(2000 + Math.floor(Math.random() * 3000));
-      results.push(sendOne_(item, props.getProperty('SENDER_NAME')));
-    });
+    // PR B requires PR A's one-at-a-time planner. Never send a legacy burst.
+    if (plan.items.length > 1) throw new Error('Outreach core one-at-a-time planner required before enabling follow-ups.');
+    if (plan.items.length) results.push(plan.items[0].kind === 'followup'
+      ? sendFollowup_(plan.items[0]) : sendOne_(plan.items[0]));
     results = results.concat(scanInbox_(plan.watch || []));
     if (results.length) {
       try { engineCall_({ action: 'report', senderDomain: domain, results: results }); results = []; }
@@ -69,13 +69,54 @@ function runEmailEngine() {
   } finally { lock.releaseLock(); }
 }
 
-function sendOne_(item, name) {
+
+/**
+ * Advanced Gmail API service must be enabled for both new mail and follow-ups.
+ * Each initial send returns its Gmail message ID, saved in the sent event for
+ * exact-thread follow-ups without searching Gmail Sent.
+ */
+function sendOne_(item) {
   try {
-    // Never email someone this account has already written to.
-    if (GmailApp.search('in:sent to:' + item.to, 0, 1).length) return { prospect_id: item.prospect_id, kind: 'sent' };
-    GmailApp.sendEmail(item.to, item.subject, item.body, { name: name || undefined });
-    return { prospect_id: item.prospect_id, kind: 'sent' };
+    if (!/^[^\\s@,]+@[^\\s@,]+\\.[^\\s@,]+$/.test(item.to)) throw new Error('Invalid recipient');
+    const plain = String(item.body || '').replace(/\\n/g, '\n');
+    const raw = ['To: ' + item.to, 'Subject: ' + item.subject, 'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=UTF-8', '', plain].join('\r\n');
+    const receipt = Gmail.Users.Messages.send({ raw: Utilities.base64EncodeWebSafe(raw, Utilities.Charset.UTF_8) }, 'me');
+    if (!receipt || !receipt.id) throw new Error('Gmail did not return a send confirmation. Do not retry automatically.');
+    return { prospect_id: item.prospect_id, kind: 'sent', ref: receipt.id, sent_at: new Date().toISOString() };
   } catch (e) {
+    console.error('New Gmail send held: ' + e);
+    return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) };
+  }
+}
+
+/** Follow up only when the exact saved original Gmail ID exists and nobody replied. */
+function sendFollowup_(item) {
+  try {
+    if (!item.gmailMessageId || !/^[a-z0-9]+$/i.test(item.gmailMessageId))
+      throw new Error('Original Gmail message ID is unavailable. Do not follow up automatically.');
+    const original = GmailApp.getMessageById(item.gmailMessageId);
+    if (!original) throw new Error('Original Gmail message not found.');
+    const thread = original.getThread();
+    const messages = thread.getMessages();
+    if (messages.some(function (m) {
+      return m.getFrom().toLowerCase().indexOf(item.to.toLowerCase()) >= 0;
+    })) {
+      return { prospect_id: item.prospect_id, kind: 'reply', ref: thread.getId(), text: 'Replied in the original Gmail conversation' };
+    }
+    const messageId = original.getHeader('Message-ID');
+    if (!messageId || !/^<[^\r\n<>]+>$/.test(messageId)) throw new Error('Original Message-ID header unavailable.');
+    const subject = /^re:/i.test(item.subject) ? item.subject : 'Re: ' + item.subject;
+    const raw = ['To: ' + item.to, 'Subject: ' + subject, 'In-Reply-To: ' + messageId,
+      'References: ' + messageId, 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8',
+      '', String(item.body || '').replace(/\\n/g, '\n')].join('\r\n');
+    const receipt = Gmail.Users.Messages.send({
+      raw: Utilities.base64EncodeWebSafe(raw, Utilities.Charset.UTF_8), threadId: thread.getId()
+    }, 'me');
+    if (!receipt || !receipt.id) throw new Error('Gmail did not confirm the threaded follow-up.');
+    return { prospect_id: item.prospect_id, kind: 'followup_sent', ref: receipt.id, sent_at: new Date().toISOString() };
+  } catch (e) {
+    console.error('Follow-up held: ' + e);
     return { prospect_id: item.prospect_id, kind: 'failed', detail: String(e.message || e).slice(0, 160) };
   }
 }
