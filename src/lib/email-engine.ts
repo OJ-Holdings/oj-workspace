@@ -7,7 +7,7 @@ import { effectiveOutreachStatus, isExteriorNiche, sheetMessage, type OutreachPr
  * decision about who gets an email, and when, is made here so it can be tested.
  */
 export const HEARTBEAT_FRESH_MINUTES = 25;
-export const BATCH_SIZE = 40;
+export const BATCH_SIZE = 1;
 export const SEND_OPEN_MINUTE = 9 * 60;
 export const SEND_CLOSE_MINUTE = 16 * 60 + 30;
 export const WATCH_LIMIT = 300;
@@ -15,9 +15,9 @@ export const WATCH_LIMIT = 300;
 export const engineStates = ['sending', 'idle', 'outside-window', 'cap-reached', 'paused', 'braked', 'blocked', 'nothing-to-send'] as const;
 export type EngineStateName = typeof engineStates[number];
 export type EngineSettings = { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
-export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 1500, niche_filter: null };
+export const defaultEngineSettings: EngineSettings = { enabled: true, daily_cap_max: 50, niche_filter: null };
 export type EngineState = { last_heartbeat_at: string; state: EngineStateName; detail: string; warmup_started_on: string | null; sender_domain: string | null };
-export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop'] as const;
+export const eventKinds = ['reserved', 'sent', 'failed', 'reply', 'bounce', 'stop', 'needs_review', 'released'] as const;
 export type EmailEventKind = typeof eventKinds[number];
 export type EmailEvent = { prospect_id: string; kind: EmailEventKind; event_at: string; detail?: string };
 export type EngineProspect = Pick<OutreachProspect, 'id' | 'business_name' | 'industry' | 'best_fit_service' | 'secondary_fit' | 'email' | 'email_subject' | 'email_body' | 'sent_by' | 'date_added' | 'source_status' | 'outreach_status'>;
@@ -37,12 +37,13 @@ export function sendWindow(now: Date): WindowState {
   if (minutes >= SEND_CLOSE_MINUTE) return { open: false, reason: 'after-hours' };
   return { open: true, reason: 'open' };
 }
-/** The most the engine will ever send in a day: Google's own limit for a Workspace account (1,500 recipients a day). The database enforces the same limit. */
-export const MAX_DAILY_CAP = 1500;
+/** One OJ Solutions mailbox: at most 50 sends per Central-time business day. */
+export const MAX_DAILY_CAP = 50;
+export const MIN_DAILY_CAP = 10;
 
 /** The day's limit is the ceiling set on the page, never above the hard maximum. There is no warm-up ramp: the engine sends as much as the ceiling allows. */
 export function dailyCap(max: number) {
-  return Math.min(Math.max(Math.floor(max), 1), MAX_DAILY_CAP);
+  return Math.min(Math.max(Math.floor(Number.isFinite(max) ? max : MIN_DAILY_CAP), MIN_DAILY_CAP), MAX_DAILY_CAP);
 }
 
 // ---- Drafts ------------------------------------------------------------------------------
@@ -63,16 +64,41 @@ export function lintEmail(subject: string | null | undefined, body: string | nul
   if (b.length < 40 || b.length > 1800) problems.push('Body must be 40 to 1,800 characters.');
   if (placeholder.test(s) || placeholder.test(b)) problems.push('Draft still contains a placeholder or markup.');
   if (spam.test(s) || spam.test(b)) problems.push('Draft contains a spam-trigger phrase.');
-  if ((b.match(/https?:\/\//gi) ?? []).length > 1) problems.push('Draft has more than one link.');
+  if (/\b30\s+days\b|\byou\s+don['’]?t\s+pay\b/i.test(s + '\n' + b)) problems.push('Draft contains a disallowed promise.');
+  const links = (b.match(/https?:\/\/[^\s<>]+/gi) ?? []).map(v => v.replace(/[.,!?;:]+$/, '').replace(/\/$/, ''));
+  if (links.length > 1 || links.some(link => link !== 'https://ojsolutions.org')) problems.push('The only permitted link is https://ojsolutions.org.');
   return { ok: problems.length === 0, problems };
 }
 
 export type Sender = { name: string; company: string; postalAddress: string };
 /** The compliance footer is added to every email: who we are, a real address, and a one-word way out. */
 export function composeEmail(p: Pick<EngineProspect, 'email_subject' | 'email_body'>, sender: Sender) {
-  const body = sheetMessage(p.email_body) ?? '';
-  const footer = `${sender.name}\n${sender.company}\n${sender.postalAddress}\n\nNot a fit? Reply "stop" and I will not email you again.`;
-  return { subject: (p.email_subject ?? '').trim(), body: `${body}\n\n${footer}` };
+  const address = sender.postalAddress.trim();
+  const raw = (sheetMessage(p.email_body) ?? '').replace(/\r\n/g, '\n');
+  const lines = raw.split('\n');
+  // Exactly one existing opt-out is preserved verbatim, without appending a second.
+  const isOptOut = (line: string) => /^(?:if this isn.t relevant,? just reply no and i won.t reach out again\.?|not a fit\? reply ["']?stop["']? and i will not email you again\.?)$/i.test(line.trim());
+  let optOut = '';
+  const content = lines.filter(line => {
+    if (!isOptOut(line)) return true;
+    if (!optOut) optOut = line.trim();
+    return false;
+  });
+  while (content.length && !content.at(-1)?.trim()) content.pop();
+  // Remove an address already at the end, so one mailing address remains.
+  while (address && content.at(-1)?.trim() === address) {
+    content.pop();
+    while (content.length && !content.at(-1)?.trim()) content.pop();
+  }
+  let signoff = `${sender.name}\n${sender.company}`;
+  if (content.length >= 2 && content.at(-2)?.trim().toLowerCase() === sender.name.toLowerCase()
+      && content.at(-1)?.trim().toLowerCase() === sender.company.toLowerCase()) {
+    signoff = `${content.at(-2)?.trim()}\n${content.at(-1)?.trim()}`;
+    content.splice(-2, 2);
+  }
+  optOut ||= 'Not a fit? Reply "stop" and I will not email you again.';
+  const message = content.join('\n').trimEnd();
+  return { subject: (p.email_subject ?? '').trim(), body: `${message}${message ? '\n\n' : ''}${optOut}\n\n${signoff}\n${address}` };
 }
 
 export type ReplyKind = 'reply' | 'stop' | 'auto';
@@ -130,7 +156,7 @@ const count = (events: EmailEvent[], id: string, kind: EmailEventKind) => events
 export type Skips = { notEmailable: number; badDraft: number; alreadyHandled: number; offNiche: number; wrongSender: number };
 export function selectSendable(prospects: EngineProspect[], events: EmailEvent[], opts: { niche?: string | null; sender?: string | null } = {}) {
   const skips: Skips = { notEmailable: 0, badDraft: 0, alreadyHandled: 0, offNiche: 0, wrongSender: 0 };
-  const blocked = new Set(events.filter(e => ['reserved', 'sent', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
+  const blocked = new Set(events.filter(e => ['reserved', 'needs_review', 'sent', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
   const ready: EngineProspect[] = [];
   for (const p of prospects) {
     const status = effectiveOutreachStatus(p);
@@ -148,11 +174,17 @@ export function selectSendable(prospects: EngineProspect[], events: EmailEvent[]
 
 /** Pause by itself when too many addresses are bouncing: damaged sender reputation is hard to repair. */
 export function bounceBrake(events: EmailEvent[], now: Date) {
-  const since = now.getTime() - 14 * 86_400_000;
+  const since = now.getTime() - 7 * 86_400_000;
   const recent = events.filter(e => Date.parse(e.event_at) >= since);
   const sent = new Set(recent.filter(e => e.kind === 'sent').map(e => e.prospect_id)).size;
-  const bounced = new Set(recent.filter(e => e.kind === 'bounce').map(e => e.prospect_id)).size;
-  return { sent, bounced, braked: bounced >= 4 && bounced / Math.max(sent, 1) >= 0.08 };
+  const bounceRows = recent.filter(e => e.kind === 'bounce');
+  const bounced = new Set(bounceRows.map(e => e.prospect_id)).size;
+  const today = workDay(now);
+  const todayBounced = new Set(bounceRows.filter(e => workDay(new Date(e.event_at)) === today).map(e => e.prospect_id)).size;
+  const rate = bounced / Math.max(sent, 1);
+  const reason = todayBounced >= 3 ? `${todayBounced} bounces today (limit: 3).`
+    : sent > 0 && rate > 0.03 ? `${(rate * 100).toFixed(1)}% bounced over the last 7 days (limit: 3%).` : '';
+  return { sent, bounced, todayBounced, rate, reason, braked: Boolean(reason) };
 }
 
 export type PlanItem = { prospect_id: string; to: string; subject: string; body: string };
@@ -167,8 +199,10 @@ export function planEmailRun(input: {
   const { now, events } = input;
   const settings = input.settings ?? defaultEngineSettings;
   const today = workDay(now);
-  const counted = events.filter(e => (e.kind === 'sent' || e.kind === 'reserved'));
-  const sentToday = counted.filter(e => workDay(new Date(e.event_at)) === today).length;
+  // A reservation and its confirmed send represent one email, never two units.
+  const counted = events.filter(e => ['sent', 'reserved', 'needs_review'].includes(e.kind)
+    && workDay(new Date(e.event_at)) === today);
+  const sentToday = new Set(counted.map(e => e.prospect_id)).size;
   const capToday = dailyCap(settings.daily_cap_max);
   const answered = new Set(events.filter(e => ['reply', 'bounce', 'stop'].includes(e.kind)).map(e => e.prospect_id));
   const sentRecently = new Set(events.filter(e => e.kind === 'sent' && Date.parse(e.event_at) >= now.getTime() - 30 * 86_400_000).map(e => e.prospect_id));
@@ -181,19 +215,26 @@ export function planEmailRun(input: {
   if (!input.sender?.postalAddress.trim()) return done('blocked', 'Add the business mailing address to the server settings (OJ_EMAIL_POSTAL_ADDRESS). Every cold email must carry one.');
   if (!settings.enabled) return done('paused', 'Paused from the dashboard.');
   const brake = bounceBrake(events, now);
-  if (brake.braked) return done('braked', `${brake.bounced} of ${brake.sent} recent emails bounced. Sending stopped to protect the sender. Fix the list, then switch it on again.`);
+  if (brake.braked) return done('braked', `Auto-paused: ${brake.reason} Sending is stopped until the bounce issue is resolved.`);
   const window = sendWindow(now);
   if (!window.open) return done('outside-window', window.reason === 'sunday' ? 'Sundays are off. Sending resumes Monday 9:00 AM Central.' : 'Sending runs Monday to Saturday, 9:00 AM to 4:30 PM Central.');
   if (sentToday >= capToday) return done('cap-reached', `Today's limit of ${capToday} is used. Sending resumes tomorrow.`);
-  const hourlyLimit = Math.max(2, Math.ceil(capToday / 6));
-  const lastHour = counted.filter(e => Date.parse(e.event_at) >= now.getTime() - 3_600_000).length;
-  if (lastHour >= hourlyLimit) return done('idle', 'Spacing sends out so they do not arrive in a burst.');
+  // One send per run, spaced by both a day-wide target slot and a minimum
+  // cooldown after the last reservation or confirmed send. Late starts never burst.
+  const minutes = central(now).minutes;
+  const interval = (SEND_CLOSE_MINUTE - SEND_OPEN_MINUTE) / capToday;
+  const seed = Number(today.replace(/-/g, '')) + sentToday * 149;
+  const jitter = Math.sin(seed * 12.9898) * interval * 0.18;
+  const due = SEND_OPEN_MINUTE + (sentToday + 0.5) * interval + jitter;
+  if (minutes < due) return done('idle', 'Waiting for the next spaced send slot.');
+  const last = counted.reduce((latest, e) => Math.max(latest, Date.parse(e.event_at) || 0), 0);
+  const gap = interval * (0.70 + (Math.abs(Math.sin(seed * 2.71)) * 0.20));
+  if (last && now.getTime() < last + gap * 60_000) return done('idle', 'Waiting between individual sends.');
 
   const { ready } = selectSendable(input.prospects, events, { niche: settings.niche_filter, sender: input.senderFilter });
-  if (!ready.length) return done('nothing-to-send', 'Nobody left with a valid email and a clean draft. Add prospects to the sheet.');
-  const room = Math.min(BATCH_SIZE, hourlyLimit - lastHour, capToday - sentToday);
-  const items = ready.slice(0, room).map(p => ({ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!) }));
-  return done('sending', `Sending ${items.length} now.`, items);
+  if (!ready.length) return done('nothing-to-send', 'No valid unsent prospects left. Add rows to Outreach.');
+  const p = ready[0];
+  return done('sending', 'One paced email ready now.', [{ prospect_id: p.id, to: p.email!.trim().toLowerCase(), ...composeEmail(p, input.sender!) }]);
 }
 
 // ---- What the dashboard shows ------------------------------------------------------------
@@ -243,7 +284,7 @@ export function emailStats(events: EmailEvent[], prospects: EngineProspect[], no
   });
   for (const e of sent) { const slot = series.find(s => s.day === dayOf(e.event_at)); if (slot) slot.count++; }
   const weekAgo = now.getTime() - 7 * 86_400_000;
-  const reservedOnly = events.filter(e => e.kind === 'reserved' && !sentIds.has(e.prospect_id) && !events.some(x => x.prospect_id === e.prospect_id && x.kind === 'failed') && now.getTime() - Date.parse(e.event_at) > 3_600_000);
+  const reservedOnly = events.filter(e => (e.kind === 'reserved' || e.kind === 'needs_review') && !sentIds.has(e.prospect_id) && !events.some(x => x.prospect_id === e.prospect_id && x.kind === 'failed') && now.getTime() - Date.parse(e.event_at) > 3_600_000);
   const { ready, skips } = selectSendable(prospects, events, { niche: settings?.niche_filter ?? null });
   return {
     sentTotal: sentIds.size, sentToday: sent.filter(e => dayOf(e.event_at) === today).length, sentWeek: sent.filter(e => Date.parse(e.event_at) >= weekAgo).length,

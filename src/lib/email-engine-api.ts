@@ -51,7 +51,7 @@ export async function planRun(store: EngineStore, env: EngineEnv, input: { now: 
   return { state: reported.state, detail: reported.detail, items: reported.state === 'blocked' ? [] : items, watch: plan.watch, capToday: plan.capToday, sentToday: plan.sentToday };
 }
 
-export type Reported = { prospect_id?: unknown; kind?: unknown; ref?: unknown; text?: unknown; detail?: unknown };
+export type Reported = { prospect_id?: unknown; kind?: unknown; ref?: unknown; text?: unknown; detail?: unknown; sent_at?: unknown };
 export async function reportRun(store: EngineStore, input: { now: Date; results: unknown; senderDomain?: unknown }) {
   const results = Array.isArray(input.results) ? (input.results as Reported[]).slice(0, 200) : [];
   const at = input.now.toISOString();
@@ -62,8 +62,11 @@ export async function reportRun(store: EngineStore, input: { now: Date; results:
     const ref = cleanRef(r?.ref);
     const detail = typeof r?.detail === 'string' ? r.detail.replace(/\s+/g, ' ').slice(0, 200) : '';
     if (!id) { ignored++; continue; }
+    const candidate = typeof r.sent_at === 'string' ? Date.parse(r.sent_at) : NaN;
+    const sentAt = Number.isFinite(candidate) && candidate <= input.now.getTime() + 60_000 && candidate >= input.now.getTime() - 90 * 86_400_000
+      ? new Date(candidate).toISOString() : at;
     switch (r.kind) {
-      case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: '', event_at: at }); break;
+      case 'sent': events.push({ prospect_id: id, kind: 'sent', dedupe_key: `sent:${id}`, detail: '', event_at: sentAt }); break;
       case 'failed': events.push({ prospect_id: id, kind: 'failed', dedupe_key: `failed:${id}:${ref || input.now.getTime()}`, detail, event_at: at }); break;
       case 'bounce': events.push({ prospect_id: id, kind: 'bounce', dedupe_key: `bounce:${id}`, detail: '', event_at: at }); break;
       case 'reply': {

@@ -4,6 +4,8 @@ import { requireMember } from '@/lib/supabase';
 import { DEFAULT_DM_GOAL, dmChannels, partnerOf, type DmChannel, type DmLogEntry, type Partner } from '@/lib/dm-quests';
 import { defaultEngineSettings, type EmailEvent, type EngineSettings, type EngineState } from '@/lib/email-engine';
 import type { OutreachProspect } from '@/lib/outreach';
+import type { SkipRecord } from '@/lib/outreach-skips';
+import { skipReasons } from '@/lib/outreach-skips';
 
 /** Everything the OJ Solutions growth screens need, loaded with the signed-in member's own session. */
 export type GrowthData = {
@@ -11,6 +13,7 @@ export type GrowthData = {
   members: { userId: string; name: string; partner: Partner | null }[];
   prospects: OutreachProspect[];
   prospectTotal: number;
+  skips?: SkipRecord[] | null;
   /** null when the Daily 10 tables have not been installed yet. */
   dm: { goal: number; log: DmLogEntry[] } | null;
   /** null when the email engine tables have not been installed yet. */
@@ -39,6 +42,7 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
       client.from('oj_outreach_sync_runs').select('status,finished_at').eq('organization_id', org).order('started_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     if (prospects.error) return { ok: false, reason: missing(prospects.error) ? 'no-prospects' : 'failed' };
+    const skipsResult = await client.from('oj_outreach_skips').select('id,organization_id,prospect_id,actor_id,business_name,source_row,channel,reason,note,skipped_at').eq('organization_id', org).order('skipped_at', { ascending: false }).limit(1000);
     const people = (members.data ?? []).map((m: { user_id: string; display_name: string; role: string }) => ({ userId: m.user_id, name: m.display_name, partner: partnerOf(m.display_name), role: m.role }));
     const dmInstalled = !dmLog.error && !goal.error;
     const emailInstalled = !settings.error && !state.error && !events.error;
@@ -48,7 +52,7 @@ export async function loadGrowth(org: string): Promise<GrowthResult> {
       data: {
         me: { userId: user.id, name: member.display_name, partner: partnerOf(member.display_name), role: member.role },
         members: people.filter(p => p.role === 'owner' || p.role === 'member').map(({ userId, name, partner }) => ({ userId, name, partner })),
-        prospects: (prospects.data ?? []) as OutreachProspect[], prospectTotal: prospects.count ?? 0,
+        prospects: (prospects.data ?? []) as OutreachProspect[], prospectTotal: prospects.count ?? 0, skips: skipsResult.error ? null : (skipsResult.data ?? []) as SkipRecord[],
         dm: dmInstalled ? { goal: (goal.data as { dm_daily_goal?: number } | null)?.dm_daily_goal ?? DEFAULT_DM_GOAL, log: (dmLog.data ?? []) as DmLogEntry[] } : null,
         email: emailInstalled ? { settings: (settings.data as EngineSettings | null) ?? { ...defaultEngineSettings }, state: (state.data as EngineState | null) ?? null, events: (events.data ?? []) as EmailEvent[] } : null,
         lastSync: (sync.data as { status: string; finished_at: string } | null) ?? null,
@@ -82,8 +86,47 @@ export async function setDmGoal(org: string, goal: number) {
 }
 export async function setEmailEngine(org: string, input: { enabled: boolean; dailyCapMax: number; niche: string }) {
   const { client } = await requireMember(org, true);
-  if (typeof input.enabled !== 'boolean' || !Number.isInteger(input.dailyCapMax) || input.dailyCapMax < 1 || input.dailyCapMax > 40) throw new Error('Choose on or off and a daily limit from 1 to 40.');
+  if (typeof input.enabled !== 'boolean' || !Number.isInteger(input.dailyCapMax) || input.dailyCapMax < 10 || input.dailyCapMax > 50) throw new Error('Choose on or off and a daily limit from 10 to 50.');
   const niche = input.niche.trim().slice(0, 80);
-  const { error } = await client.rpc('oj_set_email_engine', { p_organization_id: org, p_enabled: input.enabled, p_daily_cap_max: input.dailyCapMax, p_niche_filter: niche || null });
-  if (error) throw new Error(missing(error) ? 'The email engine is not installed yet. A founder needs to apply the email engine database update.' : 'Could not save the engine settings.');
+  const { data, error } = await client.rpc('oj_set_email_engine', { p_organization_id: org, p_enabled: input.enabled, p_daily_cap_max: input.dailyCapMax, p_niche_filter: niche || null });
+  if (error) {
+    console.error('oj_set_email_engine rejected settings', { code: error.code, message: error.message, details: error.details });
+    throw new Error(missing(error) ? 'Email settings are not installed. Ask a founder to apply the reviewed SQL.' : 'Could not save the ceiling. The database may still have the old 40 or 1,500 limit. Ask a founder to apply the email ceiling SQL.');
+  }
+  return data as { enabled: boolean; daily_cap_max: number; niche_filter: string | null };
+}
+
+export async function skipDmProspect(org: string, prospectId: string, channel: DmChannel, reason: string, note: string) {
+  const { client } = await requireMember(org, true);
+  if (!uuid.test(prospectId) || !(dmChannels as readonly string[]).includes(channel) || !skipReasons.includes(reason as typeof skipReasons[number]) || note.length > 160)
+    throw new Error('Choose a valid skip reason and a note under 160 characters.');
+  if (reason === 'Other' && !note.trim()) throw new Error('Add a short note when you pick Other.');
+  const { error } = await client.rpc('oj_skip_dm_prospect', { p_org: org, p_prospect: prospectId, p_channel: channel, p_reason: reason, p_note: note });
+  if (error) {
+    console.error('oj_skip_dm_prospect failed', { code: error.code, message: error.message });
+    throw new Error(missing(error) ? 'Durable skips need the reviewed DM skips SQL installed by Oscar.' : 'Could not record the skip. Nothing was removed.');
+  }
+}
+
+/** No Gmail search is performed. This RPC flags stale reservations for human review. */
+export type EmailReservationReview = { prospect_id: string; recipient: string; business_name: string; reserved_at: string };
+export async function listEmailReservationReviews(org: string): Promise<EmailReservationReview[]> {
+  const { client } = await requireMember(org, true);
+  const { data, error } = await client.rpc('oj_list_email_reservation_reviews', { p_org: org });
+  if (error) {
+    console.error('oj_list_email_reservation_reviews failed', { code: error.code, message: error.message });
+    throw new Error(missing(error) ? 'Manual email reviews need the reviewed reservation SQL installed by Oscar.' : 'Could not load unconfirmed emails. No reservations were released.');
+  }
+  return (data ?? []) as EmailReservationReview[];
+}
+
+/** Only a verified founder can mark sent or explicitly release an uncertain email. */
+export async function decideEmailReservation(org: string, prospectId: string, decision: 'sent' | 'release') {
+  if (!uuid.test(prospectId) || !['sent', 'release'].includes(decision)) throw new Error('Invalid reservation decision.');
+  const { client } = await requireMember(org, true);
+  const { error } = await client.rpc('oj_decide_email_reservation', { p_org: org, p_prospect: prospectId, p_decision: decision });
+  if (error) {
+    console.error('oj_decide_email_reservation failed', { code: error.code, message: error.message });
+    throw new Error(missing(error) ? 'Manual reservation review is not installed in Supabase.' : 'Could not update this reservation. Check Gmail and retry or ask Oscar to review the database error.');
+  }
 }

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { Check, Copy, ExternalLink, Flame, Pencil, SkipForward, Trophy, Undo2 } from 'lucide-react';
-import { setDmGoal } from '@/app/workspace/growth-actions';
+import { setDmGoal, skipDmProspect } from '@/app/workspace/growth-actions';
+import { skipReasons, type SkipReason } from '@/lib/outreach-skips';
 import { mutationFailureMessage, STALE_SERVER_ACTION_NOTICE } from '@/lib/server-action-errors';
 import {
   centralHour, dailyMessage, dayCount, dmChannels, dmTargets, GOAL_BONUS_XP, lastSevenDays, levelFor, questLine, streakFor, teamStreak, todayKey, weekTotal, XP_PER_DM, xpFor,
@@ -25,6 +26,9 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
   const today = todayKey(g.now), hour = centralHour(g.now);
   const goal = dm.goal, me = data.me;
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [skipTarget, setSkipTarget] = useState<string | null>(null);
+  const [skipReason, setSkipReason] = useState<SkipReason | ''>('');
+  const [skipNote, setSkipNote] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -48,7 +52,7 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
   const duo = teamStreak(dm.log, players.map(p => p.userId), goal, today);
 
   const myToday = new Set(dm.log.filter(e => !e.undone_at && e.actor_id === me.userId && e.work_day === today && e.prospect_id).map(e => e.prospect_id!));
-  const queue = dmTargets(data.prospects, me.partner, myToday).filter(t => !skipped.has(t.prospect.id));
+  const queue = dmTargets(data.prospects, me.partner, myToday).filter(t => !skipped.has(t.prospect.id) && !data.skips?.some(s => s.prospect_id === t.prospect.id));
   const target = queue[0];
   const message = target ? dailyMessage(target.prospect) : null;
   const lastMine = dm.log.filter(e => !e.undone_at && e.actor_id === me.userId && !e.id.startsWith('pending-'))
@@ -68,6 +72,13 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
     const error = await g.log(prospectId, channel);
     setBusy(false);
     setNotice(error || `+${XP_PER_DM} XP. ${done + 1 >= goal ? 'Quest clear.' : `${Math.max(goal - done - 1, 0)} to go.`}`);
+  }
+  async function recordSkip(id: string, channel: DmChannel, reason: SkipReason, note = '') {
+    if (busy) return;
+    setBusy(true); setNotice('');
+    try { await skipDmProspect(g.org, id, channel, reason, note); setSkipped(old => new Set(old).add(id)); g.reload(); setSkipTarget(null); setSkipReason(''); setSkipNote(''); setNotice('Skip recorded for both partners.'); }
+    catch (e) { setNotice(e instanceof Error ? e.message : 'Could not save the skip.'); }
+    finally { setBusy(false); }
   }
   async function copy(text: string) {
     try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 1800); }
@@ -136,12 +147,21 @@ function Quest({ g, data, dm }: { g: GrowthStore; data: Data; dm: NonNullable<Da
           <div className="gx-actions">
             <button className="secondary" onClick={() => copy(message?.text ?? '')}>{copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}{copied ? 'Copied' : 'Copy message'}</button>
             <a className="secondary" href={target.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={15} aria-hidden="true" />Open {channelLabel[target.channel]}</a>
-            <button className="secondary" onClick={() => setSkipped(new Set(skipped).add(target.prospect.id))}><SkipForward size={15} aria-hidden="true" />Skip</button>
+            <button className="secondary" disabled={busy} onClick={() => { setSkipTarget(target.prospect.id); setSkipReason(''); setSkipNote(''); }}><SkipForward size={15} aria-hidden="true" />Skip</button>
             <button className="primary gx-send" disabled={busy || g.readOnly || g.mode === 'preview'} onClick={() => send(target.prospect.id, target.channel)}><Check size={16} aria-hidden="true" />I sent it · +{XP_PER_DM} XP</button>
           </div>
+          {skipTarget === target.prospect.id && <div className="panel" role="group" aria-label="Why skip this lead">
+            <label>Reason<select value={skipReason} disabled={busy || !data.skips} onChange={e => {
+              const reason = e.target.value as SkipReason; setSkipReason(reason);
+              if (reason !== 'Other') void recordSkip(target.prospect.id, target.channel, reason);
+            }}><option value="">Choose a reason</option>{skipReasons.map(reason => <option key={reason} value={reason}>{reason}</option>)}</select></label>
+            {skipReason === 'Other' && <div className="inline-input"><input aria-label="Other skip reason" maxLength={160} value={skipNote} onChange={e => setSkipNote(e.target.value)} placeholder="Short note" /><button className="primary" disabled={busy || !skipNote.trim()} onClick={() => void recordSkip(target.prospect.id, target.channel, 'Other', skipNote)}>Skip this lead</button></div>}
+            {!data.skips && <p className="outreach-error" role="alert">Skipping requires the reviewed Supabase DM skips SQL.</p>}
+            <button type="button" className="secondary" onClick={() => setSkipTarget(null)}>Cancel</button>
+          </div>}
           <p className="quiet gx-hint">Paste it, send it in {channelLabel[target.channel]}, then tap <b>I sent it</b>. Tapping marks this business as DMed so nobody messages them twice.</p>
         </> : <div className="empty"><p><b>No one left to message.</b> {data.prospects.length ? 'Everyone with a social profile has been contacted or skipped. Add more prospects with an Instagram or Facebook handle to the Outreach sheet.' : 'No prospects have been imported yet.'}</p>
-          {skipped.size > 0 && <button className="secondary" onClick={() => setSkipped(new Set())}>Bring back {skipped.size} skipped</button>}</div>}
+          {!data.skips && <p role="alert">Durable skips are not installed yet. Ask Oscar to apply the reviewed SQL.</p>}</div>}
         <form className="gx-manual" onSubmit={e => { e.preventDefault(); void send(null, manual); }}>
           <label>A DM that is not on the list<select value={manual} onChange={e => setManual(e.target.value as DmChannel)}>{dmChannels.map(c => <option key={c} value={c}>{channelLabel[c]}</option>)}</select></label>
           <button className="secondary" type="submit" disabled={busy || g.readOnly || g.mode === 'preview'}>+1 DM</button>
