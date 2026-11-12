@@ -80,9 +80,6 @@
 .panel-note { font-size: var(--t-xs); color: var(--ink-3); }
 .panel-link { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-sm); font-weight: 600; color: var(--accent-hi); }
 .panel-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.panel-figure { display: flex; align-items: baseline; gap: 10px; margin: 0; }
-.panel-figure span { font-size: var(--t-xs); color: var(--ink-3); }
-.panel-figure b { font-family: var(--display); font-size: var(--t-xl); font-weight: var(--display-weight); font-variant-numeric: tabular-nums; }
 .empty { position: relative; display: grid; align-content: center; gap: 8px; min-height: 132px; padding: var(--s-4); border: 1px dashed var(--line-2); border-radius: var(--r); color: var(--ink-3); font-size: var(--t-sm); overflow: hidden; }
 .empty p { margin: 0; position: relative; max-width: 52ch; }
 .empty b { color: var(--ink-2); font-weight: 650; }

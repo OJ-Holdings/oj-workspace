@@ -8,9 +8,6 @@ import { usePathname } from 'next/navigation';
 import { CalendarPlus, DollarSign, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { countLeadWorkFocuses, leadWorkDescriptions, leadWorkLabels, leadWorkFocuses, matchesLeadWorkFocus, sortLeadsForWork, type LeadWorkFocus } from '@/lib/exterior-lead-workflow';
 import { bookingWorkCounts, bookingWorkDescriptions, bookingWorkFocuses, bookingWorkLabels, matchesBookingWorkFocus, sortBookingsForWork, type BookingWorkFocus } from '@/lib/exterior-booking-workflow';
-import {qualifiedDispatchQuotes} from '@/lib/exterior-dispatch-preflight';
-import {ExteriorDispatchPreflight} from './ExteriorDispatchPreflight';
-import {ExteriorJobContinuity} from './ExteriorJobContinuity';
 import { bookJob, bookNewClient, dedupeLeads, importDoorSheet, importLeadSheet, moveBooking, removeBooking, removeSession, saveFinancials, saveJob, saveLead, saveSession, saveSettings, setLeadStatus, type LeadInput, type SessionInput } from '@/app/workspace/exterior-actions';
 import { openStatuses, sourceLabel, statusLabel, type Done, type ExtBooking, type ExteriorData, type ExtLead, type ExtSession } from '@/lib/exterior';
 import { blockLabel, blocksOverlap, clockLabel, DAY_FIRST_START, DAY_LAST_END, DAY_LAST_START, isRealPhone, jobLengths, leadSources, leadStatuses, lengthLabel, makeBlock, MAX_JOB, MIN_JOB, parseBlock, quickStarts, services } from '@/lib/exterior-ops';
@@ -285,7 +282,7 @@ export function MoneyDialog({ lead, close, act, busy, org }: { lead: ExtLead | n
  * One job, one simple screen: who, where, when, what it was quoted at, and the two numbers that matter, what the customer paid
  * and what the job cost. "Mark complete" closes the job and saves those figures in one go. Everything deeper is behind one link.
  */
-export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base, onAdvanced }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; readOnly: boolean; base: string; onAdvanced?: () => void }) {
+export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base }: { booking: ExtBooking | null; lead: ExtLead | undefined; close: () => void; act: Act; busy: boolean; org: string; readOnly: boolean; base: string }) {
   const [f, setF] = useState({ job_revenue: '', job_cost: '', notes: '' });
   // The itemised cost total when the job has itemised costs; it replaces the single cost box.
   const [itemised, setItemised] = useState<number | null>(null);
@@ -332,7 +329,6 @@ export function JobSheet({ booking, lead, close, act, busy, org, readOnly, base,
           <JobPhotos org={org} leadId={lead.id} live={!base.startsWith('/preview')} readOnly={readOnly} />
           <JobTimeline org={org} leadId={lead.id} live={!base.startsWith('/preview')} />
           <div className="dialog-actions">
-            {onAdvanced && <button type="button" className="linkish" onClick={onAdvanced}>Crew, field and closeout details</button>}
             {!readOnly && !done && <button type="button" className="primary" disabled={busy} onClick={() => save(true)}>{busy ? 'Saving' : 'Mark complete and save'}</button>}
             {!readOnly && <button type="button" className={done ? 'primary' : 'secondary'} disabled={busy} onClick={() => save(false)}>{busy ? 'Saving' : 'Save figures'}</button>}
           </div>
@@ -533,7 +529,6 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const [search, setSearch] = useState('');
   const [shown, setShown] = useState(30);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
-  const [advanced, setAdvanced] = useState(false);
   const [completing, setCompleting] = useState<ExtLead | null>(null);
   const base = usePathname().startsWith('/preview') ? '/preview' : '/workspace';
   const bookingParams = useSearchParams();
@@ -551,7 +546,6 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
     url.searchParams.delete('booking');url.searchParams.delete('cost');url.searchParams.delete('kind');
     window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
     setSelectedJob(null);
-    setAdvanced(false);
   };
   // Arriving from an accepted proposal (?commercial=<id>): open the commercial booking dialog filled from it, once.
   const commercialParam = bookingParams.get('commercial');
@@ -577,7 +571,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
   const lead = useMemo(() => new Map(data.leads.map(l => [l.id, l])), [data.leads]);
   const counts = useMemo(() => bookingWorkCounts(data.bookings, today), [data.bookings, today]);
   const upcoming = data.bookings.filter(b => matchesBookingWorkFocus(b, 'upcoming', today));
-  const quoted = useMemo(() => qualifiedDispatchQuotes(data,upcoming),[data,upcoming]);
+  const quotedSum = useMemo(() => upcoming.filter(b => b.status === 'confirmed').reduce((sum, b) => { const value = lead.get(b.lead_id ?? '')?.quote_amount; return value ? { total: sum.total + value, missing: sum.missing } : { total: sum.total, missing: sum.missing + 1 }; }, { total: 0, missing: 0 }), [upcoming, lead]);
   const q = search.trim().toLowerCase();
   const rows = sortBookingsForWork(data.bookings.filter(b => {
     if (!matchesBookingWorkFocus(b, focus, today)) return false;
@@ -611,7 +605,7 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
       <div className="atlas-booking-command-stats">
         <div><small>Upcoming bookings</small><strong><NumberFlow value={counts.upcoming} /></strong><span>From today on</span></div>
         <div><small>Confirmed upcoming</small><strong><NumberFlow value={upcoming.filter(b => b.status === 'confirmed').length} /></strong><span>Marked confirmed</span></div>
-        <div><small>Quoted value, confirmed jobs</small><strong>{quoted.total===null?'Withheld':<NumberFlow value={quoted.total} format={usd}/>}</strong><span>{quoted.eligible} of {quoted.confirmed} confirmed jobs have one clear quote</span></div>
+        <div><small>Quoted value, confirmed jobs</small><strong><NumberFlow value={quotedSum.total} format={usd}/></strong><span>{quotedSum.missing ? `est. ${quotedSum.missing} without a quote` : 'From the quotes on each job'}</span></div>
         <div><small>Bookings this month</small><strong><NumberFlow value={data.bookings.filter(b => b.status !== 'denied' && b.date.startsWith(month)).length} /></strong><span>Scheduled, not necessarily done</span></div>
       </div>
       {data.coverage?.bookings && data.coverage.bookings.total !== null && data.coverage.bookings.total > data.coverage.bookings.loaded &&
@@ -623,21 +617,11 @@ export function BookingsManager({ data, act, busy, readOnly, org, now, crew, ref
         </button>)}
       </div>
     </section>
-    <details className="jobs-headsup">
-      <summary>Heads-up for upcoming jobs</summary>
-      <ExteriorDispatchPreflight data={data} now={now} base={base} mode={base==='/preview'?'preview':'live'} org={org} readOnly={readOnly}/>
-    </details>
     {selectedJobId&&!selectedBooking&&<p className="ecjourney-alert" role="alert">
-      The requested exact booking is not in this authorized source window. No customer, job or field data was substituted.
+      That job is not in the loaded list.
       <button type="button" onClick={closeJob}>Clear selection</button>
     </p>}
-    <JobSheet booking={advanced?null:selectedBooking??null} lead={selectedBooking?lead.get(selectedBooking.lead_id??''):undefined} close={closeJob} act={act} busy={busy} org={org} readOnly={readOnly} base={base} onAdvanced={()=>setAdvanced(true)} />
-    {selectedBooking&&advanced&&<ExteriorJobContinuity
-      key={selectedBooking.id} data={data} booking={selectedBooking} org={org}
-      base={base} mode={base==='/preview'?'preview':'live'} readOnly={readOnly}
-      crew={{available:!!crew,employeeName:crew?.assignments.find(a=>a.booking_id===selectedBooking.id)?.employee_name??null}}
-      close={closeJob}
-    />}
+    <JobSheet booking={selectedBooking??null} lead={selectedBooking?lead.get(selectedBooking.lead_id??''):undefined} close={closeJob} act={act} busy={busy} org={org} readOnly={readOnly} base={base} />
     <section className="panel atlas-booking-workbench">
       <header className="panel-head"><h2>Job workbench <small className="quiet">{rows.length} matching record{rows.length === 1 ? '' : 's'}</small></h2>
         <Link className="secondary small" href={`${base}/b/exterior/calendar`}>View calendar</Link>

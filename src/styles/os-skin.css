@@ -29,9 +29,7 @@ body {
 [data-venture='solutions'] { --accent: #d89677; --accent-hi: #e8b69c; --accent-ink: #1c0f08; --accent-soft: rgba(216, 150, 119, 0.16); }
 
 /* ---------- Surfaces: warm glass instead of flat navy cards ---------- */
-.panel, .today-card, .today-stat, .atlas-pulse-card, .excmd-instrument, .excmd-mission-board, .excmd-decision-panel, .excmd-revenue-panel,
-.excmd-acquisition-panel, .excmd-hero, .atlas-treasury-panel, .atlas-treasury-value, .atlas-treasury-top, .atlas-booking-command,
-.atlas-booking-card, .atlas-lead-priority, .atlas-operator-launchpad, .kpis > div, .stop-body, .business-tile, .tools-card, .card-dialog {
+.panel, .today-card, .today-stat, .excmd-instrument, .excmd-mission-board, .excmd-decision-panel, .excmd-revenue-panel, .excmd-acquisition-panel, .excmd-hero, .atlas-treasury-panel, .atlas-treasury-value, .atlas-treasury-top, .atlas-booking-command, .atlas-booking-card, .atlas-lead-priority, .atlas-operator-launchpad, .kpis > div, .stop-body, .business-tile, .card-dialog {
   background: var(--os-glass), var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -128,13 +126,11 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .jobsheet .form-grid { align-items: start; }
 
 /* ---------- Older Exterior screens: drop their hard-coded navy and teal for the same warm glass ---------- */
-.excmd-nav, .excmd-hero, .ecdispatch-metric, .ecinbox, .ecinbox-stat, .ecinbox-item, .ecdispatch-delegate, .ecjourney, .ecjob-compose, .ecjob-progress,
-.ecfield-hero, .ecfield-metric, .ecfield-shared, .atlas-hq-hero, .atlas-hq-orbit-core, .ecjob-card, .ecjourney-step {
+.excmd-nav, .excmd-hero {
   background: var(--os-glass), var(--panel);
   border-color: var(--line-2);
   box-shadow: var(--shadow);
 }
-.ecinbox, .ecjourney, .ecfield-shared { --inbox-line: var(--line-2); --ej-edge: var(--line-2); --shared-line: var(--line-2); --inbox-mint: var(--accent-2); --shared-green: var(--accent-2); --inbox-coral: var(--accent-hi); }
 .ecc-head, .ecc-metric, .ecc-panel, .ecc-blank { background: var(--os-glass), var(--panel); border-color: var(--line-2); box-shadow: var(--shadow); }
 .jobsheet .dialog-actions { position: sticky; bottom: calc(-1 * var(--s-6, 24px)); margin: 0 calc(-1 * var(--s-6, 24px)) calc(-1 * var(--s-6, 24px)); padding: 12px var(--s-6, 24px); background: var(--panel); border-top: 1px solid var(--line); border-radius: 0 0 var(--r-xl) var(--r-xl); }
 

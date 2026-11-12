@@ -56,8 +56,8 @@ textarea { resize: vertical; }
 /* Team and invitations page. */
 .settings-page { max-width: 960px; margin: 0 auto; padding: 28px 24px 64px; }
 .settings-page h1 { font-family: var(--display); font-size: var(--t-2xl); letter-spacing: var(--display-track); font-weight: var(--display-weight); }
-.settings-section, .activity-feed { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 26px; margin: 22px 0; box-shadow: var(--shadow); }
-.settings-section h2, .activity-feed h2 { font-size: var(--t-lg); }
+.settings-section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 26px; margin: 22px 0; box-shadow: var(--shadow); }
+.settings-section h2 { font-size: var(--t-lg); }
 .invite-form { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
 .invite-form label, .invite-result label { display: flex; flex-direction: column; gap: 8px; font-size: var(--t-sm); flex: 1; }
 .invite-result { display: flex; align-items: end; gap: 12px; padding: 16px; background: var(--accent-soft); border-radius: var(--r-sm); }
@@ -65,15 +65,12 @@ textarea { resize: vertical; }
 .member-row { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 18px 0; flex-wrap: wrap; }
 .member-row > div { flex: 1; min-width: 170px; overflow-wrap: anywhere; }
 .member-row span { display: block; font-size: var(--t-sm); color: var(--ink-3); margin-top: 6px; }
-.activity-row { display: flex; gap: 14px; border-top: 1px solid var(--line); padding: 16px 0; font-size: var(--t-sm); }
-.activity-row p { margin: 0 0 6px; }
-.activity-row time { font-size: var(--t-xs); color: var(--ink-3); }
 .draft-warning { padding: 14px; background: color-mix(in srgb, var(--watch) 14%, transparent); border: 1px solid color-mix(in srgb, var(--watch) 45%, transparent); border-radius: var(--r-sm); margin-bottom: 20px; font-size: var(--t-sm); }
 .draft-warning p { margin-bottom: 10px; }
 
 @media (max-width: 700px) {
   .entry-card { padding: 28px; }
-  .settings-section, .activity-feed { padding: 18px; }
+  .settings-section { padding: 18px; }
   .invite-form { display: grid; }
   .invite-result { flex-direction: column; align-items: stretch; }
   /* 16px inputs stop iOS zooming the page on focus. */

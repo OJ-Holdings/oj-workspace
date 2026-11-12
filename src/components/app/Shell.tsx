@@ -38,7 +38,6 @@ const nav: { key: NavKey; label: string; path: string; icon: typeof Home; group:
   { key:'businesses', label:'Businesses', path:'/businesses', icon:Building2, group:'BUSINESSES' },
   // Founders only: hidden from every non-owner in the live workspace (see founderNav below).
   { key:'summit', label:'Hyperborea', path:'/summit', icon:MountainSnow, group:'BUSINESSES' },
-  { key:'fleet', label:'Fleet & Equipment', path:'/tools/fleet', icon:Truck, group:'MORE' },
   { key:'customers', label:'Customer directory', path:'/customers', icon:UsersRound, group:'MORE' },
   { key:'proposals', label:'Proposals', path:'/proposals', icon:FileSignature, group:'MORE' },
   { key:'books', label:'Bank to books', path:'/books', icon:Landmark, group:'MORE' },

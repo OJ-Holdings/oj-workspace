@@ -175,18 +175,6 @@ export function ExteriorCommand({base,org,mode,readOnly,cards,store}:Props){
         {s.sales.bySource.length>0&&<div className="excmd-source-foot"><Target size={16}/><span>Not tagged correctly? <Link href={parent+'/leads'}>Tag lead sources</Link> on the Customers page.</span></div>}
       </div>
     </section>
-    <section className="excmd-deep-links" aria-label="More Exterior Care tools">
-      <div className="excmd-app-grid">
-        {[
-          {title:'Customers',href:parent+'/leads',icon:UsersRound},
-          {title:'Field reports',href:parent+'/field',icon:Truck},
-          {title:'Commercial',href:parent+'/commercial',icon:BriefcaseBusiness},
-          {title:'Fleet',href:base+'/tools/fleet',icon:Layers3},
-          {title:'Money',href:base+'/finance',icon:Wallet},
-          {title:'Jobs and revenue',href:parent+'/jobs',icon:Compass},
-        ].map(app=><Link key={app.title} href={app.href} className="excmd-app-link"><app.icon size={21}/><strong>{app.title}</strong><ArrowUpRight size={15}/></Link>)}
-      </div>
-    </section>
     <footer className="excmd-source-footer"><Activity size={14}/>
       <details><summary>Source coverage</summary><p>{s.source.leadCoverage}; {s.source.bookingCoverage}. {s.source.notes.join(' ')||'No provider incompleteness was reported for loaded lists.'} Missing evidence is not a zero.</p></details>
     </footer>
