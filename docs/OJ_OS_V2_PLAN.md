@@ -851,7 +851,7 @@ Big catalogues to browse later: ComposioHQ/awesome-claude-skills, travisvn/aweso
 | Item | Blocks | Who |
 |---|---|---|
 | LSA engine go-live (its dry run, backup, SQL, backfill, sheet archive, poller - docs/LSA_GO_LIVE.md) | Inbox (week 10) | Jacob + Oscar |
-| How the ojexteriorcare.com booking form delivers bookings (email? Supabase table? Google Sheet?) | Inbox, Jobs | Oscar/Jacob |
+| ~~How the ojexteriorcare.com booking form delivers bookings~~ RESOLVED Nov 13: the site writes each request to `public.quote_requests` (name, phone, email, address, service, description, property type, business name, water access, recurring interest, SMS consent; no date or time). No booking has ever arrived as pending; all 49 bookings are confirmed by hand and one came from the website. The Inbox reads `quote_requests` + Jacob's LSA engine. Also found: door-to-door is tagged three ways (DTD, dtd, door-to-door) - normalise in the Stage 3 migration. | - | done |
 | Employee portal audit (sign in as an employee) | Crew app (week 11) | Oscar |
 | Stripe account opened | Get paid (week 9) | Oscar |
 | Google Ads API developer token + Business Profile API applications | LSA via API, reviews | Oscar/Jacob |
