@@ -1,5 +1,7 @@
 'use client';
 
+import { truckBalanceFromBank, withBankBalance } from '@/lib/truck-fund';
+
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CalendarClock, CircleAlert, ListChecks, MapPin, Wallet } from 'lucide-react';
@@ -133,7 +135,7 @@ export function TodayBoard({ base, board, store, jobs, today, mode, readOnly, di
             </Link>
           </div>
 
-          <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} metrics={store.data?.metricEntries ?? []} />
+          <CommandPulse org={org} mode={mode} jobs={jobs} today={today} base={base} metrics={withBankBalance(store.data?.metricEntries ?? [], truckBalanceFromBank(store.data?.mercury))} />
           <WeatherAhead jobs={jobs} base={base} />
 
           <section className="today-card" aria-labelledby="today-needs">
