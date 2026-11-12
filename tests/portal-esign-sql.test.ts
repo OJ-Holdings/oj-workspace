@@ -29,7 +29,7 @@ const as = async (db: PGlite, who: string | 'anon') => { await db.exec(who === '
 async function shared(db: PGlite) {
   await as(db, owner);
   const lines = `'[{"description":"Facility A","quantity":1,"unit_price_cents":95000},{"description":"Facility B","quantity":1,"unit_price_cents":195000},{"description":"Semiannual maintenance","quantity":1,"unit_price_cents":235000,"optional":true}]'::jsonb`;
-  const id = (await db.query<{ id: string }>(`select public.oj_create_proposal('${org}', '{"name":"American Roller","address":"Union Grove, WI","lead_id":null}'::jsonb, 'exterior', '${soon()}', 'Net 30', 'Terms', 'Exclusions', 'Internal-looking note', 15000, ${lines}) as id`)).rows[0].id;
+  const id = (await db.query<{ id: string }>(`select public.oj_create_proposal('${org}', '{"name":"Acme Roller","address":"Union Grove, WI","lead_id":null}'::jsonb, 'exterior', '${soon()}', 'Net 30', 'Terms', 'Exclusions', 'Internal-looking note', 15000, ${lines}) as id`)).rows[0].id;
   await db.query(`select public.oj_set_proposal_status('${org}', '${id}', 'sent', current_date, '')`);
   const t = token();
   const link = (await db.query<{ id: string }>(`select public.oj_create_portal_link('${org}', '${id}', '${digest(t)}', 30) as id`)).rows[0].id;
@@ -59,7 +59,7 @@ test('the public sees only the customer-facing proposal, with the right token', 
   const s = await shared(db);
   await as(db, 'anon');
   const p = (await db.query<{ p: Record<string, unknown> }>(`select public.oj_portal_proposal('${s.t}') as p`)).rows[0].p;
-  assert.equal(p.customer_name, 'American Roller');
+  assert.equal(p.customer_name, 'Acme Roller');
   assert.equal(p.total_cents, 275000);
   assert.equal((p.lines as unknown[]).length, 3);
   for (const hidden of ['organization_id', 'created_by', 'lead_id', 'id', 'customer_email']) assert.equal(hidden in p, false, `${hidden} must not be exposed`);

@@ -11,10 +11,10 @@ const data = (leads: ExtLead[], bookings: ExtBooking[] = []): ExteriorData => ({
 const make = (d: ExteriorData, from = 'Oscar') => messageDrafts(d, TODAY, NOW, from);
 
 test('a new lead gets a reply that names the service, signed by the sender', () => {
-  const d = make(data([lead('fay akindes')]));
+  const d = make(data([lead('riley fakerson')]));
   assert.equal(d.length, 1);
   assert.equal(d[0].kind, 'new-lead');
-  assert.match(d[0].body, /^Hi Fay, thanks for reaching out to OJ Exterior Care about house washing\. Oscar, OJ Exterior Care here\./);
+  assert.match(d[0].body, /^Hi Riley, thanks for reaching out to OJ Exterior Care about house washing\. Oscar, OJ Exterior Care here\./);
 });
 
 test('quote follow-ups change wording at day 3, 7 and 14 and include the quoted amount', () => {
@@ -58,9 +58,9 @@ test('groups come out in working order and empty groups are dropped', () => {
 
 test('greetings use a first name, a title and last name, or no name; punctuation is dropped', () => {
   const hi = (name: string | null) => make(data([lead('z', { name })]))[0].body.split(',')[0];
-  assert.equal(hi('Dr Jim James'), 'Hi Dr James');
+  assert.equal(hi('Dr Jordan Sampleton'), 'Hi Dr Sampleton');
   assert.equal(hi('Sample: Garden terrace'), 'Hi Sample');
-  assert.equal(hi('fay'), 'Hi Fay');
+  assert.equal(hi('riley'), 'Hi Riley');
   assert.equal(hi(null), 'Hi there');
   assert.equal(hi('Mrs.'), 'Hi Mrs');
 });

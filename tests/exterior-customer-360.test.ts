@@ -26,7 +26,7 @@ const data:ExteriorData={
  extras:{goal:null,upgrades:{},settings:{},quotes:[
   {id:'web1',name:'Alex',phone:'2625550101',email:null,address:null,service_needed:'Window cleaning',
    description:null,property_type:null,business_name:null,recurring_interest:true,created_at:'2026-05-01T00:00:00Z'},
-  {id:'web2',name:'Not Alex',phone:'555-789-1234',email:null,address:null,service_needed:null,
+  {id:'web2',name:'Not Alex',phone:'555-555-0110',email:null,address:null,service_needed:null,
    description:null,property_type:null,business_name:null,recurring_interest:false,created_at:'2026-05-01T00:00:00Z'},
  ]},
  coverage:{leads:{loaded:4,total:4},bookings:{loaded:4,total:4},sessions:{loaded:0,total:0}},

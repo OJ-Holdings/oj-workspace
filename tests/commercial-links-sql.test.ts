@@ -23,9 +23,9 @@ async function setup() {
   await db.exec(await sql('docs/db-change-proposals/RUN-ME-2026-11-05-commercial-links.sql'));
   await db.exec(`insert into oj_organizations(id,name) values ('${org}','OJ'),('${other}','Other');
     insert into oj_memberships(organization_id,user_id,role,display_name) values ('${org}','${owner}','owner','Oscar'),('${org}','${viewer}','viewer','View'),('${other}','${stranger}','owner','Eve');
-    insert into oj_commercial_accounts(organization_id,id,name,created_by,updated_by) values ('${org}','${account}','American Roller','${owner}','${owner}'),('${other}','${foreign}','Elsewhere','${stranger}','${stranger}');
-    insert into oj_proposals(id,organization_id,number,division,customer_name,valid_until,subtotal_cents,total_cents,created_by) values ('${proposal}','${org}','P-1','exterior','American Roller','2030-01-01',50000,50000,'${owner}');
-    insert into oj_invoices(id,organization_id,number,division,customer_name,issue_date,due_date,subtotal_cents,total_cents,created_by) values ('${invoice}','${org}','I-1','exterior','American Roller','2026-11-01','2026-11-30',50000,50000,'${owner}');
+    insert into oj_commercial_accounts(organization_id,id,name,created_by,updated_by) values ('${org}','${account}','Acme Roller','${owner}','${owner}'),('${other}','${foreign}','Elsewhere','${stranger}','${stranger}');
+    insert into oj_proposals(id,organization_id,number,division,customer_name,valid_until,subtotal_cents,total_cents,created_by) values ('${proposal}','${org}','P-1','exterior','Acme Roller','2030-01-01',50000,50000,'${owner}');
+    insert into oj_invoices(id,organization_id,number,division,customer_name,issue_date,due_date,subtotal_cents,total_cents,created_by) values ('${invoice}','${org}','I-1','exterior','Acme Roller','2026-11-01','2026-11-30',50000,50000,'${owner}');
     insert into oj_documents(id,organization_id,name,storage_path,size_bytes,uploaded_by) values ('${doc}','${org}','Proposal.pdf','${org}/x/Proposal.pdf',10,'${owner}');`);
   return db;
 }

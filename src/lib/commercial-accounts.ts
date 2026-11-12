@@ -95,7 +95,7 @@ export function prepareCommercialPropertyEstimate(account:CommercialAccount,prop
  };
 }
 
-/** "1440 13th Avenue, Union Grove, WI 53182" reads as "Union Grove, WI". Empty when the address has no town part. */
+/** "544 Fakery Avenue, Union Grove, WI 53182" reads as "Union Grove, WI". Empty when the address has no town part. */
 export function townOf(address:string):string{
  const parts=address.split(',').map(s=>s.trim()).filter(Boolean);
  if(parts.length<3)return '';
@@ -125,7 +125,7 @@ export function monogramHue(name:string):number{
  for(const ch of name.trim().toLowerCase())h=(h*31+ch.charCodeAt(0))%360;
  return h;
 }
-/** Up to two initials from the first two words ("American Roller Company" reads as "AR"). */
+/** Up to two initials from the first two words ("Acme Roller Company" reads as "AR"). */
 export function initialsOf(name:string):string{
  const words=name.trim().split(/\s+/).filter(w=>/[a-z0-9]/i.test(w));
  return (words.length>1?words[0][0]+words[1][0]:(words[0]??'').slice(0,2)).toUpperCase()||'OJ';

@@ -10,7 +10,7 @@
  *   OUTREACH_SYNC_TOKEN  same value as OJ_OUTREACH_SYNC_TOKEN on the OJ server
  *   SENDER_NAME          the name on the signature, e.g. Oscar
  *   SENDER_FILTER        optional: Oscar or Jacob, to send only that founder's prospects
- *   NAG_EMAILS           JSON for the Daily 10 reminders, e.g. {"Oscar":"you@gmail.com","Jacob":"him@gmail.com"}
+ *   NAG_EMAILS           JSON for the Daily 10 reminders, e.g. {"Oscar":"oscar@example.com","Jacob":"jacob@example.com"}
  *   ENGINE_URL           optional: where the OJ server lives. For the Windows/Tailscale Funnel host use
  *                        https://<your-funnel-host>/api/outreach-email-engine (must be a public Funnel address:
  *                        Google's servers cannot reach a tailnet-only address). Blank = the Netlify function below.
