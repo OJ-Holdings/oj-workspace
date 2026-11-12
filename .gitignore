@@ -17,3 +17,22 @@ supabase-*.dump.manifest.json
 *.age
 *.dpapi
 scripts/**/__pycache__/
+.env
+google-oauth-client.json
+backups/
+
+# Google service account keys live OUTSIDE the repo (see .env.example). These catch a
+# key dropped in here by mistake, including Google's default name oj-automations-<id>.json.
+*service-account*.json
+*service_account*.json
+*serviceaccount*.json
+oj-automations-*.json
+*-key.json
+*.pem
+*.p12
+.secrets/
+secrets/
+keys/
+
+# Session notes stay local (they must never carry customer data into this public repo).
+/HANDOFF.md

@@ -10,7 +10,8 @@ import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type C
 import { doorDetails, isRecordedJobAmount, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
 import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type JobFilters } from '@/lib/reporting';
 import { sampleExterior } from '@/lib/exterior-sample';
-import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, MoneyDialog, SessionsManager, type Act } from './ExteriorManage';
+import { ActivityList, BookingsManager, ExteriorSettings, LeadsManager, LeadsTabs, MoneyDialog, SessionsManager, type Act } from './ExteriorManage';
+import { LeadEngine } from './LeadEngine';
 import type { ExtLead } from '@/lib/exterior';
 import { JobsCalendar } from './ExteriorCalendar';
 import { ExteriorCustomer360 } from './ExteriorCustomer360';
@@ -27,6 +28,7 @@ const usd = { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } as 
 const day = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const cash = (v: number | null) => v === null ? '-' : dollars(v);
 const percent = (v: number | null) => v === null ? '-' : `${Math.round(v * 100)}%`;
+const noLeads: ExtLead[] = [];
 
 /** Every Exterior Care tab beyond the shared ones: the records the original Exterior Care app works on. */
 export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { tab: string; org: string; mode: 'preview' | 'live'; readOnly: boolean; cards: import('@/lib/board').Card[]; activity: import('@/lib/board').Activity[] }) {
@@ -90,6 +92,7 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   if (tab === 'estimate') return <>{status}<ExteriorEstimateWorkbench {...common} mode={mode} base={mode === 'preview' ? '/preview' : '/workspace'} /></>;
   if (tab === 'field') return <>{status}<ExteriorFieldToday {...common} mode={mode} base={mode === 'preview' ? '/preview' : '/workspace'} /></>;
   if (tab === 'leads') return <>{status}<LeadsManager {...common} /></>;
+  if (tab === 'inbox') return <><LeadsTabs base={mode === 'preview' ? '/preview' : '/workspace'} current="inbox" /><LeadEngine org={org} mode={mode} readOnly={readOnly} sample={mode === 'preview' ? data.leads : noLeads} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
   if (tab === 'projects') return <AtlasNexusProjects key={org+mode+String(readOnly)} org={org} base={mode === 'preview' ? '/preview' : '/workspace'} mode={mode} readOnly={readOnly} exterior={data} cards={cards} activity={activity} />;

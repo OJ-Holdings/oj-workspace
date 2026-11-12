@@ -15,6 +15,13 @@ and OJ Essentials (ojessentials.store, Shopify). Both founders edit it with AI h
 
 ## Hard rules
 
+- **No customer data in the repo. This repo is public.** No customer names, phones,
+  emails, addresses or lead IDs (workspace, LSA or any other) in any committed file:
+  code, comments, tests, docs, HANDOFF.md, AGENT_LOG.md, commit messages or PR text.
+  Tests use made-up data (555-01xx phones, example.com emails, invented names and
+  streets). Real data (lead snapshots, dry-run reports, overrides) stays outside the
+  repo, in ~/.secrets or a scratch folder. HANDOFF.md is session notes and stays local
+  (it is gitignored).
 - **No secrets in the repo.** Keys live in `.env.local` (ignored by git) and in the
   host's settings. `.env.example` lists the names only. Never print a key, never
   put one in a card, comment, document, log entry or commit message.
