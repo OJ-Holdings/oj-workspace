@@ -33,7 +33,7 @@ test('the calendar link includes Exterior Care jobs for owners and members, at t
   await db.exec(await schema('exterior-calendar-feed.sql'));
 
   const lead = '00000000-0000-4000-8000-0000000000a1';
-  await db.exec(`insert into public.leads(id,name,phone,address,service_requested,quote_amount) values ('${lead}','Kevin','(815) 382-0471','21 W Margaret Ter','House washing',550);
+  await db.exec(`insert into public.leads(id,name,phone,address,service_requested,quote_amount) values ('${lead}','Kevin','(815) 555-0150','937 Sample Rd','House washing',550);
     insert into public.bookings(lead_id,date,time_block,status) values
       ('${lead}', current_date + 1, '9-12', 'confirmed'),
       ('${lead}', current_date + 2, '4:30-9', 'pending_approval'),
@@ -57,8 +57,8 @@ test('the calendar link includes Exterior Care jobs for owners and members, at t
     const [first, second, third] = rows;
     assert.equal(first.title, 'Kevin / House washing');
     assert.equal(first.venture, 'exterior');
-    assert.equal(first.location, '21 W Margaret Ter');
-    assert.equal(first.notes, 'Exterior Care job\nQuote $550\n(815) 382-0471');
+    assert.equal(first.location, '937 Sample Rd');
+    assert.equal(first.notes, 'Exterior Care job\nQuote $550\n(815) 555-0150');
     assert.equal(first.all_day, false);
     assert.equal(chicago(first.starts_at), '9:00 AM');
     assert.equal(chicago(first.ends_at!), '12:00 PM');
@@ -70,7 +70,7 @@ test('the calendar link includes Exterior Care jobs for owners and members, at t
   });
 
   await t.test('the jobs make a valid calendar file', () => {
-    const ics = toICS([{ id: 'x', title: 'Kevin / House washing', starts_at: '2026-10-06T14:00:00Z', ends_at: '2026-10-06T17:00:00Z', all_day: false, location: '21 W Margaret Ter', notes: 'Exterior Care job\nQuote $550', venture: 'exterior' }], new Date('2026-10-05T00:00:00Z'));
+    const ics = toICS([{ id: 'x', title: 'Kevin / House washing', starts_at: '2026-10-06T14:00:00Z', ends_at: '2026-10-06T17:00:00Z', all_day: false, location: '937 Sample Rd', notes: 'Exterior Care job\nQuote $550', venture: 'exterior' }], new Date('2026-10-05T00:00:00Z'));
     assert.match(ics, /DTSTART:20261006T140000Z\r\nDTEND:20261006T170000Z\r\n/);
     assert.match(ics, /DESCRIPTION:Exterior Care job\\nQuote \$550\r\n/);
   });
