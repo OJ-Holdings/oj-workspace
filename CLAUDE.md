@@ -9,7 +9,7 @@ and OJ Essentials (ojessentials.store, Shopify). Both founders edit it with AI h
 ## Every session
 
 1. `git pull`, then read the top entries of AGENT_LOG.md.
-2. Read docs/OVERHAUL_PLAN.md for what is being built and in what order.
+2. Read docs/OJ_OS_V2_PLAN.md for what is being built and in what order (the older OVERHAUL_PLAN and OJ_OS_MASTER_PLAN are history).
 3. Work on a branch, open a pull request, let CI pass, then merge. Small pull requests.
 4. When you finish something meaningful, add an entry at the top of AGENT_LOG.md.
 
