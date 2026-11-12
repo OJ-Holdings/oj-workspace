@@ -1,31 +1,28 @@
-# OJ workspace
+# OJ workspace (OJ OS)
 
-## Current Exterior founder priority — integration passes first
+## What we are building now: OJ OS V2
 
-Read [docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md](docs/EXTERIOR_INTEGRATION_ADOPTION_PROGRAM.md) with the canonical handoff. The founder directed P1–P7 to go **before normal standalone Exterior feature expansion**, preserving the 12-wave weighted completion model and performing a **second full critique after the pass train**. P1 source-bound Job Continuity is inside current Bookings, not another unrelated tab. P2 genuine founder-host backup/restore/RLS and two-device proof remains a gate before any new production schema or real cross-device field/quote claims. Never merge PR #42 by default.
+Read these before any feature work, in this order:
+1. [docs/OJ_OS_V2_PLAN.md](docs/OJ_OS_V2_PLAN.md) - the plan the founders approved on 2026-11-12: decisions D1-D19, the 9-room map, design language, data spine, room specs, books, Solutions, store, XP, hosting, REA method, skills, and the 16-week roadmap to the March 1, 2027 season.
+2. [docs/OJ_OS_V2_AUDIT.md](docs/OJ_OS_V2_AUDIT.md) - what every current page does and what is wrong with it.
+3. The top entries of AGENT_LOG.md - what Claude and Codex changed recently.
 
-## Founder release preference — main and production by default (October 25, 2026)
+The ATLAS / Exterior Command evidence-gate program and its percentage estimates are retired. Do not add explanation paragraphs, "evidence" disclaimers or "withheld" numbers to screens: show the number with a small badge, and turn missing data into a button that fixes it (plan sections 0 and 3.5).
 
-The owner explicitly wants **completed, tested changes merged to GitHub `main` and deployed to the actual live OJ Workspace**, rather than accumulating indefinitely in feature branches. For every implementation pass, inspect current `main` and release status, land non-destructive, production-ready code after exact-head CI and review, and obtain exact **served SHA** from the Windows/Funnel and/or Netlify origin actually in use. Keep development, merged-main, and verified-production status distinct. Do not call a PR, screenshot of CI, local preview or a merged SHA "live" without production health and actual authenticated workflow evidence.
+## How work ships
 
-Production safeguards are **not waived** by the automatic-release preference: new `supabase/` schema, migrations, secrets, credential changes, source record backfills, Storage access, payments, or outbound messages require applicable real-backup/Storage-object-byte recovery, operator authorization, actor membership and rollback gates. Never blindly merge unfinished dependent/stacked PRs if doing so would break the running app or block the existing guarded auto-deployer. The Windows auto-deploy task only runs with the authorized host available, and must not be bypassed. If you cannot verify the host or CI, provide the exact blocking state and owner-safe `-Status`, `-Apply`, and origin release-evidence commands; do not invent a deployment. Respect `PAUSE`, a competing host supervisor, and the rollback lock.
+- Small pull requests from a branch off the latest `main`, CI green, then merge. The guarded Windows auto-deployer deploys `main`; it blocks ranges that touch `supabase/`, `.env.example` or `oj-connection.ts`, so staged SQL goes in `docs/db-change-proposals/` until a founder applies it.
+- Database changes are additive, staged, tested with PGlite permission tests, and applied only by a founder.
+- Production safeguards stay: backups before migrations or backfills, membership-based access, no service-role key in anything a user can trigger, respect `PAUSE` and the rollback lock.
+- Keep "merged", "deployed" and "verified live" distinct when reporting.
 
-An hourly ChatGPT release watch was created for confirmed `main` CI failures and verifiable served-SHA divergence; this is **monitoring/alerting only**, not an unconditional code merger or SQL deployment robot. Preserve the founder's request for **two clearly distinguished development estimates** in each Exterior implementation response: provisional **overall 49%** (formal historical weighted 42%) and provisional **audit ~50%** (strict founder-accepted 0/16), until further independently verified milestones justify a recalculation.
+## Standing rules
 
-## Cross-chat Exterior Command continuity (mandatory)
-
-For OJ Exterior Care / ATLAS / Exterior Command work, FIRST read [`docs/EXTERIOR_CONTINUE_HERE.md`](docs/EXTERIOR_CONTINUE_HERE.md) for the canonical checkpoint, then `docs/EXTERIOR_COMMAND_PROGRESS.md`, recent `docs/START_HERE_CHAT_HANDOFF.md`, `AGENT_LOG.md`, and this repository's `docs/BUILD_PLAN.md`. The canonical handoff carries a ready-to-copy new-chat prompt.
-
-After every substantive Exterior release, update those GitHub handoffs and the V3 release changelog with exact PR/head/merged SHA, CI evidence, newly implemented behavior, the **percentage of the full 12-wave plan**, limitations, and precise next steps. The handoff should never exist only in a conversation. Recheck live GitHub and runtime; docs are a dated snapshot, not proof that production is serving the merged SHA. Treat migrations, actual money/approval, and cross-device persistence as independent proof gates.
-
-
-Read docs/BUILD_PLAN.md before changing scope. This is a separate application and deployment from Oscar's private STRATHOS dashboard. Never import its SQLite, memory, tokens, environment files, or personal APIs.
-
-Use session-bound Supabase clients and database-enforced organization membership. No service-role client in user-facing operations. Sample data belongs only in /preview, which cannot call production mutations. Do not silently fall back to samples on live data failures.
-
-Preserve the existing OJ outreach system during migration. Only one deployment may own each outbound SMS scheduler. Record unknown historic facts as unknown; quotes are not payments, and missing costs are not zero.
-
-Run typecheck, build, behavioral board tests and database permission tests for meaningful changes. A local preview is not proof of production access control. Live migrations, membership provisioning, file storage and SMS cutover need verification on the configured OJ project.
+- This is a separate application from Oscar's private STRATHOS dashboard. Never import its SQLite, memory, tokens, environment files or personal APIs.
+- Use session-bound Supabase clients and database-enforced organization membership. Sample data belongs only in /preview, which cannot call production mutations. Do not silently fall back to samples on live data failures.
+- No SMS to customers (decision D4). Customer messages go by email and the customer portal.
+- Quotes are not payments, and missing costs are not zero: show them as missing with a fix button.
+- Run typecheck, tests and build for meaningful changes, and look at the change in a browser at desktop and phone width.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
