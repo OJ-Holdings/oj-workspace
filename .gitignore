@@ -33,3 +33,6 @@ oj-automations-*.json
 .secrets/
 secrets/
 keys/
+
+# Session notes stay local (they must never carry customer data into this public repo).
+/HANDOFF.md
