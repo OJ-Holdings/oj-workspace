@@ -66,7 +66,7 @@ export function CommercialBooking({ open, close, act, busy, org, bookings, today
           {account.contacts.length > 1 && <label>Contact<select value={account.contacts.find(c => c.fullName === f.contact)?.id ?? ''} onChange={e => { const c = account.contacts.find(x => x.id === e.target.value); if (c) setF({ ...f, contact: c.fullName, phone: c.phone, email: c.email }); }}>{account.contacts.map(c => <option key={c.id} value={c.id}>{c.fullName}{c.role ? ` (${c.role})` : ''}</option>)}</select></label>}
         </div>}
         <div className="form-grid">
-          <label>Company<input required maxLength={255} value={f.company} onChange={set('company')} placeholder="American Roller Company" /></label>
+          <label>Company<input required maxLength={255} value={f.company} onChange={set('company')} placeholder="Acme Roller Company" /></label>
           <label>Contact name<input maxLength={200} value={f.contact} onChange={set('contact')} /></label>
           <label>Contact phone<input required type="tel" maxLength={40} value={f.phone} onChange={set('phone')} placeholder="(262) 555-0123" /></label>
           <label>Email<input type="email" maxLength={200} value={f.email} onChange={set('email')} /></label>

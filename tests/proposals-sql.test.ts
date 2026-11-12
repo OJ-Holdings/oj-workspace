@@ -21,7 +21,7 @@ async function setup() {
 const as = async (db: PGlite, uid: string) => { await db.exec(`reset role; set request.jwt.claim.sub='${uid}'; set role authenticated;`); };
 const soon = () => new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
 const lines = (extra = '') => `'[{"description":"Facility A","quantity":1,"unit_price_cents":95000},{"description":"Facility B","quantity":1,"unit_price_cents":195000},{"description":"Semiannual maintenance","quantity":1,"unit_price_cents":235000,"optional":true}${extra}]'::jsonb`;
-const create = (org_: string, discount = 15000, linesSql = lines()) => `select public.oj_create_proposal('${org_}', '{"name":"American Roller","address":"Union Grove, WI"}'::jsonb, 'exterior', '${soon()}', 'Net 30', 'Terms', 'Exclusions', '', ${discount}, ${linesSql}) as id`;
+const create = (org_: string, discount = 15000, linesSql = lines()) => `select public.oj_create_proposal('${org_}', '{"name":"Acme Roller","address":"Union Grove, WI"}'::jsonb, 'exterior', '${soon()}', 'Net 30', 'Terms', 'Exclusions', '', ${discount}, ${linesSql}) as id`;
 
 test('a proposal is numbered per year, totals exclude optional lines, and the discount comes off the subtotal', async () => {
   const db = await setup();

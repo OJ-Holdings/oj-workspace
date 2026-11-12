@@ -29,8 +29,8 @@ test('only verified save revisions and bounded normalized pages are accepted',()
 });
 test('client wall readouts come only from saved fields',async()=>{
  const {townOf,accountTowns,siteDomain,accountRhythm,initialsOf,monogramHue}=await import('../src/lib/commercial-accounts');
- assert.equal(townOf('1440 13th Avenue, Union Grove, WI 53182'),'Union Grove, WI');
- assert.equal(townOf('Waukegan National Airport'),'');
+ assert.equal(townOf('544 Fakery Avenue, Union Grove, WI 53182'),'Union Grove, WI');
+ assert.equal(townOf('Wonka National Airport'),'');
  assert.deepEqual(accountTowns({...draft,properties:[
   {...draft.properties[0],address:'1 A St, Kenosha, WI 53140'},
   {...draft.properties[0],id:person,address:'2 B St, Kenosha, WI 53144'}]}),['Kenosha, WI']);
@@ -40,8 +40,8 @@ test('client wall readouts come only from saved fields',async()=>{
  assert.equal(accountRhythm(draft),'Quarterly service');
  assert.equal(accountRhythm({...draft,properties:[]}),'No rhythm agreed');
  assert.equal(accountRhythm({...draft,properties:[draft.properties[0],{...draft.properties[0],id:person,frequency:'monthly'}]}),'Mixed rhythm');
- assert.equal(initialsOf('American Roller Company'),'AR');
- assert.equal(initialsOf('Leiferman Aviation / Waukegan'),'LA');
+ assert.equal(initialsOf('Acme Roller Company'),'AR');
+ assert.equal(initialsOf('Lakeside Aviation / Waukegan'),'LA');
  assert.equal(initialsOf(''),'OJ');
  assert.equal(monogramHue('Acme'),monogramHue(' acme '));
 });
@@ -65,7 +65,7 @@ test('company ledger counts only real invoices, and name matches are suggested f
     r('proposal','d','accepted',50000,null), r('proposal','e','sent',10000,null), r('document','f','',null,null)]);
   assert.deepEqual(ledger, {invoiced: 70000, paid: 55000, open: 15000, invoices: 2, proposals: 2, won: 1, documents: 1});
   assert.deepEqual(companyLedger([]), {invoiced: 0, paid: 0, open: 0, invoices: 0, proposals: 0, won: 0, documents: 0});
-  const order = suggestRecords('American Roller Company', [r('invoice','x','open',1,0,'Smith Residence','2026-11-03'),
-    r('invoice','y','open',1,0,'american roller co','2026-10-01'), r('invoice','z','open',1,0,'Lake Company','2026-11-02')]);
+  const order = suggestRecords('Acme Roller Company', [r('invoice','x','open',1,0,'Smith Residence','2026-11-03'),
+    r('invoice','y','open',1,0,'acme roller co','2026-10-01'), r('invoice','z','open',1,0,'Lake Company','2026-11-02')]);
   assert.deepEqual(order.map(o => o.id), ['y','x','z']);
 });

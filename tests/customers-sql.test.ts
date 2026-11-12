@@ -17,13 +17,13 @@ async function setup() {
   await db.exec(await readFile(new URL('../supabase/schemas/workspace.sql', import.meta.url), 'utf8'));
   await db.exec(`insert into oj_organizations(id,name) values ('${org}','OJ'),('${other}','Other');
     insert into oj_memberships(organization_id,user_id,role,display_name) values ('${org}','${owner}','owner','Oscar'),('${org}','${viewer}','viewer','View'),('${other}','${stranger}','owner','Eve');`);
-  // Seven jobs: Fay twice by phone and once by name and address, two different people on the same placeholder number, and one unnamed customer at two addresses.
+  // Seven jobs: Avery twice by phone and once by name and address, two different people on the same placeholder number, and one unnamed customer at two addresses.
   // Mirrors what exterior-read.sql records in production: the one workspace that owns the legacy leads.
   await db.exec(`create table oj_private.legacy_owner(organization_id uuid primary key references public.oj_organizations(id)); insert into oj_private.legacy_owner values ('${org}');`);
   await db.exec(`insert into public.leads(id,name,phone,address,created_at) values
-    ('${id(1)}','Fay Akindes','(414) 555-0101','1 Main St','2026-06-01'),
-    ('${id(2)}','Fay A.','+1 414 555 0101','1 Main St','2026-08-01'),
-    ('${id(3)}','Fay Akindes',null,'1  MAIN st','2026-09-01'),
+    ('${id(1)}','Avery Mockakin','(414) 555-0101','1 Main St','2026-06-01'),
+    ('${id(2)}','Avery A.','+1 414 555 0101','1 Main St','2026-08-01'),
+    ('${id(3)}','Avery Mockakin',null,'1  MAIN st','2026-09-01'),
     ('${id(4)}','Bill','NP_123','2 Oak Ave','2026-06-02'),
     ('${id(5)}','Tom','NP_123','3 Elm Rd','2026-06-03'),
     ('${id(6)}',null,'262-555-0199','9 Oak Ave','2026-06-04'),
@@ -39,10 +39,10 @@ test('backfill makes one customer per person: same phone, or same name at the sa
   await as(db, owner);
   const r = (await db.query<{ r: { customers: number; properties: number; linked: number } }>(`select public.oj_backfill_customers('${org}') as r`)).rows[0].r;
   assert.deepEqual(r, { customers: 4, properties: 5, linked: 7 });
-  const fay = (await db.query<{ n: number }>(`select count(*)::int as n from oj_lead_links k join oj_customers c on c.id = k.customer_id where c.name = 'Fay Akindes'`)).rows[0].n;
+  const fay = (await db.query<{ n: number }>(`select count(*)::int as n from oj_lead_links k join oj_customers c on c.id = k.customer_id where c.name = 'Avery Mockakin'`)).rows[0].n;
   assert.equal(fay, 3);
   assert.equal((await db.query<{ n: number }>(`select count(*)::int as n from oj_customers where name = 'Unnamed customer'`)).rows[0].n, 1);
-  assert.equal((await db.query<{ k: string }>(`select phone_key as k from oj_customers where name = 'Fay Akindes'`)).rows[0].k, '4145550101');
+  assert.equal((await db.query<{ k: string }>(`select phone_key as k from oj_customers where name = 'Avery Mockakin'`)).rows[0].k, '4145550101');
 });
 
 test('running it again links only new leads, and a new lead with a known phone joins that customer', async () => {
@@ -52,7 +52,7 @@ test('running it again links only new leads, and a new lead with a known phone j
   const again = (await db.query<{ r: { customers: number; linked: number } }>(`select public.oj_backfill_customers('${org}') as r`)).rows[0].r;
   assert.deepEqual([again.customers, again.linked], [0, 0]);
   await db.exec('reset role');
-  await db.exec(`insert into public.leads(id,name,phone,address) values ('${id(8)}','Fay Again','414-555-0101','55 New Rd')`);
+  await db.exec(`insert into public.leads(id,name,phone,address) values ('${id(8)}','Avery Again','414-555-0101','766 Dummy Rd')`);
   await as(db, owner);
   const next = (await db.query<{ r: { customers: number; properties: number; linked: number } }>(`select public.oj_backfill_customers('${org}') as r`)).rows[0].r;
   assert.deepEqual(next, { customers: 0, properties: 1, linked: 1 });

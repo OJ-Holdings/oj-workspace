@@ -29,7 +29,7 @@ test('invoices: issue, pay, void, numbering, ledger agreement, immutability and 
   const exteriorIncome = await acct(db, '4000'), commercialIncome = await acct(db, '4010'), cash = await acct(db, '1000');
   const issue = (over: { key?: string | null; issue?: string; due?: string; lines?: unknown[]; division?: string; org?: string; name?: string } = {}) =>
     db.query<{ id: string }>(`select public.oj_issue_invoice('${over.org ?? ORG}', ${over.key ? `'${over.key}'` : 'null'}, $1::jsonb, '${over.division ?? 'exterior'}', '${over.issue ?? '2026-10-27'}', '${over.due ?? '2026-11-26'}', 'Net 30', 'Thanks', $2::jsonb) as id`,
-      [JSON.stringify({ name: over.name ?? 'Waukegan Office', email: 'ap@example.com', bill_to: '3900 Foster McGaw Dr', lead_id: null }),
+      [JSON.stringify({ name: over.name ?? 'Waukegan Office', email: 'ap@example.com', bill_to: '322 Testbed Dr', lead_id: null }),
        JSON.stringify(over.lines ?? [{ description: 'Window cleaning, 108 panes', quantity: 1, unit_price_cents: 123000, income_account_id: commercialIncome }])]);
   const invoice = async (id: string) => (await db.query<{ number: string; status: string; total_cents: string; paid_cents: string; issue_entry_id: string }>(`select number,status,total_cents,paid_cents,issue_entry_id from oj_invoices where id='${id}'`)).rows[0];
   const pay = (id: string, cents: number, method = 'ach', key: string | null = null, org = ORG) =>

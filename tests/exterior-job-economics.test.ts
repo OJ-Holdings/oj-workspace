@@ -8,7 +8,7 @@ import {jobEconomicsInternalBrief,reviewJobEconomics as sourceReviewJobEconomics
 const leadId='11111111-1111-4111-8111-111111111111';
 const bookingId='22222222-2222-4222-8222-222222222222';
 const lead=(patch:Partial<ExtLead>={}):ExtLead=>({
- id:leadId,name:'Test customer',phone:'+12625550123',address:'100 Field Test Drive',
+ id:leadId,name:'Test customer',phone:'+12625550123',address:'211 Sample Drive',
  service_requested:'Exterior clean',quote_amount:325,status:'booked',source:'website',
  notes:null,job_revenue:null,job_cost:null,created_at:'2026-10-20T12:00:00Z',
  updated_at:'2026-10-23T14:00:00Z',completed_at:null,...patch,

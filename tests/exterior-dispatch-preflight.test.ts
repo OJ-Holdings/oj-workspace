@@ -6,7 +6,7 @@ import {
 } from '../src/lib/exterior-dispatch-preflight';
 
 const lead=(id:string,extra:Partial<ExtLead>={}):ExtLead=>({
- id,name:'Customer '+id,phone:'+12625550123',address:'123 Realistic Example Road',
+ id,name:'Customer '+id,phone:'+12625550123',address:'100 Example Road',
  service_requested:'Exterior washing',quote_amount:325,status:'booked',
  source:'LSA',notes:null,job_revenue:null,job_cost:null,
  created_at:'2026-10-21T18:00:00Z',updated_at:null,completed_at:null,...extra,

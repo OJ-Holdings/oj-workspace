@@ -10,7 +10,7 @@ const link = (lead_id: string, customer_id: string): LeadLink => ({ lead_id, cus
 const TODAY = '2026-10-27';
 
 test('a row carries the jobs linked to the customer, their lifetime revenue and when they are next due', () => {
-  const rows = buildDirectory([cust('c1', 'Fay')], [prop('p1', 'c1', '1 Main St')], [link('a', 'c1'), link('b', 'c1')],
+  const rows = buildDirectory([cust('c1', 'Avery')], [prop('p1', 'c1', '1 Main St')], [link('a', 'c1'), link('b', 'c1')],
     [lead('a', { job_revenue: 200, completed_at: '2025-08-01T15:00:00Z' }), lead('b', { job_revenue: 150, completed_at: '2026-06-10T15:00:00Z' })]);
   assert.equal(rows[0].lifetimeRevenue, 350);
   assert.equal(rows[0].completed, 2);
@@ -42,8 +42,8 @@ test('segments: repeat needs two finished jobs, due is 11+ months since the last
 });
 
 test('search matches the name, the phone and any property address', () => {
-  const rows = buildDirectory([cust('c1', 'Fay Akindes'), cust('c2', 'Tom')], [prop('p', 'c2', '3 Elm Rd')], [], []);
-  assert.deepEqual(filterDirectory(rows, 'all', 'akin', TODAY).map(r => r.customer.name), ['Fay Akindes']);
+  const rows = buildDirectory([cust('c1', 'Avery Mockakin'), cust('c2', 'Tom')], [prop('p', 'c2', '3 Elm Rd')], [], []);
+  assert.deepEqual(filterDirectory(rows, 'all', 'akin', TODAY).map(r => r.customer.name), ['Avery Mockakin']);
   assert.deepEqual(filterDirectory(rows, 'all', 'elm', TODAY).map(r => r.customer.name), ['Tom']);
   assert.equal(filterDirectory(rows, 'all', '555-0100', TODAY).length, 2);
   assert.equal(filterDirectory(rows, 'all', 'nobody', TODAY).length, 0);

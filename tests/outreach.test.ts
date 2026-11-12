@@ -8,9 +8,9 @@ import { outreachKey, parseOutreachRows } from '../src/lib/outreach-import';
 const headers = ['Business Name','Industry','City and State','Website URL','Phone Number','Decision Maker','Best Fit Service','Secondary Fit','The Leak','Evidence','Email','Instagram','Facebook','Email Subject','Email Body','DM','Date Added','Sent By','Outreach Status','Notes'];
 
 test('outreach rows map the real sheet headers, dates, owners and statuses', () => {
-  const result = parseOutreachRows([headers, ['Kenosha Dental','Dental','Kenosha, WI','https://www.example.com/about','262-555-0100','Sam Lee','AI Receptionist','Website','Missed calls','Hours page says weekends closed','sam@example.com','@kenoshadental','','A useful subject','Email body','Short DM','10/18/2026','Jacob','Emailed','Called once']]);
+  const result = parseOutreachRows([headers, ['Example Med Spa','Dental','Kenosha, WI','https://www.example.com/about','262-555-0100','Sam Lee','AI Receptionist','Website','Missed calls','Hours page says weekends closed','sam@example.com','@kenoshadental','','A useful subject','Email body','Short DM','10/18/2026','Jacob','Emailed','Called once']]);
   assert.equal(result.prospects.length, 1);
-  assert.equal(result.prospects[0].business_name, 'Kenosha Dental');
+  assert.equal(result.prospects[0].business_name, 'Example Med Spa');
   assert.equal(result.prospects[0].date_added, '2026-10-18');
   assert.equal(result.prospects[0].sent_by, 'Jacob');
   assert.equal(result.prospects[0].source_status, 'Emailed');
@@ -21,14 +21,14 @@ test('outreach rows map the real sheet headers, dates, owners and statuses', () 
 test('daily sync accepts the live Sender/Send To/Message/Trade sheet without inventing dates', () => {
   const liveHeaders = ['Sender','Channel','Send To','Subject','Message','Status','Notes','Business Name','Decision Maker','Best Fit Service','The Leak','Instagram','Facebook','Email','Trade','City and State','Website URL','Phone Number'];
   const result = parseOutreachRows([liveHeaders, [
-    'Jacob','Email','austinmedspa@gmail.com','your about page','A short outreach message','Not Sent','','Austin Med Spa',
-    'Suzette Smith, Owner','Website','Placeholder text on the about page.','https://instagram.com/austinmedspa','','austinmedspa@gmail.com',
-    'Med Spa','Austin, TX','https://www.austinmedspa.com/','(512) 479-9997',
+    'Jacob','Email','owner@example.com','your about page','A short outreach message','Not Sent','','Austin Med Spa',
+    'Pat Example, Owner','Website','Placeholder text on the about page.','https://instagram.com/examplemedspa','','owner@example.com',
+    'Med Spa','Austin, TX','https://www.examplemedspa.com/','(512) 555-0142',
   ]]);
   assert.equal(result.prospects.length, 1);
   assert.equal(result.prospects[0].business_name, 'Austin Med Spa');
   assert.equal(result.prospects[0].industry, 'Med Spa');
-  assert.equal(result.prospects[0].email, 'austinmedspa@gmail.com');
+  assert.equal(result.prospects[0].email, 'owner@example.com');
   assert.equal(result.prospects[0].email_subject, 'your about page');
   assert.equal(result.prospects[0].email_body, 'A short outreach message');
   assert.equal(result.prospects[0].sent_by, 'Jacob');
