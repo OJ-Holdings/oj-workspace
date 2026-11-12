@@ -5,7 +5,6 @@ import {createBrowserClient} from '@supabase/ssr';
 import {ArrowLeft,Building2,CalendarPlus,Download,ExternalLink,ImageUp,Mail,MapPin,PencilLine,Phone,Plus,RefreshCw,Save,UserRound,X} from 'lucide-react';
 import {ojConnection} from '@/lib/oj-connection';
 import {loadCommercialAccounts,saveCommercialAccount} from '@/app/workspace/commercial-account-actions';
-import {CommercialAccountProjects} from './CommercialAccountProjects';
 import {CommercialBooking,type CommercialPrefill} from './CommercialBooking';
 import {CompanyRecords} from './CompanyRecords';
 import type {Act} from './ExteriorManage';
@@ -390,7 +389,6 @@ export function CommercialAccounts({org,base,mode,readOnly,booking,onStartEstima
   </dl>}
   {editing?form:readout}
   {!editing&&selected.revision>0&&<CompanyRecords org={org} accountId={selected.id} company={recorded?.name??draft.name} canEdit={canEdit}/>}
-  {!editing&&selected.revision>0&&<CommercialAccountProjects org={org} accountId={selected.id} base={base} properties={recorded?.properties??[]}/>}
  </>;
 
  return <section className="com-account-app cw" aria-label="Commercial clients">

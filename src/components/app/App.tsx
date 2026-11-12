@@ -14,11 +14,6 @@ import { HomeView } from './HomeView';
 import { PulseProvider, PulsePage } from './Pulse';
 import { SystemsHealthDesk } from './SystemsHealthDesk';
 import { followUpFromCrmLead, followUpFromExteriorBooking } from '@/lib/operating-handoffs';
-import { chicagoDateOf, parseLocalCommercialDraft, parseLocalFleetDraft } from '@/lib/atlas-field-bridge';
-import { commercialPortfolioTask, commercialReviewTask, fleetReviewTask } from '@/lib/atlas-task-handoff';
-import { fleetServiceTask } from '@/lib/atlas-fleet-service-handoff';
-import { loadCommercialProject } from '@/app/workspace/commercial-actions';
-import { FleetCommand } from './FleetCommand';
 import { ContentStudio } from './ContentStudio';
 import { BoardView } from './BoardView';
 import { VentureView } from './VentureView';
@@ -74,6 +69,10 @@ const planned: Partial<Record<NavKey, { title: string; body: string }>> = {
 
 const noConnections: Connections = { shopify: false, ghl: false };
 
+/** Query parameters that ask the app to prepare a task; old links may still carry the retired ones. */
+const SOURCE_PARAMS = ['sourceLead', 'sourceBooking', 'sourceCommercial', 'sourceFleet', 'sourceProject', 'sourceFleetAsset'];
+const clearSources = (url: URL) => SOURCE_PARAMS.forEach(p => url.searchParams.delete(p));
+
 export function App({ base, initial, mode, organizationId, members, dashboard, connections = noConnections, work: workData, partner = true, readOnly = false, owner = false, displayName = '', connectionStatus = '', limited = false }: AppProps) {
   const pathname = usePathname() ?? base;
   const parts = pathname.slice(base.length).split('/').filter(Boolean);
@@ -86,14 +85,14 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       if (args[0]) {
         const url = new URL(window.location.href);
         url.searchParams.set('task', args[0].id);
-        url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
+        clearSources(url);
         window.history.pushState(null, '', url.pathname + url.search);
       }
     },
     closeCard: (extraDraft = false) => {
       if (!rawBoard.closeCard(extraDraft)) return false;
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
+      url.searchParams.delete('task'); clearSources(url);
       window.history.replaceState(null, '', url.pathname + url.search);
       return true;
     },
@@ -102,27 +101,22 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   const { jobs, schedule: jobSchedule, loadingState: jobsState } = useJobs(organizationId, mode, pathname);
   const query = useSearchParams();
   const opened = useRef('');
-  const [handoffError,setHandoffError]=useState('');
   const taskId = query.get('task');
   const sourceLead = query.get('sourceLead');
   const sourceBooking = query.get('sourceBooking');
-  const sourceCommercial = query.get('sourceCommercial') === '1';
-  const sourceFleet = query.get('sourceFleet') === '1';
-  const sourceProject = query.get('sourceProject');
-  const sourceFleetAsset = query.get('sourceFleetAsset');
   useEffect(() => {
     if (!board.ready) return;
-    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : sourceProject ? `project:${sourceProject}` : sourceFleetAsset ? `fleetasset:${sourceFleetAsset}` : sourceCommercial ? 'commercial:1' : sourceFleet ? 'fleet:1' : '';
+    const key = taskId ? `task:${taskId}` : sourceLead ? `lead:${sourceLead}` : sourceBooking ? `booking:${sourceBooking}` : '';
     if (opened.current === key) return;
     if (rawBoard.editing && !rawBoard.closeCard()) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
+      url.searchParams.delete('task'); clearSources(url);
       const [kind, ...value] = opened.current.split(':');
-      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : kind === 'commercial' ? 'sourceCommercial' : kind === 'fleet' ? 'sourceFleet' : kind === 'project' ? 'sourceProject' : kind === 'fleetasset' ? 'sourceFleetAsset' : 'sourceLead', value.join(':'));
+      if (value.length) url.searchParams.set(kind === 'task' ? 'task' : kind === 'booking' ? 'sourceBooking' : 'sourceLead', value.join(':'));
       window.history.replaceState(null, '', url.pathname + url.search);
       return;
     }
-    if (!key) { opened.current = ''; setHandoffError(''); return; }
+    if (!key) { opened.current = ''; return; }
     if (taskId) {
       const card = board.data.cards.find(c => c.id === taskId);
       if (card) { opened.current = key; rawBoard.openCard(card); }
@@ -130,87 +124,25 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
       const lead = store.data?.leads.find(l => l.id === sourceLead);
       if (lead) {
         opened.current = key;
-        rawBoard.openCard(undefined, followUpFromCrmLead(lead,base));
+        rawBoard.openCard(undefined, followUpFromCrmLead(lead, base));
       }
     } else if (sourceBooking && !readOnly && mode === 'live') {
-      if(jobsState==='loading')return;
+      if (jobsState === 'loading') return;
       const booking = jobs.find(j => j.id === sourceBooking);
       if (booking) {
         try {
-          const draft = followUpFromExteriorBooking(booking,base);
+          const draft = followUpFromExteriorBooking(booking, base);
           opened.current = key;
-          rawBoard.openCard(undefined,draft);
-        } catch { /* Rejected booking cannot create a task draft. */ }
-      }
-    } else if (sourceProject && !readOnly && mode === 'live') {
-      if(jobsState==='loading')return;
-      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sourceProject)){
-        opened.current=key;setHandoffError('Invalid shared project identifier.');return;
-      }
-      opened.current=key;
-      setHandoffError('Loading the authorized shared project…');
-      void loadCommercialProject(organizationId,sourceProject).then(project=>{
-        if(opened.current!==key)return;
-        if(!project)throw new Error('Shared project not found or no longer accessible.');
-        const day=chicagoDateOf(new Date().toISOString())??'';
-        const rawFleet=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
-        let fleet:ReturnType<typeof parseLocalFleetDraft>|null=null;
-        if(rawFleet){try{fleet=parseLocalFleetDraft(rawFleet,organizationId);}catch{/* Optional fleet evidence is unknown, not invented. */}}
-        const sourceBooking=project.bookingId
-          ? jobs.find(j=>j.id.toLowerCase()===project.bookingId&&j.status!=='cancelled'&&j.status!=='denied')??null
-          : null;
-        const draft=commercialPortfolioTask(project,fleet,day,sourceBooking);
-        if(opened.current!==key)return;
-        setHandoffError('');rawBoard.openCard(undefined,draft);
-      }).catch(error=>{
-        if(opened.current!==key)return;
-        setHandoffError(error instanceof Error?error.message:'Shared project could not be validated for task preparation.');
-      });
-    } else if (sourceFleetAsset && !readOnly && mode === 'live') {
-      // Explicit click from a specific device-local fleet asset; no shared
-      // work-order save happens until the standard task editor is approved.
-      try{
-        const raw=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
-        if(!raw)throw new Error('No validated Fleet Command workbook is available on this device.');
-        const fleet=parseLocalFleetDraft(raw,organizationId);
-        const day=chicagoDateOf(new Date().toISOString())??'';
-        const draft=fleetServiceTask(fleet,sourceFleetAsset,day);
-        opened.current=key;setHandoffError('');rawBoard.openCard(undefined,draft);
-      }catch(error){
-        opened.current=key;
-        setHandoffError(error instanceof Error?error.message:'Cannot prepare a service task from this private equipment record.');
-      }
-    } else if ((sourceCommercial || sourceFleet) && !readOnly && mode === 'live') {
-      // This navigation is an explicit user request to PREPARE a task. Reading
-      // org-keyed browser drafts cannot save a task, send outreach or approve a bid.
-      try {
-        const day=chicagoDateOf(new Date().toISOString()) ?? '';
-        const rawCommercial=sourceCommercial ? window.localStorage.getItem('oj-commercial-estimate-v2:'+organizationId) : null;
-        const rawFleet=window.localStorage.getItem('oj-fleet-command-v1:'+organizationId);
-        if(sourceCommercial && !rawCommercial)throw new Error('Save your commercial estimate on this device before preparing a shared task.');
-        if(sourceFleet && !rawFleet)throw new Error('Save a Fleet Command workbook on this device before preparing a shared task.');
-        let fleet: ReturnType<typeof parseLocalFleetDraft> | null = null;
-        if(rawFleet){
-          try{fleet=parseLocalFleetDraft(rawFleet,organizationId);}
-          catch(error){if(sourceFleet)throw error;} // Optional fleet evidence never blocks commercial task preparation.
-        }
-        const draft=sourceCommercial
-          ? commercialReviewTask(parseLocalCommercialDraft(rawCommercial!,organizationId),fleet,day)
-          : fleetReviewTask(fleet!,day);
-        opened.current=key;
-        setHandoffError('');
-        rawBoard.openCard(undefined,draft);
-      } catch(error) {
-        opened.current=key;
-        setHandoffError(error instanceof Error ? error.message : 'The private source workbook could not be read.');
+          rawBoard.openCard(undefined, draft);
+        } catch { /* A rejected booking cannot create a task draft. */ }
       }
     }
-  }, [taskId, sourceLead, sourceBooking, sourceProject, sourceFleetAsset, sourceCommercial, sourceFleet, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
+  }, [taskId, sourceLead, sourceBooking, organizationId, board.ready, board.data.cards, store.data, jobs, jobsState, mode, readOnly, base]);
   const wasEditing = useRef(false);
   useEffect(() => {
     if (wasEditing.current && !rawBoard.editing) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('task'); url.searchParams.delete('sourceLead'); url.searchParams.delete('sourceBooking'); url.searchParams.delete('sourceCommercial'); url.searchParams.delete('sourceFleet'); url.searchParams.delete('sourceProject'); url.searchParams.delete('sourceFleetAsset');
+      url.searchParams.delete('task'); clearSources(url);
       window.history.replaceState(null, '', url.pathname + url.search);
       opened.current = '';
     }
@@ -227,13 +159,12 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   let current: NavKey = 'home';
   let venture: VentureId | null = null;
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) {
-    current = parts[1] === 'exterior' && parts[2] === 'projects' ? 'nexus'
-      : parts[1] === 'exterior' && parts[2] === 'bookings' ? 'exterior-bookings'
+    current = parts[1] === 'exterior' && parts[2] === 'bookings' ? 'exterior-bookings'
       : parts[1] === 'exterior' && (parts[2] === 'leads' || parts[2] === 'inbox') ? 'exterior-leads'
       : parts[2] === 'money' ? 'finance' : 'businesses';
     venture = parts[1];
   }
-  else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'fleet';
+  else if (parts[0] === 'tools' && parts[1] === 'fleet') current = 'rig'; // Fleet Command was retired; equipment lives with the truck plan.
   else if (parts[0] && ['businesses', 'tasks', 'calendar', 'crm', 'finance', 'invoices', 'files', 'messages', 'analytics', 'team', 'settings', 'tools', 'summit', 'growth', 'quality', 'proposals', 'customers', 'books', 'rig', 'pulse'].includes(parts[0])) current = parts[0] as NavKey;
 
   const open = board.data.cards.filter(c => c.stage !== 'Done');
@@ -256,14 +187,11 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
         mode === 'live' && !owner
           ? <div className="page"><header className="page-head"><h1>Founders only</h1><p>This page is reserved for the workspace owners.</p></header></div>
           : <HyperboreaView data={store.data} now={store.now} companies={0 /* Ownership evidence is not connected; business tabs are not companies. */} coreVentures={ventureList.map(v => v.id)} businesses={ventureList.map(v => ({ id: v.id, name: v.short }))} base={base} mode={mode} />
-      ) : current === 'fleet' ? (
-        <FleetCommand key={organizationId+mode+String(readOnly)} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} bookings={jobs} bookingsState={jobsState} cards={board.data.cards} />
       ) : current === 'tools' ? (
         parts[1] === 'systems' ? <SystemsHealthDesk mode={mode} /> : parts[1] === 'content-preview' && !contentPersistenceEnabled ? <ContentStudio base={base} organizationId={organizationId} mode="preview" readOnly /> : <HomeView org={organizationId} base={base} board={board} store={store} work={work} metrics={metrics} jobs={jobs} mode={mode} displayName={displayName} members={members} readOnly={readOnly} limited={limited} />
       ) : current === 'tasks' ? (
         <div className="page">
           <header className="page-head"><h1>Tasks</h1><p>Everything the two of you are moving forward, across your active businesses.</p></header>
-          {handoffError && <p className="notice" role="alert">{handoffError}</p>}
           <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} />
           <SuggestedWork board={board} dashboard={store.data} base={base} organizationId={organizationId} mode={mode} readOnly={readOnly} />
         </div>

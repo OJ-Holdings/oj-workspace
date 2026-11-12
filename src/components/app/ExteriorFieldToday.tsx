@@ -7,7 +7,6 @@ import { blockLabel, isRealPhone } from '@/lib/exterior-ops';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { JobSheet, type Act } from './ExteriorManage';
-import { ExteriorFieldCommand } from './ExteriorFieldCommand';
 import { OutOfStateFlag } from './OutOfStateFlag';
 
 const addDays = (key: string, n: number) => { const d = new Date(`${key}T12:00:00`); d.setDate(d.getDate() + n); return dayKey(d); };
@@ -15,11 +14,11 @@ const label = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('e
 
 /**
  * The field page, simplified: today's jobs, the ones coming up, and past jobs still missing their figures. Tap a job to put in what
- * the customer paid and what it cost. The full evidence log is still here, folded away underneath.
+ * the customer paid and what it cost. A link with ?booking=<id> opens that job straight away.
  */
 export function ExteriorFieldToday({ data, act, busy, readOnly, org, now, base, mode }: { data: ExteriorData; act: Act; busy: boolean; readOnly: boolean; org: string; now: Date; base: string; mode: 'preview' | 'live' }) {
-  const [open, setOpen] = useState<string | null>(null);
   const params = useSearchParams();
+  const [open, setOpen] = useState<string | null>(() => params.get('booking'));
   const today = dayKey(now);
   const lead = new Map(data.leads.map(l => [l.id, l]));
   const live = data.bookings.filter(b => b.status !== 'denied' && b.status !== 'cancelled');
@@ -59,10 +58,6 @@ export function ExteriorFieldToday({ data, act, busy, readOnly, org, now, base, 
       <header className="panel-head"><h2>Next 7 days</h2></header>
       <ul className="fieldtoday-list">{coming.map(b => row(b, true))}</ul>
     </section>}
-    <details className="jobs-headsup" open={!!params.get('booking')}>
-      <summary>Full field log and evidence checklists</summary>
-      <ExteriorFieldCommand data={data} org={org} readOnly={readOnly} mode={mode} base={base} now={now} />
-    </details>
     <JobSheet booking={sheet} lead={sheet ? lead.get(sheet.lead_id ?? '') : undefined} close={() => setOpen(null)} act={act} busy={busy} org={org} readOnly={readOnly} base={base} />
   </>;
 }

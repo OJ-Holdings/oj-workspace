@@ -5,10 +5,10 @@ import { ventures, type VentureId } from '@/lib/ventures';
 
 export type BusinessSection = readonly [string, string];
 const groups = [
-  { label: 'Work', sections: ['overview', 'studio', 'board', 'bookings', 'calendar', 'commercial', 'projects'] },
+  { label: 'Work', sections: ['overview', 'studio', 'board', 'bookings', 'calendar', 'commercial'] },
   { label: 'Customers', sections: ['leads', 'clients', 'outreach', 'calls', 'quotes', 'door-knocking', 'orders'] },
-  { label: 'Results', sections: ['jobs', 'money', 'metrics', 'products', 'inventory'] },
-  { label: 'Workspace', sections: ['documents', 'activity', 'upgrades', 'settings'] },
+  { label: 'Results', sections: ['jobs', 'money', 'products', 'inventory'] },
+  { label: 'Workspace', sections: ['documents', 'activity', 'settings'] },
 ];
 
 /** OJ Solutions is organised around the plan: today's work, outreach, then customers. */
@@ -16,7 +16,7 @@ const solutionsGroups = [
   { label: 'Today', sections: ['overview', 'dms'] },
   { label: 'Outreach', sections: ['email', 'outreach', 'warm'] },
   { label: 'Customers', sections: ['consultations', 'clients', 'calls', 'leads'] },
-  { label: 'Results', sections: ['money', 'metrics'] },
+  { label: 'Results', sections: ['money'] },
   { label: 'Workspace', sections: ['board', 'documents'] },
 ];
 

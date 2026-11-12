@@ -7,7 +7,7 @@ import { BusinessNav } from './BusinessNav';
 import { ventures, type VentureId } from '@/lib/ventures';
 import type { WorkspaceMetrics } from '@/lib/metrics';
 import { BoardView } from './BoardView';
-import { CrmView, FilesView, FinanceView, MetricsTab } from './Pages';
+import { CrmView, FilesView, FinanceView } from './Pages';
 import { ShopifyView } from './ShopifyView';
 import { ExteriorView } from './ExteriorView';
 import { GhlView } from './GhlView';
@@ -19,9 +19,9 @@ import { ExteriorCommandNav } from './ExteriorCommandNav';
 import type { DashboardStore } from './useDashboard';
 import type { Board } from './useBoard';
 
-const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['metrics', 'Metrics'], ['documents', 'Documents']] as const;
+const coreTabs = [['overview', 'Overview'], ['board', 'Board'], ['leads', 'Leads'], ['money', 'Money'], ['documents', 'Documents']] as const;
 const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
-  exterior: [['leads', 'Leads'], ['inbox', 'Lead inbox'],['customer', 'Customer 360'], ['estimate', 'Estimate Workbench'], ['intake', 'Website Intake'], ['bookings', 'Bookings'], ['field', 'Field Command'], ['calendar', 'Calendar'], ['projects', 'NEXUS / Project 360'], ['commercial', 'Commercial estimates'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['upgrades', 'Upgrades'], ['settings', 'Settings']],
+  exterior: [['leads', 'Leads'], ['inbox', 'Lead inbox'],['customer', 'Customer 360'], ['estimate', 'Estimate Workbench'], ['intake', 'Website Intake'], ['bookings', 'Bookings'], ['field', 'Field'], ['calendar', 'Calendar'], ['commercial', 'Commercial'], ['jobs', 'Jobs and income'], ['door-knocking', 'Door knocking'], ['quotes', 'Quote requests'], ['activity', 'Activity'], ['settings', 'Settings']],
   solutions: [['dms', 'Daily 10'], ['email', 'Email engine'], ['outreach', 'Prospects'], ['warm', 'Warm leads'], ['consultations', 'Website requests'], ['clients', 'Clients'], ['calls', 'Calls']],
   essentials: [['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory']],
   content: [['studio', 'Production Studio']],
@@ -29,11 +29,11 @@ const extraTabs: Record<VentureId, readonly (readonly [string, string])[]> = {
 const isExtra = (venture: VentureId, tab: string) => extraTabs[venture].some(([id]) => id === tab);
 /** Exterior Care runs on its own lead system, so its tabs replace the workspace's general Leads tab. */
 const tabsFor = (venture: VentureId): readonly (readonly [string, string])[] => venture === 'solutions'
-  ? [['overview', 'Command'], ...extraTabs.solutions, ['leads', 'Contacts'], coreTabs[3], coreTabs[4], coreTabs[1], coreTabs[5]]
+  ? [['overview', 'Command'], ...extraTabs.solutions, ['leads', 'Contacts'], coreTabs[3], coreTabs[1], coreTabs[4]]
   : venture === 'exterior'
-  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 6), coreTabs[3], ...extraTabs.exterior.slice(6), coreTabs[4], coreTabs[5]]
+  ? [coreTabs[0], coreTabs[1], ...extraTabs.exterior.slice(0, 6), coreTabs[3], ...extraTabs.exterior.slice(6), coreTabs[4]]
   : venture === 'content'
-    ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4], coreTabs[5]]
+    ? [coreTabs[0], ...extraTabs.content, coreTabs[1], coreTabs[3], coreTabs[4]]
     : [...coreTabs, ...extraTabs[venture]];
 
 type Props = { base: string; venture: VentureId; tab: string; board: Board; store: DashboardStore; metrics: WorkspaceMetrics | null; members: string[]; readOnly: boolean; displayName: string; organizationId: string; mode: 'preview' | 'live' };
@@ -72,7 +72,6 @@ export function VentureView({ base, venture, tab, board, store, metrics, members
     {active === 'board' && <BoardView board={board} members={members} readOnly={readOnly} displayName={displayName} lockVenture={venture} />}
     {active === 'leads' && venture !== 'exterior' && <CrmView store={store} readOnly={readOnly} venture={venture} cards={board.data.cards} />}
     {active === 'money' && <FinanceView store={store} readOnly={readOnly} venture={venture} />}
-    {active === 'metrics' && <MetricsTab store={store} readOnly={readOnly} venture={venture} />}
     {active === 'documents' && <FilesView store={store} readOnly={readOnly} venture={venture} />}
     {isExtra(venture, active) && venture === 'essentials' && <ShopifyView tab={active} org={organizationId} mode={mode} />}
     {isExtra(venture, active) && venture === 'exterior' && <ExteriorView tab={active} org={organizationId} mode={mode} readOnly={readOnly} cards={cards} activity={board.data.activity ?? []} />}

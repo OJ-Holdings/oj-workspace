@@ -6,9 +6,9 @@ import {ArrowUpRight,ChartNoAxesCombined,ChevronDown,HardHat,LayoutDashboard,Use
 
 const primary=[
   {id:'command',title:'Command',short:'Command',href:'',icon:LayoutDashboard,paths:['overview']},
-  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','inbox','customer','estimate','quotes','intake','commercial','projects']},
+  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','inbox','customer','estimate','quotes','intake','commercial']},
   {id:'operations',title:'Field Operations',short:'Operations',href:'/bookings',icon:HardHat,paths:['bookings','calendar','field','board']},
-  {id:'intelligence',title:'Intelligence',short:'Intelligence',href:'/jobs',icon:ChartNoAxesCombined,paths:['jobs','money','metrics','door-knocking']},
+  {id:'intelligence',title:'Intelligence',short:'Intelligence',href:'/jobs',icon:ChartNoAxesCombined,paths:['jobs','money','door-knocking']},
 ] as const;
 const other=[
   {title:'Customer dossier',path:'/customer'},
@@ -16,14 +16,11 @@ const other=[
   {title:'Company board',path:'/board'},
   {title:'Field Command / mobile job log',path:'/field'},
   {title:'Operations calendar',path:'/calendar'},
-  {title:'Project 360',path:'/projects'},
   {title:'Website intake command',path:'/intake'},
   {title:'Acquisition history',path:'/door-knocking'},
   {title:'Exterior Finance',path:'/money'},
-  {title:'Service metrics',path:'/metrics'},
   {title:'Documents',path:'/documents'},
   {title:'Source activity',path:'/activity'},
-  {title:'Upgrade register',path:'/upgrades'},
   {title:'Division settings',path:'/settings'},
 ];
 export function ExteriorCommandNav({base,active}:{base:string;active:string}){

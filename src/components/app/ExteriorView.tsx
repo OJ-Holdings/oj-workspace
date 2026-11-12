@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NumberFlow from '@number-flow/react';
 import { Check, Lock } from 'lucide-react';
-import { loadExterior, saveUpgrades } from '@/app/workspace/exterior-actions';
-import { tier, toggleUpgrade, upgradeCount, upgradeGroups, upgradeStatus, type Completed } from '@/lib/upgrades';
+import { loadExterior } from '@/app/workspace/exterior-actions';
 import { doorDetails, isRecordedJobAmount, jobDate, jobDateBasis, sourceLabel, summariseJobs, summariseSessions, type Done, type ExteriorData, type ExteriorResult } from '@/lib/exterior';
 import { businessDay, emptyJobFilters, filterCompletedJobs, serviceName, type JobFilters } from '@/lib/reporting';
 import { sampleExterior } from '@/lib/exterior-sample';
@@ -18,8 +17,7 @@ import { ExteriorCustomer360 } from './ExteriorCustomer360';
 import { ExteriorIntakeDesk } from './ExteriorIntakeDesk';
 import { ExteriorEstimateWorkbench } from './ExteriorEstimateWorkbench';
 import { ExteriorFieldToday } from './ExteriorFieldToday';
-import { CommercialDesk } from './CommercialDesk';
-import { AtlasNexusProjects } from './AtlasNexusProjects';
+import { CommercialAccounts } from './CommercialAccounts';
 import { dayKey } from '@/lib/dashboard';
 import { dollars } from '@/lib/metrics';
 import { loadJobCrew } from '@/app/workspace/employees/actions';
@@ -37,14 +35,13 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState(50);
-  const [ticked, setTicked] = useState<Completed>({});
   const [notice, setNotice] = useState('');
   const [crew, setCrew] = useState<Awaited<ReturnType<typeof loadJobCrew>> | null>(null);
   useEffect(() => {
     if (mode === 'preview') { const time = new Date(); setResult({ ok: true, data: sampleExterior(time) }); setNow(time); return; }
     let live = true;
     setResult(null);
-    loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); if (r.ok && r.data.extras) setTicked(r.data.extras.upgrades); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
+    loadExterior(org).then(r => { if (live) { setResult(r); setNow(new Date()); } }, () => { if (live) setResult({ ok: false, reason: 'failed' }); });
     return () => { live = false; };
   }, [org, mode, attempt]);
 
@@ -70,15 +67,6 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
     finally { setBusy(false); }
   }, [refresh, mode]);
 
-  function toggle(id: string, name: string) {
-    if (mode === 'preview') return;
-    const { next, removed } = toggleUpgrade(ticked, id);
-    if (removed.length > 1 && !window.confirm(`Unticking "${name}" also unticks ${removed.length - 1} upgrade${removed.length === 2 ? '' : 's'} that depend on it. Continue?`)) return;
-    const before = ticked;
-    setTicked(next); setNotice('');
-    saveUpgrades(org, next).then(() => setNotice('Saved.'), () => { setTicked(before); setNotice('That change did not save. Check your connection and try again.'); });
-  }
-
   if (!result || !now) return <div className="loading" aria-busy="true" />;
   if (!result.ok) return result.reason === 'no-access'
     ? <div className="planned"><h2>Members only</h2><p>These records hold customers&apos; names, phone numbers and addresses, so view-only access does not include them. Ask a founder for member access.</p></div>
@@ -95,51 +83,15 @@ export function ExteriorView({ tab, org, mode, readOnly, cards, activity }: { ta
   if (tab === 'inbox') return <><LeadsTabs base={mode === 'preview' ? '/preview' : '/workspace'} current="inbox" /><LeadEngine org={org} mode={mode} readOnly={readOnly} sample={mode === 'preview' ? data.leads : noLeads} /></>;
   if (tab === 'bookings') return <>{status}<BookingsManager {...common} crew={crew?.ok ? crew : null} refreshCrew={refreshCrew} /></>;
   if (tab === 'calendar') return <>{status}<JobsCalendar {...common} /></>;
-  if (tab === 'projects') return <AtlasNexusProjects key={org+mode+String(readOnly)} org={org} base={mode === 'preview' ? '/preview' : '/workspace'} mode={mode} readOnly={readOnly} exterior={data} cards={cards} activity={activity} />;
-  if (tab === 'commercial') return <>{status}<CommercialDesk key={org+mode+String(readOnly)} data={data} org={org} mode={mode} readOnly={readOnly} cards={cards} act={act} busy={busy} today={dayKey(now)} /></>;
+  if (tab === 'commercial') return <>{status}<CommercialAccounts org={org} base={mode === 'preview' ? '/preview' : '/workspace'} mode={mode} readOnly={readOnly} booking={!common.readOnly ? { act, busy, bookings: data.bookings, today: dayKey(now) } : undefined} /></>;
   if (tab === 'activity') return <ActivityList data={data} />;
   if (tab === 'settings') return <>{status}<ExteriorSettings {...common} /></>;
 
   if (tab === 'jobs') return <ExteriorJobReport data={data} now={now} mode={mode} act={act} busy={busy} readOnly={common.readOnly} org={org} />;
 
-  if ((tab === 'upgrades' || tab === 'quotes' || tab === 'intake') && !data.extras) return (
+  if ((tab === 'quotes' || tab === 'intake') && !data.extras) return (
     <div className="planned"><h2>One step left to switch this on</h2><p>This tab is built, but the database does not share these records with the workspace yet. A founder needs to run one more database update.</p></div>
   );
-
-  if (tab === 'upgrades') {
-    const state = upgradeStatus(ticked);
-    const done = Object.values(state).filter(s => s === 'done').length;
-    return <>
-      <div className="kpis">
-        <div><span>Upgrades unlocked</span><strong><NumberFlow value={done} /> <small className="quiet">of {upgradeCount}</small></strong></div>
-        <div><span>Ready to do next</span><strong><NumberFlow value={Object.values(state).filter(s => s === 'ready').length} /></strong></div>
-        <div><span>Level</span><strong>{tier(done)}</strong><small className="quiet">{Math.round((done / upgradeCount) * 100)}% of the way</small></div>
-      </div>
-      <p className="notice" role="status" aria-live="polite">{notice}</p>
-      {upgradeGroups.map(g => {
-        const count = g.nodes.filter(n => state[n.id] === 'done').length;
-        return (
-          <section className="panel" key={g.id}>
-            <header className="panel-head"><h2>{g.name}</h2><span className="quiet">{count} of {g.nodes.length}</span></header>
-            <progress className="upgrade-bar" value={count} max={g.nodes.length} aria-label={`${g.name}: ${count} of ${g.nodes.length} done`} />
-            <ul className="upgrades">{g.nodes.map(n => {
-              const s = state[n.id];
-              return (
-                <li key={n.id}>
-                  <button type="button" className={`upgrade is-${s}`} aria-pressed={s === 'done'} disabled={readOnly || mode === 'preview' || s === 'locked'} onClick={() => toggle(n.id, n.name)}>
-                    <i aria-hidden="true">{s === 'done' ? <Check size={14} /> : s === 'locked' ? <Lock size={12} /> : null}</i>
-                    <b>{n.name}</b><span>{n.desc}</span>
-                    <small>{s === 'locked' ? 'Locked' : s === 'done' ? 'Done' : 'Ready'}{n.cost ? `, ${n.cost}` : ''}</small>
-                  </button>
-                </li>
-              );
-            })}</ul>
-          </section>
-        );
-      })}
-      <p className="quiet">The same list the Exterior Care app shows. Ticking one here ticks it there. A locked upgrade opens once the ones it depends on are done.</p>
-    </>;
-  }
 
   if (tab === 'quotes' || tab === 'intake') return <>{status}<ExteriorIntakeDesk {...common} base={mode === 'preview' ? '/preview' : '/workspace'} /></>;
 
