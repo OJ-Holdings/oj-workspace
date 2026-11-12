@@ -6,7 +6,7 @@ import {ArrowUpRight,ChartNoAxesCombined,ChevronDown,HardHat,LayoutDashboard,Use
 
 const primary=[
   {id:'command',title:'Command',short:'Command',href:'',icon:LayoutDashboard,paths:['overview']},
-  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','customer','estimate','quotes','intake','commercial','projects']},
+  {id:'customers',title:'Customers & Sales',short:'Customers',href:'/leads',icon:UsersRound,paths:['leads','inbox','customer','estimate','quotes','intake','commercial','projects']},
   {id:'operations',title:'Field Operations',short:'Operations',href:'/bookings',icon:HardHat,paths:['bookings','calendar','field','board']},
   {id:'intelligence',title:'Intelligence',short:'Intelligence',href:'/jobs',icon:ChartNoAxesCombined,paths:['jobs','money','metrics','door-knocking']},
 ] as const;

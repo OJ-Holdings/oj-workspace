@@ -321,3 +321,78 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -0.025em; }
 .boardview .done-more { align-self: flex-start; padding: 4px 2px; }
 .delete-confirm { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .taskcard-done .secondary.danger { margin-right: 0; }
+
+/* ---------- Lead inbox (LSA follow-ups). Phone first: one column, 44px tap targets, flat. ---------- */
+.lead-engine { display: grid; gap: 12px; }
+.le-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.le-stats div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); }
+.le-stats strong { font-size: var(--t-xl); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.le-stats span { font-size: var(--t-xs); color: var(--ink-3); }
+.le-stats .is-hot strong { color: var(--bad); }
+.le-syncbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
+.le-syncbar button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+.le-setup { margin: 0; font-size: var(--t-xs); }
+.le-banner { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--bad) 10%, transparent); font-size: var(--t-sm); }
+.le-banner code { white-space: pre-wrap; word-break: break-word; font-size: var(--t-xs); color: var(--ink); }
+.le-tabs { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); }
+.le-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: var(--t-sm); font-weight: 600; }
+.le-tabs button span { font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.le-tabs button[aria-selected='true'] { background: var(--accent-soft); color: var(--ink); }
+.le-tabs button.is-hot span { color: var(--bad); font-weight: 700; }
+.le-filters { display: grid; gap: 8px; }
+.le-filters select, .le-filters input { min-height: 40px; }
+.le-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.le-card { display: grid; gap: 4px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); color: var(--ink); text-align: left; }
+.le-card:hover, .le-card:focus-visible { border-color: var(--line-2); }
+.le-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.le-card-top b { font-size: var(--t-md); }
+.le-card-meta { font-size: var(--t-sm); color: var(--ink-2); }
+.le-card-foot { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.le-wait { color: var(--bad); font-weight: 700; }
+.le-flag { color: var(--watch); font-weight: 600; }
+.le-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.le-chip.le-new { color: var(--accent-hi); border-color: var(--accent); }
+.le-chip.le-contacted, .le-chip.le-quoted { color: var(--watch); border-color: color-mix(in srgb, var(--watch) 50%, transparent); }
+.le-chip.le-scheduled, .le-chip.le-won { color: var(--good); border-color: color-mix(in srgb, var(--good) 50%, transparent); }
+.le-chip.le-lost, .le-chip.le-dead { color: var(--ink-3); }
+.le-panel { display: grid; gap: 14px; }
+.le-panel-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; font-size: var(--t-sm); color: var(--ink-2); }
+.le-why { margin: 0; font-size: var(--t-sm); color: var(--watch); }
+.le-suggest { display: grid; gap: 8px; }
+.le-suggest > div { display: grid; gap: 2px; }
+.le-suggest button { min-height: 44px; justify-content: flex-start; text-align: left; }
+.le-suggest small { font-size: var(--t-xs); overflow-wrap: anywhere; }
+.le-hint { color: var(--accent-hi); font-weight: 600; }
+.le-review { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); overflow-wrap: anywhere; }
+.le-review p { margin: 0; }
+.le-quote { margin: 0; padding-left: 10px; border-left: 2px solid var(--line-2); font-size: var(--t-sm); color: var(--ink-2); }
+.le-cand { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); font-size: var(--t-sm); }
+.le-review button { min-height: 44px; }
+.le-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.le-actions > a, .le-actions > button, .le-date { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.le-date input { min-height: 32px; padding: 0 4px; }
+.le-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--t-sm); }
+.le-fields { display: grid; gap: 2px; }
+.le-field { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 8px; min-height: 44px; margin: 0; border-bottom: 1px solid var(--line); font-size: var(--t-sm); }
+.le-field > span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); }
+.le-field input, .le-field textarea, .le-field select { width: 100%; min-height: 40px; border: 1px solid transparent; background: transparent; color: var(--ink); font: inherit; }
+.le-field input:focus, .le-field textarea:focus, .le-field select:focus { border-color: var(--accent); background: var(--panel-2); }
+.le-field textarea { resize: vertical; padding-top: 10px; }
+.le-auto { padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-hi); font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.le-proxy b { font-weight: 500; color: var(--ink-2); }
+.le-lsa { margin: 0; font-size: var(--t-xs); }
+.le-thread-title { margin: 0; font-size: var(--t-sm); }
+.le-thread { display: grid; gap: 8px; max-height: 50vh; margin: 0; padding: 4px; overflow-y: auto; list-style: none; }
+.le-msg { display: grid; gap: 2px; max-width: 85%; justify-self: start; }
+.le-msg.le-us { justify-self: end; text-align: right; }
+.le-bubble { padding: 8px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2); font-size: var(--t-sm); text-align: left; overflow-wrap: anywhere; }
+.le-bubble p { margin: 0; white-space: pre-wrap; }
+.le-bubble a { display: block; margin-top: 4px; font-size: var(--t-xs); }
+.le-us .le-bubble { border-color: transparent; background: var(--accent-soft); }
+.le-msg time { font-size: 10px; color: var(--ink-4); }
+@media (max-width: 640px) {
+  .le-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .le-stats div { padding: 8px 10px; }
+  .le-tabs button { flex-direction: column; gap: 0; min-height: 44px; padding: 2px 2px; font-size: 11px; line-height: 1.15; overflow-wrap: anywhere; }
+  .le-field { grid-template-columns: 1fr; gap: 0; padding: 6px 0; }
+}

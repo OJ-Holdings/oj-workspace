@@ -52,7 +52,16 @@ export function Modal({ title, open, onClose, children }: { title: string; open:
 
 /* ------------------------------ Leads ------------------------------ */
 
-const blankLead: LeadInput = { name: '', phone: '', address: '', service_requested: '', quote_amount: '', notes: '', source: 'dtd' };
+/** Lead inbox (LSA follow-ups), the pipeline, and the customer directory. */
+export function LeadsTabs({ base, current }: { base: string; current: 'inbox' | 'leads' }) {
+  return <nav className="subtabs" aria-label="Customers views">
+    <Link href={`${base}/b/exterior/inbox`} aria-current={current === 'inbox' ? 'page' : undefined}>Lead inbox</Link>
+    <Link href={`${base}/b/exterior/leads`} aria-current={current === 'leads' ? 'page' : undefined}>Pipeline</Link>
+    <Link href={`${base}/customers`}>Directory</Link>
+  </nav>;
+}
+
+const blankLead: LeadInput ={ name: '', phone: '', address: '', service_requested: '', quote_amount: '', notes: '', source: 'dtd' };
 
 export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const [filter, setFilter] = useState('all');
@@ -88,7 +97,7 @@ export function LeadsManager({ data, act, busy, readOnly, org, now }: Common) {
   const rows = sortLeadsForWork(data.leads.filter(l => (filter === 'all' || l.status === filter) && matchesLeadWorkFocus(l,workFocus) && (!q || [l.name, l.phone, l.address, l.service_requested].some(v => (v ?? '').toLowerCase().includes(q)))));
 
   return <>
-    <nav className="subtabs" aria-label="Customers views"><Link href={`${base}/b/exterior/leads`} aria-current="page">Pipeline</Link><Link href={`${base}/customers`}>Directory</Link></nav>
+    <LeadsTabs base={base} current="leads" />
     <p className="lead-pipeline-note">Open pipeline <strong><NumberFlow value={pipeline} format={usd} /></strong> <span className="quiet">quoted on open leads, not money in</span></p>
     {data.coverage?.leads&&data.coverage.leads.total!==null&&data.coverage.leads.total>data.coverage.leads.loaded&&
       <p className="banner-inline" role="status">Showing {data.coverage.leads.loaded} of {data.coverage.leads.total} customers. Counts cover those only.</p>}

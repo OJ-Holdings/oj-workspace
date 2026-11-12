@@ -229,7 +229,7 @@ export function App({ base, initial, mode, organizationId, members, dashboard, c
   if (parts[0] === 'b' && parts[1] && isVenture(parts[1])) {
     current = parts[1] === 'exterior' && parts[2] === 'projects' ? 'nexus'
       : parts[1] === 'exterior' && parts[2] === 'bookings' ? 'exterior-bookings'
-      : parts[1] === 'exterior' && parts[2] === 'leads' ? 'exterior-leads'
+      : parts[1] === 'exterior' && (parts[2] === 'leads' || parts[2] === 'inbox') ? 'exterior-leads'
       : parts[2] === 'money' ? 'finance' : 'businesses';
     venture = parts[1];
   }

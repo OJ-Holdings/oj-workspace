@@ -7,6 +7,8 @@ import { isSheetUrl, isValidBlock, leadSources, leadStatuses, normalizePhone, pl
 import { planClashes, planVisits, MAX_DAYS_PER_VISIT, MAX_VISITS, type Frequency } from '@/lib/commercial-booking';
 import { parseCsv, parseDoorRows, planDedupe, planSheetSync, sheetCsvUrl, type SyncLead } from '@/lib/exterior-sync';
 import { lsaNote, MAX_LSA_ROWS, parseLsaExport, planLsaImport } from '@/lib/lsa-import';
+import { applyIngest, asEngineLead, googleConfig, readLeads, readReviews, readState, syncLsa, type ErrorKind, type ReviewRow } from '@/lib/lsa-sync';
+import { ENGINE_COLUMNS, lsaIds, manualContact, mergeLeads, planIngest, stageAction, type EngineLead } from '@/lib/lead-pipeline';
 
 type Client = Awaited<ReturnType<typeof requireMember>>['client'];
 const num = (v: unknown) => v === null || v === undefined ? null : Number(v);
@@ -404,6 +406,10 @@ export async function importLeadSheet(org: string, apply: boolean): Promise<Done
     const { data: existing, error } = await client.from('leads').select(syncColumns).limit(10000);
     if (error) throw new Error(error.message);
     const plan = planSheetSync(rows, (existing ?? []) as SyncLead[], Date.now().toString().slice(-7));
+    // Archived leads (the Spring Revival list) are never changed by a sheet import. Before the lead engine update there are none.
+    const archived = await client.from('leads').select('id').not('archived_at', 'is', null).limit(10000);
+    const frozen = new Set(archived.error ? [] : (archived.data ?? []).map(r => r.id as string));
+    plan.updates = plan.updates.filter(u => !frozen.has(u.id));
     if (!apply) return { ok: true, added: plan.inserts.length, updated: plan.updates.length, unchanged: plan.unchanged, failed: 0 };
     const now = new Date().toISOString();
     let failed = 0;
@@ -632,5 +638,178 @@ export async function bookCommercialVisits(org: string, input: CommercialBooking
       say(`${booked} of ${plan.length} days were booked before a problem: ${why} Check the calendar for ${company} before booking again.`);
     }
     return { ok: true, visits, days: plan.length, first, last };
+  });
+}
+
+/* ------------------------------ Local Services Ads lead engine ------------------------------ */
+
+export type LeadSyncView = { lastRunAt: string | null; lastOkAt: string | null; errorKind: ErrorKind | null; lastError: string | null; opsUsed: number; setupProblem: string | null; poller: boolean };
+export type LeadEngineResult =
+  | { ok: true; ready: true; leads: EngineLead[]; reviews: ReviewRow[]; sync: LeadSyncView; customerId: string | null }
+  | { ok: true; ready: false; message: string }
+  | { ok: false; message: string };
+const missingSchema = (e: { code?: string; message: string }) => ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(e.code ?? '') || /does not exist|could not find/i.test(e.message);
+const engineUpdate = 'The lead inbox needs its database update. A founder runs docs/db-change-proposals/RUN-ME-2026-11-02-lsa-lead-engine.sql in Supabase (after a backup). Every other screen works as before.';
+
+/** Leads with their LSA threads and follow-up counters, plus where the sync stands. */
+export async function loadLeadEngine(org: string): Promise<LeadEngineResult> {
+  let client: Client;
+  try { ({ client } = await requireMember(org, true)); } catch { return { ok: false, message: 'These leads hold customers’ names and phone numbers, so view-only access does not include them.' }; }
+  const leads = await client.from('leads').select(ENGINE_COLUMNS).order('created_at', { ascending: false }).limit(5000);
+  if (leads.error) return missingSchema(leads.error) ? { ok: true, ready: false, message: engineUpdate } : { ok: false, message: `The leads did not load: ${leads.error.message}` };
+  let state;
+  let reviews: ReviewRow[];
+  try { state = await readState(client, org); reviews = (await readReviews(client, org)).filter(r => r.status === 'pending'); } catch { return { ok: true, ready: false, message: engineUpdate }; }
+  let setupProblem: string | null = null;
+  try { googleConfig(); } catch (e) { setupProblem = e instanceof Error ? e.message : String(e); }
+  const customerId = (process.env.GOOGLE_ADS_LSA_CUSTOMER_ID ?? '').replace(/\D/g, '') || null;
+  return {
+    ok: true, ready: true, customerId, leads: ((leads.data ?? []) as unknown as Record<string, unknown>[]).map(asEngineLead), reviews,
+    sync: { lastRunAt: state.last_run_at, lastOkAt: state.last_ok_at, errorKind: state.error_kind, lastError: state.last_error, opsUsed: state.ops_used, setupProblem, poller: process.env.LSA_POLL === 'on' },
+  };
+}
+
+/** The Sync now button. Runs with the person's own session, so the database still decides what it may write. */
+export async function syncLeadsNow(org: string): Promise<Done<{ summary: string }>> {
+  return guarded(org, async client => {
+    const state = await readState(client, org).catch(() => say(engineUpdate));
+    if (state.last_run_at && Date.now() - Date.parse(state.last_run_at) < 30_000) say('A sync ran under 30 seconds ago. Give it a moment.');
+    const r = await syncLsa(client, org, 'manual');
+    if (!r.ok) return say(r.message);
+    return { ok: true, summary: `Synced: ${r.created} new, ${r.linked} linked, ${r.events} messages${r.held ? `, ${r.held} possible duplicate${r.held === 1 ? '' : 's'} to check` : ''}${r.dead ? `, ${r.dead} marked Dead` : ''}.${r.warning ? ` ${r.warning}` : ''}` };
+  });
+}
+
+const engineActions = ['contacted', 'quoted', 'scheduled', 'won', 'lost', 'dead', 'unarchive', 'dispute'] as const;
+export type LeadEngineAction = typeof engineActions[number];
+
+/** The one-tap buttons on a lead: Contacted, Quoted, Scheduled, Won, Lost, Dead, Unarchive and the Dispute toggle. */
+export async function leadEngineAction(org: string, id: string, action: LeadEngineAction, value?: string | number | null): Promise<Done<{ id: string }>> {
+  return guarded(org, async (client, who) => {
+    const leadId = uuid(id);
+    if (!engineActions.includes(action)) say('That action is not available.');
+    const { data, error } = await client.from('leads').select(ENGINE_COLUMNS).eq('id', leadId).maybeSingle();
+    if (error && missingSchema(error)) say(engineUpdate);
+    if (error || !data) say('That lead no longer exists.');
+    const lead = asEngineLead(data as unknown as Record<string, unknown>);
+    const now = new Date().toISOString();
+    let patch: Record<string, unknown>;
+    if (action === 'contacted') patch = manualContact(lead, now);
+    else if (action === 'dispute') patch = { dispute: !lead.dispute };
+    else if (action === 'quoted') {
+      const amount = money(value, 'Quote');
+      if (amount === null) say('Enter the quote amount.');
+      const locked = Array.isArray(lead.manually_updated_fields) ? lead.manually_updated_fields as string[] : [];
+      patch = { ...stageAction(lead, 'quoted', now, amount!), manually_updated_fields: [...new Set([...locked, 'quote_amount'])], auto_fields: lead.auto_fields.filter(f => f !== 'quote_amount') };
+    } else if (action === 'scheduled') patch = stageAction(lead, 'scheduled', now, day(value));
+    else patch = stageAction(lead, action, now);
+    await changed(client.from('leads').update({ ...patch, updated_at: now }).eq('id', leadId).select('id'));
+    const said = action === 'dispute' ? (lead.dispute ? 'Dispute flag removed' : 'Flagged for an LSA dispute') : action === 'unarchive' ? 'Unarchived' : `Marked ${action}`;
+    await log(client, who, `lead_${action}`, `${said}: ${lead.name ?? 'lead'}`, { id: leadId, name: lead.name }, { action, ...(patch.dead_reason ? { reason: patch.dead_reason } : {}) });
+    return { ok: true, id: leadId };
+  });
+}
+
+const engineFields = ['name', 'phone', 'email', 'address', 'service_requested', 'quote_amount', 'source', 'notes', 'scheduled_on'] as const;
+export type LeadEngineField = typeof engineFields[number];
+
+/** Saves one field edited in place. The field is then protected: the sync and auto-fill never overwrite it. */
+export async function saveLeadEngineField(org: string, id: string, field: LeadEngineField, raw: string): Promise<Done<{ id: string }>> {
+  return guarded(org, async (client, who) => {
+    const leadId = uuid(id);
+    if (!engineFields.includes(field)) say('That field cannot be edited here.');
+    let value: unknown;
+    switch (field) {
+      case 'name': value = text(raw, 255, 'Name', true); break;
+      case 'phone': value = normalizePhone(raw) ?? say('Enter a 10-digit phone number.'); break;
+      case 'email': { const v = text(raw, 320, 'Email'); value = v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v?.toLowerCase() ?? null : say('Enter a valid email address.'); break; }
+      case 'address': value = text(raw, 500, 'Address'); break;
+      case 'service_requested': value = text(raw, 255, 'Service'); break;
+      case 'quote_amount': value = money(raw, 'Quote'); break;
+      case 'source': value = text(raw, 100, 'Source'); break;
+      case 'notes': value = text(raw, 4000, 'Notes'); break;
+      case 'scheduled_on': value = raw ? day(raw) : null; break;
+    }
+    const { data: current, error } = await client.from('leads').select('name,manually_updated_fields,auto_fields').eq('id', leadId).maybeSingle();
+    if (error && missingSchema(error)) say(engineUpdate);
+    if (error || !current) say('That lead no longer exists.');
+    const locked = Array.isArray(current!.manually_updated_fields) ? current!.manually_updated_fields as string[] : [];
+    const auto = Array.isArray(current!.auto_fields) ? current!.auto_fields as string[] : [];
+    const now = new Date().toISOString();
+    await changed(client.from('leads').update({ [field]: value, manually_updated_fields: [...new Set([...locked, field])], auto_fields: auto.filter(f => f !== field), updated_at: now }).eq('id', leadId).select('id'));
+    await log(client, who, 'lead_updated', `Updated ${current!.name ?? 'lead'}: ${field.replace('_', ' ')}`, { id: leadId, name: (current!.name as string) ?? null }, { fields: [field] });
+    return { ok: true, id: leadId };
+  });
+}
+
+/**
+ * Merge or Keep separate on a possible duplicate. Records who decided, then carries
+ * it out at once with the sync's own rules (Merge fills only empty fields of the chosen
+ * lead; Keep separate adds a new lead that is never matched to these candidates again).
+ * If carrying it out fails, the decision stays saved and the next sync finishes it.
+ */
+export async function decideLeadReview(org: string, id: string, decision: 'merge' | 'separate', mergeInto?: string | null): Promise<Done<{ id: string }>> {
+  return guarded(org, async (client, who) => {
+    const reviewId = uuid(id);
+    if (decision !== 'merge' && decision !== 'separate') say('Choose Merge or Keep separate.');
+    const reviews = await readReviews(client, org).catch(() => say(engineUpdate));
+    const review = reviews.find(r => r.id === reviewId) ?? say('That possible duplicate no longer exists.');
+    if (review.status !== 'pending') say('This one was already decided. Refresh to see where it went.');
+    const target = decision === 'merge' ? uuid(mergeInto) : null;
+    const into = target ? review.candidates.find(c => c.id === target) ?? say('Merge only into one of the leads shown.') : null;
+    const { data: { user } } = await client.auth.getUser();
+    const now = new Date().toISOString();
+    await changed(client.from('oj_lsa_review').update({ status: decision, merge_into: target, decided_by: user?.id ?? null, decided_at: now, updated_at: now }).eq('id', reviewId).eq('status', 'pending').select('id'));
+    const plan = planIngest(await readLeads(client), [], [], now, { reviews: [{ ...review, status: decision, merge_into: target }] });
+    const failed = await applyIngest(client, org, plan);
+    const name = review.lead.name ?? 'LSA lead';
+    const done = plan.matches.find(m => m.lsaId === review.lsa_lead_id);
+    if (into && done?.kind !== 'merged') say('That lead is gone (merged or removed since). The duplicate is back in the list: choose again.');
+    const merged = done?.targets[0] ?? into;
+    await log(client, who, decision === 'merge' ? 'lead_merged' : 'lead_kept_separate', merged ? `Merged ${name} (LSA) into ${merged.name ?? 'a lead'}` : `Kept ${name} (LSA) as a new lead`, merged ? { id: merged.id, name: merged.name } : null, { lsa_lead_id: review.lsa_lead_id });
+    if (failed.length) say(`Decision saved, but it could not be carried out yet (${failed[0]}). The next sync finishes it.`);
+    return { ok: true, id: reviewId };
+  });
+}
+
+/**
+ * Link to existing lead: an LSA lead the sync added is someone already here. Its LSA ids,
+ * conversation and contact log move onto the chosen lead, which only gets its EMPTY fields
+ * filled (the same rules as the sheet archive; hand-edited fields never change). The LSA
+ * lead is archived with lsa.mergedInto, never deleted. Its unique LSA id is freed first;
+ * if the chosen lead cannot be saved, the LSA lead is put back as it was. Both saves only
+ * go through if neither lead changed since they were read.
+ */
+export async function linkLsaLead(org: string, fromId: string, toId: string): Promise<Done<{ id: string }>> {
+  return guarded(org, async (client, who) => {
+    const from = uuid(fromId), to = uuid(toId);
+    if (from === to) say('Choose a different lead to link to.');
+    const { data, error } = await client.from('leads').select(ENGINE_COLUMNS).in('id', [from, to]);
+    if (error && missingSchema(error)) say(engineUpdate);
+    if (error) throw new Error(error.message);
+    const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map(asEngineLead);
+    const source = rows.find(r => r.id === from) ?? say('That LSA lead no longer exists.');
+    const target = rows.find(r => r.id === to) ?? say('The lead you chose no longer exists.');
+    if (source.lsa?.mergedInto) say('This LSA lead was already linked. Refresh to see where it went.');
+    if (source.lsa?.origin !== 'sync' || !lsaIds(source).length) say('Only a lead the LSA sync added can be linked to another lead.');
+    if (target.lsa?.mergedInto) say('The lead you chose was merged into another one. Refresh and choose again.');
+    const now = new Date().toISOString();
+    const merge = mergeLeads(target, source, `Linked by hand by ${who}`, now);
+
+    let free = client.from('leads').update(merge.dupPatch).eq('id', from);
+    free = source.updated_at ? free.eq('updated_at', source.updated_at) : free.is('updated_at', null);
+    const freed = await free.select('id');
+    if (freed.error) throw new Error(freed.error.message);
+    if (!freed.data?.length) say('That LSA lead changed meanwhile. Refresh and try again.');
+    let move = client.from('leads').update(merge.patch).eq('id', to);
+    move = target.updated_at ? move.eq('updated_at', target.updated_at) : move.is('updated_at', null);
+    const moved = await move.select('id');
+    if (moved.error || !moved.data?.length) {
+      const back = await client.from('leads').update(merge.restore).eq('id', from).select('id');
+      if (back.error || !back.data?.length) console.error('Link to existing lead: the LSA lead could not be put back:', from, back.error?.message ?? 'no row changed');
+      say(moved.error ? 'The chosen lead could not be saved, so nothing was linked.' : 'The chosen lead changed meanwhile, so nothing was linked. Refresh and try again.');
+    }
+    await log(client, who, 'lead_linked', `Linked ${source.name ?? 'an LSA lead'} (LSA) to ${target.name ?? 'a lead'}`, { id: to, name: target.name }, { from, lsa_ids: lsaIds(source), kept_different: merge.conflicts.map(c => c.field) });
+    return { ok: true, id: to };
   });
 }
