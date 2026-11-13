@@ -29,7 +29,7 @@ export function ExteriorCommandNav({base,active}:{base:string;active:string}){
   const path=`${base}/b/exterior`;
   return <div className="excmd-nav" aria-label="Exterior Care application navigation">
     <div className="excmd-nav-identity"><div className="excmd-nav-emblem" aria-hidden="true">OJ<span>EC</span></div>
-      <div><span>ATLAS / FIELD SERVICES DIVISION</span><strong>OJ Exterior Care</strong></div></div>
+      <div><strong>OJ Exterior Care</strong></div></div>
     <nav className="excmd-nav-tabs" aria-label="Exterior Command primary areas">
       {primary.map(item=><Link key={item.id} href={path+item.href} aria-current={current.id===item.id?'page':undefined} className={current.id===item.id?'excmd-nav-tab is-active':'excmd-nav-tab'}>
         <item.icon size={17} aria-hidden="true"/><span>{item.short}</span></Link>)}
